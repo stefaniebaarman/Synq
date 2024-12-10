@@ -9,6 +9,7 @@ export default function App() {
   const colorScheme = useColorScheme();
   const isFirstTimeUser = true;
 
+  
   if (!isLoadingComplete) {
     return null;
   } else {
