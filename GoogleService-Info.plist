@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>CLIENT_ID</key>
+	<string>403608219725-ob3u8tmr5j2vfsuo4fv0m8mdhi6c19t7.apps.googleusercontent.com</string>
+	<key>REVERSED_CLIENT_ID</key>
+	<string>com.googleusercontent.apps.403608219725-ob3u8tmr5j2vfsuo4fv0m8mdhi6c19t7</string>
+	<key>API_KEY</key>
+	<string>AIzaSyCpLYNW0n5c9YDHiUa4cQ4YE0VAtRsC31s</string>
+	<key>GCM_SENDER_ID</key>
+	<string>403608219725</string>
+	<key>NSCameraUsageDescription</key>
+<string>We need access to your camera to update your profile picture</string>
+<key>NSPhotoLibraryUsageDescription</key>
+<string>We need access to your photo library to update your praofile picture</string>
+
+	<key>PLIST_VERSION</key>
+	<string>1</string>
+	<key>BUNDLE_ID</key>
+	<string>51238855-6309-46b4-817d-29e2e05177c4</string>
+	<key>PROJECT_ID</key>
+	<string>synq-main-auth</string>
+	<key>STORAGE_BUCKET</key>
+	<string>synq-main-auth.appspot.com</string>
+	<key>IS_ADS_ENABLED</key>
+	<false></false>
+	<key>IS_ANALYTICS_ENABLED</key>
+	<false></false>
+	<key>IS_APPINVITE_ENABLED</key>
+	<true></true>
+	<key>IS_GCM_ENABLED</key>
+	<true></true>
+	<key>IS_SIGNIN_ENABLED</key>
+	<true></true>
+	<key>GOOGLE_APP_ID</key>
+	<string>1:403608219725:ios:9e61adbe9445a8cec82c04</string>
+</dict>
+</plist>

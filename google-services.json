@@ -1,0 +1,46 @@
+{
+  "project_info": {
+    "project_number": "403608219725",
+    "project_id": "synq-main-auth",
+    "storage_bucket": "synq-main-auth.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:403608219725:android:b49e2add66c59701c82c04",
+        "android_client_info": {
+          "package_name": "com.sbaarman.myapp"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "403608219725-ohsii72glqh9d6a02l2rgfmimj1am1ln.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDP8XcGkwE_OYYyW3h7GXa2-QLeamlRBYg"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "403608219725-ohsii72glqh9d6a02l2rgfmimj1am1ln.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "403608219725-3ifj7epu9v72fcv133q7ftvja0dub0nb.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.sbaarman.myapp"
+              }
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
