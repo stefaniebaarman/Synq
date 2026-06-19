@@ -468,7 +468,7 @@ const styles = StyleSheet.create({
   moodPill: {
     width: "100%",
     borderWidth: StyleSheet.hairlineWidth,
-    borderColor: "rgba(255,255,255,0.12)",
+    borderColor: MUTED3,
     backgroundColor: "rgba(255,255,255,0.03)",
     borderRadius: RADIUS_MD,
     paddingHorizontal: SPACE_4,
@@ -517,7 +517,7 @@ const styles = StyleSheet.create({
     paddingVertical: 13,
     paddingHorizontal: SPACE_4,
     borderWidth: StyleSheet.hairlineWidth,
-    borderColor: "rgba(255,255,255,0.12)",
+    borderColor: MUTED3,
     backgroundColor: "rgba(255,255,255,0.03)",
     borderRadius: RADIUS_MD,
   },

@@ -1,8 +1,10 @@
+import { sheetStyles } from "@/constants/sheetStyles";
 import {
   ACCENT,
   BG,
   BORDER,
   BUTTON_RADIUS,
+  MODAL_OVERLAY,
   MODAL_RADIUS,
   MUTED2,
   ON_ACCENT_TEXT,
@@ -11,7 +13,6 @@ import {
   TYPE_CAPTION,
   TYPE_CTA,
   TYPE_LEAD,
-  TYPE_MODAL_TITLE,
   fonts,
 } from "@/constants/Variables";
 import * as Location from "expo-location";
@@ -181,10 +182,10 @@ export default function LocationUpdateModal({ visible, onClose, onSaved }: Props
 
   return (
     <Modal visible={visible} animationType="fade" transparent>
-      <View style={styles.overlay}>
-        <View style={styles.popup}>
-          <Text style={styles.mainTitle}>Improve nearby matches</Text>
-          <Text style={styles.body}>
+      <View style={sheetStyles.overlayCentered}>
+        <View style={sheetStyles.card}>
+          <Text style={sheetStyles.title}>Improve nearby matches</Text>
+          <Text style={[sheetStyles.body, styles.bodySpacing]}>
             Let Synq auto-fill your location so nearby matches are more accurate. Edit your location anytime on your profile.
           </Text>
           <Text style={styles.privacy}>
@@ -198,7 +199,7 @@ export default function LocationUpdateModal({ visible, onClose, onSaved }: Props
             activeOpacity={0.85}
           >
             {isUpdating || locating ? (
-              <ActivityIndicator size="small" color="black" />
+              <ActivityIndicator size="small" color={ON_ACCENT_TEXT} />
             ) : (
               <Text style={styles.saveBtnText}>Use current location</Text>
             )}
@@ -230,37 +231,11 @@ export default function LocationUpdateModal({ visible, onClose, onSaved }: Props
 }
 
 const styles = StyleSheet.create({
-  overlay: {
-    flex: 1,
-    backgroundColor: "rgba(0,0,0,0.75)",
-    justifyContent: "center",
-    alignItems: "center",
-    paddingHorizontal: 22,
-  },
-  popup: {
-    width: "100%",
-    maxWidth: 420,
-    backgroundColor: BG,
-    borderWidth: 1,
-    borderColor: BORDER,
-    borderRadius: 22,
-    padding: 22,
-  },
-  mainTitle: {
-    color: TEXT,
-    fontSize: TYPE_MODAL_TITLE,
-    fontFamily: fonts.heavy,
-    marginBottom: 6,
-  },
-  body: {
-    color: MUTED2,
-    fontSize: TYPE_BUTTON,
-    fontFamily: fonts.book,
-    lineHeight: 22,
+  bodySpacing: {
     marginBottom: 10,
   },
   privacy: {
-    color: "rgba(255,255,255,0.42)",
+    color: MUTED2,
     fontSize: TYPE_CAPTION,
     fontFamily: fonts.book,
     lineHeight: 18,
@@ -275,7 +250,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
-  saveBtnText: { color: ON_ACCENT_TEXT, fontFamily: fonts.heavy, fontSize: TYPE_BUTTON },
+  saveBtnText: sheetStyles.primaryBtnText,
   cancelBtn: {
     marginTop: 12,
     alignSelf: "center",
@@ -290,7 +265,7 @@ const styles = StyleSheet.create({
   alertLayer: {
     ...StyleSheet.absoluteFillObject,
     zIndex: 20,
-    backgroundColor: "rgba(0,0,0,0.75)",
+    backgroundColor: MODAL_OVERLAY,
     justifyContent: "center",
     alignItems: "center",
     paddingHorizontal: 24,

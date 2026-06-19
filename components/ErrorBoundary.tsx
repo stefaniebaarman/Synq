@@ -3,6 +3,7 @@ import { Pressable, StyleSheet, Text, View } from "react-native";
 import {
   ACCENT,
   BG,
+  MUTED2,
   TEXT,
   TYPE_BODY,
   TYPE_TITLE,
@@ -70,7 +71,7 @@ const styles = StyleSheet.create({
     textAlign: "center",
   },
   body: {
-    color: "rgba(255,255,255,0.65)",
+    color: MUTED2,
     fontFamily: fonts.medium,
     fontSize: TYPE_BODY,
     textAlign: "center",
@@ -83,7 +84,7 @@ const styles = StyleSheet.create({
     borderRadius: 14,
   },
   btnText: {
-    color: "#090A0B",
+    color: BG,
     fontFamily: fonts.heavy,
     fontSize: TYPE_BODY,
   },

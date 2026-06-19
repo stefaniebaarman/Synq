@@ -1,6 +1,7 @@
 import {
   ACCENT,
   BG,
+  MUTED,
   TYPE_MODAL_TITLE,
   fonts,
   synqSvg,
@@ -248,7 +249,7 @@ const styles = StyleSheet.create({
   },
   title: {
     marginTop: 28,
-    color: "rgba(255,255,255,0.72)",
+    color: MUTED,
     fontSize: TYPE_MODAL_TITLE,
     fontFamily: fonts.heavy,
     letterSpacing: 0.2,

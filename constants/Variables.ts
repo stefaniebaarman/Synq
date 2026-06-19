@@ -146,12 +146,41 @@ export const SURFACE_RAISED = "#0E1012";
 export const SURFACE_ELEVATED = "#1C1C1E";
 /** Memo and input field backgrounds. */
 export const SURFACE_INPUT = "#0A0B0D";
+/** Deep wells in community/memo modals. */
+export const SURFACE_DEEP = "#0c0c0c";
+/** Deepest inset wells (memo footer, modal footers). */
+export const SURFACE_DEEPER = "#050505";
+/** Bottom sheet and action sheet backgrounds. */
+export const SHEET_SURFACE = "#141414";
+/** Alternate sheet surface (report modal, explore panels). */
+export const SURFACE_SHEET_ALT = "#161616";
+/** Inset card backgrounds (community plans, explore). */
+export const SURFACE_INSET = "#101214";
+/** Avatar wells and icon circles. */
+export const SURFACE_WELL = "#111";
+/** Slightly lifted dark surface. */
+export const SURFACE_LIFTED = "#1a1a1a";
+/** Near-black panel backgrounds. */
+export const SURFACE_PANEL = "#0E0F11";
 export const BORDER_STRONG = "#222";
 export const BORDER_MUTED = "#333";
 export const TEXT_MUTED_HEX = "#A8A8A8";
+/** Calendar and memo muted labels. */
+export const TEXT_MUTED_DARK = "#666";
+export const TEXT_MUTED_DARKER = "#777";
+export const TEXT_MUTED_LIGHT = "#888";
+export const TEXT_MUTED_FAINT = "#444";
 export const MODAL_OVERLAY = "rgba(0,0,0,0.75)";
+/** Bottom sheet scrim (lighter than centered modals). */
+export const SHEET_OVERLAY = "rgba(0,0,0,0.55)";
+/** Disabled primary CTA fill (iOS system gray). */
+export const DISABLED_CTA = "#8E8E93";
 export const ACCENT_SUBTLE = "rgba(0,255,133,0.28)";
+/** Selected row tint on accent-bordered lists. */
+export const ACCENT_SELECTED_BG = "rgba(120,255,120,0.08)";
 export const STATUS_AVAILABLE = "#34D399";
+/** Group list borders — slightly subtler than BORDER. */
+export const GROUP_BORDER = "rgba(255,255,255,0.06)";
 /** Standard horizontal inset for scrollable screen content. */
 export const SCREEN_H_PADDING = SPACE_5;
 

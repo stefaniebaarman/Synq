@@ -1,0 +1,85 @@
+import { StyleSheet } from "react-native";
+import {
+  BG,
+  BORDER,
+  MODAL_RADIUS,
+  SHEET_OVERLAY,
+  SHEET_SURFACE,
+  SPACE_4,
+  SPACE_5,
+  SURFACE_SHEET_ALT,
+  modalBodyText,
+  modalTitleText,
+  primaryButtonText,
+  TYPE_LEAD,
+  fonts,
+  MUTED2,
+  TEXT,
+} from "./Variables";
+
+export const sheetStyles = StyleSheet.create({
+  overlay: {
+    flex: 1,
+    backgroundColor: SHEET_OVERLAY,
+    justifyContent: "flex-end",
+  },
+  overlayCentered: {
+    flex: 1,
+    backgroundColor: SHEET_OVERLAY,
+    justifyContent: "center",
+    alignItems: "center",
+    paddingHorizontal: SPACE_5,
+  },
+  sheet: {
+    backgroundColor: SHEET_SURFACE,
+    borderTopLeftRadius: MODAL_RADIUS,
+    borderTopRightRadius: MODAL_RADIUS,
+    padding: SPACE_5,
+    paddingBottom: 36,
+    borderWidth: 1,
+    borderColor: BORDER,
+  },
+  sheetAlt: {
+    backgroundColor: SURFACE_SHEET_ALT,
+    borderTopLeftRadius: MODAL_RADIUS,
+    borderTopRightRadius: MODAL_RADIUS,
+    padding: SPACE_5,
+    paddingBottom: 36,
+    borderWidth: 1,
+    borderColor: BORDER,
+  },
+  card: {
+    width: "100%",
+    maxWidth: 420,
+    backgroundColor: BG,
+    borderWidth: 1,
+    borderColor: BORDER,
+    borderRadius: MODAL_RADIUS,
+    padding: 22,
+  },
+  title: {
+    ...modalTitleText,
+    marginBottom: 6,
+  },
+  body: {
+    ...modalBodyText,
+    lineHeight: 22,
+  },
+  bodyCompact: {
+    color: MUTED2,
+    fontSize: TYPE_LEAD,
+    fontFamily: fonts.book,
+    lineHeight: 20,
+  },
+  secondaryBtnText: {
+    color: MUTED2,
+    fontSize: TYPE_LEAD,
+    fontFamily: fonts.medium,
+  },
+  primaryBtnText: primaryButtonText,
+  destructiveText: {
+    color: TEXT,
+    fontFamily: fonts.heavy,
+    fontSize: TYPE_LEAD,
+  },
+});

@@ -2,6 +2,7 @@ import {
   ACCENT,
   BG,
   BUTTON_RADIUS,
+  MUTED,
   ON_ACCENT_TEXT,
   PRIMARY_CTA_HEIGHT,
   PRIMARY_CTA_WIDTH,
@@ -70,7 +71,7 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   message: {
-    color: "rgba(255,255,255,0.72)",
+    color: MUTED,
     fontFamily: fonts.medium,
     fontSize: TYPE_BODY,
     lineHeight: 24,
