@@ -14,6 +14,7 @@ import {
   fonts,
 } from "@/constants/Variables";
 import CloseButton from "@/src/components/CloseButton";
+import { useCreateSheetLayout } from "@/src/components/friends/createSheetLayout";
 import { resolveAvatar } from "@/src/lib/helpers";
 import { Ionicons } from "@expo/vector-icons";
 import { Image as ExpoImage } from "expo-image";
@@ -55,6 +56,7 @@ export default function CreateCircleModal({
   onCreate,
 }: Props) {
   const insets = useSafeAreaInsets();
+  const { keyboardAvoidStyle, matchedSheetStyle } = useCreateSheetLayout();
   const [name, setName] = useState("");
   const [query, setQuery] = useState("");
   const [selected, setSelected] = useState<Set<string>>(new Set());
@@ -137,14 +139,11 @@ export default function CreateCircleModal({
           accessibilityLabel="Dismiss"
         />
         <KeyboardAvoidingView
-          style={styles.keyboardAvoid}
+          style={keyboardAvoidStyle}
           behavior="padding"
           keyboardVerticalOffset={insets.bottom}
         >
-          <Pressable
-            style={[styles.sheet, { paddingBottom: Math.max(24, insets.bottom) }]}
-            onPress={dismissKeyboard}
-          >
+          <View style={[styles.sheet, matchedSheetStyle]}>
             <View style={styles.header}>
               <Text style={styles.title}>New circle</Text>
               <CloseButton onPress={handleClose} />
@@ -152,20 +151,22 @@ export default function CreateCircleModal({
 
             <View style={styles.fieldBlock}>
               <FieldLabel>Circle name</FieldLabel>
-              <TextInput
-                style={styles.input}
-                placeholder="e.g. Close friends"
-                placeholderTextColor={MUTED2}
-                value={name}
-                onChangeText={setName}
-                maxLength={40}
-                returnKeyType="done"
-                blurOnSubmit
-                onSubmitEditing={dismissKeyboard}
-              />
+              <View style={styles.searchBar}>
+                <TextInput
+                  style={styles.searchInput}
+                  placeholder="e.g. Close friends"
+                  placeholderTextColor={MUTED2}
+                  value={name}
+                  onChangeText={setName}
+                  maxLength={40}
+                  returnKeyType="done"
+                  blurOnSubmit
+                  onSubmitEditing={dismissKeyboard}
+                />
+              </View>
             </View>
 
-            <View style={styles.fieldBlock}>
+            <View style={[styles.fieldBlock, styles.friendsFieldBlock]}>
               <FieldLabel>Add friends</FieldLabel>
               {friends.length > 0 ? (
                 <>
@@ -247,7 +248,7 @@ export default function CreateCircleModal({
                 </Text>
               )}
             </TouchableOpacity>
-          </Pressable>
+          </View>
         </KeyboardAvoidingView>
       </View>
     </Modal>
@@ -259,10 +260,6 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: "flex-end",
     backgroundColor: "rgba(0,0,0,0.72)",
-  },
-  keyboardAvoid: {
-    width: "100%",
-    maxHeight: "92%",
   },
   sheet: {
     backgroundColor: BG,
@@ -280,31 +277,24 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   title: {
-    fontFamily: fonts.medium,
+    fontFamily: fonts.heavy,
     fontSize: TYPE_SECTION,
     color: TEXT,
+    letterSpacing: 0.06,
   },
   fieldBlock: {
     gap: 8,
     marginBottom: 16,
+  },
+  friendsFieldBlock: {
+    flex: 1,
+    minHeight: 0,
   },
   fieldLabel: {
     fontFamily: fonts.medium,
     fontSize: TYPE_BODY,
     color: TEXT,
     letterSpacing: 0.04,
-  },
-  input: {
-    borderRadius: BUTTON_RADIUS,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: MUTED3,
-    backgroundColor: "rgba(255,255,255,0.04)",
-    color: TEXT,
-    fontFamily: fonts.book,
-    fontSize: TYPE_BODY,
-    paddingHorizontal: 14,
-    paddingVertical: 14,
-    minHeight: 52,
   },
   searchBar: {
     flexDirection: "row",
@@ -314,17 +304,17 @@ const styles = StyleSheet.create({
     borderWidth: StyleSheet.hairlineWidth,
     borderColor: MUTED3,
     paddingHorizontal: 12,
-    paddingVertical: 10,
+    minHeight: 44,
   },
   searchInput: {
     flex: 1,
     color: TEXT,
     fontFamily: fonts.book,
     fontSize: TYPE_BODY,
-    paddingVertical: 0,
+    paddingVertical: 12,
   },
   friendList: {
-    maxHeight: 240,
+    flex: 1,
   },
   row: {
     flexDirection: "row",

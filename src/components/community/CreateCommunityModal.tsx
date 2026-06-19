@@ -15,6 +15,7 @@ import {
   fonts,
 } from "@/constants/Variables";
 import CloseButton from "@/src/components/CloseButton";
+import { useCreateSheetLayout } from "@/src/components/friends/createSheetLayout";
 import {
   COMMUNITY_GROUP_CATEGORIES,
   type CommunityGroupCategory,
@@ -67,6 +68,7 @@ export default function CreateCommunityModal({
   onCreate,
 }: Props) {
   const insets = useSafeAreaInsets();
+  const { keyboardAvoidStyle, sheetStyle } = useCreateSheetLayout();
   const [name, setName] = useState("");
   const [category, setCategory] = useState<CommunityGroupCategory | "">("");
   const [location, setLocation] = useState("");
@@ -170,7 +172,18 @@ export default function CreateCommunityModal({
 
   return (
     <>
-      <Modal visible={visible} transparent animationType="slide" onRequestClose={handleClose}>
+      <Modal
+        visible={visible}
+        transparent
+        animationType="slide"
+        onRequestClose={() => {
+          if (categoryVisible) {
+            setCategoryVisible(false);
+            return;
+          }
+          handleClose();
+        }}
+      >
         <View style={styles.overlay}>
           <Pressable
             style={StyleSheet.absoluteFill}
@@ -178,11 +191,11 @@ export default function CreateCommunityModal({
             accessibilityLabel="Dismiss"
           />
           <KeyboardAvoidingView
-            style={styles.keyboardAvoid}
+            style={keyboardAvoidStyle}
             behavior="padding"
             keyboardVerticalOffset={insets.bottom}
           >
-            <View style={[styles.sheet, { paddingBottom: Math.max(24, insets.bottom) }]}>
+            <View style={[styles.sheet, sheetStyle]}>
               <View style={styles.header}>
                 <Text style={styles.title}>New community</Text>
                 <CloseButton onPress={handleClose} />
@@ -197,23 +210,28 @@ export default function CreateCommunityModal({
               >
                 <View style={styles.fieldBlock}>
                   <FieldLabel>Community name</FieldLabel>
-                  <TextInput
-                    style={styles.input}
-                    placeholder="e.g. DC Volo Kickball"
-                    placeholderTextColor={MUTED2}
-                    value={name}
-                    onChangeText={setName}
-                    maxLength={40}
-                    autoCapitalize="words"
-                    returnKeyType="next"
-                  />
+                  <View style={styles.textFieldBar}>
+                    <TextInput
+                      style={styles.textFieldInput}
+                      placeholder="e.g. DC Volo Kickball"
+                      placeholderTextColor={MUTED2}
+                      value={name}
+                      onChangeText={setName}
+                      maxLength={40}
+                      autoCapitalize="words"
+                      returnKeyType="next"
+                    />
+                  </View>
                 </View>
 
                 <View style={styles.fieldBlock}>
                   <FieldLabel>Category</FieldLabel>
                   <TouchableOpacity
                     style={styles.selectInput}
-                    onPress={() => setCategoryVisible(true)}
+                    onPress={() => {
+                      Keyboard.dismiss();
+                      setCategoryVisible(true);
+                    }}
                     activeOpacity={0.8}
                     accessibilityRole="button"
                     accessibilityLabel="Choose category"
@@ -227,29 +245,33 @@ export default function CreateCommunityModal({
 
                 <View style={styles.fieldBlock}>
                   <FieldLabel>Location (optional)</FieldLabel>
-                  <TextInput
-                    style={styles.input}
-                    placeholder="City or neighborhood"
-                    placeholderTextColor={MUTED2}
-                    value={location}
-                    onChangeText={setLocation}
-                    maxLength={80}
-                    autoCapitalize="words"
-                  />
+                  <View style={styles.textFieldBar}>
+                    <TextInput
+                      style={styles.textFieldInput}
+                      placeholder="City or neighborhood"
+                      placeholderTextColor={MUTED2}
+                      value={location}
+                      onChangeText={setLocation}
+                      maxLength={80}
+                      autoCapitalize="words"
+                    />
+                  </View>
                 </View>
 
                 <View style={styles.fieldBlock}>
                   <FieldLabel>About your community</FieldLabel>
-                  <TextInput
-                    style={[styles.input, styles.aboutInput]}
-                    placeholder="What is this group about? Who should join?"
-                    placeholderTextColor={MUTED2}
-                    value={about}
-                    onChangeText={setAbout}
-                    maxLength={500}
-                    multiline
-                    textAlignVertical="top"
-                  />
+                  <View style={[styles.textFieldBar, styles.aboutFieldBar]}>
+                    <TextInput
+                      style={[styles.textFieldInput, styles.aboutInput]}
+                      placeholder="What is this group about? Who should join?"
+                      placeholderTextColor={MUTED2}
+                      value={about}
+                      onChangeText={setAbout}
+                      maxLength={500}
+                      multiline
+                      textAlignVertical="top"
+                    />
+                  </View>
                 </View>
 
                 <View style={styles.fieldBlock}>
@@ -298,42 +320,45 @@ export default function CreateCommunityModal({
               </TouchableOpacity>
             </View>
           </KeyboardAvoidingView>
-        </View>
-      </Modal>
 
-      <Modal
-        visible={categoryVisible}
-        transparent
-        animationType="fade"
-        onRequestClose={() => setCategoryVisible(false)}
-      >
-        <Pressable style={styles.categoryOverlay} onPress={() => setCategoryVisible(false)}>
-          <Pressable style={styles.categorySheet} onPress={(e) => e.stopPropagation()}>
-            <Text style={styles.categorySheetTitle}>Category</Text>
-            {COMMUNITY_GROUP_CATEGORIES.map((item) => (
-              <TouchableOpacity
-                key={item}
-                style={styles.categoryRow}
-                onPress={() => {
-                  setCategory(item);
-                  setCategoryVisible(false);
-                }}
-                activeOpacity={0.75}
-                accessibilityRole="button"
-                accessibilityState={{ selected: category === item }}
-              >
-                <Text
-                  style={[styles.categoryRowText, category === item && styles.categoryRowTextActive]}
-                >
-                  {item}
-                </Text>
-                {category === item ? (
-                  <Ionicons name="checkmark" size={18} color={ACCENT} />
-                ) : null}
-              </TouchableOpacity>
-            ))}
-          </Pressable>
-        </Pressable>
+          {categoryVisible ? (
+            <View style={styles.categoryOverlay} pointerEvents="box-none">
+              <Pressable
+                style={[StyleSheet.absoluteFill, styles.categoryScrim]}
+                onPress={() => setCategoryVisible(false)}
+                accessibilityLabel="Dismiss category picker"
+              />
+              <View style={styles.categorySheet}>
+                <Text style={styles.categorySheetTitle}>Category</Text>
+                {COMMUNITY_GROUP_CATEGORIES.map((item) => (
+                  <TouchableOpacity
+                    key={item}
+                    style={styles.categoryRow}
+                    onPress={() => {
+                      setCategory(item);
+                      setCategoryVisible(false);
+                    }}
+                    activeOpacity={0.75}
+                    accessibilityRole="button"
+                    accessibilityState={{ selected: category === item }}
+                  >
+                    <Text
+                      style={[
+                        styles.categoryRowText,
+                        category === item && styles.categoryRowTextActive,
+                      ]}
+                    >
+                      {item}
+                    </Text>
+                    {category === item ? (
+                      <Ionicons name="checkmark" size={18} color={ACCENT} />
+                    ) : null}
+                  </TouchableOpacity>
+                ))}
+              </View>
+            </View>
+          ) : null}
+        </View>
       </Modal>
 
       <AlertModal
@@ -351,10 +376,6 @@ const styles = StyleSheet.create({
     justifyContent: "flex-end",
     backgroundColor: "rgba(0,0,0,0.72)",
   },
-  keyboardAvoid: {
-    width: "100%",
-    maxHeight: "92%",
-  },
   sheet: {
     backgroundColor: BG,
     borderTopLeftRadius: 16,
@@ -371,12 +392,13 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   title: {
-    fontFamily: fonts.medium,
+    fontFamily: fonts.heavy,
     fontSize: TYPE_SECTION,
     color: TEXT,
+    letterSpacing: 0.06,
   },
   scroll: {
-    maxHeight: 420,
+    flexShrink: 1,
   },
   scrollContent: {
     paddingBottom: 8,
@@ -391,17 +413,21 @@ const styles = StyleSheet.create({
     color: TEXT,
     letterSpacing: 0.04,
   },
-  input: {
+  textFieldBar: {
+    flexDirection: "row",
+    alignItems: "center",
     borderRadius: BUTTON_RADIUS,
     borderWidth: StyleSheet.hairlineWidth,
     borderColor: MUTED3,
-    backgroundColor: "rgba(255,255,255,0.04)",
+    paddingHorizontal: 12,
+    minHeight: 44,
+  },
+  textFieldInput: {
+    flex: 1,
     color: TEXT,
     fontFamily: fonts.book,
     fontSize: TYPE_BODY,
-    paddingHorizontal: 14,
-    paddingVertical: 14,
-    minHeight: 52,
+    paddingVertical: 12,
   },
   selectInput: {
     flexDirection: "row",
@@ -410,24 +436,29 @@ const styles = StyleSheet.create({
     borderRadius: BUTTON_RADIUS,
     borderWidth: StyleSheet.hairlineWidth,
     borderColor: MUTED3,
-    backgroundColor: "rgba(255,255,255,0.04)",
-    paddingHorizontal: 14,
-    minHeight: 52,
+    paddingHorizontal: 12,
+    minHeight: 44,
   },
   selectText: {
     fontFamily: fonts.book,
     fontSize: TYPE_BODY,
     color: TEXT,
+    flex: 1,
+    paddingVertical: 12,
   },
   selectPlaceholder: {
     color: MUTED2,
   },
+  aboutFieldBar: {
+    alignItems: "flex-start",
+    minHeight: 84,
+  },
   aboutInput: {
-    minHeight: 100,
-    paddingTop: 14,
+    minHeight: 60,
+    paddingTop: 12,
   },
   coverBox: {
-    minHeight: 140,
+    minHeight: 112,
     borderRadius: BUTTON_RADIUS,
     borderWidth: StyleSheet.hairlineWidth,
     borderStyle: "dashed",
@@ -481,9 +512,12 @@ const styles = StyleSheet.create({
     color: ON_ACCENT_TEXT,
   },
   categoryOverlay: {
-    flex: 1,
-    backgroundColor: "rgba(0,0,0,0.72)",
+    ...StyleSheet.absoluteFillObject,
     justifyContent: "flex-end",
+    zIndex: 10,
+  },
+  categoryScrim: {
+    backgroundColor: "rgba(0,0,0,0.72)",
   },
   categorySheet: {
     backgroundColor: BG,
@@ -494,6 +528,7 @@ const styles = StyleSheet.create({
     paddingBottom: 32,
     borderWidth: StyleSheet.hairlineWidth,
     borderColor: "rgba(255,255,255,0.1)",
+    zIndex: 11,
   },
   categorySheetTitle: {
     fontFamily: fonts.medium,
