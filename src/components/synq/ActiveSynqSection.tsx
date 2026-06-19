@@ -6,6 +6,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { Image as ExpoImage } from "expo-image";
 import { LinearGradient } from "expo-linear-gradient";
 import SynqOptionsSheet from "../../../app/synq-screens/SynqOptionsSheet";
+import ActiveSynqEmptyState from "@/src/components/synq/ActiveSynqEmptyState";
 import type { Friend } from "@/constants/Variables";
 import {
   FriendsSortMenu,
@@ -56,6 +57,8 @@ type Props = {
   openChangeAudience?: () => void;
   audienceLabel?: string | null;
   userProfile?: Record<string, unknown> | null;
+  viewerId?: string;
+  nudgeCandidates?: Friend[];
 };
 
 export default function ActiveSynqSection({
@@ -74,6 +77,8 @@ export default function ActiveSynqSection({
   openChangeAudience,
   audienceLabel,
   userProfile,
+  viewerId,
+  nudgeCandidates = [],
 }: Props) {
   const [optionsVisible, setOptionsVisible] = useState(false);
   const [sortMode, setSortMode] = useState<FriendsSortMode>("distance");
@@ -196,12 +201,9 @@ export default function ActiveSynqSection({
           showsVerticalScrollIndicator={false}
           ItemSeparatorComponent={null}
           ListEmptyComponent={
-            <View style={styles.activeEmptyWrap}>
-              <Text style={styles.activeEmptyTitle}>No free friends right now.</Text>
-              <Text style={styles.activeEmptySub}>
-                Add more connections to increase the chances of having overlapping free time!
-              </Text>
-            </View>
+            viewerId ? (
+              <ActiveSynqEmptyState viewerId={viewerId} candidates={nudgeCandidates} />
+            ) : null
           }
           renderItem={({ item }) => {
             const friendMemo = item.memo?.trim();

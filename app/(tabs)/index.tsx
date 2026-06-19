@@ -164,7 +164,7 @@ import {
   subscribeFriendsIdsMultiplexed,
   subscribeUserDocMultiplexed,
 } from "../../src/lib/socialListenerHub";
-import { getCachedOwnProfile } from "../../src/lib/ownProfileCache";
+import { computeTopSynqRows, getCachedOwnProfile } from "../../src/lib/ownProfileCache";
 import { userHasLocation } from "../../src/lib/userProfile";
 import { useAuthRefresh } from '../_layout';
 import AlertModal from '../alert-modal';
@@ -949,6 +949,25 @@ export default function SynqScreen() {
       viewerId: uid,
     });
   }, [availableFriends, isBlocked, userProfile, resolvedFriendIds, status, user?.uid]);
+
+  const nudgeCandidates = useMemo(() => {
+    const uid = user?.uid;
+    if (!uid || status !== "active" || visibleAvailableFriends.length > 0) return [];
+    const friends = friendsListCacheByUser[uid] ?? [];
+    if (!friends.length) return [];
+    const activeIds = new Set(availableFriends.map((f) => f.id));
+    return computeTopSynqRows(uid, friends)
+      .map(({ friend }) => friend)
+      .filter((f) => !activeIds.has(f.id) && !isBlocked(f.id))
+      .slice(0, 3);
+  }, [
+    user?.uid,
+    status,
+    visibleAvailableFriends.length,
+    availableFriends,
+    isBlocked,
+    resolvedFriendIds,
+  ]);
 
   const synqAudienceLabel = useMemo(
     () => formatSynqAudienceLabel(userProfile, friendGroups),
@@ -2015,6 +2034,8 @@ export default function SynqScreen() {
               }}
               openEditModal={() => setIsEditModalVisible(true)}
               userProfile={userProfile}
+              viewerId={uid}
+              nudgeCandidates={nudgeCandidates}
             />
           </View>
         )}
@@ -2419,6 +2440,35 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     maxWidth: "100%",
+    gap: 10,
+  },
+  liveBadge: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 5,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 999,
+    backgroundColor: "rgba(52, 211, 153, 0.12)",
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: "rgba(52, 211, 153, 0.28)",
+  },
+  liveBadgeText: {
+    color: STATUS_AVAILABLE,
+    fontSize: TYPE_FINE,
+    fontFamily: fonts.medium,
+    letterSpacing: 0.4,
+  },
+  activeStatusDotSmall: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: STATUS_AVAILABLE,
+    shadowColor: STATUS_AVAILABLE,
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.55,
+    shadowRadius: 4,
+    elevation: 2,
   },
   activeStatusDot: {
     width: 9,

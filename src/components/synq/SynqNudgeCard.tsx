@@ -29,6 +29,8 @@ export type SynqNudgeCardProps = {
   sent?: boolean;
   /** When set, renders a list-row layout with avatar and name. */
   friend?: { displayName?: string; imageurl?: string };
+  /** Name + nudge button only (active Synq empty state). */
+  variant?: "default" | "compact";
 };
 
 export default function SynqNudgeCard({
@@ -36,11 +38,13 @@ export default function SynqNudgeCard({
   loading = false,
   sent = false,
   friend,
+  variant = "default",
 }: SynqNudgeCardProps) {
   const disabled = sent || loading;
   const firstName =
     friend?.displayName?.trim().split(/\s+/)[0] || "They";
   const showAvatar = !!friend;
+  const compact = variant === "compact";
 
   return (
     <View style={[styles.card, sent && styles.cardSent]}>
@@ -54,16 +58,24 @@ export default function SynqNudgeCard({
       ) : null}
 
       <View style={styles.copy}>
-        <Text style={[styles.kicker, sent && styles.kickerSent]}>
-          {sent ? "Nudge sent" : "Inactive right now"}
-        </Text>
-        {!sent ? (
-          <Text style={styles.subtitle} numberOfLines={2}>
-            {friend
-              ? `See if ${firstName} is free`
-              : "See if they're free"}
+        {compact ? (
+          <Text style={styles.name} numberOfLines={1}>
+            {firstName}
           </Text>
-        ) : null}
+        ) : (
+          <>
+            <Text style={[styles.kicker, sent && styles.kickerSent]}>
+              {sent ? "Nudge sent" : "Inactive right now"}
+            </Text>
+            {!sent ? (
+              <Text style={styles.subtitle} numberOfLines={2}>
+                {friend
+                  ? `See if ${firstName} is free`
+                  : "See if they're free"}
+              </Text>
+            ) : null}
+          </>
+        )}
       </View>
 
       <TouchableOpacity
@@ -137,6 +149,12 @@ const styles = StyleSheet.create({
     fontSize: TYPE_BUTTON,
     lineHeight: 21,
     opacity: 0.92,
+  },
+  name: {
+    color: TEXT,
+    fontFamily: fonts.medium,
+    fontSize: TYPE_BUTTON,
+    lineHeight: 21,
   },
   cta: {
     minWidth: 58,
