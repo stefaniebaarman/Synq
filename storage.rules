@@ -1,0 +1,36 @@
+rules_version = '2';
+service firebase.storage {
+  match /b/{bucket}/o {
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    function isSelf(userId) {
+      return signedIn() && request.auth.uid == userId;
+    }
+
+    // Profile photos: owner-only read/write under profiles/{userId}
+    match /profiles/{userId}/{allPaths=**} {
+      allow read: if signedIn();
+      allow write: if isSelf(userId)
+        && request.resource.size < 5 * 1024 * 1024
+        && request.resource.contentType.matches('image/.*');
+    }
+
+    // Profile share card previews — public read for link unfurling (iMessage, etc.)
+    match /profileShareCards/{userId}/{allPaths=**} {
+      allow read: if true;
+      allow write: if isSelf(userId)
+        && request.resource.size < 5 * 1024 * 1024
+        && request.resource.contentType.matches('image/png');
+    }
+    // Community cover photos — creator write; client compresses before upload (~200–400 KB JPEG)
+    match /communityCovers/{groupId}/{allPaths=**} {
+      allow read: if signedIn();
+      allow write: if signedIn()
+        && request.resource.size < 2 * 1024 * 1024
+        && request.resource.contentType == 'image/jpeg'
+        && firestore.get(/databases/(default)/documents/communityGroups/$(groupId)).data.creatorId == request.auth.uid;
+    }
+  }
+}

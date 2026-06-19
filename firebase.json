@@ -1,0 +1,77 @@
+{
+  "hosting": {
+    "public": "public",
+    "ignore": ["firebase.json", "**/node_modules/**"],
+    "headers": [
+      {
+        "source": "/.well-known/apple-app-site-association",
+        "headers": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ]
+      },
+      {
+        "source": "/.well-known/assetlinks.json",
+        "headers": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ]
+      }
+    ],
+    "rewrites": [
+      {
+        "source": "/api/resolve-profile-share",
+        "function": {
+          "functionId": "resolveProfileShareCodeHttp",
+          "region": "us-central1"
+        }
+      },
+      {
+        "source": "/u/**",
+        "function": {
+          "functionId": "profileSharePageHttp",
+          "region": "us-central1"
+        }
+      },
+      {
+        "source": "/open",
+        "destination": "/open/index.html"
+      },
+      {
+        "source": "/privacy",
+        "destination": "/privacy/index.html"
+      }
+    ]
+  },
+  "firestore": {
+    "rules": "firestore.rules",
+    "indexes": "firestore.indexes.json"
+  },
+  "storage": {
+    "rules": "storage.rules"
+  },
+  "emulators": {
+    "singleProjectMode": true,
+    "firestore": {
+      "port": 8080
+    }
+  },
+  "functions": [
+    {
+      "source": "functions",
+      "codebase": "default",
+      "disallowLegacyRuntimeConfig": true,
+      "ignore": [
+        "node_modules",
+        ".git",
+        "firebase-debug.log",
+        "firebase-debug.*.log",
+        "*.local"
+      ]
+    }
+  ]
+}

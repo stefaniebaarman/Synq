@@ -1,0 +1,15 @@
+{
+  "applinks": {
+    "apps": [],
+    "details": [
+      {
+        "appID": "29B7DJK426.com.stefaniebaarman.synq",
+        "paths": [
+          "/u/*",
+          "/open",
+          "/open/*"
+        ]
+      }
+    ]
+  }
+}

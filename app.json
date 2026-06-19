@@ -1,0 +1,100 @@
+{
+  "expo": {
+    "name": "Synq",
+    "slug": "synq",
+    "version": "1.0.9",
+    "orientation": "portrait",
+    "icon": "./assets/logo.png",
+    "scheme": "synq",
+    "userInterfaceStyle": "automatic",
+    "newArchEnabled": true,
+    "splash": {
+      "image": "./assets/logo.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#090A0B"
+    },
+    "ios": {
+      "supportsTablet": false,
+      "bundleIdentifier": "com.stefaniebaarman.synq",
+      "buildNumber": "153",
+      "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false,
+        "NSPhotoLibraryUsageDescription": "Synq needs access to your photo library so you can choose a profile or community cover photo.",
+        "NSUserNotificationsUsageDescription": "Synq sends notifications for messages, friend requests, plan invites, and friend activity.",
+        "NSLocationWhenInUseUsageDescription": "Synq uses your location when you choose to auto-fill your city and state, and for nearby hangout suggestions when you use those features.",
+        "UIBackgroundModes": [
+          "remote-notification"
+        ]
+      }
+    },
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/logo.png",
+        "backgroundColor": "#090A0B"
+      },
+      "package": "com.stefaniebaarman.synq",
+      "versionCode": 153,
+      "edgeToEdgeEnabled": true,
+      "predictiveBackGestureEnabled": false
+    },
+    "web": {
+      "bundler": "metro",
+      "output": "static"
+    },
+    "plugins": [
+      [
+        "expo-splash-screen",
+        {
+          "backgroundColor": "#090A0B",
+          "image": "./assets/logo.png",
+          "imageWidth": 150,
+          "resizeMode": "contain"
+        }
+      ],
+      "expo-router",
+      [
+        "expo-location",
+        {
+          "locationWhenInUsePermission": "Synq uses your location when you choose to auto-fill your city and state, and for nearby hangout suggestions when you use those features."
+        }
+      ],
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Synq needs access to your photo library so you can choose a profile or community cover photo.",
+          "cameraPermission": "Synq can use the camera when you take a new profile photo."
+        }
+      ],
+      [
+        "expo-notifications",
+        {
+          "icon": "./assets/logo.png",
+          "color": "#090A0B",
+          "sounds": [],
+          "mode": "production"
+        }
+      ],
+      [
+        "expo-build-properties",
+        {
+          "ios": {
+            "useFrameworks": "static",
+            "deploymentTarget": "15.1"
+          }
+        }
+      ],
+      "@react-native-community/datetimepicker",
+      "@sentry/react-native"
+    ],
+    "experiments": {
+      "typedRoutes": true
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "27049d71-1c6b-4aa5-b874-1a6ddcb2b5be"
+      }
+    },
+    "owner": "stefaniebaarman"
+  }
+}

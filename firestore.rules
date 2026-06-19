@@ -1,0 +1,396 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    function isSelf(uid) {
+      return signedIn() && request.auth.uid == uid;
+    }
+
+    function isFriend(uid) {
+      return signedIn()
+        && exists(/databases/$(database)/documents/users/$(request.auth.uid)/friends/$(uid));
+    }
+
+    function hasIncomingFriendRequestFrom(uid) {
+      return signedIn()
+        && exists(/databases/$(database)/documents/users/$(request.auth.uid)/friendRequests/$(uid));
+    }
+
+    function hasOutgoingFriendRequestTo(uid) {
+      return signedIn()
+        && exists(/databases/$(database)/documents/users/$(uid)/friendRequests/$(request.auth.uid));
+    }
+
+    function canReadUserProfile(uid) {
+      return isSelf(uid) || isFriend(uid) || hasIncomingFriendRequestFrom(uid)
+        || hasOutgoingFriendRequestTo(uid) || signedIn();
+    }
+
+    function chatParticipants(chatId) {
+      return get(/databases/$(database)/documents/chats/$(chatId)).data.participants;
+    }
+
+    function isChatParticipant(chatId) {
+      return signedIn() && request.auth.uid in chatParticipants(chatId);
+    }
+
+    function participantIsSelfOrFriend(uid) {
+      return uid == request.auth.uid || isFriend(uid);
+    }
+
+    function isCommunityGroupMemberUid(groupId, uid) {
+      return uid == request.auth.uid
+        || uid in get(/databases/$(database)/documents/communityGroups/$(groupId)).data.memberIds;
+    }
+
+    function validCommunityChatParticipants(groupId) {
+      let p = request.resource.data.participants;
+      return p.size() >= 2
+        && p.size() <= 15
+        && p.hasAll([request.auth.uid])
+        && isMemberOfCommunityGroup(groupId)
+        && request.resource.data.communityGroupId == groupId
+        && isCommunityGroupMemberUid(groupId, p[0])
+        && isCommunityGroupMemberUid(groupId, p[1])
+        && (p.size() < 3 || isCommunityGroupMemberUid(groupId, p[2]))
+        && (p.size() < 4 || isCommunityGroupMemberUid(groupId, p[3]))
+        && (p.size() < 5 || isCommunityGroupMemberUid(groupId, p[4]))
+        && (p.size() < 6 || isCommunityGroupMemberUid(groupId, p[5]))
+        && (p.size() < 7 || isCommunityGroupMemberUid(groupId, p[6]))
+        && (p.size() < 8 || isCommunityGroupMemberUid(groupId, p[7]))
+        && (p.size() < 9 || isCommunityGroupMemberUid(groupId, p[8]))
+        && (p.size() < 10 || isCommunityGroupMemberUid(groupId, p[9]))
+        && (p.size() < 11 || isCommunityGroupMemberUid(groupId, p[10]))
+        && (p.size() < 12 || isCommunityGroupMemberUid(groupId, p[11]))
+        && (p.size() < 13 || isCommunityGroupMemberUid(groupId, p[12]))
+        && (p.size() < 14 || isCommunityGroupMemberUid(groupId, p[13]))
+        && (p.size() < 15 || isCommunityGroupMemberUid(groupId, p[14]));
+    }
+
+    function validNewChatParticipants() {
+      let p = request.resource.data.participants;
+      let groupId = request.resource.data.get('communityGroupId', '');
+      let communityPath = groupId is string
+        && groupId.size() > 0
+        && validCommunityChatParticipants(groupId);
+      let friendPath = !('communityGroupId' in request.resource.data)
+        && p.size() >= 2
+        && p.size() <= 15
+        && p.hasAll([request.auth.uid])
+        && participantIsSelfOrFriend(p[0])
+        && participantIsSelfOrFriend(p[1])
+        && (p.size() < 3 || participantIsSelfOrFriend(p[2]))
+        && (p.size() < 4 || participantIsSelfOrFriend(p[3]))
+        && (p.size() < 5 || participantIsSelfOrFriend(p[4]))
+        && (p.size() < 6 || participantIsSelfOrFriend(p[5]))
+        && (p.size() < 7 || participantIsSelfOrFriend(p[6]))
+        && (p.size() < 8 || participantIsSelfOrFriend(p[7]))
+        && (p.size() < 9 || participantIsSelfOrFriend(p[8]))
+        && (p.size() < 10 || participantIsSelfOrFriend(p[9]))
+        && (p.size() < 11 || participantIsSelfOrFriend(p[10]))
+        && (p.size() < 12 || participantIsSelfOrFriend(p[11]))
+        && (p.size() < 13 || participantIsSelfOrFriend(p[12]))
+        && (p.size() < 14 || participantIsSelfOrFriend(p[13]))
+        && (p.size() < 15 || participantIsSelfOrFriend(p[14]));
+      return communityPath || friendPath;
+    }
+
+    function isReactionOnlyMessageUpdate() {
+      return request.resource.data.text == resource.data.text
+        && request.resource.data.senderId == resource.data.senderId
+        && request.resource.data.get('imageurl', null) == resource.data.get('imageurl', null)
+        && request.resource.data.get('createdAt', null) == resource.data.get('createdAt', null);
+    }
+
+    function canCreateFriendDoc(userId, friendId) {
+      return isSelf(userId)
+        || (isSelf(friendId)
+          && exists(/databases/$(database)/documents/users/$(friendId)/friendRequests/$(userId)));
+    }
+
+    function communityGroupMemberIdsValid(memberIds) {
+      return memberIds is list
+        && memberIds.size() >= 1
+        && memberIds.size() <= 500;
+    }
+
+    function optionalCommunityMetaString(data, field, maxLen) {
+      return !(field in data) || (data[field] is string && data[field].size() <= maxLen);
+    }
+
+    function validCommunityGroupOptionalMeta(d) {
+      return optionalCommunityMetaString(d, 'category', 40)
+        && optionalCommunityMetaString(d, 'location', 80)
+        && optionalCommunityMetaString(d, 'about', 500)
+        && optionalCommunityMetaString(d, 'coverPhotoUrl', 2048);
+    }
+
+    function validCommunityGroupPlanCore(d) {
+      return d.groupId is string
+        && d.creatorId is string
+        && d.creatorId.size() > 0
+        && d.creatorDisplayName is string
+        && d.creatorDisplayName.size() <= 80
+        && d.title is string
+        && d.title.size() > 0
+        && d.title.size() <= 80
+        && d.date is string
+        && d.date.size() > 0
+        && d.date.size() <= 16
+        && optionalCommunityMetaString(d, 'time', 32)
+        && optionalCommunityMetaString(d, 'location', 120);
+    }
+
+    function validCommunityGroupPlanGoingIdsList(d) {
+      return !d.keys().hasAny(['goingMemberIds'])
+        || (d.goingMemberIds is list && d.goingMemberIds.size() <= 200);
+    }
+
+    function validCommunityGroupPlan(d) {
+      return validCommunityGroupPlanCore(d) && validCommunityGroupPlanGoingIdsList(d);
+    }
+
+    function isCommunityPlanGoingSelfToggle(groupId) {
+      let prev = resource.data;
+      let next = request.resource.data;
+      let uid = request.auth.uid;
+      let prevIds = prev.keys().hasAny(['goingMemberIds']) ? prev.goingMemberIds : [];
+      let nextIds = next.keys().hasAny(['goingMemberIds']) ? next.goingMemberIds : [];
+      let selfAdded = !(uid in prevIds) && uid in nextIds;
+      let selfRemoved = uid in prevIds && !(uid in nextIds);
+      return isMemberOfCommunityGroup(groupId)
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['goingMemberIds'])
+        && prev.creatorId == next.creatorId
+        && prev.groupId == next.groupId
+        && prev.title == next.title
+        && prev.date == next.date
+        && prev.get('time', '') == next.get('time', '')
+        && prev.get('location', '') == next.get('location', '')
+        && prev.creatorDisplayName == next.creatorDisplayName
+        && nextIds is list
+        && nextIds.size() <= 200
+        && (selfAdded || selfRemoved)
+        && nextIds.hasAll(prevIds.removeAll([uid]))
+        && prevIds.hasAll(nextIds.removeAll([uid]));
+    }
+
+    function validNewCommunityGroupPlan(groupId) {
+      let d = request.resource.data;
+      return isMemberOfCommunityGroup(groupId)
+        && d.creatorId == request.auth.uid
+        && d.groupId == groupId
+        && validCommunityGroupPlan(d)
+        && (
+          !d.keys().hasAny(['goingMemberIds'])
+          || d.goingMemberIds.hasOnly([request.auth.uid])
+        );
+    }
+
+    function canManageCommunityGroupPlan(groupId) {
+      return signedIn()
+        && (
+          request.auth.uid == resource.data.creatorId
+          || request.auth.uid == get(/databases/$(database)/documents/communityGroups/$(groupId)).data.creatorId
+        );
+    }
+
+    function validNewCommunityGroup() {
+      let d = request.resource.data;
+      return d.creatorId == request.auth.uid
+        && d.name is string
+        && d.name.size() > 0
+        && d.name.size() <= 40
+        && d.nameLower is string
+        && d.nameLower.size() > 0
+        && communityGroupMemberIdsValid(d.memberIds)
+        && d.memberIds.hasAll([request.auth.uid])
+        && d.memberIds.size() == 1
+        && validCommunityGroupOptionalMeta(d);
+    }
+
+    function isCommunityGroupCreator() {
+      return signedIn() && request.auth.uid == resource.data.creatorId;
+    }
+
+    function isCommunityGroupSelfJoin() {
+      return signedIn()
+        && request.auth.uid in request.resource.data.memberIds
+        && !(request.auth.uid in resource.data.memberIds)
+        && request.resource.data.memberIds.hasAll(resource.data.memberIds)
+        && request.resource.data.memberIds.size() == resource.data.memberIds.size() + 1
+        && communityGroupMemberIdsValid(request.resource.data.memberIds)
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['memberIds', 'updatedAt']);
+    }
+
+    function isCommunityGroupSelfLeave() {
+      return signedIn()
+        && request.auth.uid in resource.data.memberIds
+        && !(request.auth.uid in request.resource.data.memberIds)
+        && request.resource.data.memberIds.size() == resource.data.memberIds.size() - 1
+        && communityGroupMemberIdsValid(request.resource.data.memberIds)
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['memberIds', 'updatedAt']);
+    }
+
+    function validCommunityGroupCreatorUpdate() {
+      let d = request.resource.data;
+      return d.creatorId == resource.data.creatorId
+        && d.name is string
+        && d.name.size() > 0
+        && d.name.size() <= 40
+        && d.nameLower is string
+        && d.nameLower.size() > 0
+        && communityGroupMemberIdsValid(d.memberIds)
+        && validCommunityGroupOptionalMeta(d);
+    }
+
+    function isMemberOfCommunityGroup(groupId) {
+      return signedIn()
+        && request.auth.uid in get(/databases/$(database)/documents/communityGroups/$(groupId)).data.memberIds;
+    }
+
+    match /users/{userId} {
+      allow read: if canReadUserProfile(userId);
+      allow create: if isSelf(userId);
+      allow update: if isSelf(userId);
+      allow delete: if false;
+
+      match /friends/{friendId} {
+        allow read: if isSelf(userId) || isSelf(friendId) || isFriend(userId);
+        allow create: if canCreateFriendDoc(userId, friendId);
+        allow update: if isSelf(userId) || isSelf(friendId);
+        allow delete: if isSelf(userId);
+      }
+
+      match /friendRequests/{fromId} {
+        allow read: if isSelf(userId) || isSelf(fromId);
+        allow create: if isSelf(fromId)
+          && fromId != userId
+          && request.resource.data.from == fromId
+          && request.resource.data.to == userId
+          && !exists(/databases/$(database)/documents/users/$(userId)/friends/$(fromId))
+          && !exists(/databases/$(database)/documents/users/$(fromId)/friends/$(userId))
+          && !exists(/databases/$(database)/documents/users/$(fromId)/friendRequests/$(userId));
+        allow update: if isSelf(fromId);
+        allow delete: if isSelf(userId) || isSelf(fromId);
+      }
+
+      match /outgoingFriendRequests/{targetId} {
+        allow read, create, update, delete: if isSelf(userId);
+      }
+
+      match /notificationLocks/{lockId} {
+        allow read, write: if isSelf(userId);
+      }
+
+      match /notifications/{notifId} {
+        allow read, update, delete: if isSelf(userId);
+        allow create: if false;
+      }
+
+      match /blocked/{blockedId} {
+        allow read, write: if isSelf(userId);
+      }
+
+      match /friendGroups/{groupId} {
+        allow read, write: if isSelf(userId);
+      }
+
+      match /communityGroupInvites/{groupId} {
+        allow read: if isSelf(userId)
+          || (signedIn() && request.auth.uid == resource.data.fromUserId);
+        allow create: if signedIn()
+          && request.resource.data.fromUserId == request.auth.uid
+          && userId != request.auth.uid
+          && isFriend(userId)
+          && request.resource.data.groupId == groupId
+          && isMemberOfCommunityGroup(groupId);
+        allow delete: if isSelf(userId)
+          || (signedIn() && resource.data.fromUserId == request.auth.uid);
+      }
+    }
+
+    match /moderationQueue/{reportId} {
+      allow read, write: if false;
+    }
+
+    match /invites/{inviteId} {
+      allow read, write: if false;
+    }
+
+    match /appConfig/{docId} {
+      allow read: if true;
+      allow write: if false;
+    }
+
+    match /synqSuggestionCache/{cacheId} {
+      allow read, write: if false;
+    }
+
+    match /synqVenueCache/{cacheId} {
+      allow read, write: if false;
+    }
+
+    match /communityGroups/{groupId} {
+      allow read: if signedIn();
+      allow create: if signedIn() && validNewCommunityGroup();
+      allow update: if signedIn()
+        && (
+          (isCommunityGroupCreator() && validCommunityGroupCreatorUpdate())
+          || isCommunityGroupSelfJoin()
+          || isCommunityGroupSelfLeave()
+        );
+      allow delete: if isCommunityGroupCreator();
+
+      match /invites/{targetUserId} {
+        allow read: if signedIn() && isMemberOfCommunityGroup(groupId);
+        allow create: if signedIn()
+          && isMemberOfCommunityGroup(groupId)
+          && request.resource.data.fromUserId == request.auth.uid
+          && targetUserId != request.auth.uid
+          && request.resource.data.targetUserId == targetUserId
+          && isFriend(targetUserId);
+        allow delete: if signedIn()
+          && (
+            isSelf(targetUserId)
+            || request.auth.uid == resource.data.fromUserId
+            || isMemberOfCommunityGroup(groupId)
+          );
+      }
+
+      match /plans/{planId} {
+        allow read: if signedIn();
+        allow create: if signedIn() && validNewCommunityGroupPlan(groupId);
+        allow update: if signedIn()
+          && (
+            (
+              canManageCommunityGroupPlan(groupId)
+              && request.resource.data.creatorId == resource.data.creatorId
+              && request.resource.data.groupId == resource.data.groupId
+              && validCommunityGroupPlan(request.resource.data)
+            )
+            || isCommunityPlanGoingSelfToggle(groupId)
+          );
+        allow delete: if canManageCommunityGroupPlan(groupId);
+      }
+    }
+
+    match /chats/{chatId} {
+      allow read: if signedIn() && request.auth.uid in resource.data.participants;
+      allow create: if signedIn() && validNewChatParticipants();
+      allow update: if signedIn() && request.auth.uid in resource.data.participants;
+      allow delete: if signedIn() && request.auth.uid in resource.data.participants;
+
+      match /messages/{messageId} {
+        allow read: if isChatParticipant(chatId);
+        allow create: if isChatParticipant(chatId)
+          && request.resource.data.senderId == request.auth.uid;
+        allow update: if isChatParticipant(chatId) && isReactionOnlyMessageUpdate();
+        allow delete: if false;
+      }
+    }
+  }
+}
