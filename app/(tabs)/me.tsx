@@ -1574,7 +1574,7 @@ export default function ProfileScreen() {
             <StatusBar barStyle="light-content" />
             <View style={styles.interestSheet}>
               <View style={styles.interestHeader}>
-                <Text style={styles.interestTitle}>What are you into?</Text>
+                <Text style={styles.interestTitle}>Add interests</Text>
                 <CloseButton
                   onPress={() => {
                     setSelectedInterests([...interests]);
@@ -1583,9 +1583,6 @@ export default function ProfileScreen() {
                   accessibilityLabel="Close interests"
                 />
               </View>
-              <Text style={styles.interestSubtitle}>
-                Pick a few things you enjoy doing with friends.
-              </Text>
 
             <View style={styles.interestPillsSection}>
               <ScrollView
@@ -1955,15 +1952,15 @@ const styles = StyleSheet.create({
     backgroundColor: BG,
     width: "100%",
     paddingHorizontal: 20,
-    paddingTop: 12,
+    paddingTop: 8,
   },
   interestHeader: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
     minHeight: 34,
-    paddingTop: 40,
-    marginBottom: 10,
+    paddingTop: 28,
+    marginBottom: 24,
   },
   interestTitle: {
     ...tabScreenMainHeaderTitle,
@@ -1971,13 +1968,6 @@ const styles = StyleSheet.create({
     lineHeight: 32,
     includeFontPadding: false,
     marginRight: 12,
-  },
-  interestSubtitle: {
-    color: MUTED2,
-    fontSize: TYPE_CAPTION,
-    lineHeight: 19,
-    fontFamily: fonts.book,
-    marginBottom: 16,
   },
   interestPillsSection: {
     flex: 1,

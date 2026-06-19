@@ -4,7 +4,8 @@ import { Ionicons } from "@expo/vector-icons";
 import React from "react";
 import { Text, TouchableOpacity, View } from "react-native";
 
-const SECTION_ADD_GLYPH_SIZE = 14;
+const SECTION_ADD_GLYPH_SIZE = 16;
+const SECTION_INFO_GLYPH_SIZE = 18;
 
 type Props = {
   title: string;
@@ -32,7 +33,7 @@ export default function GroupsSectionHeader({
           accessibilityRole="button"
           accessibilityLabel={infoAccessibilityLabel}
         >
-          <Ionicons name="information-circle-outline" size={16} color={MUTED2} />
+          <Ionicons name="information-circle-outline" size={SECTION_INFO_GLYPH_SIZE} color={MUTED2} />
         </TouchableOpacity>
       </View>
       <TouchableOpacity
