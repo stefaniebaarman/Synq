@@ -1,5 +1,7 @@
 import {
   ACCENT,
+  BORDER,
+  GROUP_BORDER,
   ON_ACCENT_TEXT,
   RADIUS_LG,
   SURFACE_ELEVATED,
@@ -8,7 +10,6 @@ import {
   TYPE_CAPTION,
   TYPE_FINE,
   TYPE_MICRO,
-  TYPE_SECTION,
   cardMetaText,
   cardTitleText,
   detailSectionTitle,
@@ -20,7 +21,7 @@ import {
 import { StyleSheet } from "react-native";
 
 export const GROUP_SURFACE = SURFACE_RAISED;
-export const GROUP_BORDER = "rgba(255,255,255,0.06)";
+export { GROUP_BORDER } from "@/constants/Variables";
 export const GROUP_ROW_INSET = 72;
 
 export const groupsPageStyles = StyleSheet.create({
@@ -49,8 +50,7 @@ export const groupsPageStyles = StyleSheet.create({
   },
   sectionTitle: {
     ...listSectionTitle,
-    fontSize: TYPE_SECTION,
-    lineHeight: 26,
+    marginTop: 0,
   },
   sectionAddBtn: {
     width: 26,
@@ -128,7 +128,7 @@ export const groupsPageStyles = StyleSheet.create({
     borderRadius: 999,
     backgroundColor: GROUP_SURFACE,
     borderWidth: StyleSheet.hairlineWidth,
-    borderColor: "rgba(255,255,255,0.08)",
+    borderColor: BORDER,
   },
   searchBarPlaceholder: {
     ...searchPlaceholderText,

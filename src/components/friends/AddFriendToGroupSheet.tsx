@@ -4,6 +4,7 @@ import {
   BUTTON_RADIUS,
   MUTED2,
   ON_ACCENT_TEXT,
+  SHEET_OVERLAY,
   TEXT,
   TYPE_BODY,
   TYPE_CAPTION,
@@ -167,7 +168,7 @@ const styles = StyleSheet.create({
   overlay: {
     flex: 1,
     justifyContent: "flex-end",
-    backgroundColor: "rgba(0,0,0,0.55)",
+    backgroundColor: SHEET_OVERLAY,
   },
   sheet: {
     maxHeight: "88%",

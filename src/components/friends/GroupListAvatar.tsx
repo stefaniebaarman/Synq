@@ -1,6 +1,7 @@
 import { getStackAvatarUris, resolveAvatar } from "@/src/lib/helpers";
 import {
   ACCENT,
+  BORDER,
   SURFACE_ELEVATED,
 } from "@/constants/Variables";
 import { Ionicons } from "@expo/vector-icons";
@@ -79,7 +80,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     backgroundColor: "rgba(255,255,255,0.05)",
     borderWidth: StyleSheet.hairlineWidth,
-    borderColor: "rgba(255,255,255,0.08)",
+    borderColor: BORDER,
   },
   singleWrap: {
     width: AVATAR_SLOT,

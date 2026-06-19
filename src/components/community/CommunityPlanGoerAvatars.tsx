@@ -1,4 +1,12 @@
-import { ACCENT, BORDER, fonts, MUTED2, TEXT, TYPE_CAPTION } from "@/constants/Variables";
+import {
+  ACCENT,
+  BORDER,
+  MUTED2,
+  SURFACE_ELEVATED,
+  TEXT,
+  TYPE_CAPTION,
+  fonts,
+} from "@/constants/Variables";
 import { formatCommunitySynqGoingCount } from "@/src/lib/communityGroupPlans";
 import { resolveAvatar } from "@/src/lib/helpers";
 import type { CommunityPlanMemberProfile } from "@/src/lib/communityPlanMembers";
@@ -99,7 +107,7 @@ const styles = StyleSheet.create({
   avatarWrap: {
     borderWidth: 1.5,
     borderColor: "#101214",
-    backgroundColor: "#1a1c1e",
+    backgroundColor: SURFACE_ELEVATED,
     overflow: "visible",
   },
   avatar: {
@@ -109,7 +117,7 @@ const styles = StyleSheet.create({
   overflow: {
     borderWidth: 1.5,
     borderColor: "#101214",
-    backgroundColor: "#1a1c1e",
+    backgroundColor: SURFACE_ELEVATED,
     alignItems: "center",
     justifyContent: "center",
   },

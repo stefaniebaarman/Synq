@@ -1,5 +1,6 @@
 import {
   ACCENT,
+  MUTED,
   TYPE_BODY,
   fonts,
 } from "@/constants/Variables";
@@ -184,7 +185,7 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   label: {
-    color: "rgba(255,255,255,0.75)",
+    color: MUTED,
     fontSize: TYPE_BODY,
     fontFamily: fonts.medium,
     letterSpacing: 0.3,

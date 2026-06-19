@@ -1,5 +1,6 @@
 import {
   ACCENT,
+  BORDER,
   MUTED2,
   RADIUS_LG,
   RADIUS_MD,
@@ -7,9 +8,11 @@ import {
   SPACE_3,
   SPACE_4,
   SPACE_5,
+  SURFACE_INSET,
   TEXT,
   TYPE_BODY,
   TYPE_CAPTION,
+  TYPE_LEAD,
   TYPE_NANO,
   cardMetaText,
   cardTitleText,
@@ -538,7 +541,7 @@ const styles = StyleSheet.create({
   },
   startSynqTitle: {
     fontFamily: fonts.medium,
-    fontSize: TYPE_CAPTION + 1,
+    fontSize: TYPE_LEAD,
     color: TEXT,
   },
   startSynqSubtitle: {
@@ -551,7 +554,7 @@ const styles = StyleSheet.create({
   },
   empty: {
     fontFamily: fonts.book,
-    fontSize: TYPE_CAPTION + 1,
+    fontSize: TYPE_LEAD,
     color: MUTED2,
     paddingHorizontal: SPACE_5,
     paddingBottom: SPACE_4,
@@ -565,9 +568,9 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     borderRadius: RADIUS_LG,
     overflow: "hidden",
-    backgroundColor: "#101214",
+    backgroundColor: SURFACE_INSET,
     borderWidth: StyleSheet.hairlineWidth,
-    borderColor: "rgba(255,255,255,0.08)",
+    borderColor: BORDER,
   },
   cardAccent: {
     width: 3,

@@ -2,6 +2,8 @@ import {
   BORDER,
   BUTTON_RADIUS,
   DESTRUCTIVE,
+  SHEET_OVERLAY,
+  SHEET_SURFACE,
   TEXT,
   TYPE_SUBHEAD,
   fonts,
@@ -101,7 +103,7 @@ const styles = StyleSheet.create({
     ...StyleSheet.absoluteFillObject,
     zIndex: 200,
     justifyContent: "flex-end",
-    backgroundColor: "rgba(0,0,0,0.55)",
+    backgroundColor: SHEET_OVERLAY,
   },
   backdrop: {
     ...StyleSheet.absoluteFillObject,
@@ -112,7 +114,7 @@ const styles = StyleSheet.create({
     zIndex: 1,
   },
   sheet: {
-    backgroundColor: "#141414",
+    backgroundColor: SHEET_SURFACE,
     borderRadius: BUTTON_RADIUS + 4,
     borderWidth: 1,
     borderColor: BORDER,

@@ -4,7 +4,10 @@ import {
   BUTTON_RADIUS,
   Friend,
   MUTED2,
+  MUTED3,
   ON_ACCENT_TEXT,
+  SHEET_OVERLAY,
+  SURFACE,
   TEXT,
   TYPE_BODY,
   TYPE_CAPTION,
@@ -237,7 +240,7 @@ const styles = StyleSheet.create({
   overlay: {
     flex: 1,
     justifyContent: "flex-end",
-    backgroundColor: "rgba(0,0,0,0.55)",
+    backgroundColor: SHEET_OVERLAY,
   },
   keyboardAvoid: {
     width: "100%",
@@ -273,7 +276,7 @@ const styles = StyleSheet.create({
     gap: 8,
     borderRadius: BUTTON_RADIUS,
     borderWidth: StyleSheet.hairlineWidth,
-    borderColor: "rgba(255,255,255,0.12)",
+    borderColor: MUTED3,
     paddingHorizontal: 12,
     paddingVertical: 10,
     marginBottom: 8,
@@ -296,7 +299,7 @@ const styles = StyleSheet.create({
     height: 44,
     borderRadius: 22,
     overflow: "hidden",
-    backgroundColor: "rgba(255,255,255,0.06)",
+    backgroundColor: SURFACE,
   },
   avatar: {
     width: 44,

@@ -1,7 +1,9 @@
 import {
   ACCENT,
   BG,
+  BORDER,
   BUTTON_RADIUS,
+  MUTED3,
   ON_ACCENT_TEXT,
   TEXT,
   TYPE_SUBHEAD,
@@ -421,9 +423,9 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   footerBtnSecondary: {
-    backgroundColor: "rgba(255,255,255,0.08)",
+    backgroundColor: BORDER,
     borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.18)",
+    borderColor: MUTED3,
   },
   footerBtnPrimary: {
     backgroundColor: ACCENT,

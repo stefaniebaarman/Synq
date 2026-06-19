@@ -3,10 +3,11 @@ import {
   BORDER,
   BORDER_STRONG,
   DEFAULT_AVATAR,
+  SHEET_OVERLAY,
   TEXT,
   TYPE_BUTTON,
   TYPE_SUBHEAD,
-  fonts
+  fonts,
 } from "@/constants/Variables";
 import CloseButton from "@/src/components/CloseButton";
 import { Image as ExpoImage } from "expo-image";
@@ -92,7 +93,7 @@ const styles = StyleSheet.create({
   overlay: {
     flex: 1,
     justifyContent: "flex-end",
-    backgroundColor: "rgba(0,0,0,0.55)",
+    backgroundColor: SHEET_OVERLAY,
   },
   sheet: {
     backgroundColor: BG,

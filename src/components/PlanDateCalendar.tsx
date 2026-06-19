@@ -1,6 +1,9 @@
 import {
+  MUTED3,
   ON_ACCENT_TEXT,
   TEXT,
+  TEXT_MUTED_DARK,
+  TEXT_MUTED_FAINT,
   TYPE_BODY,
   TYPE_BUTTON,
   TYPE_FINE,
@@ -210,7 +213,7 @@ const styles = StyleSheet.create({
   weekday: {
     flex: 1,
     textAlign: "center",
-    color: "#666",
+    color: TEXT_MUTED_DARK,
     fontSize: TYPE_FINE,
     fontFamily: fonts.medium,
   },
@@ -233,7 +236,7 @@ const styles = StyleSheet.create({
   },
   todayBubble: {
     borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.22)",
+    borderColor: MUTED3,
   },
   dayDisabled: {
     opacity: 0.28,
@@ -248,6 +251,6 @@ const styles = StyleSheet.create({
     fontFamily: fonts.heavy,
   },
   dayTextDisabled: {
-    color: "#444",
+    color: TEXT_MUTED_FAINT,
   },
 });

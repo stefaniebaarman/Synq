@@ -185,7 +185,7 @@ const styles = StyleSheet.create({
     borderRadius: 11,
     backgroundColor: SURFACE_ELEVATED,
     borderWidth: StyleSheet.hairlineWidth,
-    borderColor: "rgba(255,255,255,0.2)",
+    borderColor: MUTED3,
     alignItems: "center",
     justifyContent: "center",
     overflow: "hidden",

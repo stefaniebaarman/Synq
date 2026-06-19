@@ -5,12 +5,18 @@ import {
   BUTTON_RADIUS,
   DESTRUCTIVE,
   MUTED2,
+  SHEET_OVERLAY,
+  SHEET_SURFACE,
   SPACE_3,
   SPACE_4,
   SPACE_5,
+  SURFACE_ELEVATED,
   TEXT,
   TYPE_BODY,
   TYPE_CAPTION,
+  TYPE_CTA,
+  TYPE_FINE,
+  TYPE_LEAD,
   TYPE_SUBHEAD,
   cardMetaText,
   cardTitleText,
@@ -271,7 +277,7 @@ const styles = StyleSheet.create({
   },
   backdrop: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: "rgba(0,0,0,0.55)",
+    backgroundColor: SHEET_OVERLAY,
   },
   sheet: {
     backgroundColor: BG,
@@ -294,7 +300,7 @@ const styles = StyleSheet.create({
   },
   title: {
     ...cardTitleText,
-    fontSize: TYPE_BODY + 2,
+    fontSize: TYPE_CTA,
   },
   meta: {
     ...cardMetaText,
@@ -332,7 +338,7 @@ const styles = StyleSheet.create({
     width: 52,
     height: 52,
     borderRadius: 26,
-    backgroundColor: "#1a1c1e",
+    backgroundColor: SURFACE_ELEVATED,
   },
   goerName: {
     fontFamily: fonts.medium,
@@ -349,7 +355,7 @@ const styles = StyleSheet.create({
   },
   creatorBadgeText: {
     fontFamily: fonts.book,
-    fontSize: TYPE_CAPTION - 1,
+    fontSize: TYPE_FINE,
     color: ACCENT,
   },
   actions: {
@@ -375,7 +381,7 @@ const styles = StyleSheet.create({
   },
   leaveBtnText: {
     fontFamily: fonts.medium,
-    fontSize: TYPE_CAPTION + 1,
+    fontSize: TYPE_LEAD,
     color: DESTRUCTIVE,
   },
   lockedCopy: {
@@ -406,7 +412,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 24,
   },
   goerActionSheet: {
-    backgroundColor: "#141414",
+    backgroundColor: SHEET_SURFACE,
     borderRadius: BUTTON_RADIUS + 4,
     borderWidth: 1,
     borderColor: BORDER,

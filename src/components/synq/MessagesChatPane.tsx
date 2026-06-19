@@ -1513,7 +1513,7 @@ const chatHeaderOverlayStyles = RNStyleSheet.create({
     color: ACCENT,
     fontSize: TYPE_FINE,
     marginTop: 2,
-    fontWeight: "600",
+    fontFamily: fonts.heavy,
   },
   loadEarlierBtn: {
     alignSelf: "center",
@@ -1524,7 +1524,7 @@ const chatHeaderOverlayStyles = RNStyleSheet.create({
   loadEarlierText: {
     color: ACCENT,
     fontSize: TYPE_CAPTION,
-    fontWeight: "600",
+    fontFamily: fonts.heavy,
   },
   chatLoadingWrap: {
     flex: 1,

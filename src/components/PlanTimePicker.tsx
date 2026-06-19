@@ -1,4 +1,7 @@
-import { fonts } from "@/constants/Variables";
+import {
+  BORDER,
+  fonts,
+} from "@/constants/Variables";
 import DateTimePicker, {
   type DateTimePickerEvent,
 } from "@react-native-community/datetimepicker";
@@ -67,7 +70,7 @@ const styles = StyleSheet.create({
     borderRadius: 14,
     backgroundColor: WHEEL_BG,
     borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.08)",
+    borderColor: BORDER,
     overflow: "hidden",
     alignItems: "center",
     justifyContent: "center",

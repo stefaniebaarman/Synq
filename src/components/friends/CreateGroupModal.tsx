@@ -3,6 +3,7 @@ import {
   BG,
   BUTTON_RADIUS,
   MUTED2,
+  MUTED3,
   ON_ACCENT_TEXT,
   TEXT,
   TYPE_BODY,
@@ -174,7 +175,7 @@ const styles = StyleSheet.create({
   input: {
     borderRadius: BUTTON_RADIUS,
     borderWidth: StyleSheet.hairlineWidth,
-    borderColor: "rgba(255,255,255,0.12)",
+    borderColor: MUTED3,
     backgroundColor: "rgba(255,255,255,0.04)",
     color: TEXT,
     fontFamily: fonts.book,

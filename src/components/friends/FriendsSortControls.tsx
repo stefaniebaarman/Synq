@@ -5,6 +5,7 @@ import {
   MUTED2,
   MUTED3,
   RADIUS_LG,
+  SURFACE,
   TEXT,
   TYPE_CAPTION,
   TYPE_SUBHEAD,
@@ -225,7 +226,7 @@ const styles = StyleSheet.create({
   },
   sortMenuSeparator: {
     height: StyleSheet.hairlineWidth,
-    backgroundColor: "rgba(255,255,255,0.06)",
+    backgroundColor: SURFACE,
     marginLeft: 20,
   },
   sortMenuOption: {

@@ -9,6 +9,7 @@ import {
   MUTED2,
   ON_ACCENT_TEXT,
   PRIMARY_CTA_WIDTH,
+  SHEET_OVERLAY,
   TEXT,
   TYPE_BODY,
   TYPE_CAPTION,
@@ -719,7 +720,7 @@ const styles = StyleSheet.create({
 
     justifyContent: "flex-end",
 
-    backgroundColor: "rgba(0,0,0,0.55)",
+    backgroundColor: SHEET_OVERLAY,
 
   },
 

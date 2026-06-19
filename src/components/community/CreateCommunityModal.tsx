@@ -10,6 +10,7 @@ import {
   TYPE_BODY,
   TYPE_CAPTION,
   TYPE_CTA,
+  TYPE_LEAD,
   TYPE_SECTION,
   fonts,
 } from "@/constants/Variables";
@@ -393,7 +394,7 @@ const styles = StyleSheet.create({
   input: {
     borderRadius: BUTTON_RADIUS,
     borderWidth: StyleSheet.hairlineWidth,
-    borderColor: "rgba(255,255,255,0.12)",
+    borderColor: MUTED3,
     backgroundColor: "rgba(255,255,255,0.04)",
     color: TEXT,
     fontFamily: fonts.book,
@@ -408,7 +409,7 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     borderRadius: BUTTON_RADIUS,
     borderWidth: StyleSheet.hairlineWidth,
-    borderColor: "rgba(255,255,255,0.12)",
+    borderColor: MUTED3,
     backgroundColor: "rgba(255,255,255,0.04)",
     paddingHorizontal: 14,
     minHeight: 52,
@@ -430,7 +431,7 @@ const styles = StyleSheet.create({
     borderRadius: BUTTON_RADIUS,
     borderWidth: StyleSheet.hairlineWidth,
     borderStyle: "dashed",
-    borderColor: "rgba(255,255,255,0.12)",
+    borderColor: MUTED3,
     backgroundColor: "rgba(255,255,255,0.04)",
     alignItems: "center",
     justifyContent: "center",
@@ -453,8 +454,8 @@ const styles = StyleSheet.create({
   },
   coverOverlayText: {
     fontFamily: fonts.medium,
-    fontSize: TYPE_CAPTION + 1,
-    color: "#fff",
+    fontSize: TYPE_LEAD,
+    color: TEXT,
   },
   coverLabel: {
     fontFamily: fonts.medium,

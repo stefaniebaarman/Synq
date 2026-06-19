@@ -1,7 +1,9 @@
 import {
   ACCENT,
   BG,
+  GROUP_BORDER,
   MUTED2,
+  SURFACE_WELL,
   TEXT,
   TYPE_CTA,
   TYPE_LEAD,
@@ -110,7 +112,7 @@ const styles = StyleSheet.create({
     margin: 1,
     borderRadius: 29,
     borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.05)",
+    borderColor: GROUP_BORDER,
   },
   content: {
     flex: 1,
@@ -146,7 +148,7 @@ const styles = StyleSheet.create({
     borderWidth: 2,
     borderColor: ACCENT,
     overflow: "hidden",
-    backgroundColor: "#111",
+    backgroundColor: SURFACE_WELL,
   },
   avatar: {
     width: "100%",
