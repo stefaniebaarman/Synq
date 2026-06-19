@@ -12,11 +12,13 @@ import {
 import {
   ACCENT,
   BG,
+  BORDER,
   BUTTON_RADIUS,
   MUTED,
   ON_ACCENT_TEXT,
   PRIMARY_CTA_HEIGHT,
   PRIMARY_CTA_WIDTH,
+  SURFACE,
   TEXT,
   TYPE_BODY,
   TYPE_BUTTON,
@@ -194,7 +196,7 @@ const styles = StyleSheet.create({
   divider: {
     marginTop: ONBOARDING_DIVIDER_MARGIN_TOP,
     height: 1,
-    backgroundColor: "rgba(255,255,255,0.08)",
+    backgroundColor: BORDER,
     width: ONBOARDING_DIVIDER_WIDTH,
   },
   subtitle: {
@@ -206,14 +208,14 @@ const styles = StyleSheet.create({
   },
   input: {
     color: TEXT,
-    backgroundColor: "rgba(255,255,255,0.06)",
+    backgroundColor: SURFACE,
     height: 56,
     borderRadius: 14,
     paddingHorizontal: 16,
     fontSize: TYPE_BODY,
     fontFamily: fonts.medium,
     borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.08)",
+    borderColor: BORDER,
   },
   primaryButton: {
     marginTop: 20,

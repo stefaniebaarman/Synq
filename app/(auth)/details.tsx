@@ -33,7 +33,9 @@ import {
 import {
   ACCENT,
   BG,
+  BORDER,
   BUTTON_RADIUS,
+  MUTED3,
   ON_ACCENT_TEXT,
   PRIMARY_CTA_HEIGHT,
   PRIMARY_CTA_WIDTH,
@@ -259,7 +261,7 @@ export default function Details() {
               value={firstName}
               onChangeText={setFirstName}
               placeholder="First Name"
-              placeholderTextColor="rgba(255,255,255,0.35)"
+              placeholderTextColor={MUTED3}
               autoCapitalize="words"
               autoCorrect={false}
               style={styles.input}
@@ -269,7 +271,7 @@ export default function Details() {
               value={lastName}
               onChangeText={setLastName}
               placeholder="Last Name"
-              placeholderTextColor="rgba(255,255,255,0.35)"
+              placeholderTextColor={MUTED3}
               autoCapitalize="words"
               autoCorrect={false}
               style={[styles.input, { marginTop: 12 }]}
@@ -351,7 +353,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
     borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.2)",
+    borderColor: MUTED3,
     overflow: "hidden",
   },
   avatarImage: {
@@ -394,7 +396,7 @@ const styles = StyleSheet.create({
   },
   input: {
     color: TEXT,
-    backgroundColor: "rgba(255,255,255,0.08)",
+    backgroundColor: BORDER,
     height: 52,
     borderRadius: BUTTON_RADIUS,
     paddingHorizontal: 14,

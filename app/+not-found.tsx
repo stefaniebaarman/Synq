@@ -3,6 +3,7 @@ import { StyleSheet, Text, View } from "react-native";
 import {
   ACCENT,
   BG,
+  MUTED,
   TEXT,
   TYPE_BODY,
   TYPE_TITLE,
@@ -43,7 +44,7 @@ const styles = StyleSheet.create({
   subtitle: {
     fontSize: TYPE_BODY,
     fontFamily: fonts.medium,
-    color: "rgba(255,255,255,0.55)",
+    color: MUTED,
     textAlign: "center",
     marginBottom: 28,
   },
@@ -56,6 +57,6 @@ const styles = StyleSheet.create({
   linkText: {
     fontSize: TYPE_BODY,
     fontFamily: fonts.heavy,
-    color: "#090A0B",
+    color: BG,
   },
 });

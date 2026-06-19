@@ -1,9 +1,11 @@
 import {
   ACCENT,
   BG,
+  BORDER,
   MUTED,
   PRIMARY_CTA_HEIGHT,
   PRIMARY_CTA_WIDTH,
+  SURFACE,
   TEXT,
   TYPE_BODY,
   TYPE_CTA,
@@ -161,7 +163,7 @@ const styles = StyleSheet.create({
   },
   skip: { position: "absolute", top: 14, right: 18, zIndex: 10 },
   skipText: {
-    color: "rgba(255,255,255,0.55)",
+    color: MUTED,
     fontFamily: fonts.book,
     fontSize: TYPE_BODY,
   },
@@ -176,7 +178,7 @@ const styles = StyleSheet.create({
   divider: {
     marginTop: 14,
     height: 1,
-    backgroundColor: "rgba(255,255,255,0.08)",
+    backgroundColor: BORDER,
     width: "78%",
   },
   sub: {
@@ -205,9 +207,9 @@ const styles = StyleSheet.create({
     width: PRIMARY_CTA_WIDTH,
     height: PRIMARY_CTA_HEIGHT,
     borderRadius: 14,
-    backgroundColor: "rgba(255,255,255,0.06)",
+    backgroundColor: SURFACE,
     borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.08)",
+    borderColor: BORDER,
     justifyContent: "center",
     alignItems: "center",
   },

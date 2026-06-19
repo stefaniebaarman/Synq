@@ -1,11 +1,16 @@
 import {
   ACCENT,
   BG,
+  BORDER,
   BUTTON_RADIUS,
   DESTRUCTIVE,
+  GROUP_BORDER,
   MODAL_RADIUS,
   MUTED2,
+  MUTED3,
   RADIUS_MD,
+  SURFACE,
+  SURFACE_LIFTED,
   TEXT,
   TYPE_BODY,
   TYPE_BUTTON,
@@ -1712,11 +1717,11 @@ const styles = StyleSheet.create({
     height: 300,
     borderRadius: 150,
     borderWidth: 1.5,
-    borderColor: "rgba(255,255,255,0.22)",
+    borderColor: MUTED3,
   },
 
   avatarFallback: {
-    backgroundColor: "#1a1a1a",
+    backgroundColor: SURFACE_LIFTED,
     justifyContent: "center",
     alignItems: "center",
   },
@@ -1754,7 +1759,7 @@ const styles = StyleSheet.create({
 
   profileSectionDivider: {
     height: StyleSheet.hairlineWidth,
-    backgroundColor: "rgba(255,255,255,0.08)",
+    backgroundColor: BORDER,
     marginVertical: 20,
   },
 
@@ -1768,7 +1773,7 @@ const styles = StyleSheet.create({
   communityContextText: {
     color: MUTED2,
     fontFamily: fonts.book,
-    fontSize: TYPE_CAPTION + 1,
+    fontSize: TYPE_LEAD,
     lineHeight: 20,
     textAlign: "center",
     paddingHorizontal: 24,
@@ -1816,7 +1821,7 @@ const styles = StyleSheet.create({
   },
   optionsDivider: {
     height: StyleSheet.hairlineWidth,
-    backgroundColor: "rgba(255,255,255,0.06)",
+    backgroundColor: SURFACE,
     marginLeft: 54,
   },
   optionsCancel: {
@@ -1881,7 +1886,7 @@ const styles = StyleSheet.create({
   pill: {
     backgroundColor: PROFILE_SURFACE,
     borderWidth: StyleSheet.hairlineWidth,
-    borderColor: "rgba(255,255,255,0.06)",
+    borderColor: GROUP_BORDER,
     borderRadius: 999,
     paddingHorizontal: 12,
     paddingVertical: 7,

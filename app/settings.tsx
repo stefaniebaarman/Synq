@@ -23,7 +23,7 @@ import {
   BG,
   BORDER,
   BORDER_MUTED,
-  fonts,
+  DESTRUCTIVE,
   MUTED,
   MUTED2,
   RADIUS_MD,
@@ -34,8 +34,12 @@ import {
   SPACE_6,
   SURFACE_ELEVATED,
   TEXT,
+  TEXT_MUTED_HEX,
   TYPE_BODY,
-  TYPE_CAPTION
+  TYPE_CAPTION,
+  TYPE_CTA,
+  TYPE_LEAD,
+  fonts,
 } from "../constants/Variables";
 import { auth, db } from "../src/lib/firebase";
 import { useAuthRefresh } from "./_layout";
@@ -285,7 +289,7 @@ const styles = StyleSheet.create({
   },
   userName: {
     color: TEXT,
-    fontSize: TYPE_BODY + 2,
+    fontSize: TYPE_CTA,
     fontFamily: fonts.heavy,
   },
 
@@ -305,13 +309,13 @@ const styles = StyleSheet.create({
     fontFamily: fonts.medium,
   },
   itemValue: {
-    color: "#A8A8A8",
-    fontSize: TYPE_CAPTION + 1,
+    color: TEXT_MUTED_HEX,
+    fontSize: TYPE_LEAD,
     fontFamily: fonts.medium,
   },
 
   dangerText: {
-    color: "#FF5A5F",
+    color: DESTRUCTIVE,
     fontFamily: fonts.medium,
   },
 });

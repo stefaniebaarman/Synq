@@ -21,6 +21,7 @@ import {
 import {
   ACCENT,
   BG,
+  BORDER,
   BUTTON_RADIUS,
   MUTED,
   ON_ACCENT_TEXT,
@@ -206,7 +207,7 @@ const styles = StyleSheet.create({
         borderRadius: 999,
         marginRight: 10,
         marginBottom: 10,
-        backgroundColor: "rgba(255,255,255,0.08)",
+        backgroundColor: BORDER,
         borderWidth: 1,
         borderColor: "rgba(255,255,255,0.15)",
     },
@@ -215,9 +216,9 @@ const styles = StyleSheet.create({
         borderColor: "rgba(125,255,166,0.6)",
     },
     pillText: {
-        color: "rgba(255,255,255,0.85)",
+        color: TEXT,
         fontSize: TYPE_LEAD,
-        fontWeight: "700",
+        fontFamily: fonts.heavy,
     },
     pillTextOn: { color: TEXT },
 
@@ -234,8 +235,8 @@ const styles = StyleSheet.create({
     buttonText: { color: ON_ACCENT_TEXT, fontSize: TYPE_CTA, fontFamily: fonts.heavy, letterSpacing: 0.2 },
     skipButton: { marginTop: 20, alignSelf: "center" },
     skipText: {
-        color: "rgba(255,255,255,0.5)",
+        color: MUTED,
         fontSize: TYPE_LEAD,
-        fontWeight: "600",
+        fontFamily: fonts.medium,
     },
 });

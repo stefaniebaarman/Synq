@@ -42,7 +42,9 @@ import {
   SPACE_6,
   TEXT,
   TYPE_BODY,
+  TYPE_BUTTON,
   TYPE_CAPTION,
+  TYPE_LEAD,
   fonts,
 } from "../constants/Variables";
 import { auth, db } from "../src/lib/firebase";
@@ -725,7 +727,7 @@ const styles = StyleSheet.create({
   actionSubtitle: {
     marginTop: 2,
     color: MUTED,
-    fontSize: TYPE_CAPTION + 1,
+    fontSize: TYPE_LEAD,
     fontFamily: fonts.book,
     lineHeight: 18,
   },
@@ -739,7 +741,7 @@ const styles = StyleSheet.create({
   },
   removeLocationText: {
     color: MUTED2,
-    fontSize: TYPE_CAPTION + 2,
+    fontSize: TYPE_BUTTON,
     fontFamily: fonts.medium,
   },
 
@@ -772,7 +774,7 @@ const styles = StyleSheet.create({
   },
   cancelButtonText: {
     color: MUTED2,
-    fontSize: TYPE_BODY - 1,
+    fontSize: TYPE_BUTTON,
     fontFamily: fonts.medium,
   },
 

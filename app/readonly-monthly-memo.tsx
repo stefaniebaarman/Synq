@@ -1,10 +1,16 @@
 import {
+  MUTED,
+  MUTED3,
+  SURFACE,
   TEXT,
+  TEXT_MUTED_DARK,
+  TEXT_MUTED_DARKER,
   TYPE_BUTTON,
   TYPE_CAPTION,
   TYPE_CTA,
   TYPE_FINE,
   TYPE_LEAD,
+  fonts,
 } from "@/constants/Variables";
 import { filterOutPastOpenPlans, sortOpenPlansByDateTime } from "@/src/lib/planEvents";
 import { resolvePlanAttribution } from "@/src/lib/planAttribution";
@@ -159,7 +165,7 @@ export default function FriendOpenPlans({
                     joined
                       ? {
                           borderColor: "rgba(255,255,255,0.14)",
-                          backgroundColor: "rgba(255,255,255,0.06)",
+                          backgroundColor: SURFACE,
                         }
                       : { borderColor: ACCENT },
                   ]}
@@ -206,7 +212,7 @@ const styles = StyleSheet.create({
     marginBottom: 14,
   },
   empty: {
-    color: "#666",
+    color: TEXT_MUTED_DARK,
     fontSize: TYPE_LEAD,
     marginBottom: 20
   },
@@ -244,18 +250,18 @@ const styles = StyleSheet.create({
   },
 
   day: {
-    color: "#666",
+    color: TEXT_MUTED_DARK,
     fontSize: TYPE_FINE,
   },
 
   date: {
     color: TEXT,
     fontSize: TYPE_CTA,
-    fontWeight: "600",
+    fontFamily: fonts.heavy,
   },
 
   month: {
-    color: "#666",
+    color: TEXT_MUTED_DARK,
     fontSize: TYPE_FINE,
     marginTop: 2,
   },
@@ -266,7 +272,7 @@ const styles = StyleSheet.create({
   },
 
   meta: {
-    color: "#777",
+    color: TEXT_MUTED_DARKER,
     marginTop: 3,
     fontSize: TYPE_CAPTION,
   },
@@ -283,11 +289,11 @@ const styles = StyleSheet.create({
   },
   hostPill: {
     ...PLAN_PILL_LAYOUT,
-    borderColor: "rgba(255,255,255,0.12)",
+    borderColor: MUTED3,
     backgroundColor: "rgba(255,255,255,0.04)",
   },
   hostPillText: {
-    color: "rgba(255,255,255,0.55)",
+    color: MUTED,
   },
   interestText: {
     fontSize: TYPE_FINE,

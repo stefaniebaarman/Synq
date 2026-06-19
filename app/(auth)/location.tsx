@@ -26,9 +26,11 @@ import {
 import {
   ACCENT,
   BG,
+  BORDER,
   BUTTON_RADIUS,
   MUTED,
   MUTED2,
+  MUTED3,
   ON_ACCENT_TEXT,
   PRIMARY_CTA_HEIGHT,
   PRIMARY_CTA_WIDTH,
@@ -286,7 +288,7 @@ export default function LocationDetails() {
             value={city}
             onChangeText={setCity}
             placeholder="City (e.g. Seattle)"
-            placeholderTextColor="rgba(255,255,255,0.35)"
+            placeholderTextColor={MUTED3}
             style={styles.input}
           />
 
@@ -294,7 +296,7 @@ export default function LocationDetails() {
             value={state}
             onChangeText={setState}
             placeholder="State (e.g. WA)"
-            placeholderTextColor="rgba(255,255,255,0.35)"
+            placeholderTextColor={MUTED3}
             autoCapitalize="characters"
             maxLength={2}
             style={[styles.input, { marginTop: 12 }]}
@@ -414,7 +416,7 @@ const styles = StyleSheet.create({
 
   input: {
     color: TEXT,
-    backgroundColor: "rgba(255,255,255,0.08)",
+    backgroundColor: BORDER,
     height: 52,
     borderRadius: BUTTON_RADIUS,
     paddingHorizontal: 14,
@@ -429,7 +431,7 @@ const styles = StyleSheet.create({
     borderRadius: BUTTON_RADIUS,
     paddingVertical: 10,
     paddingHorizontal: 14,
-    backgroundColor: "rgba(255,255,255,0.08)",
+    backgroundColor: BORDER,
     borderWidth: 1,
     borderColor: "rgba(255,255,255,0.15)",
     flexDirection: "row",

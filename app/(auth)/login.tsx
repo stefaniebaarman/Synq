@@ -14,11 +14,13 @@ import {
 import {
   ACCENT,
   BG,
+  BORDER,
   BUTTON_RADIUS,
   MUTED,
   ON_ACCENT_TEXT,
   PRIMARY_CTA_HEIGHT,
   PRIMARY_CTA_WIDTH,
+  SURFACE,
   TEXT,
   TYPE_BODY,
   TYPE_CAPTION,
@@ -280,7 +282,7 @@ const styles = StyleSheet.create({
   divider: {
     marginTop: ONBOARDING_DIVIDER_MARGIN_TOP,
     height: 1,
-    backgroundColor: "rgba(255,255,255,0.08)",
+    backgroundColor: BORDER,
     width: ONBOARDING_DIVIDER_WIDTH,
   },
   subtitle: {
@@ -293,7 +295,7 @@ const styles = StyleSheet.create({
   },
   inputGroup: { gap: 12 },
   input: {
-    backgroundColor: "rgba(255,255,255,0.06)",
+    backgroundColor: SURFACE,
     height: 56,
     borderRadius: 14,
     paddingHorizontal: 16,
@@ -301,7 +303,7 @@ const styles = StyleSheet.create({
     fontSize: TYPE_BODY,
     fontFamily: fonts.medium,
     borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.08)",
+    borderColor: BORDER,
   },
   forgotBtn: { alignSelf: "flex-end", marginTop: 10, paddingVertical: 4 },
   forgotText: {
@@ -342,7 +344,7 @@ const styles = StyleSheet.create({
     borderRadius: 22,
     padding: 22,
     borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.08)",
+    borderColor: BORDER,
   },
   modalTitle: {
     color: TEXT,
@@ -352,14 +354,14 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   modalSubtitle: {
-    color: "rgba(255,255,255,0.55)",
+    color: MUTED,
     fontSize: TYPE_LEAD,
     fontFamily: fonts.book,
     lineHeight: 20,
     marginBottom: 16,
   },
   modalInput: {
-    backgroundColor: "rgba(255,255,255,0.06)",
+    backgroundColor: SURFACE,
     height: 56,
     borderRadius: BUTTON_RADIUS,
     paddingHorizontal: 16,
@@ -367,11 +369,11 @@ const styles = StyleSheet.create({
     fontSize: TYPE_BODY,
     fontFamily: fonts.medium,
     borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.08)",
+    borderColor: BORDER,
   },
   cancelBtn: { marginTop: 14, alignItems: "center" },
   cancelText: {
-    color: "rgba(255,255,255,0.55)",
+    color: MUTED,
     fontSize: TYPE_LEAD,
     fontFamily: fonts.book,
   },

@@ -4,6 +4,7 @@ import {
   BG,
   BORDER,
   BUTTON_RADIUS,
+  DESTRUCTIVE,
   MODAL_RADIUS,
   MUTED2,
   MUTED3,
@@ -573,7 +574,7 @@ const styles = StyleSheet.create({
         height: 22,
         borderRadius: 11,
         borderWidth: StyleSheet.hairlineWidth,
-        borderColor: "rgba(255,255,255,0.12)",
+        borderColor: MUTED3,
     },
     listFooterSpacer: {
         height: 8,
@@ -634,7 +635,7 @@ const styles = StyleSheet.create({
         gap: 8,
     },
     errorBannerText: {
-        color: "#FF8A84",
+        color: DESTRUCTIVE,
         fontSize: TYPE_LEAD,
         fontFamily: fonts.medium,
         lineHeight: 20,

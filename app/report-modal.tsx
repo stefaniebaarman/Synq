@@ -1,16 +1,18 @@
+import { sheetStyles } from "@/constants/sheetStyles";
 import {
   ACCENT,
+  ACCENT_SELECTED_BG,
   BG,
   BORDER,
   BUTTON_RADIUS,
-  MODAL_RADIUS,
+  DESTRUCTIVE,
+  MUTED,
+  MUTED3,
   ON_ACCENT_TEXT,
   TEXT,
   TYPE_BODY,
   TYPE_BUTTON,
   TYPE_CAPTION,
-  TYPE_LEAD,
-  TYPE_MODAL_TITLE,
   fonts,
 } from "@/constants/Variables";
 import { ReportReason, submitReport, type ReportContentType } from "@/src/lib/moderation";
@@ -86,10 +88,10 @@ export default function ReportModal({
 
   return (
     <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
-      <Pressable style={styles.overlay} onPress={onClose}>
-        <Pressable style={styles.sheet} onPress={(e) => e.stopPropagation()}>
-          <Text style={styles.title}>Report</Text>
-          <Text style={styles.sub}>Why are you reporting this?</Text>
+      <Pressable style={sheetStyles.overlay} onPress={onClose}>
+        <Pressable style={sheetStyles.sheetAlt} onPress={(e) => e.stopPropagation()}>
+          <Text style={sheetStyles.title}>Report</Text>
+          <Text style={sheetStyles.bodyCompact}>Why are you reporting this?</Text>
 
           {REASONS.map((r) => (
             <TouchableOpacity
@@ -104,7 +106,7 @@ export default function ReportModal({
           <TextInput
             style={styles.input}
             placeholder="Additional details (optional)"
-            placeholderTextColor="rgba(255,255,255,0.4)"
+            placeholderTextColor={MUTED3}
             value={details}
             onChangeText={setDetails}
             multiline
@@ -119,7 +121,7 @@ export default function ReportModal({
             onPress={handleSubmit}
           >
             {submitting ? (
-              <ActivityIndicator color="#061006" />
+              <ActivityIndicator color={ON_ACCENT_TEXT} />
             ) : (
               <Text style={styles.submitText}>Submit report</Text>
             )}
@@ -135,32 +137,6 @@ export default function ReportModal({
 }
 
 const styles = StyleSheet.create({
-  overlay: {
-    flex: 1,
-    backgroundColor: "rgba(0,0,0,0.55)",
-    justifyContent: "flex-end",
-  },
-  sheet: {
-    backgroundColor: "#161616",
-    borderTopLeftRadius: MODAL_RADIUS,
-    borderTopRightRadius: MODAL_RADIUS,
-    padding: 24,
-    paddingBottom: 36,
-    borderWidth: 1,
-    borderColor: BORDER,
-  },
-  title: {
-    color: TEXT,
-    fontFamily: fonts.heavy,
-    fontSize: TYPE_MODAL_TITLE,
-    marginBottom: 6,
-  },
-  sub: {
-    color: "rgba(255,255,255,0.65)",
-    fontFamily: fonts.medium,
-    fontSize: TYPE_LEAD,
-    marginBottom: 16,
-  },
   reasonRow: {
     paddingVertical: 12,
     paddingHorizontal: 14,
@@ -168,11 +144,11 @@ const styles = StyleSheet.create({
     marginBottom: 8,
     backgroundColor: BG,
     borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.08)",
+    borderColor: BORDER,
   },
   reasonRowActive: {
     borderColor: ACCENT,
-    backgroundColor: "rgba(120,255,120,0.08)",
+    backgroundColor: ACCENT_SELECTED_BG,
   },
   reasonText: {
     color: TEXT,
@@ -191,7 +167,7 @@ const styles = StyleSheet.create({
     textAlignVertical: "top",
   },
   error: {
-    color: "#ff6b6b",
+    color: DESTRUCTIVE,
     fontFamily: fonts.medium,
     fontSize: TYPE_CAPTION,
     marginTop: 8,
@@ -216,7 +192,7 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
   },
   cancelText: {
-    color: "rgba(255,255,255,0.55)",
+    color: MUTED,
     fontFamily: fonts.medium,
     fontSize: TYPE_BUTTON,
   },

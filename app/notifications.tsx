@@ -38,16 +38,21 @@ import {
   DEFAULT_AVATAR,
   MUTED,
   MUTED2,
+  MUTED3,
   RADIUS_MD,
   SPACE_3,
   SPACE_4,
   SPACE_5,
   SPACE_6,
+  SURFACE,
   TEXT,
+  TEXT_MUTED_DARKER,
   TEXT_MUTED_HEX,
   TYPE_BODY,
+  TYPE_BUTTON,
   TYPE_CAPTION,
   TYPE_MICRO,
+  TYPE_MODAL_TITLE,
   TYPE_SECTION,
   fonts,
 } from "../constants/Variables";
@@ -73,7 +78,7 @@ function prefetchActorAvatars(items: { actorImageUrl: string | null }[]) {
   });
 }
 
-const SURFACE = "rgba(255,255,255,0.06)";
+
 const BACKGROUND = BG;
 
 type ActivityFeedKind =
@@ -1363,15 +1368,15 @@ const styles = StyleSheet.create({
     height: 80,
     borderRadius: 40,
     borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.22)",
-    backgroundColor: "rgba(255,255,255,0.06)",
+    borderColor: MUTED3,
+    backgroundColor: SURFACE,
     alignItems: "center",
     justifyContent: "center",
     marginBottom: SPACE_5,
   },
   emptyHeadline: {
     color: TEXT,
-    fontSize: TYPE_SECTION + 2,
+    fontSize: TYPE_MODAL_TITLE,
     fontFamily: fonts.heavy,
     textAlign: "center",
     letterSpacing: 0.15,
@@ -1392,8 +1397,8 @@ const styles = StyleSheet.create({
     marginBottom: 4,
   },
   emptySubtitle: {
-    color: "#777",
-    fontSize: TYPE_BODY - 1,
+    color: TEXT_MUTED_DARKER,
+    fontSize: TYPE_BUTTON,
     fontFamily: fonts.medium,
     textAlign: "center",
     marginTop: 8,
