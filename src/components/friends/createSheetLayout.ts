@@ -5,10 +5,10 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 export const CREATE_SHEET_HEIGHT_RATIO = 0.94;
 
 /**
- * Scroll body height for the create-community form (fields + cover photo).
- * Kept in sync with CreateCommunityModal field sizes.
+ * Scroll body height for the create-community form (hero + fields).
+ * Kept in sync with CreateCommunityModal layout.
  */
-const CREATE_COMMUNITY_FORM_BODY_HEIGHT = 544;
+const CREATE_COMMUNITY_FORM_BODY_HEIGHT = 580;
 
 /** Header, CTA, and top padding outside the community scroll area. */
 const CREATE_SHEET_CHROME_HEIGHT = 16 + 50 + 12 + 48;

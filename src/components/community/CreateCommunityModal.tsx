@@ -4,17 +4,17 @@ import {
   BG,
   BUTTON_RADIUS,
   MUTED2,
-  MUTED3,
   ON_ACCENT_TEXT,
+  RADIUS_LG,
   TEXT,
   TYPE_BODY,
   TYPE_CAPTION,
-  TYPE_CTA,
-  TYPE_LEAD,
+  TYPE_MODAL_TITLE,
   TYPE_SECTION,
   fonts,
 } from "@/constants/Variables";
 import CloseButton from "@/src/components/CloseButton";
+import { GROUP_BORDER, GROUP_SURFACE } from "@/src/components/friends/groupsListStyles";
 import { useCreateSheetLayout } from "@/src/components/friends/createSheetLayout";
 import {
   COMMUNITY_GROUP_CATEGORIES,
@@ -24,6 +24,7 @@ import { filterOrReject } from "@/src/lib/contentFilter";
 import { launchProfilePhotoPicker } from "@/src/lib/profilePhotoPicker";
 import { Ionicons } from "@expo/vector-icons";
 import { Image as ExpoImage } from "expo-image";
+import { LinearGradient } from "expo-linear-gradient";
 import { useCallback, useEffect, useState } from "react";
 import {
   ActivityIndicator,
@@ -57,9 +58,18 @@ type Props = {
   onCreate: (input: CreateCommunityInput) => void | Promise<void>;
 };
 
-function FieldLabel({ children }: { children: string }) {
-  return <Text style={styles.fieldLabel}>{children}</Text>;
-}
+const CATEGORY_ICONS: Record<
+  CommunityGroupCategory,
+  keyof typeof Ionicons.glyphMap
+> = {
+  Sports: "basketball-outline",
+  Social: "people-outline",
+  "Food & Drink": "restaurant-outline",
+  Fitness: "barbell-outline",
+  Music: "musical-notes-outline",
+  Outdoors: "leaf-outline",
+  Other: "sparkles-outline",
+};
 
 export default function CreateCommunityModal({
   visible,
@@ -74,7 +84,6 @@ export default function CreateCommunityModal({
   const [location, setLocation] = useState("");
   const [about, setAbout] = useState("");
   const [coverUri, setCoverUri] = useState<string | null>(null);
-  const [categoryVisible, setCategoryVisible] = useState(false);
   const [keyboardInset, setKeyboardInset] = useState(0);
   const [alertVisible, setAlertVisible] = useState(false);
   const [alertMessage, setAlertMessage] = useState("");
@@ -85,7 +94,6 @@ export default function CreateCommunityModal({
     setLocation("");
     setAbout("");
     setCoverUri(null);
-    setCategoryVisible(false);
     setKeyboardInset(0);
   }, []);
 
@@ -126,10 +134,6 @@ export default function CreateCommunityModal({
   const handleBackdropPress = () => {
     if (keyboardInset > 0) {
       Keyboard.dismiss();
-      return;
-    }
-    if (categoryVisible) {
-      setCategoryVisible(false);
       return;
     }
     handleClose();
@@ -176,13 +180,7 @@ export default function CreateCommunityModal({
         visible={visible}
         transparent
         animationType="slide"
-        onRequestClose={() => {
-          if (categoryVisible) {
-            setCategoryVisible(false);
-            return;
-          }
-          handleClose();
-        }}
+        onRequestClose={handleClose}
       >
         <View style={styles.overlay}>
           <Pressable
@@ -196,9 +194,11 @@ export default function CreateCommunityModal({
             keyboardVerticalOffset={insets.bottom}
           >
             <View style={[styles.sheet, sheetStyle]}>
+              <View style={styles.grabHandle} />
+
               <View style={styles.header}>
                 <Text style={styles.title}>New community</Text>
-                <CloseButton onPress={handleClose} />
+                <CloseButton onPress={handleClose} accessibilityLabel="Close" />
               </View>
 
               <ScrollView
@@ -208,47 +208,107 @@ export default function CreateCommunityModal({
                 keyboardDismissMode="on-drag"
                 showsVerticalScrollIndicator={false}
               >
-                <View style={styles.fieldBlock}>
-                  <FieldLabel>Community name</FieldLabel>
-                  <View style={styles.textFieldBar}>
-                    <TextInput
-                      style={styles.textFieldInput}
-                      placeholder="e.g. DC Volo Kickball"
-                      placeholderTextColor={MUTED2}
-                      value={name}
-                      onChangeText={setName}
-                      maxLength={40}
-                      autoCapitalize="words"
-                      returnKeyType="next"
-                    />
-                  </View>
-                </View>
+                <TouchableOpacity
+                  style={styles.coverCard}
+                  onPress={() => void pickCoverPhoto()}
+                  activeOpacity={0.9}
+                  accessibilityRole="button"
+                  accessibilityLabel={coverUri ? "Change cover photo" : "Add cover photo"}
+                >
+                  {coverUri ? (
+                    <>
+                      <ExpoImage
+                        source={{ uri: coverUri }}
+                        style={styles.coverImage}
+                        contentFit="cover"
+                      />
+                      <LinearGradient
+                        colors={["transparent", "rgba(0,0,0,0.65)"]}
+                        style={styles.coverImageFade}
+                      />
+                      <View style={styles.coverChangePill}>
+                        <Ionicons name="camera-outline" size={15} color={TEXT} />
+                        <Text style={styles.coverChangeText}>Change photo</Text>
+                      </View>
+                    </>
+                  ) : (
+                    <View style={styles.coverEmpty}>
+                      <View style={styles.coverIconWrap}>
+                        <Ionicons name="image-outline" size={24} color={ACCENT} />
+                      </View>
+                      <Text style={styles.coverEmptyTitle}>Add cover photo</Text>
+                      <Text style={styles.coverEmptyHint}>Optional · tap to choose</Text>
+                    </View>
+                  )}
+                </TouchableOpacity>
 
-                <View style={styles.fieldBlock}>
-                  <FieldLabel>Category</FieldLabel>
-                  <TouchableOpacity
-                    style={styles.selectInput}
-                    onPress={() => {
-                      Keyboard.dismiss();
-                      setCategoryVisible(true);
-                    }}
-                    activeOpacity={0.8}
-                    accessibilityRole="button"
-                    accessibilityLabel="Choose category"
+                <TextInput
+                  style={styles.nameInput}
+                  placeholder="Name your community"
+                  placeholderTextColor={MUTED2}
+                  value={name}
+                  onChangeText={setName}
+                  maxLength={40}
+                  autoCapitalize="words"
+                  returnKeyType="next"
+                />
+
+                <View style={styles.section}>
+                  <Text style={styles.sectionTitle}>Category</Text>
+                  <ScrollView
+                    horizontal
+                    showsHorizontalScrollIndicator={false}
+                    contentContainerStyle={styles.categoryRail}
+                    keyboardShouldPersistTaps="handled"
                   >
-                    <Text style={[styles.selectText, !category && styles.selectPlaceholder]}>
-                      {category || "Choose a category"}
-                    </Text>
-                    <Ionicons name="chevron-down" size={18} color={MUTED2} />
-                  </TouchableOpacity>
+                    {COMMUNITY_GROUP_CATEGORIES.map((item) => {
+                      const selected = category === item;
+                      return (
+                        <TouchableOpacity
+                          key={item}
+                          style={[styles.categoryChip, selected && styles.categoryChipOn]}
+                          onPress={() => {
+                            Keyboard.dismiss();
+                            setCategory(item);
+                          }}
+                          activeOpacity={0.85}
+                          accessibilityRole="button"
+                          accessibilityState={{ selected }}
+                          accessibilityLabel={item}
+                        >
+                          <Ionicons
+                            name={CATEGORY_ICONS[item]}
+                            size={16}
+                            color={selected ? ACCENT : MUTED2}
+                          />
+                          <Text
+                            style={[
+                              styles.categoryChipText,
+                              selected && styles.categoryChipTextOn,
+                            ]}
+                          >
+                            {item}
+                          </Text>
+                        </TouchableOpacity>
+                      );
+                    })}
+                  </ScrollView>
                 </View>
 
-                <View style={styles.fieldBlock}>
-                  <FieldLabel>Location (optional)</FieldLabel>
-                  <View style={styles.textFieldBar}>
+                <View style={styles.detailsCard}>
+                  <Text style={styles.detailsTitle}>More about your community</Text>
+                  <Text style={styles.detailsSub}>Optional</Text>
+
+                  <View style={styles.detailRow}>
+                    <Ionicons
+                      name="location-outline"
+                      size={18}
+                      color={MUTED2}
+                      style={styles.detailIcon}
+                    />
                     <TextInput
-                      style={styles.textFieldInput}
-                      placeholder="City or neighborhood"
+                      style={styles.detailInput}
+                      placeholder="Location"
                       placeholderTextColor={MUTED2}
                       value={location}
                       onChangeText={setLocation}
@@ -256,14 +316,19 @@ export default function CreateCommunityModal({
                       autoCapitalize="words"
                     />
                   </View>
-                </View>
 
-                <View style={styles.fieldBlock}>
-                  <FieldLabel>About your community</FieldLabel>
-                  <View style={[styles.textFieldBar, styles.aboutFieldBar]}>
+                  <View style={styles.detailDivider} />
+
+                  <View style={[styles.detailRow, styles.detailRowMultiline]}>
+                    <Ionicons
+                      name="text-outline"
+                      size={18}
+                      color={MUTED2}
+                      style={styles.detailIconTop}
+                    />
                     <TextInput
-                      style={[styles.textFieldInput, styles.aboutInput]}
-                      placeholder="What is this group about? Who should join?"
+                      style={[styles.detailInput, styles.aboutInput]}
+                      placeholder="What should people know before joining?"
                       placeholderTextColor={MUTED2}
                       value={about}
                       onChangeText={setAbout}
@@ -273,91 +338,25 @@ export default function CreateCommunityModal({
                     />
                   </View>
                 </View>
-
-                <View style={styles.fieldBlock}>
-                  <FieldLabel>Cover photo (optional)</FieldLabel>
-                  <TouchableOpacity
-                    style={[styles.coverBox, coverUri && styles.coverBoxFilled]}
-                    onPress={() => void pickCoverPhoto()}
-                    activeOpacity={0.85}
-                    accessibilityRole="button"
-                    accessibilityLabel={coverUri ? "Change cover photo" : "Add photo"}
-                  >
-                    {coverUri ? (
-                      <>
-                        <ExpoImage
-                          source={{ uri: coverUri }}
-                          style={styles.coverImage}
-                          contentFit="cover"
-                        />
-                        <View style={styles.coverOverlay}>
-                          <Ionicons name="camera-outline" size={22} color="#fff" />
-                          <Text style={styles.coverOverlayText}>Change photo</Text>
-                        </View>
-                      </>
-                    ) : (
-                      <>
-                        <Ionicons name="image-outline" size={28} color={MUTED3} />
-                        <Text style={styles.coverLabel}>Add photo</Text>
-                      </>
-                    )}
-                  </TouchableOpacity>
-                </View>
               </ScrollView>
 
-              <TouchableOpacity
-                style={[styles.cta, !canSubmit && styles.ctaDisabled]}
-                disabled={!canSubmit}
-                onPress={() => void handleCreate()}
-                accessibilityRole="button"
-                accessibilityLabel="Create community"
-              >
-                {busy ? (
-                  <ActivityIndicator color={ON_ACCENT_TEXT} />
-                ) : (
-                  <Text style={styles.ctaText}>Create</Text>
-                )}
-              </TouchableOpacity>
-            </View>
-          </KeyboardAvoidingView>
-
-          {categoryVisible ? (
-            <View style={styles.categoryOverlay} pointerEvents="box-none">
-              <Pressable
-                style={[StyleSheet.absoluteFill, styles.categoryScrim]}
-                onPress={() => setCategoryVisible(false)}
-                accessibilityLabel="Dismiss category picker"
-              />
-              <View style={styles.categorySheet}>
-                <Text style={styles.categorySheetTitle}>Category</Text>
-                {COMMUNITY_GROUP_CATEGORIES.map((item) => (
-                  <TouchableOpacity
-                    key={item}
-                    style={styles.categoryRow}
-                    onPress={() => {
-                      setCategory(item);
-                      setCategoryVisible(false);
-                    }}
-                    activeOpacity={0.75}
-                    accessibilityRole="button"
-                    accessibilityState={{ selected: category === item }}
-                  >
-                    <Text
-                      style={[
-                        styles.categoryRowText,
-                        category === item && styles.categoryRowTextActive,
-                      ]}
-                    >
-                      {item}
-                    </Text>
-                    {category === item ? (
-                      <Ionicons name="checkmark" size={18} color={ACCENT} />
-                    ) : null}
-                  </TouchableOpacity>
-                ))}
+              <View style={styles.footer}>
+                <TouchableOpacity
+                  style={[styles.cta, !canSubmit && styles.ctaDisabled]}
+                  disabled={!canSubmit}
+                  onPress={() => void handleCreate()}
+                  accessibilityRole="button"
+                  accessibilityLabel="Create community"
+                >
+                  {busy ? (
+                    <ActivityIndicator color={ON_ACCENT_TEXT} />
+                  ) : (
+                    <Text style={styles.ctaText}>Create community</Text>
+                  )}
+                </TouchableOpacity>
               </View>
             </View>
-          ) : null}
+          </KeyboardAvoidingView>
         </View>
       </Modal>
 
@@ -378,18 +377,26 @@ const styles = StyleSheet.create({
   },
   sheet: {
     backgroundColor: BG,
-    borderTopLeftRadius: 16,
-    borderTopRightRadius: 16,
+    borderTopLeftRadius: 22,
+    borderTopRightRadius: 22,
     paddingHorizontal: 20,
-    paddingTop: 16,
+    paddingTop: 10,
     borderWidth: StyleSheet.hairlineWidth,
     borderColor: "rgba(255,255,255,0.1)",
+  },
+  grabHandle: {
+    alignSelf: "center",
+    width: 36,
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: "rgba(255,255,255,0.18)",
+    marginBottom: 12,
   },
   header: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    marginBottom: 16,
+    marginBottom: 18,
   },
   title: {
     fontFamily: fonts.heavy,
@@ -402,102 +409,181 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     paddingBottom: 8,
-    gap: 16,
+    gap: 20,
   },
-  fieldBlock: {
-    gap: 8,
-  },
-  fieldLabel: {
-    fontFamily: fonts.medium,
-    fontSize: TYPE_BODY,
-    color: TEXT,
-    letterSpacing: 0.04,
-  },
-  textFieldBar: {
-    flexDirection: "row",
-    alignItems: "center",
-    borderRadius: BUTTON_RADIUS,
+  coverCard: {
+    height: 160,
+    borderRadius: RADIUS_LG,
+    backgroundColor: GROUP_SURFACE,
     borderWidth: StyleSheet.hairlineWidth,
-    borderColor: MUTED3,
-    paddingHorizontal: 12,
-    minHeight: 44,
-  },
-  textFieldInput: {
-    flex: 1,
-    color: TEXT,
-    fontFamily: fonts.book,
-    fontSize: TYPE_BODY,
-    paddingVertical: 12,
-  },
-  selectInput: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    borderRadius: BUTTON_RADIUS,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: MUTED3,
-    paddingHorizontal: 12,
-    minHeight: 44,
-  },
-  selectText: {
-    fontFamily: fonts.book,
-    fontSize: TYPE_BODY,
-    color: TEXT,
-    flex: 1,
-    paddingVertical: 12,
-  },
-  selectPlaceholder: {
-    color: MUTED2,
-  },
-  aboutFieldBar: {
-    alignItems: "flex-start",
-    minHeight: 84,
-  },
-  aboutInput: {
-    minHeight: 60,
-    paddingTop: 12,
-  },
-  coverBox: {
-    minHeight: 112,
-    borderRadius: BUTTON_RADIUS,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderStyle: "dashed",
-    borderColor: MUTED3,
-    backgroundColor: "rgba(255,255,255,0.04)",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 6,
+    borderColor: GROUP_BORDER,
     overflow: "hidden",
-  },
-  coverBoxFilled: {
-    borderStyle: "solid",
-    padding: 0,
   },
   coverImage: {
     ...StyleSheet.absoluteFillObject,
   },
-  coverOverlay: {
+  coverImageFade: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: "rgba(0,0,0,0.42)",
+  },
+  coverEmpty: {
+    flex: 1,
     alignItems: "center",
     justifyContent: "center",
     gap: 6,
+    paddingHorizontal: 24,
   },
-  coverOverlayText: {
-    fontFamily: fonts.medium,
-    fontSize: TYPE_LEAD,
+  coverIconWrap: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "rgba(0,255,133,0.1)",
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: "rgba(0,255,133,0.22)",
+    marginBottom: 4,
+  },
+  coverEmptyTitle: {
     color: TEXT,
-  },
-  coverLabel: {
     fontFamily: fonts.medium,
     fontSize: TYPE_BODY,
+    letterSpacing: 0.02,
+  },
+  coverEmptyHint: {
+    color: MUTED2,
+    fontFamily: fonts.book,
+    fontSize: TYPE_CAPTION,
+  },
+  coverChangePill: {
+    position: "absolute",
+    bottom: 14,
+    alignSelf: "center",
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    paddingVertical: 8,
+    paddingHorizontal: 14,
+    borderRadius: 999,
+    backgroundColor: "rgba(0,0,0,0.55)",
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: "rgba(255,255,255,0.14)",
+  },
+  coverChangeText: {
+    color: TEXT,
+    fontFamily: fonts.medium,
+    fontSize: TYPE_CAPTION,
+    letterSpacing: 0.08,
+  },
+  nameInput: {
+    color: TEXT,
+    fontFamily: fonts.heavy,
+    fontSize: TYPE_MODAL_TITLE,
+    lineHeight: 30,
+    letterSpacing: 0.08,
+    paddingVertical: 0,
+    includeFontPadding: false,
+  },
+  section: {
+    gap: 10,
+  },
+  sectionTitle: {
+    color: TEXT,
+    fontFamily: fonts.medium,
+    fontSize: TYPE_BODY,
+    letterSpacing: 0.04,
+  },
+  categoryRail: {
+    gap: 8,
+  },
+  categoryChip: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    paddingVertical: 10,
+    paddingHorizontal: 14,
+    borderRadius: 999,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: GROUP_BORDER,
+    backgroundColor: GROUP_SURFACE,
+  },
+  categoryChipOn: {
+    borderColor: "rgba(0,255,133,0.45)",
+    backgroundColor: "rgba(0,255,133,0.1)",
+  },
+  categoryChipText: {
+    color: MUTED2,
+    fontFamily: fonts.medium,
+    fontSize: TYPE_CAPTION,
+    letterSpacing: 0.02,
+  },
+  categoryChipTextOn: {
     color: TEXT,
   },
-  cta: {
-    alignSelf: "center",
-    width: "62%",
-    marginTop: 12,
+  detailsCard: {
+    borderRadius: RADIUS_LG,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: GROUP_BORDER,
+    backgroundColor: GROUP_SURFACE,
+    paddingTop: 16,
+    paddingBottom: 4,
+    overflow: "hidden",
+  },
+  detailsTitle: {
+    color: TEXT,
+    fontFamily: fonts.medium,
+    fontSize: TYPE_BODY,
+    letterSpacing: 0.04,
+    paddingHorizontal: 16,
+  },
+  detailsSub: {
+    color: MUTED2,
+    fontFamily: fonts.book,
+    fontSize: TYPE_CAPTION,
+    paddingHorizontal: 16,
+    marginTop: 2,
+    marginBottom: 8,
+  },
+  detailRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: 16,
     minHeight: 48,
+  },
+  detailRowMultiline: {
+    alignItems: "flex-start",
+    paddingVertical: 12,
+    minHeight: 96,
+  },
+  detailIcon: {
+    marginRight: 12,
+  },
+  detailIconTop: {
+    marginRight: 12,
+    marginTop: 3,
+  },
+  detailInput: {
+    flex: 1,
+    color: TEXT,
+    fontFamily: fonts.book,
+    fontSize: TYPE_BODY,
+    paddingVertical: 12,
+  },
+  aboutInput: {
+    minHeight: 72,
+    paddingTop: 0,
+    lineHeight: 22,
+  },
+  detailDivider: {
+    height: StyleSheet.hairlineWidth,
+    backgroundColor: GROUP_BORDER,
+    marginLeft: 46,
+  },
+  footer: {
+    paddingTop: 14,
+  },
+  cta: {
+    width: "100%",
+    minHeight: 52,
     borderRadius: BUTTON_RADIUS,
     backgroundColor: ACCENT,
     alignItems: "center",
@@ -507,50 +593,9 @@ const styles = StyleSheet.create({
     opacity: 0.45,
   },
   ctaText: {
-    fontFamily: fonts.medium,
+    fontFamily: fonts.heavy,
     fontSize: TYPE_BODY,
     color: ON_ACCENT_TEXT,
-  },
-  categoryOverlay: {
-    ...StyleSheet.absoluteFillObject,
-    justifyContent: "flex-end",
-    zIndex: 10,
-  },
-  categoryScrim: {
-    backgroundColor: "rgba(0,0,0,0.72)",
-  },
-  categorySheet: {
-    backgroundColor: BG,
-    borderTopLeftRadius: 16,
-    borderTopRightRadius: 16,
-    paddingHorizontal: 20,
-    paddingTop: 20,
-    paddingBottom: 32,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: "rgba(255,255,255,0.1)",
-    zIndex: 11,
-  },
-  categorySheetTitle: {
-    fontFamily: fonts.medium,
-    fontSize: TYPE_CTA,
-    color: TEXT,
-    marginBottom: 12,
-  },
-  categoryRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    paddingVertical: 14,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: "rgba(255,255,255,0.06)",
-  },
-  categoryRowText: {
-    fontFamily: fonts.book,
-    fontSize: TYPE_BODY,
-    color: TEXT,
-  },
-  categoryRowTextActive: {
-    fontFamily: fonts.medium,
-    color: ACCENT,
+    letterSpacing: 0.04,
   },
 });
