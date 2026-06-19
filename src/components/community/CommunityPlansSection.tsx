@@ -41,7 +41,7 @@ import {
   resolvePlanGoers,
   type CommunityPlanMemberProfile,
 } from "@/src/lib/communityPlanMembers";
-import { filterOutPastOpenPlans, isOpenPlanDatePast, isOpenPlanPast, sortOpenPlansByDateTime } from "@/src/lib/planEvents";
+import { filterOutPastOpenPlans, isOpenPlanPast, sortOpenPlansByDateTime } from "@/src/lib/planEvents";
 import { Ionicons } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
 import { doc, onSnapshot } from "firebase/firestore";
@@ -169,7 +169,7 @@ export default function CommunityPlansSection({
   useEffect(() => {
     if (!groupId || loading) return;
 
-    const pastPlans = plans.filter((plan) => isOpenPlanDatePast(plan.date));
+    const pastPlans = plans.filter((plan) => isOpenPlanPast(plan));
     for (const plan of pastPlans) {
       if (prunedPastPlanIdsRef.current.has(plan.id)) continue;
       prunedPastPlanIdsRef.current.add(plan.id);

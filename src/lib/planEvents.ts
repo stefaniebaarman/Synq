@@ -129,29 +129,18 @@ export function matchesPlanEventForHostSync(
   return candidates.length === 1 && candidates[0] === e;
 }
 
-export function isOpenPlanDatePast(eventDateStr: string, now: Date = new Date()): boolean {
-  const raw = String(eventDateStr || "").trim();
-  if (!raw) return false;
-  const parts = raw.split("-").map(Number);
-  if (parts.length < 3 || parts.some((n) => Number.isNaN(n))) return false;
-  const [y, m, d] = parts;
-  const eventDayStart = new Date(y, m - 1, d);
-  const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-  return todayStart.getTime() > eventDayStart.getTime();
-}
+/** Open plans stay visible for 12 hours after start so late joiners can still find them. */
+export const OPEN_PLAN_GRACE_MS = 12 * 60 * 60 * 1000;
 
-/** True when the event date/time is in the past (date-only events expire after that day). */
+/** True when the plan started more than 12 hours ago (date-only plans use noon as start). */
 export function isOpenPlanPast(
   event: { date?: string; time?: string },
   now: Date = new Date()
 ): boolean {
   const dateStr = String(event?.date || "").trim();
   if (!dateStr) return false;
-  const timeStr = String(event?.time || "").trim();
-  if (!timeStr) {
-    return isOpenPlanDatePast(dateStr, now);
-  }
-  return parseOpenPlanDateTime(dateStr, timeStr).getTime() < now.getTime();
+  const startMs = parseOpenPlanDateTime(dateStr, event?.time).getTime();
+  return now.getTime() >= startMs + OPEN_PLAN_GRACE_MS;
 }
 
 export function filterOutPastOpenPlans<T extends { date?: string; time?: string }>(
