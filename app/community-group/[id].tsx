@@ -9,9 +9,12 @@ import {
   Friend,
   HEADER_BLACK,
   MUTED2,
+  MUTED3,
   PROFILE_HEADER_FADE_GRADIENT,
   PROFILE_HEADER_FADE_LOCATIONS,
   RADIUS_MD,
+  SHEET_OVERLAY,
+  SHEET_SURFACE,
   SPACE_2,
   SPACE_3,
   SPACE_4,
@@ -997,7 +1000,7 @@ const styles = StyleSheet.create({
   },
   joinCommunityBtnText: {
     fontFamily: fonts.heavy,
-    fontSize: TYPE_CAPTION + 1,
+    fontSize: TYPE_LEAD,
     color: ACCENT,
     letterSpacing: 0.04,
   },
@@ -1154,7 +1157,7 @@ const styles = StyleSheet.create({
     borderRadius: MEMBER_AVATAR_SIZE / 2,
     borderWidth: 1.5,
     borderStyle: "dashed",
-    borderColor: "rgba(255,255,255,0.18)",
+    borderColor: MUTED3,
     alignItems: "center",
     justifyContent: "center",
     paddingHorizontal: 6,
@@ -1262,7 +1265,7 @@ const styles = StyleSheet.create({
   },
   optionsOverlay: {
     flex: 1,
-    backgroundColor: "rgba(0,0,0,0.55)",
+    backgroundColor: SHEET_OVERLAY,
     justifyContent: "flex-end",
   },
   optionsSheetGroup: {
@@ -1270,7 +1273,7 @@ const styles = StyleSheet.create({
     paddingBottom: 34,
   },
   optionsSheet: {
-    backgroundColor: "#141414",
+    backgroundColor: SHEET_SURFACE,
     borderRadius: BUTTON_RADIUS + 4,
     borderWidth: 1,
     borderColor: BORDER,

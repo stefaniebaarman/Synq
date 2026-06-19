@@ -2,6 +2,7 @@ import AlertModal from "@/app/alert-modal";
 import {
   ACCENT,
   BG,
+  BORDER,
   MUTED2,
   MUTED3,
   RADIUS_MD,
@@ -13,6 +14,7 @@ import {
   TYPE_BODY,
   TYPE_CAPTION,
   TYPE_CTA,
+  TYPE_LEAD,
   fonts,
 } from "@/constants/Variables";
 import StackScreenHeader from "@/src/components/StackScreenHeader";
@@ -462,8 +464,8 @@ const styles = StyleSheet.create({
   },
   coverOverlayText: {
     fontFamily: fonts.medium,
-    fontSize: TYPE_CAPTION + 1,
-    color: "#fff",
+    fontSize: TYPE_LEAD,
+    color: TEXT,
   },
   coverLabel: {
     fontFamily: fonts.medium,
@@ -483,7 +485,7 @@ const styles = StyleSheet.create({
     paddingTop: 20,
     paddingBottom: 32,
     borderWidth: StyleSheet.hairlineWidth,
-    borderColor: "rgba(255,255,255,0.08)",
+    borderColor: BORDER,
   },
   categorySheetTitle: {
     fontFamily: fonts.heavy,

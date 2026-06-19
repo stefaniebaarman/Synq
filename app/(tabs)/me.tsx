@@ -2,17 +2,20 @@ import {
   ACCENT,
   BG,
   BORDER,
+  BORDER_MUTED,
   BUTTON_RADIUS,
   Friend,
   MODAL_RADIUS,
   MUTED,
   MUTED2,
+  MUTED3,
   ON_ACCENT_TEXT,
   PRIMARY_CTA_HEIGHT,
   PRIMARY_CTA_WIDTH,
   SPACE_6,
   SURFACE,
   SURFACE_INPUT,
+  SURFACE_WELL,
   TAB_BAR_SCROLL_INSET,
   TEXT,
   TYPE_BUTTON,
@@ -1323,7 +1326,7 @@ export default function ProfileScreen() {
                     backgroundColor="white"
                   />
                 ) : (
-                  <View style={{ width: 160, height: 160, backgroundColor: "#eee" }} />
+                  <View style={{ width: 160, height: 160, backgroundColor: BORDER_MUTED }} />
                 )}
               </View>
 
@@ -1815,7 +1818,7 @@ const styles = StyleSheet.create({
     overflow: "hidden",
     borderWidth: 2,
     borderColor: ACCENT,
-    backgroundColor: "#111",
+    backgroundColor: SURFACE_WELL,
     justifyContent: "center",
     alignItems: "center",
   },
@@ -1836,7 +1839,7 @@ const styles = StyleSheet.create({
     height: 300,
     borderRadius: 150,
     borderWidth: 2,
-    borderColor: "rgba(255,255,255,0.22)",
+    borderColor: MUTED3,
   },
   qrToggle: { position: "absolute", bottom: 10, right: 10, backgroundColor: ACCENT, padding: 10, borderRadius: 25, zIndex: 2 },
   qrToggleInner: { alignItems: "center", justifyContent: "center" },

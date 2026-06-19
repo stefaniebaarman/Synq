@@ -4,6 +4,8 @@ import {
   BORDER,
   BUTTON_RADIUS,
   MUTED2,
+  SHEET_OVERLAY,
+  SHEET_SURFACE,
   SPACE_3,
   SPACE_4,
   TEXT,
@@ -25,9 +27,6 @@ import {
   View,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-
-/** Opaque panel fill — matches SynqOptionsSheet / SynqAudienceSheet. */
-const SHEET_SURFACE = "#141414";
 
 function audienceSelectionEqual(
   a: SynqAudienceSelection,
@@ -141,7 +140,7 @@ const styles = StyleSheet.create({
   overlay: {
     flex: 1,
     justifyContent: "flex-end",
-    backgroundColor: "rgba(0,0,0,0.55)",
+    backgroundColor: SHEET_OVERLAY,
   },
   backdrop: {
     ...StyleSheet.absoluteFillObject,

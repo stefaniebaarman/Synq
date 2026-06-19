@@ -8,6 +8,7 @@ import {
   Text,
   View,
 } from "react-native";
+import { formScreenStyles } from "@/constants/formScreenStyles";
 import {
   ACCENT,
   BG,
@@ -21,7 +22,7 @@ import {
   SURFACE,
   TEXT,
   TYPE_BODY,
-  TYPE_CAPTION,
+  TYPE_BUTTON,
   TYPE_CTA,
   TYPE_SECTION,
   fonts,
@@ -36,7 +37,7 @@ export default function AboutUsScreen() {
     children: React.ReactNode;
   }) => (
     <View style={styles.section}>
-      <Text style={styles.sectionTitle}>{title}</Text>
+      <Text style={formScreenStyles.groupTitle}>{title}</Text>
       <View style={styles.card}>{children}</View>
     </View>
   );
@@ -136,23 +137,13 @@ const styles = StyleSheet.create({
     marginBottom: SPACE_3 - 4,
   },
   heroSubtitle: {
-    fontSize: TYPE_BODY - 1,
+    fontSize: TYPE_BUTTON,
     fontFamily: fonts.medium,
     color: MUTED,
     lineHeight: 22,
   },
 
   section: { marginTop: 2 },
-  sectionTitle: {
-    color: MUTED,
-    fontSize: TYPE_CAPTION + 1,
-    fontFamily: fonts.medium,
-    textTransform: "uppercase",
-    letterSpacing: 1,
-    marginLeft: SPACE_5 + 1,
-    marginBottom: SPACE_3 - 2,
-    marginTop: SPACE_3 - 2,
-  },
   card: {
     backgroundColor: SURFACE,
     marginHorizontal: SPACE_4 + SPACE_3,

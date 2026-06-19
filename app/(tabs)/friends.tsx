@@ -14,6 +14,8 @@ import {
   SPACE_5,
   SPACE_6,
   SURFACE,
+  SURFACE_INPUT,
+  SURFACE_RAISED,
   TAB_BAR_SCROLL_INSET,
   TEXT,
   TYPE_BODY,
@@ -1767,7 +1769,7 @@ function SearchModal({
           <Ionicons name="search-outline" size={17} color={MUTED2} />
           <TextInput
             placeholder="Search by name..."
-            placeholderTextColor="rgba(255,255,255,0.4)"
+            placeholderTextColor={MUTED3}
             style={styles.searchBarInput}
             value={queryText}
             onChangeText={searchUsers}
@@ -1913,9 +1915,6 @@ function SearchModal({
 }
 
 /** Friends tab surfaces — solid charcoals (not milky white overlays). */
-const FRIENDS_SURFACE = "#0A0B0D";
-const FRIENDS_SURFACE_RAISED = "#0E1012";
-const FRIENDS_SEARCH_BG = "#0A0B0D";
 const FRIENDS_BORDER = "rgba(255,255,255,0.035)";
 /** Original fill; slightly brighter stroke so the pill edge reads more clearly. */
 const FRIENDS_SEARCH_BORDER = "rgba(255,255,255,0.12)";
@@ -1968,7 +1967,7 @@ const styles = StyleSheet.create({
   },
   friendRowSeparator: {
     height: StyleSheet.hairlineWidth,
-    backgroundColor: "rgba(255,255,255,0.08)",
+    backgroundColor: BORDER,
   },
   headerTitle: {
     ...tabScreenMainHeaderTitle,
@@ -1991,7 +1990,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     paddingVertical: 12,
     borderRadius: RADIUS_MD,
-    backgroundColor: FRIENDS_SEARCH_BG,
+    backgroundColor: SURFACE_INPUT,
     borderWidth: StyleSheet.hairlineWidth,
     borderColor: FRIENDS_SEARCH_BORDER,
     gap: 10,
@@ -2005,7 +2004,7 @@ const styles = StyleSheet.create({
     minHeight: 22,
   },
   skeletonBlock: {
-    backgroundColor: FRIENDS_SURFACE_RAISED,
+    backgroundColor: SURFACE_RAISED,
     borderRadius: 8,
   },
   sortBar: {
@@ -2097,7 +2096,7 @@ const styles = StyleSheet.create({
     borderRadius: 24,
     marginRight: 12,
     overflow: "hidden",
-    backgroundColor: FRIENDS_SURFACE,
+    backgroundColor: SURFACE_INPUT,
   },
   img: {
     width: 48,
@@ -2183,7 +2182,7 @@ const styles = StyleSheet.create({
   emptyHeroHint: {
     color: MUTED2,
     fontFamily: fonts.book,
-    fontSize: TYPE_CAPTION + 1,
+    fontSize: TYPE_LEAD,
     lineHeight: 20,
     textAlign: "center",
     marginTop: SPACE_4,
@@ -2237,8 +2236,8 @@ const styles = StyleSheet.create({
     borderColor: ACCENT,
   },
   popupName: { ...profileNameText, letterSpacing: 0.2 },
-  popupLocation: { ...cardMetaText, marginTop: 6, color: "rgba(255,255,255,0.35)" },
-  popupLocationText: { ...cardMetaText, color: "rgba(255,255,255,0.35)" },
+  popupLocation: { ...cardMetaText, marginTop: 6, color: MUTED3 },
+  popupLocationText: { ...cardMetaText, color: MUTED3 },
   interestsContainer: { width: "100%", marginTop: 10, marginBottom: 10 },
   sectionLabel: profileScreenSectionTitle,
   interestsScroll: { maxHeight: 150, width: "100%" },
@@ -2289,7 +2288,7 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     paddingHorizontal: 14,
     borderRadius: RADIUS_MD,
-    backgroundColor: FRIENDS_SEARCH_BG,
+    backgroundColor: SURFACE_INPUT,
     borderWidth: StyleSheet.hairlineWidth,
     borderColor: FRIENDS_SEARCH_BORDER,
   },
@@ -2368,7 +2367,7 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   addFriendDeclineBtn: {
-    backgroundColor: FRIENDS_SURFACE,
+    backgroundColor: SURFACE_INPUT,
     borderWidth: StyleSheet.hairlineWidth,
     borderColor: FRIENDS_BORDER,
     paddingHorizontal: 12,
@@ -2392,7 +2391,7 @@ const styles = StyleSheet.create({
     width: 56,
     height: 56,
     borderRadius: 28,
-    backgroundColor: FRIENDS_SURFACE_RAISED,
+    backgroundColor: SURFACE_RAISED,
     borderWidth: StyleSheet.hairlineWidth,
     borderColor: FRIENDS_BORDER,
     alignItems: "center",

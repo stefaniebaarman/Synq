@@ -8,6 +8,8 @@ import {
   Friend,
   MUTED2,
   RADIUS_MD,
+  SHEET_OVERLAY,
+  SHEET_SURFACE,
   SPACE_3,
   SPACE_4,
   SPACE_5,
@@ -18,7 +20,7 @@ import {
   TYPE_CAPTION,
   TYPE_SECTION,
   TYPE_SUBHEAD,
-  detailSectionTitle,
+  listSectionTitle,
   fonts,
   synqOutlineAddBtnCompact,
   synqOutlineAddBtnText,
@@ -491,8 +493,7 @@ const styles = StyleSheet.create({
     paddingBottom: SPACE_3,
   },
   sectionTitle: {
-    fontSize: TYPE_SECTION,
-    ...detailSectionTitle,
+    ...listSectionTitle,
     marginBottom: 0,
   },
   sectionMeta: {
@@ -615,7 +616,7 @@ const styles = StyleSheet.create({
   },
   optionsOverlay: {
     flex: 1,
-    backgroundColor: "rgba(0,0,0,0.55)",
+    backgroundColor: SHEET_OVERLAY,
     justifyContent: "flex-end",
   },
   optionsSheetGroup: {
@@ -623,7 +624,7 @@ const styles = StyleSheet.create({
     paddingBottom: 34,
   },
   optionsSheet: {
-    backgroundColor: "#141414",
+    backgroundColor: SHEET_SURFACE,
     borderRadius: BUTTON_RADIUS + 4,
     borderWidth: 1,
     borderColor: BORDER,

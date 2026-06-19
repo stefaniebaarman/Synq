@@ -16,6 +16,8 @@ import {
   ACCENT,
   BG,
   BORDER,
+  MUTED,
+  MUTED3,
   ON_ACCENT_TEXT,
   RADIUS_MD,
   SPACE_4,
@@ -148,7 +150,7 @@ export default function SafetyReportScreen() {
           <TextInput
             style={[styles.input, styles.details]}
             placeholder="What happened? (optional)"
-            placeholderTextColor="rgba(255,255,255,0.35)"
+            placeholderTextColor={MUTED3}
             value={details}
             onChangeText={setDetails}
             multiline
@@ -188,14 +190,14 @@ const styles = StyleSheet.create({
   scrollView: { flex: 1 },
   scroll: { padding: SPACE_4, paddingBottom: 32 },
   lead: {
-    color: "rgba(255,255,255,0.75)",
+    color: MUTED,
     fontFamily: fonts.medium,
     fontSize: TYPE_BODY,
     lineHeight: 22,
     marginBottom: 20,
   },
   label: {
-    color: "rgba(255,255,255,0.55)",
+    color: MUTED,
     fontFamily: fonts.medium,
     fontSize: TYPE_CAPTION,
     marginBottom: 8,

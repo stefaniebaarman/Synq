@@ -32,7 +32,10 @@ import {
   SURFACE,
   TEXT,
   TYPE_BODY,
+  TYPE_BUTTON,
   TYPE_CAPTION,
+  TYPE_LEAD,
+  TYPE_SECTION,
   fonts,
 } from "../../constants/Variables";
 
@@ -223,13 +226,13 @@ const styles = StyleSheet.create({
     borderColor: BORDER,
   },
   heroTitle: {
-    fontSize: TYPE_BODY + 4,
+    fontSize: TYPE_SECTION,
     fontFamily: fonts.heavy,
     color: TEXT,
     marginBottom: SPACE_3 - 4,
   },
   heroSubtitle: {
-    fontSize: TYPE_BODY - 1,
+    fontSize: TYPE_BUTTON,
     fontFamily: fonts.medium,
     color: MUTED,
     lineHeight: 22,
@@ -259,7 +262,7 @@ const styles = StyleSheet.create({
   chipText: {
     color: TEXT,
     fontFamily: fonts.medium,
-    fontSize: TYPE_CAPTION + 1,
+    fontSize: TYPE_LEAD,
   },
   chipTextActive: {
     color: ON_ACCENT_TEXT,
