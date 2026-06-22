@@ -56,9 +56,9 @@ export function useFriendPlansFeed({ userId, friends, isBlocked }: Options) {
   );
   const [busyPlanKey, setBusyPlanKey] = useState<string | null>(null);
   const [pendingUnjoin, setPendingUnjoin] = useState<AggregatedFriendPlan | null>(null);
-  const [alertVisible, setAlertVisible] = useState(false);
-  const [alertTitle, setAlertTitle] = useState("");
-  const [alertMessage, setAlertMessage] = useState("");
+  const [successToast, setSuccessToast] = useState<string | null>(null);
+  const [errorAlertVisible, setErrorAlertVisible] = useState(false);
+  const [errorAlertMessage, setErrorAlertMessage] = useState("");
 
   const visibleFriends = useMemo(
     () => friends.filter((friend) => !isBlocked(friend.id)),
@@ -70,13 +70,18 @@ export function useFriendPlansFeed({ userId, friends, isBlocked }: Options) {
     [visibleFriends]
   );
 
-  const showAlert = useCallback((title: string, message: string) => {
-    setAlertTitle(title);
-    setAlertMessage(message);
-    setAlertVisible(true);
+  const showSuccessToast = useCallback((message: string) => {
+    setSuccessToast(message);
   }, []);
 
-  const dismissAlert = useCallback(() => setAlertVisible(false), []);
+  const dismissSuccessToast = useCallback(() => setSuccessToast(null), []);
+
+  const showErrorAlert = useCallback((message: string) => {
+    setErrorAlertMessage(message);
+    setErrorAlertVisible(true);
+  }, []);
+
+  const dismissErrorAlert = useCallback(() => setErrorAlertVisible(false), []);
 
   useEffect(() => {
     if (!userId) return;
@@ -219,27 +224,21 @@ export function useFriendPlansFeed({ userId, friends, isBlocked }: Options) {
 
       setBusyPlanKey(planKey);
       try {
-        const result = await joinFriendOpenPlan(
+        await joinFriendOpenPlan(
           item.event,
           item.sourceFriendId,
           item.sourceFriendName
         );
-        showAlert(
-          result === "updated" ? "Updated" : "Added",
-          result === "updated"
-            ? "They're on this plan with you."
-            : "Plan added to your plans."
-        );
+        showSuccessToast("Joined!");
       } catch (err: unknown) {
-        showAlert(
-          "Error",
+        showErrorAlert(
           err instanceof Error ? err.message : "Could not join this plan right now."
         );
       } finally {
         setBusyPlanKey(null);
       }
     },
-    [userId, planIsHost, planJoined, showAlert]
+    [userId, planIsHost, planJoined, showSuccessToast, showErrorAlert]
   );
 
   const confirmUnjoin = useCallback(async () => {
@@ -250,16 +249,15 @@ export function useFriendPlansFeed({ userId, friends, isBlocked }: Options) {
     setBusyPlanKey(planKey);
     try {
       await unjoinFriendOpenPlan(item.event, item.sourceFriendId);
-      showAlert("Removed", "You're no longer going to this plan together.");
+      showSuccessToast("Removed");
     } catch (err: unknown) {
-      showAlert(
-        "Error",
+      showErrorAlert(
         err instanceof Error ? err.message : "Could not remove this plan."
       );
     } finally {
       setBusyPlanKey(null);
     }
-  }, [pendingUnjoin, showAlert]);
+  }, [pendingUnjoin, showSuccessToast, showErrorAlert]);
 
   const cancelUnjoin = useCallback(() => setPendingUnjoin(null), []);
 
@@ -292,9 +290,10 @@ export function useFriendPlansFeed({ userId, friends, isBlocked }: Options) {
     pendingUnjoin,
     confirmUnjoin,
     cancelUnjoin,
-    alertVisible,
-    alertTitle,
-    alertMessage,
-    dismissAlert,
+    successToast,
+    dismissSuccessToast,
+    errorAlertVisible,
+    errorAlertMessage,
+    dismissErrorAlert,
   };
 }

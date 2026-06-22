@@ -123,6 +123,7 @@ import {
   warmOutgoingFriendRequestsCache
 } from "../src/lib/socialCache";
 import AlertModal from "./alert-modal";
+import CheckmarkToast from "@/src/components/CheckmarkToast";
 import ConfirmModal from "./confirm-modal";
 import MonthlyMemoReadOnly from "./readonly-monthly-memo";
 import ReportModal from "./report-modal";
@@ -286,6 +287,7 @@ export default function FriendProfile({
   const [alertVisible, setAlertVisible] = useState(false);
   const [alertTitle, setAlertTitle] = useState<string | undefined>();
   const [alertMessage, setAlertMessage] = useState("");
+  const [planSuccessToast, setPlanSuccessToast] = useState<string | null>(null);
   const [showReportModal, setShowReportModal] = useState(false);
   const [showBlockModal, setShowBlockModal] = useState(false);
   const [showOptionsSheet, setShowOptionsSheet] = useState(false);
@@ -325,6 +327,10 @@ export default function FriendProfile({
 
     return null;
   }, [sharedCommunityGroups, communityGroupId, communityGroupName]);
+
+  const showPlanSuccessToast = (message: string) => {
+    setPlanSuccessToast(message);
+  };
 
   const showAlert = (title: string, message: string) => {
     setAlertTitle(title);
@@ -1026,7 +1032,7 @@ export default function FriendProfile({
         await updateDoc(meRef, { events: updatedExistingEvents });
         await syncAttendeesAcrossUsers(sourceIds);
         setJoinedKeysForEvent(event, true);
-        showAlert("Updated", "They're on this plan with you.");
+        showPlanSuccessToast("Joined!");
         return;
       }
 
@@ -1056,7 +1062,7 @@ export default function FriendProfile({
       await syncAttendeesAcrossUsers(sourceIds);
 
       setJoinedKeysForEvent(event, true);
-      showAlert("Added", "Plan added to your plans.");
+      showPlanSuccessToast("Joined!");
     } catch (e: any) {
       showAlert("Error", e?.message || "Could not join this plan right now.");
     }
@@ -1202,7 +1208,7 @@ export default function FriendProfile({
       await updateDoc(meRef, { events: nextEvents });
 
       setJoinedKeysForEvent(event, false);
-      showAlert("Removed", "You're no longer going to this plan together.");
+      showPlanSuccessToast("Removed");
     } catch (e: any) {
       showAlert("Error", e?.message || "Could not remove this plan.");
     }
@@ -1624,7 +1630,7 @@ export default function FriendProfile({
       <ConfirmModal
         visible={showUnjoinModal}
         title="Remove this plan?"
-        message="This removes it from your plans and updates this for your friend."
+        message=""
         confirmText="Remove"
         destructive
         onCancel={() => {
@@ -1637,6 +1643,11 @@ export default function FriendProfile({
           setPendingUnjoinEvent(null);
           if (ev) await unjoinPlan(ev);
         }}
+      />
+      <CheckmarkToast
+        visible={!!planSuccessToast}
+        message={planSuccessToast ?? ""}
+        onDismiss={() => setPlanSuccessToast(null)}
       />
       <AlertModal
         visible={alertVisible}

@@ -268,7 +268,12 @@ export async function joinFriendOpenPlan(
       );
       return {
         ...row,
-        planHostUid: row.planHostUid || event.planHostUid || planHostUid,
+        planHostUid:
+          planHostUid ||
+          event.planHostUid ||
+          (String(row.planHostUid || "").trim() !== user.uid
+            ? row.planHostUid
+            : undefined),
         mergedIntoExisting: true,
         joinedFromFriendUid: friendKey,
         joinedFromIds: sourceIds,

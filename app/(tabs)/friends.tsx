@@ -37,6 +37,7 @@ import {
   cardMetaText,
   fonts,
   listRowTitleText,
+  listSectionTitle,
   profileNameText,
   profileScreenSectionTitle,
   stackScreenHeaderTitle,
@@ -156,6 +157,7 @@ import {
 } from "../../src/lib/socialCache";
 import { useAuthRefresh } from "../_layout";
 import AlertModal from "../alert-modal";
+import CheckmarkToast from "@/src/components/CheckmarkToast";
 import ConfirmModal from "../confirm-modal";
 
 const { width } = Dimensions.get("window");
@@ -554,30 +556,57 @@ export default function FriendsScreen() {
     isBlocked,
   });
 
+  const showFriendSearch =
+    friendsTabMode === "friends" && friends.length > 0 && !isFriendsInitialLoading;
+
   const showFriendsPlansPreview =
     friendsTabMode === "friends" &&
     !isFriendsInitialLoading &&
     friendPlansFeed.aggregatedPlans.length > 0;
 
   const friendsListHeader = useMemo(() => {
-    if (!showFriendsPlansPreview) return null;
+    if (!showFriendsPlansPreview && !showFriendSearch) return null;
+
     return (
-      <FriendsPlansPreview
-        userId={myId}
-        aggregatedPlans={friendPlansFeed.aggregatedPlans}
-        hostDisplayNameByUid={friendPlansFeed.hostDisplayNameByUid}
-        viewerEvents={friendPlansFeed.viewerEvents}
-        friendImageByUid={friendPlansFeed.friendImageByUid}
-        planJoined={friendPlansFeed.planJoined}
-        planIsHost={friendPlansFeed.planIsHost}
-        handlePlanAction={friendPlansFeed.handlePlanAction}
-        isPlanBusy={friendPlansFeed.isPlanBusy}
-        onSeeAll={() => setPlansSheetVisible(true)}
-        onOpenFriendProfile={openFriendProfileFromFriendsTab}
-      />
+      <View>
+        {showFriendsPlansPreview ? (
+          <FriendsPlansPreview
+            userId={myId}
+            aggregatedPlans={friendPlansFeed.aggregatedPlans}
+            hostDisplayNameByUid={friendPlansFeed.hostDisplayNameByUid}
+            viewerEvents={friendPlansFeed.viewerEvents}
+            friendImageByUid={friendPlansFeed.friendImageByUid}
+            planJoined={friendPlansFeed.planJoined}
+            planIsHost={friendPlansFeed.planIsHost}
+            handlePlanAction={friendPlansFeed.handlePlanAction}
+            isPlanBusy={friendPlansFeed.isPlanBusy}
+            onSeeAll={() => setPlansSheetVisible(true)}
+            onOpenFriendProfile={openFriendProfileFromFriendsTab}
+          />
+        ) : null}
+        {showFriendSearch ? (
+          <View
+            style={[
+              styles.friendsSection,
+              showFriendsPlansPreview ? styles.friendsSectionAfterPlans : null,
+              styles.screenPadding,
+            ]}
+          >
+            <View style={styles.friendsSectionHeader}>
+              <Text style={styles.friendsSectionTitle}>All friends</Text>
+              <FriendsSortTrigger
+                sortMode={sortMode}
+                onPress={() => setSortMenuVisible(true)}
+              />
+            </View>
+          </View>
+        ) : null}
+      </View>
     );
   }, [
     showFriendsPlansPreview,
+    showFriendSearch,
+    sortMode,
     myId,
     friendPlansFeed.aggregatedPlans,
     friendPlansFeed.hostDisplayNameByUid,
@@ -612,8 +641,6 @@ export default function FriendsScreen() {
 
   const displayFriends = useSortedFriendsList(filteredFriends, sortMode, userProfileForSort);
 
-  const showFriendSearch =
-    friendsTabMode === "friends" && friends.length > 0 && !isFriendsInitialLoading;
   const listIsEmpty = displayFriends.length === 0;
 
   const handleCreateGroup = useCallback(
@@ -735,12 +762,6 @@ export default function FriendsScreen() {
                   </TouchableOpacity>
                 )}
               </View>
-              <View style={styles.sortBar}>
-                <FriendsSortTrigger
-                  sortMode={sortMode}
-                  onPress={() => setSortMenuVisible(true)}
-                />
-              </View>
             </>
           )}
         </View>
@@ -838,23 +859,32 @@ export default function FriendsScreen() {
           onClose={closePlansSheet}
           onOpenFriendProfile={openFriendProfileFromFriendsTab}
         />
-        <ConfirmModal
-          visible={friendPlansFeed.pendingUnjoin != null}
-          title="Remove this plan?"
-          message="This removes it from your plans and updates this for your friend."
-          confirmText="Remove"
-          destructive
-          onCancel={friendPlansFeed.cancelUnjoin}
-          onConfirm={() => {
-            void friendPlansFeed.confirmUnjoin();
-          }}
-        />
-        <AlertModal
-          visible={friendPlansFeed.alertVisible}
-          title={friendPlansFeed.alertTitle}
-          message={friendPlansFeed.alertMessage}
-          onClose={friendPlansFeed.dismissAlert}
-        />
+        {!plansSheetVisible ? (
+          <>
+            <ConfirmModal
+              visible={friendPlansFeed.pendingUnjoin != null}
+              title="Remove this plan?"
+              message=""
+              confirmText="Remove"
+              destructive
+              onCancel={friendPlansFeed.cancelUnjoin}
+              onConfirm={() => {
+                void friendPlansFeed.confirmUnjoin();
+              }}
+            />
+            <CheckmarkToast
+              visible={!!friendPlansFeed.successToast}
+              message={friendPlansFeed.successToast ?? ""}
+              onDismiss={friendPlansFeed.dismissSuccessToast}
+            />
+            <AlertModal
+              visible={friendPlansFeed.errorAlertVisible}
+              title="Error"
+              message={friendPlansFeed.errorAlertMessage}
+              onClose={friendPlansFeed.dismissErrorAlert}
+            />
+          </>
+        ) : null}
       </View>
     </TouchableWithoutFeedback>
   );
@@ -2093,12 +2123,21 @@ const styles = StyleSheet.create({
     backgroundColor: SURFACE_RAISED,
     borderRadius: 8,
   },
-  sortBar: {
-    flexDirection: "row",
-    justifyContent: "flex-start",
-    alignItems: "center",
+  friendsSection: {
     marginTop: SPACE_3,
-    marginBottom: 14,
+    marginBottom: 2,
+  },
+  friendsSectionAfterPlans: {
+    marginTop: 16,
+  },
+  friendsSectionHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginBottom: 10,
+  },
+  friendsSectionTitle: {
+    ...listSectionTitle,
   },
   friendCountPill: {
     minWidth: 0,

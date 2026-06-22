@@ -1,4 +1,5 @@
 import AlertModal from "@/app/alert-modal";
+import CheckmarkToast from "@/src/components/CheckmarkToast";
 import ConfirmModal from "@/app/confirm-modal";
 import {
   ACCENT,
@@ -69,10 +70,11 @@ const FriendsPlansPane = forwardRef<FriendsPlansPaneHandle, Props>(function Frie
     pendingUnjoin,
     confirmUnjoin,
     cancelUnjoin,
-    alertVisible,
-    alertTitle,
-    alertMessage,
-    dismissAlert,
+    successToast,
+    dismissSuccessToast,
+    errorAlertVisible,
+    errorAlertMessage,
+    dismissErrorAlert,
   } = feed;
 
   useImperativeHandle(ref, () => ({
@@ -130,7 +132,7 @@ const FriendsPlansPane = forwardRef<FriendsPlansPaneHandle, Props>(function Frie
       <ConfirmModal
         visible={pendingUnjoin != null}
         title="Remove this plan?"
-        message="This removes it from your plans and updates this for your friend."
+        message=""
         confirmText="Remove"
         destructive
         onCancel={cancelUnjoin}
@@ -138,11 +140,16 @@ const FriendsPlansPane = forwardRef<FriendsPlansPaneHandle, Props>(function Frie
           void confirmUnjoin();
         }}
       />
+      <CheckmarkToast
+        visible={!!successToast}
+        message={successToast ?? ""}
+        onDismiss={dismissSuccessToast}
+      />
       <AlertModal
-        visible={alertVisible}
-        title={alertTitle}
-        message={alertMessage}
-        onClose={dismissAlert}
+        visible={errorAlertVisible}
+        title="Error"
+        message={errorAlertMessage}
+        onClose={dismissErrorAlert}
       />
     </>
   );

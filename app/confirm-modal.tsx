@@ -43,9 +43,11 @@ export default function ConfirmModal({
     <Modal visible={visible} transparent animationType="fade">
       <View style={modalStyles.overlay}>
         <View style={modalStyles.cardCompact}>
-          {title && <Text style={modalStyles.title}>{title}</Text>}
+          {title ? <Text style={modalStyles.title}>{title}</Text> : null}
 
-          <Text style={modalStyles.body}>{message}</Text>
+          {message.trim().length > 0 ? (
+            <Text style={modalStyles.body}>{message}</Text>
+          ) : null}
 
           <View style={styles.actions}>
             <TouchableOpacity

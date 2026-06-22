@@ -1,11 +1,9 @@
 import {
   ACCENT,
-  BORDER_HAIRLINE,
   BORDER_MUTED,
   MUTED,
   MUTED2,
   MUTED3,
-  SURFACE,
   SURFACE_SUBTLE,
   TEXT,
   TEXT_MUTED_DARK,
@@ -26,7 +24,7 @@ import PlanGoingPeopleSheet, {
 } from "@/src/components/plans/PlanGoingPeopleSheet";
 import type { FriendOpenPlanEvent } from "@/src/lib/friendOpenPlanJoin";
 import type { AggregatedFriendPlan } from "@/src/lib/useFriendPlansFeed";
-import { resolvePlanAttribution } from "@/src/lib/planAttribution";
+import { planLooseMatch, resolvePlanAttribution } from "@/src/lib/planAttribution";
 import React, { useState } from "react";
 import {
   ActivityIndicator,
@@ -83,11 +81,19 @@ export default function FriendPlanCard({
 }: Props) {
   const [goingSheetOpen, setGoingSheetOpen] = useState(false);
   const d = parsePlanDate(item.event.date);
-  const { primary: hostLine, secondary: othersLine, goingPeople } = resolvePlanAttribution(
-    item.event,
+
+  const viewerRow =
+    joined && Array.isArray(viewerEvents)
+      ? viewerEvents.find((row) => planLooseMatch(row, item.event))
+      : undefined;
+  const eventForAttribution = viewerRow || item.event;
+  const profileSubject = joined ? viewerId : item.sourceFriendId;
+
+  const { primary: hostLine, secondary: goingLine, goingPeople } = resolvePlanAttribution(
+    eventForAttribution,
     viewerId,
     hostDisplayNameByUid,
-    item.sourceFriendId,
+    profileSubject,
     viewerEvents
   );
   const friendFirstName = item.sourceFriendName.trim().split(/\s+/)[0] || "Friend";
@@ -101,12 +107,7 @@ export default function FriendPlanCard({
 
   return (
     <>
-      <Pressable
-        style={styles.card}
-        onPress={onPressCard}
-        accessibilityRole="button"
-        accessibilityLabel={`${ownerLine}, ${item.event.title}`}
-      >
+      <View style={styles.card}>
         <View style={styles.dateBlock}>
           <Text style={styles.day}>
             {d.toLocaleDateString("en-US", { weekday: "short" }).toUpperCase()}
@@ -118,34 +119,65 @@ export default function FriendPlanCard({
         </View>
 
         <View style={styles.planBody}>
-          <Text style={styles.title} numberOfLines={2}>
-            {item.event.title}
-          </Text>
-          <Text style={styles.meta} numberOfLines={2}>
-            {item.event.time}
-            {item.event.location ? ` · ${item.event.location}` : ""}
-          </Text>
-          {!isHost ? (
-            <Text style={styles.planOwnerLine} numberOfLines={1}>
-              {ownerLine}
-            </Text>
-          ) : null}
-          {othersLine && peopleWithAvatars.length > 0 ? (
+          <View style={styles.planHeaderRow}>
             <Pressable
-              onPress={(e) => {
-                e.stopPropagation?.();
-                setGoingSheetOpen(true);
-              }}
-              hitSlop={{ top: 4, bottom: 4, left: 4, right: 4 }}
+              style={styles.titlePress}
+              onPress={onPressCard}
               accessibilityRole="button"
-              accessibilityLabel="See everyone going to this plan"
-              style={styles.goingPressable}
+              accessibilityLabel={`${ownerLine}, ${item.event.title}`}
             >
-              <Text style={styles.goingText} numberOfLines={2}>
-                {othersLine}
+              <Text style={styles.title} numberOfLines={2}>
+                {item.event.title}
               </Text>
             </Pressable>
-          ) : null}
+            {joined && !isHost ? (
+              <TouchableOpacity
+                style={styles.cardAction}
+                disabled={busy}
+                activeOpacity={0.7}
+                onPress={() => onPressAction()}
+                hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
+                accessibilityRole="button"
+                accessibilityLabel="Remove this plan from your open plans"
+              >
+                {busy ? (
+                  <ActivityIndicator size="small" color={MUTED3} />
+                ) : (
+                  <Text style={styles.removeText}>Remove</Text>
+                )}
+              </TouchableOpacity>
+            ) : null}
+          </View>
+          <Pressable onPress={onPressCard}>
+            <Text style={styles.meta} numberOfLines={2}>
+              {item.event.time}
+              {item.event.location ? ` · ${item.event.location}` : ""}
+            </Text>
+            {!isHost ? (
+              <Text style={styles.planOwnerLine} numberOfLines={1}>
+                {ownerLine}
+              </Text>
+            ) : null}
+            {goingLine ? (
+              peopleWithAvatars.length > 0 ? (
+                <Pressable
+                  onPress={() => setGoingSheetOpen(true)}
+                  hitSlop={{ top: 4, bottom: 4, left: 4, right: 4 }}
+                  accessibilityRole="button"
+                  accessibilityLabel="See everyone going to this plan"
+                  style={styles.goingPressable}
+                >
+                  <Text style={styles.goingText} numberOfLines={2}>
+                    {goingLine}
+                  </Text>
+                </Pressable>
+              ) : (
+                <Text style={[styles.goingText, styles.goingStatic]} numberOfLines={2}>
+                  {goingLine}
+                </Text>
+              )
+            ) : null}
+          </Pressable>
         </View>
 
         {isHost ? (
@@ -154,24 +186,15 @@ export default function FriendPlanCard({
               Your plan
             </Text>
           </View>
-        ) : (
+        ) : !joined ? (
           <TouchableOpacity
-            style={[
-              styles.interestPill,
-              styles.planSidePill,
-              joined
-                ? { borderColor: BORDER_HAIRLINE, backgroundColor: SURFACE }
-                : { borderColor: ACCENT },
-            ]}
+            style={[styles.interestPill, styles.planSidePill, { borderColor: ACCENT }]}
             activeOpacity={0.85}
             disabled={busy}
-            onPress={(e) => {
-              e.stopPropagation?.();
-              onPressAction();
-            }}
+            onPress={() => onPressAction()}
             accessibilityRole="button"
-            accessibilityLabel={joined ? "Added" : "Add"}
-            accessibilityState={{ selected: joined, disabled: busy }}
+            accessibilityLabel="Join"
+            accessibilityState={{ disabled: busy }}
           >
             {busy ? (
               <ActivityIndicator size="small" color={ACCENT} />
@@ -179,18 +202,15 @@ export default function FriendPlanCard({
               <Text
                 style={[
                   styles.interestText,
-                  {
-                    color: joined ? MUTED2 : ACCENT,
-                    fontFamily: joined ? fonts.medium : fonts.heavy,
-                  },
+                  { color: ACCENT, fontFamily: fonts.heavy },
                 ]}
               >
-                {joined ? "Added" : "Add"}
+                Join
               </Text>
             )}
           </TouchableOpacity>
-        )}
-      </Pressable>
+        ) : null}
+      </View>
 
       <PlanGoingPeopleSheet
         visible={goingSheetOpen}
@@ -239,6 +259,19 @@ const styles = StyleSheet.create({
     justifyContent: "flex-start",
     paddingRight: 10,
   },
+  planHeaderRow: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    gap: 8,
+  },
+  titlePress: {
+    flex: 1,
+    minWidth: 0,
+  },
+  cardAction: {
+    flexShrink: 0,
+    paddingTop: 1,
+  },
   planSidePill: {
     alignSelf: "center",
     marginLeft: 4,
@@ -258,6 +291,8 @@ const styles = StyleSheet.create({
     marginTop: 2,
   },
   title: {
+    flex: 1,
+    minWidth: 0,
     ...listRowTitleText,
   },
   meta: {
@@ -283,6 +318,17 @@ const styles = StyleSheet.create({
     fontFamily: fonts.medium,
     letterSpacing: 0.05,
     lineHeight: 15,
+  },
+  goingStatic: {
+    marginTop: 4,
+    alignSelf: "flex-start",
+  },
+  removeText: {
+    color: MUTED3,
+    fontSize: TYPE_FINE,
+    fontFamily: fonts.medium,
+    textAlign: "center",
+    includeFontPadding: false,
   },
   interestPill: {
     ...PLAN_PILL_LAYOUT,
