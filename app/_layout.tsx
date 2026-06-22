@@ -61,7 +61,6 @@ import {
 } from "../src/lib/ownProfileCache";
 import { initSentry } from "../src/lib/sentryInit";
 import { initAnalytics } from "../src/lib/analytics";
-import OfflineBanner from "../src/components/OfflineBanner";
 import {
   hydrateSocialCachesFromDisk,
   warmSocialCachesInBackground,
@@ -1000,7 +999,6 @@ export default function RootLayout() {
           >
             <BlockedUsersProvider>
             <View style={styles.root}>
-              <OfflineBanner />
               {navReady ? (
                 <Stack screenOptions={{ headerShown: false }}>
                   <Stack.Screen name="(auth)" />
