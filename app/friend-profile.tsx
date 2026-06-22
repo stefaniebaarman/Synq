@@ -32,7 +32,43 @@ import {
   synqOutlineAddBtnText,
   synqOutlineAddBtnTextDisabled,
 } from "@/constants/Variables";
+import BackButton from "@/src/components/BackButton";
+import AddFriendToGroupSheet from "@/src/components/friends/AddFriendToGroupSheet";
+import ProfileTabHeaderOverlay, {
+  useTabHeaderLayout,
+} from "@/src/components/ProfileTabHeaderOverlay";
+import { MESSAGES_STACK_DURATION_MS } from "@/src/components/synq/MessagesModalStack";
+import SynqNudgeCard from "@/src/components/synq/SynqNudgeCard";
+import { useBlockedUsers } from "@/src/lib/blockedUsers";
+import {
+  subscribeJoinedCommunityGroups,
+  type CommunityGroup,
+} from "@/src/lib/communityGroups";
 import { auth, db } from "@/src/lib/firebase";
+import {
+  addMembersToFriendGroup,
+  removeMemberFromFriendGroup,
+  subscribeFriendGroups,
+  type FriendGroup,
+} from "@/src/lib/friendGroups";
+import {
+  removeFriendMutual,
+  removeFriendMutualErrorMessage,
+} from "@/src/lib/friends";
+import { formatLastSynq, resolveAvatar } from "@/src/lib/helpers";
+import { blockUser, unblockUser } from "@/src/lib/moderation";
+import { requestDismissNavigationOverlays } from "@/src/lib/navigationOverlayEvents";
+import {
+  nudgeSentStorageKey as buildNudgeSentStorageKey,
+  nudgeCooldownRemainingMs,
+  persistNudgeSent,
+  readNudgeSentState,
+  sendSynqNudge,
+  synqNudgeErrorMessage,
+  warmSynqNudgeClient,
+} from "@/src/lib/synqNudge";
+import { computeSynqActiveFromUserData } from "@/src/lib/synqSession";
+import { Ionicons } from "@expo/vector-icons";
 import { Image as ExpoImage } from "expo-image";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import {
@@ -42,9 +78,8 @@ import {
   getDocs,
   onSnapshot,
   serverTimestamp,
-  setDoc,
   updateDoc,
-  writeBatch,
+  writeBatch
 } from "firebase/firestore";
 import React, {
   useCallback,
@@ -68,12 +103,7 @@ import {
 import {
   useSafeAreaInsets,
 } from "react-native-safe-area-context";
-import { MESSAGES_STACK_DURATION_MS } from "@/src/components/synq/MessagesModalStack";
-import BackButton from "@/src/components/BackButton";
-import ProfileTabHeaderOverlay, {
-  useTabHeaderLayout,
-} from "@/src/components/ProfileTabHeaderOverlay";
-import { Ionicons } from "@expo/vector-icons";
+import { resolvePlanHostUidForJoin } from "../src/lib/planAttribution";
 import {
   eventKey,
   eventKeyLoose,
@@ -81,53 +111,21 @@ import {
   matchesPlanEvent,
   matchesPlanEventForHostSync,
 } from "../src/lib/planEvents";
-import { resolvePlanHostUidForJoin } from "../src/lib/planAttribution";
 import {
+  communityGroupsCacheByUser,
   friendProfileCacheByUser,
   friendRelationCacheByUser,
-  friendsListCacheByUser,
   getCachedFriendRelationship,
   getCachedMutualFriends,
-  setCachedOutgoingFriendRequest,
   resolveMutualFriendsForTarget,
+  setCachedOutgoingFriendRequest,
   warmFriendsAndConnectionsCache,
-  warmOutgoingFriendRequestsCache,
-  communityGroupsCacheByUser,
+  warmOutgoingFriendRequestsCache
 } from "../src/lib/socialCache";
 import AlertModal from "./alert-modal";
 import ConfirmModal from "./confirm-modal";
-import ReportModal from "./report-modal";
-import { useBlockedUsers } from "@/src/lib/blockedUsers";
-import { blockUser, unblockUser } from "@/src/lib/moderation";
-import { formatLastSynq, resolveAvatar } from "@/src/lib/helpers";
 import MonthlyMemoReadOnly from "./readonly-monthly-memo";
-import SynqNudgeCard from "@/src/components/synq/SynqNudgeCard";
-import { computeSynqActiveFromUserData } from "@/src/lib/synqSession";
-import {
-  nudgeCooldownRemainingMs,
-  nudgeSentStorageKey as buildNudgeSentStorageKey,
-  persistNudgeSent,
-  readNudgeSentState,
-  sendSynqNudge,
-  synqNudgeErrorMessage,
-  warmSynqNudgeClient,
-} from "@/src/lib/synqNudge";
-import {
-  addMembersToFriendGroup,
-  removeMemberFromFriendGroup,
-  subscribeFriendGroups,
-  type FriendGroup,
-} from "@/src/lib/friendGroups";
-import AddFriendToGroupSheet from "@/src/components/friends/AddFriendToGroupSheet";
-import {
-  removeFriendMutual,
-  removeFriendMutualErrorMessage,
-} from "@/src/lib/friends";
-import { requestDismissNavigationOverlays } from "@/src/lib/navigationOverlayEvents";
-import {
-  subscribeJoinedCommunityGroups,
-  type CommunityGroup,
-} from "@/src/lib/communityGroups";
+import ReportModal from "./report-modal";
 
 function formatSharedCommunityGroupsLabel(groups: { name: string }[]): string | null {
   const names = groups
@@ -297,6 +295,7 @@ export default function FriendProfile({
   const { isBlocked } = useBlockedUsers();
   const userIsBlocked = friendKey ? isBlocked(friendKey) : false;
   const [hostDisplayNameByUid, setHostDisplayNameByUid] = useState<Record<string, string>>({});
+  const [viewerEvents, setViewerEvents] = useState<any[]>([]);
   const [viewerCommunityGroups, setViewerCommunityGroups] = useState<CommunityGroup[]>(
     () => (viewerId ? communityGroupsCacheByUser[viewerId] ?? [] : [])
   );
@@ -424,6 +423,20 @@ export default function FriendProfile({
     };
     hydrateJoinedPlans();
   }, [friendKey]);
+
+  useEffect(() => {
+    if (!viewerId) {
+      setViewerEvents([]);
+      return;
+    }
+    const unsub = onSnapshot(doc(db, "users", viewerId), (snap) => {
+      const events = snap.exists()
+        ? ((snap.data() as any)?.events as any[] | undefined) ?? []
+        : [];
+      setViewerEvents(Array.isArray(events) ? events : []);
+    });
+    return unsub;
+  }, [viewerId]);
 
   useEffect(() => {
     if (!viewerId) return;
@@ -1043,7 +1056,7 @@ export default function FriendProfile({
       await syncAttendeesAcrossUsers(sourceIds);
 
       setJoinedKeysForEvent(event, true);
-      showAlert("Added", "Plan added to your open plans.");
+      showAlert("Added", "Plan added to your plans.");
     } catch (e: any) {
       showAlert("Error", e?.message || "Could not join this plan right now.");
     }
@@ -1394,6 +1407,7 @@ export default function FriendProfile({
                 fonts={fonts}
                 viewerUid={viewerId}
                 profileSubjectUid={friendKey}
+                viewerEvents={viewerEvents}
                 onPressPlan={handlePlanPress}
                 isPlanJoined={planLooksJoined}
                 isViewerHostOfPlan={isViewerHostOfFriendsPlan}
@@ -1610,7 +1624,7 @@ export default function FriendProfile({
       <ConfirmModal
         visible={showUnjoinModal}
         title="Remove this plan?"
-        message="This removes it from your open plans and updates this for your friend."
+        message="This removes it from your plans and updates this for your friend."
         confirmText="Remove"
         destructive
         onCancel={() => {

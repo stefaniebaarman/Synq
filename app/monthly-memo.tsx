@@ -931,7 +931,7 @@ export default function OpenPlans({
           pendingDeleteEvent?.planHostUid &&
           viewerUid &&
           pendingDeleteEvent.planHostUid !== viewerUid
-            ? "This removes it from your open plans and updates this for your friend."
+            ? "This removes it from your plans and updates this for your friend."
             : "This deletes the plan for you and anyone who joined."
         }
         confirmText={

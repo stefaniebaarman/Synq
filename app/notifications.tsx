@@ -16,7 +16,7 @@ import {
   serverTimestamp,
   writeBatch,
 } from "firebase/firestore";
-import React, { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   ActivityIndicator,
   FlatList,
@@ -37,6 +37,9 @@ import {
   BORDER_MUTED,
   BORDER_STRONG,
   BORDER_SUBTLE_HEX,
+  emptyStateTitleText,
+  fonts,
+  modalTitleText,
   MUTED,
   MUTED2,
   MUTED3,
@@ -53,27 +56,23 @@ import {
   TYPE_BODY,
   TYPE_BUTTON,
   TYPE_CAPTION,
-  TYPE_MICRO,
-  TYPE_SECTION,
-  emptyStateTitleText,
-  fonts,
-  modalTitleText,
+  TYPE_MICRO
 } from "../constants/Variables";
-import { acceptPlanInvite, acceptPlanInviteErrorMessage, declinePlanInvite, declinePlanInviteErrorMessage } from "../src/lib/planInvite";
 import {
   acceptCommunityGroupInvite,
   declineCommunityGroupInvite,
   type CommunityGroupInvite,
 } from "../src/lib/communityGroupInvites";
 import { auth, db } from "../src/lib/firebase";
+import { acceptPlanInvite, acceptPlanInviteErrorMessage, declinePlanInvite, declinePlanInviteErrorMessage } from "../src/lib/planInvite";
 
-import AlertModal from "./alert-modal";
-import ConfirmModal from "./confirm-modal";
 import { resolveAvatar } from "@/src/lib/helpers";
 import {
   FRIEND_REQUESTS_LISTENER_LIMIT,
   NOTIFICATIONS_LISTENER_LIMIT,
 } from "@/src/lib/listenerLimits";
+import AlertModal from "./alert-modal";
+import ConfirmModal from "./confirm-modal";
 
 const BACKGROUND = BG;
 
@@ -824,9 +823,9 @@ export default function NotificationsScreen() {
       const { status } = await acceptPlanInvite(item.id);
       await dismissActivity(item);
       if (status === "already_joined") {
-        showAlert("Already added", "This plan is already in your open plans.");
+        showAlert("Already added", "This plan is already in your plans.");
       } else {
-        showAlert("Added", "Plan added to your open plans.");
+        showAlert("Added", "Plan added to your plans.");
       }
       router.push("/(tabs)/me");
     } catch (err) {

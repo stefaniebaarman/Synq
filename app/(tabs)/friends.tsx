@@ -53,6 +53,8 @@ import CloseIcon from "@/src/components/CloseIcon";
 import FriendsGroupsHeaderTitle, {
   type FriendsTabMode,
 } from "@/src/components/friends/FriendsGroupsSegment";
+import FriendsPlansPreview from "@/src/components/friends/FriendsPlansPreview";
+import FriendsPlansSheet from "@/src/components/friends/FriendsPlansSheet";
 import {
   FriendsSortMenu,
   FriendsSortTrigger,
@@ -69,6 +71,7 @@ import { useBlockedUsers } from "@/src/lib/blockedUsers";
 import { ignoreSnapshotPermissionDenied } from "@/src/lib/firestoreListeners";
 import { createFriendGroup } from "@/src/lib/friendGroups";
 import { friendLocationLine, resolveAvatar } from "@/src/lib/helpers";
+import { useFriendPlansFeed } from "@/src/lib/useFriendPlansFeed";
 import {
   fetchSuggestedFriends,
   searchUsersForFriend,
@@ -332,6 +335,7 @@ export default function FriendsScreen() {
   const [headerFadeTop, setHeaderFadeTop] = useState(0);
   const [listScrollY, setListScrollY] = useState(0);
   const [friendsTabMode, setFriendsTabMode] = useState<FriendsTabMode>("friends");
+  const [plansSheetVisible, setPlansSheetVisible] = useState(false);
   const friendsListRef = useRef<FlatList<Friend>>(null);
   const friendsRefreshInFlightRef = useRef(false);
   const lastFriendsIdsKeyRef = useRef("");
@@ -352,6 +356,10 @@ export default function FriendsScreen() {
     setSearchModalVisible(false);
   }, []);
 
+  const closePlansSheet = useCallback(() => {
+    setPlansSheetVisible(false);
+  }, []);
+
   const scrollFriendsListToTop = useCallback((animated = false) => {
     friendsListRef.current?.scrollToOffset({ offset: 0, animated });
     setListScrollY(0);
@@ -361,16 +369,20 @@ export default function FriendsScreen() {
     const subscription = DeviceEventEmitter.addListener(FRIENDS_TAB_PRESS, () => {
       scrollFriendsListToTop(true);
       closeAddFriendsModal();
+      closePlansSheet();
       if (openAddFriends === "1") {
         router.setParams({ openAddFriends: "" });
       }
     });
     return () => subscription.remove();
-  }, [scrollFriendsListToTop, closeAddFriendsModal, openAddFriends, router]);
+  }, [scrollFriendsListToTop, closeAddFriendsModal, closePlansSheet, openAddFriends, router]);
 
   useEffect(() => {
-    return registerDismissNavigationOverlaysHandler(closeAddFriendsModal);
-  }, [closeAddFriendsModal]);
+    return registerDismissNavigationOverlaysHandler(() => {
+      closeAddFriendsModal();
+      closePlansSheet();
+    });
+  }, [closeAddFriendsModal, closePlansSheet]);
 
   useEffect(() => {
     if (openAddFriends !== "1") return;
@@ -524,6 +536,59 @@ export default function FriendsScreen() {
   }, [myId]);
 
   const { isBlocked } = useBlockedUsers();
+
+  const openFriendProfileFromFriendsTab = useCallback(
+    (friendId: string) => {
+      void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+      router.push({
+        pathname: "/friend-profile",
+        params: { friendId, from: "friends" },
+      });
+    },
+    [router]
+  );
+
+  const friendPlansFeed = useFriendPlansFeed({
+    userId: myId,
+    friends,
+    isBlocked,
+  });
+
+  const showFriendsPlansPreview =
+    friendsTabMode === "friends" &&
+    !isFriendsInitialLoading &&
+    friendPlansFeed.aggregatedPlans.length > 0;
+
+  const friendsListHeader = useMemo(() => {
+    if (!showFriendsPlansPreview) return null;
+    return (
+      <FriendsPlansPreview
+        userId={myId}
+        aggregatedPlans={friendPlansFeed.aggregatedPlans}
+        hostDisplayNameByUid={friendPlansFeed.hostDisplayNameByUid}
+        viewerEvents={friendPlansFeed.viewerEvents}
+        friendImageByUid={friendPlansFeed.friendImageByUid}
+        planJoined={friendPlansFeed.planJoined}
+        planIsHost={friendPlansFeed.planIsHost}
+        handlePlanAction={friendPlansFeed.handlePlanAction}
+        isPlanBusy={friendPlansFeed.isPlanBusy}
+        onSeeAll={() => setPlansSheetVisible(true)}
+        onOpenFriendProfile={openFriendProfileFromFriendsTab}
+      />
+    );
+  }, [
+    showFriendsPlansPreview,
+    myId,
+    friendPlansFeed.aggregatedPlans,
+    friendPlansFeed.hostDisplayNameByUid,
+    friendPlansFeed.viewerEvents,
+    friendPlansFeed.friendImageByUid,
+    friendPlansFeed.planJoined,
+    friendPlansFeed.planIsHost,
+    friendPlansFeed.handlePlanAction,
+    friendPlansFeed.isPlanBusy,
+    openFriendProfileFromFriendsTab,
+  ]);
 
   const userProfileForSort = useMemo(
     () =>
@@ -728,6 +793,7 @@ export default function FriendsScreen() {
           onScroll={onFriendsListScroll}
           scrollEventThrottle={16}
           onScrollBeginDrag={Keyboard.dismiss}
+          ListHeaderComponent={friendsListHeader}
           ListFooterComponent={<View style={{ height: 40 }} />}
           contentContainerStyle={listIsEmpty ? styles.friendsListContentEmpty : styles.friendsListContent}
           ListEmptyComponent={
@@ -764,6 +830,30 @@ export default function FriendsScreen() {
           onClose={closeAddFriendsModal}
           onOpenProfile={openFriendProfileFromAddFriends}
           currentFriends={friends.map((f) => f.id)}
+        />
+        <FriendsPlansSheet
+          visible={plansSheetVisible}
+          userId={myId}
+          feed={friendPlansFeed}
+          onClose={closePlansSheet}
+          onOpenFriendProfile={openFriendProfileFromFriendsTab}
+        />
+        <ConfirmModal
+          visible={friendPlansFeed.pendingUnjoin != null}
+          title="Remove this plan?"
+          message="This removes it from your plans and updates this for your friend."
+          confirmText="Remove"
+          destructive
+          onCancel={friendPlansFeed.cancelUnjoin}
+          onConfirm={() => {
+            void friendPlansFeed.confirmUnjoin();
+          }}
+        />
+        <AlertModal
+          visible={friendPlansFeed.alertVisible}
+          title={friendPlansFeed.alertTitle}
+          message={friendPlansFeed.alertMessage}
+          onClose={friendPlansFeed.dismissAlert}
         />
       </View>
     </TouchableWithoutFeedback>

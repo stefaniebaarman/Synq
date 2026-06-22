@@ -597,6 +597,20 @@ export interface Friend {
   monthlyMemo?: string;
   interests?: string[];
   mutualCount?: number;
+  events?: {
+    id: string;
+    date: string;
+    title: string;
+    time?: string;
+    location?: string;
+    planHostUid?: string;
+    joinedFromFriendUid?: string;
+    joinedFromId?: string;
+    joinedFromIds?: string[];
+    joinedFromName?: string;
+    joinedFromNames?: string[];
+    attendeeDisplayNames?: Record<string, string>;
+  }[];
 }
 /** AI place suggestions in chat — shown when everyone in the chat has a location. */
 export const AI_PLACE_SUGGESTIONS_ENABLED = true;

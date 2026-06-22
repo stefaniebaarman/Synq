@@ -9,26 +9,23 @@ import {
   TEXT,
   TEXT_MUTED_DARK,
   TEXT_MUTED_DARKER,
-  TYPE_BUTTON,
-  TYPE_CAPTION,
   TYPE_CTA,
   TYPE_FINE,
   TYPE_LEAD,
-  listRowTitleText,
   cardMetaText,
   fonts,
+  listRowTitleText
 } from "@/constants/Variables";
-import { filterOutPastOpenPlans, sortOpenPlansByDateTime } from "@/src/lib/planEvents";
-import { resolvePlanAttribution } from "@/src/lib/planAttribution";
 import {
   GROUP_BORDER,
   GROUP_SURFACE,
 } from "@/src/components/friends/groupsListStyles";
-import React, { useMemo } from "react";
+import { resolvePlanAttribution } from "@/src/lib/planAttribution";
+import { filterOutPastOpenPlans, sortOpenPlansByDateTime } from "@/src/lib/planEvents";
+import { useMemo } from "react";
 import { StyleSheet, Text, TouchableOpacity, View, type ViewStyle } from "react-native";
 
 const PLAN_PILL_LAYOUT: ViewStyle = {
-  marginLeft: "auto",
   minWidth: 88,
   minHeight: 32,
   borderRadius: 12,
@@ -37,6 +34,7 @@ const PLAN_PILL_LAYOUT: ViewStyle = {
   paddingVertical: 6,
   alignItems: "center",
   justifyContent: "center",
+  flexShrink: 0,
 };
 
 type EventItem = {
@@ -65,6 +63,7 @@ type Props = {
   isViewerHostOfPlan?: (event: EventItem) => boolean;
   hostDisplayNameByUid: Record<string, string>;
   profileFallbackFirstName?: string;
+  viewerEvents?: EventItem[];
 };
 
 export default function FriendOpenPlans({
@@ -77,6 +76,7 @@ export default function FriendOpenPlans({
   isPlanJoined,
   isViewerHostOfPlan,
   hostDisplayNameByUid,
+  viewerEvents,
 }: Props) {
   const visibleEvents = useMemo(
     () => sortOpenPlansByDateTime(filterOutPastOpenPlans(events)),
@@ -93,7 +93,8 @@ export default function FriendOpenPlans({
       p,
       viewerUid,
       hostDisplayNameByUid,
-      profileSubjectUid || viewerUid
+      profileSubjectUid || viewerUid,
+      viewerEvents
     );
     return primary;
   };
@@ -136,15 +137,15 @@ export default function FriendOpenPlans({
                 hasInterestLine && styles.planBodyWithInterest,
               ]}
             >
-              <Text style={styles.title}>
+              <Text style={styles.title} numberOfLines={2}>
                 {p.title}
               </Text>
-              <Text style={styles.meta}>
+              <Text style={styles.meta} numberOfLines={2}>
                 {p.time}
                 {p.location ? ` · ${p.location}` : ""}
               </Text>
               {rowHostLabel ? (
-                <Text style={styles.planOwnerLine}>
+                <Text style={styles.planOwnerLine} numberOfLines={1}>
                   {rowHostLabel}
                 </Text>
               ) : null}
@@ -180,8 +181,8 @@ export default function FriendOpenPlans({
                   accessibilityLabel={joined ? "Added" : "Add"}
                   accessibilityHint={
                     joined
-                      ? "Tap to remove this plan from your open plans."
-                      : "Adds this plan to your open plans and notifies your friend."
+                      ? "Tap to remove this plan from your plans."
+                      : "Adds this plan to your plans and notifies your friend."
                   }
                   accessibilityState={{ selected: joined }}
                 >
@@ -237,6 +238,7 @@ const styles = StyleSheet.create({
 
   dateBlock: {
     width: 48,
+    flexShrink: 0,
     alignItems: "center",
     marginRight: 12,
     alignSelf: "stretch",
@@ -244,14 +246,18 @@ const styles = StyleSheet.create({
   },
   planBody: {
     flex: 1,
+    minWidth: 0,
+    flexShrink: 1,
     alignSelf: "stretch",
     justifyContent: "center",
+    paddingRight: 10,
   },
   planBodyWithInterest: {
     justifyContent: "flex-start",
   },
   planSidePill: {
     alignSelf: "center",
+    marginLeft: 4,
   },
 
   day: {
