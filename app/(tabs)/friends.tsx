@@ -480,7 +480,6 @@ export default function FriendsScreen() {
         if (cancelled) return;
         sortedFriends.forEach((friend) => {
           profileCache[friend.id] = friend;
-          ExpoImage.prefetch(resolveAvatar((friend as any)?.imageurl)).catch(() => {});
         });
 
         friendsListCacheByUser[myId] = sortedFriends;
@@ -1004,9 +1003,6 @@ function SearchModal({
         setSuggested(visible);
         hydratePendingForUsers(visible.map((u) => u.id));
         hydrateIncomingForUsers(visible.map((u) => u.id));
-        visible.forEach((user) => {
-          ExpoImage.prefetch(resolveAvatar(user?.imageurl)).catch(() => {});
-        });
       };
 
       const cached = suggestedCacheByUser[myId] ?? [];
@@ -1069,7 +1065,6 @@ function SearchModal({
           };
         });
         rows.forEach((user) => {
-          ExpoImage.prefetch(resolveAvatar(user?.imageurl)).catch(() => {});
           incomingCheckCacheRef.current[user.id] = true;
         });
         setIncomingRequestsRows(rows);
@@ -1130,7 +1125,6 @@ function SearchModal({
 
         rows.forEach((user) => {
           pendingCheckCacheRef.current[user.id] = true;
-          ExpoImage.prefetch(resolveAvatar(user.imageurl)).catch(() => {});
         });
         syncOutgoingFriendRequestsCache(
           myId,
@@ -1161,7 +1155,6 @@ function SearchModal({
                     : r
                 )
               );
-              ExpoImage.prefetch(resolveAvatar(u.imageurl as string)).catch(() => {});
             })
             .catch(() => {});
         });

@@ -21,7 +21,7 @@ import {
   MAX_COMMUNITY_GROUP_MEMBERS as MAX_MEMBERS,
   mergeCommunityGroupMemberIds as mergeMemberIdsCore,
 } from "./communityGroupsCore.js";
-import { uploadCommunityCoverPhoto } from "./uploadCommunityCoverPhoto";
+import { uploadCommunityCoverPhoto, deleteCommunityCoverPhotos } from "./uploadCommunityCoverPhoto";
 
 export const MAX_COMMUNITY_GROUP_MEMBERS = MAX_MEMBERS;
 export const MAX_COMMUNITY_GROUPS_JOINED = 50;
@@ -384,6 +384,7 @@ export async function renameCommunityGroup(groupId: string, name: string): Promi
 }
 
 export async function deleteCommunityGroup(groupId: string): Promise<void> {
+  await deleteCommunityCoverPhotos(groupId);
   await deleteDoc(communityGroupRef(groupId));
 }
 

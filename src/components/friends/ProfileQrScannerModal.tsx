@@ -97,8 +97,6 @@ export default function ProfileQrScannerModal({
           <Text style={styles.title}>Scan QR code</Text>
           <CloseButton onPress={handleClose} accessibilityLabel="Close scanner" />
         </View>
-        <Text style={styles.subtitle}>Point your camera at a Synq profile QR code</Text>
-
         <View style={styles.cameraWrap}>
           {showCamera ? (
             <>

@@ -1,8 +1,7 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Friend } from "@/constants/Variables";
-import { Image as ExpoImage } from "expo-image";
 
-import { resolveAvatar } from "@/src/lib/helpers";
+import { prefetchResolvedAvatar } from "@/src/lib/helpers";
 import {
   friendRelationCacheByUser,
   friendsListCacheByUser,
@@ -43,15 +42,8 @@ const emptySnapshot = (): OwnProfileSnapshot => ({
   topSynqs: [],
 });
 
-const prefetchProfileImage = (url: string | null | undefined) => {
-  const resolved = resolveAvatar(url);
-  if (typeof resolved === "string" && resolved.startsWith("http")) {
-    ExpoImage.prefetch(resolved, "memory-disk").catch(() => {});
-  }
-};
-
-const prefetchTopSynqAvatars = (rows: CachedTopSynq[]) => {
-  rows.forEach((row) => prefetchProfileImage(row.imageurl));
+const prefetchOwnProfileImage = (url: string | null | undefined) => {
+  prefetchResolvedAvatar(url);
 };
 
 /** Friends you've messaged most (synqCount on the friend doc). */
@@ -121,8 +113,7 @@ export function setCachedOwnProfile(userId: string, snapshot: OwnProfileSnapshot
     topSynqs: snapshot.topSynqs ?? [],
   };
   ownProfileCacheByUser[userId] = next;
-  prefetchProfileImage(next.imageurl);
-  prefetchTopSynqAvatars(next.topSynqs);
+  prefetchOwnProfileImage(next.imageurl);
   void AsyncStorage.setItem(ownProfileCacheKey(userId), JSON.stringify(next)).catch(
     () => {}
   );
@@ -175,11 +166,8 @@ export function prewarmMeTabScreen(userId: string): void {
   if (!userId) return;
   const profile = getCachedOwnProfile(userId);
   if (profile) {
-    prefetchProfileImage(profile.imageurl);
-    prefetchTopSynqAvatars(profile.topSynqs);
+    prefetchOwnProfileImage(profile.imageurl);
   }
-  const friends = friendsListCacheByUser[userId] ?? [];
-  friends.slice(0, 3).forEach((friend) => prefetchProfileImage(friend.imageurl));
 }
 
 export async function hydrateOwnProfileFromDisk(userId: string): Promise<void> {
@@ -203,8 +191,7 @@ export async function hydrateOwnProfileFromDisk(userId: string): Promise<void> {
         state: parsed.state ?? null,
         topSynqs: Array.isArray(parsed.topSynqs) ? parsed.topSynqs : [],
       };
-      prefetchProfileImage(ownProfileCacheByUser[userId].imageurl);
-      prefetchTopSynqAvatars(ownProfileCacheByUser[userId].topSynqs);
+      prefetchOwnProfileImage(ownProfileCacheByUser[userId].imageurl);
     } catch {}
   })();
 

@@ -11,8 +11,8 @@ import {
   TYPE_SECTION,
   fonts,
 } from "@/constants/Variables";
-import { FriendGroup } from "@/src/lib/friendGroups";
 import CloseButton from "@/src/components/CloseButton";
+import { FriendGroup } from "@/src/lib/friendGroups";
 import { Ionicons } from "@expo/vector-icons";
 import { useEffect, useMemo, useState } from "react";
 import {
@@ -112,9 +112,6 @@ export default function AddFriendToGroupSheet({
             <Text style={styles.title}>Add to group</Text>
             <CloseButton onPress={handleClose} />
           </View>
-          <Text style={styles.subtitle}>
-            Choose groups for {friendName || "this friend"}
-          </Text>
           {sortedGroups.length === 0 ? (
             <View style={styles.empty}>
               <Text style={styles.emptyText}>Create a group from the Friends tab first.</Text>

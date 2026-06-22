@@ -35,7 +35,6 @@ import {
   BG,
   BORDER,
   BORDER_STRONG,
-  DEFAULT_AVATAR,
   MUTED,
   MUTED2,
   MUTED3,
@@ -66,18 +65,11 @@ import { auth, db } from "../src/lib/firebase";
 
 import AlertModal from "./alert-modal";
 import ConfirmModal from "./confirm-modal";
-import { prefetchResolvedAvatar, resolveAvatar } from "@/src/lib/helpers";
+import { resolveAvatar } from "@/src/lib/helpers";
 import {
   FRIEND_REQUESTS_LISTENER_LIMIT,
   NOTIFICATIONS_LISTENER_LIMIT,
 } from "@/src/lib/listenerLimits";
-
-function prefetchActorAvatars(items: { actorImageUrl: string | null }[]) {
-  items.forEach((item) => {
-    if (item.actorImageUrl) prefetchResolvedAvatar(item.actorImageUrl);
-  });
-}
-
 
 const BACKGROUND = BG;
 
@@ -479,7 +471,6 @@ export default function NotificationsScreen() {
           };
         });
         const resolved = await Promise.all(list.map(resolveCommunityGroupInvite));
-        prefetchActorAvatars(resolved);
         setCommunityGroupInvites(resolved);
         setLoadError(false);
         groupInviteReady = true;
@@ -498,7 +489,6 @@ export default function NotificationsScreen() {
       async (snapshot) => {
         const list = snapshot.docs.map((d) => ({ id: d.id, ...d.data() }));
         const resolved = await Promise.all(list.map(resolveActivity));
-        prefetchActorAvatars(resolved);
         setActivityItems(resolved);
         setLoadError(false);
         activityReady = true;
@@ -548,10 +538,6 @@ export default function NotificationsScreen() {
       unsubActivity();
       unsubLegacy();
     };
-  }, []);
-
-  useEffect(() => {
-    prefetchResolvedAvatar(DEFAULT_AVATAR);
   }, []);
 
   const feedItems: FeedItem[] = useMemo(() => {

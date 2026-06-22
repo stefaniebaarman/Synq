@@ -189,14 +189,6 @@ import EditSynqModal from '../synq-screens/EditSynqModal';
 import InactiveSynqView from '../synq-screens/InactiveSynqView';
 import SynqActivatingView from '../synq-screens/SynqActivatingView';
 
-function prefetchParticipantAvatars(chat: { participantImages?: Record<string, unknown> } | null | undefined) {
-  const images = chat?.participantImages || {};
-  Object.values(images).forEach((url) => {
-    const uri = resolveAvatar(url as string | undefined);
-    if (uri) ExpoImage.prefetch(uri).catch(() => {});
-  });
-}
-
 type SynqUi = { status: SynqStatus; hydrated: boolean };
 
 function setSynqStatus(setSynq: Dispatch<SetStateAction<SynqUi>>, status: SynqStatus) {
@@ -622,13 +614,11 @@ export default function SynqScreen() {
 
   const prefetchChatOnPress = useCallback(
     (chatId: string) => {
-      const chat = allChats.find((c) => c.id === chatId);
-      if (chat) prefetchParticipantAvatars(chat);
       if (!messagesCacheByChatIdRef.current[chatId]) {
         void hydrateChatMessages(chatId);
       }
     },
-    [allChats, hydrateChatMessages, messagesCacheByChatIdRef]
+    [hydrateChatMessages, messagesCacheByChatIdRef]
   );
 
   const beginOpeningChat = useCallback(
@@ -655,10 +645,7 @@ export default function SynqScreen() {
     ) => {
       if (opts?.prefetchChatDoc !== false) {
         try {
-          const snap = await getDoc(doc(db, "chats", chatId));
-          if (snap.exists()) {
-            prefetchParticipantAvatars(snap.data() as { participantImages?: Record<string, unknown> });
-          }
+          await getDoc(doc(db, "chats", chatId));
         } catch {}
       }
       setPendingNewChat(null);
@@ -1053,15 +1040,6 @@ export default function SynqScreen() {
       });
 
       setAllChats(chats);
-      chats.forEach((chat: any) => {
-        const images = chat?.participantImages || {};
-        Object.values(images).forEach((url: any) => {
-          const uri = resolveAvatar(url);
-          if (uri) {
-            ExpoImage.prefetch(uri).catch(() => {});
-          }
-        });
-      });
       const anyUnread = chats.some((c: any) => {
         const updatedAtMs = c.updatedAt?.toMillis?.() ?? 0;
         const lastReadMs = c.lastReadBy?.[uid]?.toMillis?.() ?? 0;
@@ -1198,9 +1176,6 @@ export default function SynqScreen() {
             if (prev[uid] === resolved) return prev;
             return { ...prev, [uid]: resolved };
           });
-          if (isCustomAvatar(resolved)) {
-            ExpoImage.prefetch(resolved).catch(() => {});
-          }
         },
         ignoreSnapshotPermissionDenied
       )
@@ -1233,37 +1208,6 @@ export default function SynqScreen() {
     },
     [liveParticipantImages, userProfile?.imageurl]
   );
-
-  useEffect(() => {
-    if (!isChatPaneOpen) return;
-    const prefetchUri = (url: unknown) => {
-      const uri = resolveAvatar(url as string | undefined);
-      if (uri) ExpoImage.prefetch(uri).catch(() => {});
-    };
-    if (pendingNewChat) {
-      const images = freshParticipantImages(
-        pendingNewChat.participantImages,
-        pendingNewChat.participants
-      );
-      Object.values(images).forEach((u) => prefetchUri(u));
-      return;
-    }
-    if (!activeChatId) return;
-    const chat = allChats.find((c: any) => c.id === activeChatId);
-    Object.values(chat?.participantImages || {}).forEach((u) => prefetchUri(u));
-    const seen = new Set<string>();
-    messages.forEach((m: any) => {
-      const uri = resolveChatSenderAvatar(m.senderId, {
-        participantImages: chat?.participantImages,
-        messageImageUrl: m.imageurl,
-        liveImages: liveParticipantImages,
-      });
-      if (isCustomAvatar(uri) && !seen.has(uri)) {
-        seen.add(uri);
-        ExpoImage.prefetch(uri).catch(() => {});
-      }
-    });
-  }, [activeChatId, isChatPaneOpen, pendingNewChat, allChats, messages, liveParticipantImages, freshParticipantImages]);
 
   const completeSynqLaunch = useCallback(() => {
     Vibration.vibrate(400);
@@ -1570,7 +1514,6 @@ export default function SynqScreen() {
         return JSON.stringify(chatParticipants) === JSON.stringify(participants);
       });
       if (existing) {
-        prefetchParticipantAvatars(existing);
         setPendingNewChat(null);
         prepareChatSync(existing.id);
         setActiveChatId(existing.id);
@@ -1585,7 +1528,6 @@ export default function SynqScreen() {
             imgMap[uid] = resolveAvatar(uSnap.data().imageurl);
           }
         }
-        prefetchParticipantAvatars({ participantImages: imgMap });
         setPendingNewChat({
           participants,
           participantNames: nameMap,
@@ -1805,7 +1747,6 @@ export default function SynqScreen() {
 
       if (existing) {
         resetMergeSelect();
-        prefetchParticipantAvatars(existing);
         setPendingNewChat(null);
         prepareChatSync(existing.id);
         setActiveChatId(existing.id);
@@ -1859,7 +1800,6 @@ export default function SynqScreen() {
       });
 
       resetMergeSelect();
-      prefetchParticipantAvatars({ participantImages });
       setPendingNewChat(null);
       prepareChatSync(chatRef.id);
       setActiveChatId(chatRef.id);
@@ -2105,7 +2045,6 @@ export default function SynqScreen() {
                 renderAvatarStack={renderAvatarStack}
                 onCloseMessages={closeMessagesModal}
                 onOpenChat={async (item) => {
-                  prefetchParticipantAvatars(item);
                   beginOpeningChat(item.id);
                 }}
                 onPrepareChatPress={(chatId) => prefetchChatOnPress(chatId)}

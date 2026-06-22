@@ -9,7 +9,10 @@ export async function uploadProfilePhoto(localUri: string): Promise<string> {
   const response = await fetch(localUri);
   const blob = await response.blob();
   const storageRef = ref(storage, `profiles/${user.uid}`);
-  await uploadBytesResumable(storageRef, blob);
+  await uploadBytesResumable(storageRef, blob, {
+    contentType: "image/jpeg",
+    cacheControl: "public,max-age=31536000",
+  });
   const url = await getDownloadURL(storageRef);
   await setDoc(doc(db, "users", user.uid), { imageurl: url }, { merge: true });
   return url;

@@ -1,6 +1,5 @@
 import { Friend } from "@/constants/Variables";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { Image as ExpoImage } from "expo-image";
 import { collection, doc, getDoc, getDocs } from "firebase/firestore";
 
 import { db } from "./firebase";
@@ -83,14 +82,6 @@ export function invalidateSocialWarmCache(userId: string) {
   delete socialWarmMetaByUser[userId];
   delete synqActiveFriendsPollCache[userId];
 }
-
-const isRemoteImageUri = (value: unknown): value is string =>
-  typeof value === "string" && /^https?:\/\//i.test(value);
-
-const prefetchImage = (url?: string | null) => {
-  if (!isRemoteImageUri(url)) return;
-  ExpoImage.prefetch(url).catch(() => {});
-};
 
 const sortFriendsByName = (list: Friend[]) =>
   [...list].sort((a, b) => (a.displayName || "").localeCompare(b.displayName || ""));
@@ -402,13 +393,6 @@ export async function hydrateSocialCachesFromDisk(userId: string): Promise<void>
         };
       }
 
-      Object.values(friendProfileCacheByUser[userId]).forEach((friend: any) => {
-        prefetchImage(friend?.imageurl);
-      });
-      Object.values(connectionProfileCacheByUser[userId]).forEach((conn: any) => {
-        prefetchImage(conn?.imageUrl);
-      });
-      suggestedCacheByUser[userId].forEach((user: any) => prefetchImage(user?.imageurl));
     } catch {}
   })();
 
@@ -529,7 +513,6 @@ export async function warmFriendsAndConnectionsCache(
     sortedFriends.forEach((friend) => {
       profileCache[friend.id] = friend;
       const imageUrl = (friend as { imageurl?: string }).imageurl || null;
-      prefetchImage(imageUrl);
       connectionCache[friend.id] = {
         id: friend.id,
         name: friend.displayName || "User",
@@ -681,7 +664,6 @@ export async function warmSuggestedCache(
         }
       }
 
-      nextSuggested.forEach((user) => prefetchImage((user as { imageurl?: string }).imageurl));
       suggestedCacheByUser[userId] = nextSuggested;
       setWarmMeta(userId, { suggestedAt: now });
       await persistSocialCache(userId);
@@ -794,7 +776,6 @@ export async function pollSynqActiveFriends(
 
       if (!computeSynqActiveFromUserData(data)) return;
       active.push({ id: fid, ...(data as object) } as Friend);
-      prefetchImage((data as { imageurl?: string }).imageurl);
     })
   );
 

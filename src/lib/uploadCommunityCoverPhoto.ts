@@ -1,4 +1,4 @@
-import { getDownloadURL, ref, uploadBytes } from "firebase/storage";
+import { deleteObject, getDownloadURL, ref, uploadBytes } from "firebase/storage";
 import { storage } from "./firebase";
 import {
   prepareCommunityCoverPhoto,
@@ -38,4 +38,13 @@ export async function uploadCommunityCoverPhoto(
   ]);
 
   return { coverPhotoUrl, coverPhotoThumbUrl };
+}
+
+/** Remove cover assets when a community group is deleted. */
+export async function deleteCommunityCoverPhotos(groupId: string): Promise<void> {
+  const basePath = `communityCovers/${groupId}`;
+  await Promise.allSettled([
+    deleteObject(ref(storage, `${basePath}/cover.jpg`)),
+    deleteObject(ref(storage, `${basePath}/thumb.jpg`)),
+  ]);
 }

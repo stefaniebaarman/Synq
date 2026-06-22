@@ -4,8 +4,8 @@ import { Image } from "react-native";
 /** Max edge length while cropping; keeps preview math fast on camera originals. */
 export const PROFILE_PHOTO_CROP_PREP_MAX_DIMENSION = 2048;
 
-/** Uploaded avatar size — sharp through 300pt @3x preview, small enough to upload quickly. */
-export const PROFILE_PHOTO_UPLOAD_SIZE = 768;
+/** Uploaded avatar size — sharp through 64pt @3x list cells; keeps Storage egress low. */
+export const PROFILE_PHOTO_UPLOAD_SIZE = 384;
 
 export const PROFILE_PHOTO_UPLOAD_QUALITY = 0.85;
 

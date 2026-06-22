@@ -888,22 +888,6 @@ export default function ProfileScreen() {
       reqRef,
       (snap) => {
         setRequestCount(snap.docs.length);
-        snap.docs.forEach((d) => {
-          const data = d.data() as any;
-          const senderId = data.from || data.fromId || d.id;
-          const inline =
-            data.senderImageUrl || data.fromImageUrl || data.fromImageurl || data.imageurl;
-          prefetchResolvedAvatar(inline);
-          const hasHttp =
-            typeof inline === "string" && inline.trim().startsWith("http");
-          if (!hasHttp && senderId) {
-            getDoc(doc(db, "users", senderId))
-              .then((u) => {
-                if (u.exists()) prefetchResolvedAvatar((u.data() as any)?.imageurl);
-              })
-              .catch(() => {});
-          }
-        });
       },
       ignoreSnapshotPermissionDenied
     );

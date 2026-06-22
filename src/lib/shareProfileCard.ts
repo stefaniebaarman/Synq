@@ -3,6 +3,8 @@ import { Platform, Share } from "react-native";
 import { captureRef } from "react-native-view-shot";
 import type ViewShot from "react-native-view-shot";
 
+import { uploadProfileShareCard } from "./uploadProfileShareCard";
+
 function waitForNextFrame(): Promise<void> {
   return new Promise((resolve) => {
     requestAnimationFrame(() => {
@@ -58,6 +60,12 @@ export async function captureAndShareProfileCard(
     quality: 0.92,
     result: "tmpfile",
   });
+
+  try {
+    await uploadProfileShareCard(imageUri);
+  } catch {
+    // OG preview is optional; still share the card image locally.
+  }
 
   const link = shareWebUrl.trim();
   const shareImageUri = toShareableFileUri(imageUri);
