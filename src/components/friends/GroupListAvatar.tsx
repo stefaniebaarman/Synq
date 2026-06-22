@@ -2,7 +2,9 @@ import { getStackAvatarUris, resolveAvatar } from "@/src/lib/helpers";
 import {
   ACCENT,
   BORDER,
+  BORDER_SOFT,
   SURFACE_ELEVATED,
+  SURFACE_MUTED,
 } from "@/constants/Variables";
 import { Ionicons } from "@expo/vector-icons";
 import { Image as ExpoImage } from "expo-image";
@@ -78,7 +80,7 @@ const styles = StyleSheet.create({
     borderRadius: AVATAR_SLOT / 2,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: "rgba(255,255,255,0.05)",
+    backgroundColor: SURFACE_MUTED,
     borderWidth: StyleSheet.hairlineWidth,
     borderColor: BORDER,
   },
@@ -93,7 +95,7 @@ const styles = StyleSheet.create({
     height: AVATAR_SLOT,
     borderRadius: AVATAR_SLOT / 2,
     borderWidth: 2,
-    borderColor: "rgba(255,255,255,0.1)",
+    borderColor: BORDER_SOFT,
     backgroundColor: SURFACE_ELEVATED,
   },
   stackWrap: {

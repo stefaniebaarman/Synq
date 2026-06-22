@@ -1,5 +1,6 @@
 import {
   ACCENT,
+  BORDER_SOFT,
   SURFACE_ELEVATED,
 } from "@/constants/Variables";
 import { Ionicons } from "@expo/vector-icons";
@@ -53,7 +54,7 @@ const styles = StyleSheet.create({
     height: AVATAR_SIZE,
     borderRadius: AVATAR_SIZE / 2,
     borderWidth: 2,
-    borderColor: "rgba(255,255,255,0.1)",
+    borderColor: BORDER_SOFT,
     backgroundColor: SURFACE_ELEVATED,
   },
   iconRing: {

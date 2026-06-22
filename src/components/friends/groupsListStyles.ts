@@ -5,6 +5,7 @@ import {
   ON_ACCENT_TEXT,
   RADIUS_LG,
   SURFACE_ELEVATED,
+  SURFACE_MUTED,
   SURFACE_RAISED,
   TYPE_BUTTON,
   TYPE_CAPTION,
@@ -51,9 +52,6 @@ export const groupsPageStyles = StyleSheet.create({
   },
   sectionTitle: {
     ...listSectionTitle,
-    fontSize: TYPE_SECTION,
-    lineHeight: 26,
-    letterSpacing: 0.08,
     marginTop: 0,
   },
   sectionAddBtn: {
@@ -116,7 +114,7 @@ export const groupsPageStyles = StyleSheet.create({
     borderRadius: 12,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: "rgba(255,255,255,0.05)",
+    backgroundColor: SURFACE_MUTED,
   },
   browseRowTitle: {
     ...listRowTitleText,
@@ -162,7 +160,7 @@ export const groupsPageStyles = StyleSheet.create({
     borderRadius: 12,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: "rgba(255,255,255,0.05)",
+    backgroundColor: SURFACE_MUTED,
     marginBottom: 12,
   },
   discoverCardCover: {

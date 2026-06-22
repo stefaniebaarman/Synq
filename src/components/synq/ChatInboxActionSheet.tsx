@@ -1,15 +1,15 @@
+import { sheetStyles } from "@/constants/sheetStyles";
 import {
   BG,
   BORDER,
   BUTTON_RADIUS,
   DESTRUCTIVE,
-  MUTED2,
   SHEET_OVERLAY,
   SHEET_SURFACE,
   TEXT,
-  TYPE_CAPTION,
   TYPE_SUBHEAD,
   fonts,
+  listRowTitleText,
 } from "@/constants/Variables";
 import { Ionicons } from "@expo/vector-icons";
 import {
@@ -56,7 +56,7 @@ export default function ChatInboxActionSheet({
         ]}
         pointerEvents="box-none"
       >
-        <Text style={styles.sheetTitle} numberOfLines={1}>
+        <Text style={sheetStyles.sheetKicker} numberOfLines={1}>
           {chatTitle}
         </Text>
         <View style={styles.sheet}>
@@ -115,14 +115,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     zIndex: 1,
   },
-  sheetTitle: {
-    color: MUTED2,
-    fontFamily: fonts.medium,
-    fontSize: TYPE_CAPTION,
-    textAlign: "center",
-    marginBottom: 10,
-    paddingHorizontal: 24,
-  },
   sheet: {
     backgroundColor: SHEET_SURFACE,
     borderRadius: BUTTON_RADIUS + 4,
@@ -138,9 +130,8 @@ const styles = StyleSheet.create({
     gap: 14,
   },
   optionText: {
-    color: TEXT,
+    ...listRowTitleText,
     fontSize: TYPE_SUBHEAD,
-    fontFamily: fonts.medium,
   },
   destructiveText: {
     color: DESTRUCTIVE,

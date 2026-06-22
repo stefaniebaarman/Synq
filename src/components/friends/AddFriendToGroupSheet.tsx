@@ -10,6 +10,7 @@ import {
   TYPE_CAPTION,
   TYPE_SECTION,
   fonts,
+  sheetHeaderTitleText,
 } from "@/constants/Variables";
 import CloseButton from "@/src/components/CloseButton";
 import { FriendGroup } from "@/src/lib/friendGroups";
@@ -182,9 +183,7 @@ const styles = StyleSheet.create({
     marginBottom: 6,
   },
   title: {
-    fontFamily: fonts.medium,
-    fontSize: TYPE_SECTION,
-    color: TEXT,
+    ...sheetHeaderTitleText,
   },
   subtitle: {
     fontFamily: fonts.book,

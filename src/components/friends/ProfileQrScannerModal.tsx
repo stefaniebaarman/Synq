@@ -11,6 +11,7 @@ import {
   TYPE_SECTION,
   TYPE_SUBHEAD,
   fonts,
+  sheetHeaderTitleText,
 } from "@/constants/Variables";
 import CloseButton from "@/src/components/CloseButton";
 import { resolveFriendIdFromScannedProfileQr } from "@/src/lib/profileShareUrl";
@@ -164,10 +165,8 @@ const styles = StyleSheet.create({
     paddingBottom: 4,
   },
   title: {
+    ...sheetHeaderTitleText,
     flex: 1,
-    fontFamily: fonts.medium,
-    fontSize: TYPE_SECTION,
-    color: TEXT,
     marginRight: 12,
   },
   subtitle: {

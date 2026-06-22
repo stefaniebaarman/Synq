@@ -1,6 +1,7 @@
 import {
   ACCENT,
   BG,
+  BORDER_SOFT,
   BUTTON_RADIUS,
   Friend,
   MUTED2,
@@ -268,7 +269,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingTop: 16,
     borderWidth: StyleSheet.hairlineWidth,
-    borderColor: "rgba(255,255,255,0.1)",
+    borderColor: BORDER_SOFT,
   },
   header: {
     flexDirection: "row",

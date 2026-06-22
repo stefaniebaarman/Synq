@@ -1,8 +1,11 @@
 import {
   ACCENT,
   BG,
+  BORDER_HAIRLINE,
+  BORDER_LIGHT,
   HEADER_BLACK,
   MUTED2,
+  MUTED3,
   ON_ACCENT_TEXT,
   PROFILE_HEADER_TOP_OFFSET,
   SURFACE_ELEVATED,
@@ -1346,7 +1349,7 @@ export default function MessagesChatPane({
               onChangeText={onComposerChange ?? setInputText}
               onFocus={handleComposerFocus}
               placeholder="Message"
-              placeholderTextColor="rgba(255,255,255,0.32)"
+              placeholderTextColor={MUTED3}
               multiline
               textAlignVertical="center"
               scrollEnabled
@@ -1460,7 +1463,7 @@ const chatHeaderOverlayStyles = RNStyleSheet.create({
     height: 48,
     borderRadius: 24,
     borderWidth: 1.5,
-    borderColor: "rgba(255,255,255,0.14)",
+    borderColor: BORDER_HAIRLINE,
     backgroundColor: SURFACE_ELEVATED,
     overflow: "hidden",
   },
@@ -1503,7 +1506,7 @@ const chatHeaderOverlayStyles = RNStyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 10,
     borderBottomWidth: RNStyleSheet.hairlineWidth,
-    borderBottomColor: "rgba(255,255,255,0.12)",
+    borderBottomColor: BORDER_LIGHT,
   },
   chatErrorBannerText: {
     color: TEXT,

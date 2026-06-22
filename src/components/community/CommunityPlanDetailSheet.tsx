@@ -4,6 +4,7 @@ import {
   BORDER,
   BUTTON_RADIUS,
   DESTRUCTIVE,
+  DIVIDER,
   MUTED2,
   SHEET_OVERLAY,
   SHEET_SURFACE,
@@ -295,7 +296,7 @@ const styles = StyleSheet.create({
     width: 36,
     height: 4,
     borderRadius: 2,
-    backgroundColor: "rgba(255,255,255,0.18)",
+    backgroundColor: DIVIDER,
     marginBottom: SPACE_3,
   },
   title: {

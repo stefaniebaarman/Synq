@@ -13,6 +13,7 @@ import {
   TYPE_CAPTION,
   TYPE_SECTION,
   fonts,
+  sheetHeaderTitleText,
 } from "@/constants/Variables";
 import CloseButton from "@/src/components/CloseButton";
 import { resolveAvatar } from "@/src/lib/helpers";
@@ -260,9 +261,7 @@ const styles = StyleSheet.create({
     marginBottom: 6,
   },
   title: {
-    fontFamily: fonts.medium,
-    fontSize: TYPE_SECTION,
-    color: TEXT,
+    ...sheetHeaderTitleText,
   },
   subtitle: {
     fontFamily: fonts.book,

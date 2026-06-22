@@ -3,6 +3,7 @@ import {
   ACCENT,
   BG,
   BORDER,
+  BORDER_SOFT,
   BUTTON_RADIUS,
   GROUP_BORDER,
   MODAL_RADIUS,
@@ -497,7 +498,7 @@ const styles = StyleSheet.create({
   dateBtn: {
     flex: 1,
     borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.1)",
+    borderColor: BORDER_SOFT,
     borderRadius: BUTTON_RADIUS,
     paddingVertical: 10,
     alignItems: "center",

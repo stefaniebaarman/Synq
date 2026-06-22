@@ -1,6 +1,7 @@
 import { resolveAvatar } from "@/src/lib/helpers";
 import {
   ACCENT,
+  BORDER_SOFT,
   MUTED2,
   RADIUS_MD,
   TEXT,
@@ -123,7 +124,7 @@ const styles = StyleSheet.create({
     height: 36,
     borderRadius: 18,
     borderWidth: StyleSheet.hairlineWidth,
-    borderColor: "rgba(255,255,255,0.1)",
+    borderColor: BORDER_SOFT,
   },
   copy: {
     flex: 1,
@@ -168,7 +169,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   ctaSent: {
-    borderColor: "rgba(255,255,255,0.1)",
+    borderColor: BORDER_SOFT,
     backgroundColor: "transparent",
   },
   ctaText: {

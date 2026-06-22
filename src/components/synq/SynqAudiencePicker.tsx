@@ -4,6 +4,7 @@ import {
   MUTED2,
   MUTED3,
   SPACE_4,
+  SURFACE_FAINT,
   TEXT,
   TYPE_BODY,
   TYPE_BUTTON,
@@ -156,7 +157,7 @@ const styles = StyleSheet.create({
     backgroundColor: "rgba(0,255,133,0.04)",
   },
   rowPressed: {
-    backgroundColor: "rgba(255,255,255,0.03)",
+    backgroundColor: SURFACE_FAINT,
   },
   rowDisabled: {
     opacity: 0.4,

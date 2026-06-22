@@ -1,6 +1,9 @@
 import {
   ACCENT,
   BG,
+  BORDER_HAIRLINE,
+  BORDER_SOFT,
+  DIVIDER,
   GROUP_BORDER,
   MUTED2,
   SURFACE_WELL,
@@ -96,7 +99,7 @@ const styles = StyleSheet.create({
     overflow: "hidden",
     backgroundColor: BG,
     borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.1)",
+    borderColor: BORDER_SOFT,
   },
   baseFill: {
     ...StyleSheet.absoluteFillObject,
@@ -140,7 +143,7 @@ const styles = StyleSheet.create({
     height: 124,
     borderRadius: 62,
     padding: 1.5,
-    backgroundColor: "rgba(255,255,255,0.16)",
+    backgroundColor: DIVIDER,
   },
   avatarRingInner: {
     flex: 1,
@@ -174,7 +177,7 @@ const styles = StyleSheet.create({
   divider: {
     width: 48,
     height: 1,
-    backgroundColor: "rgba(255,255,255,0.14)",
+    backgroundColor: BORDER_HAIRLINE,
     marginTop: 22,
     marginBottom: 18,
   },
