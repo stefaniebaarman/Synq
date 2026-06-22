@@ -43,6 +43,7 @@ import {
   profileLocationText,
   profileNameText,
   sectionLinkText,
+  sheetTitleText,
   stackNavigationBackBtn,
 } from "@/constants/Variables";
 import AddMembersToGroupSheet from "@/src/components/friends/AddMembersToGroupSheet";
@@ -1316,9 +1317,5 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: BORDER,
   },
-  optionsCancelText: {
-    fontFamily: fonts.heavy,
-    fontSize: TYPE_SUBHEAD,
-    color: TEXT,
-  },
+  optionsCancelText: sheetTitleText,
 });

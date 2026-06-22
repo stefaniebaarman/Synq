@@ -152,6 +152,7 @@ import {
   listRowTitleText,
   listSectionTitle,
   modalTitleText,
+  primaryButtonText,
   tabScreenMainHeaderTitle,
 } from '../../constants/Variables';
 import ActiveSynqSection from '../../src/components/synq/ActiveSynqSection';
@@ -2401,9 +2402,7 @@ const styles = StyleSheet.create({
     alignSelf: "center",
   },
   activeEmptyTitle: {
-    color: TEXT,
-    fontFamily: fonts.heavy,
-    fontSize: TYPE_MODAL_TITLE,
+    ...modalTitleText,
     lineHeight: 34,
     letterSpacing: 0.2,
     textAlign: "center",
@@ -2703,12 +2702,9 @@ const styles = StyleSheet.create({
     width: 40,
   },
   inboxMergeHeaderTitle: {
+    ...modalTitleText,
     flex: 1,
     textAlign: 'center',
-    color: TEXT,
-    fontSize: TYPE_MODAL_TITLE,
-    fontFamily: fonts.heavy,
-    letterSpacing: 0.15,
   },
   inboxMergeHeaderSide: {
     width: 40,
@@ -3077,7 +3073,7 @@ const styles = StyleSheet.create({
   },
   sendIdeaBtn: { backgroundColor: DISABLED_CTA, margin: 20, padding: 18, borderRadius: 12, alignItems: 'center' },
   sendIdeaBtnEnabled: { backgroundColor: ACCENT, margin: 20, padding: 18, borderRadius: 12, alignItems: 'center' },
-  sendIdeaText: { color: ON_ACCENT_TEXT, fontFamily: fonts.black, fontSize: TYPE_BODY },
+  sendIdeaText: primaryButtonText,
   inChatAICardContainer: { paddingHorizontal: 20, marginVertical: 10 },
   inChatAICard: {
     backgroundColor: SHEET_SURFACE,
@@ -3100,11 +3096,7 @@ const styles = StyleSheet.create({
     paddingBottom: 28,
     alignItems: 'stretch',
   },
-  panelTitle: {
-    color: TEXT,
-    fontSize: TYPE_MODAL_TITLE,
-    fontFamily: 'Avenir-Medium',
-  },
+  panelTitle: modalTitleText,
   panelInput: {
     width: '100%',
     backgroundColor: SURFACE_INPUT,
@@ -3285,7 +3277,7 @@ const styles = StyleSheet.create({
     color: TEXT_MUTED_HEX,
     fontSize: TYPE_FINE,
     marginHorizontal: 6,
-    fontFamily: "Avenir-Medium",
+    fontFamily: fonts.medium,
   },
   aiChipTextPremium: {
     flexShrink: 1,
@@ -3351,9 +3343,7 @@ const styles = StyleSheet.create({
     marginBottom: 14,
   },
   inboxEmptyTitle: {
-    color: TEXT,
-    fontSize: TYPE_MODAL_TITLE,
-    fontFamily: fonts.heavy,
+    ...modalTitleText,
     textAlign: "center",
     letterSpacing: 0.2,
   },

@@ -54,6 +54,6 @@ const styles = StyleSheet.create({
   countText: {
     color: TEXT,
     fontSize: TYPE_FINE,
-    fontFamily: fonts.black,
+    fontFamily: fonts.heavy,
   },
 });

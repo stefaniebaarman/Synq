@@ -34,7 +34,6 @@ import {
   TYPE_CTA,
   TYPE_DISPLAY,
   TYPE_LEAD,
-  TYPE_MODAL_TITLE,
   cardMetaText,
   fonts,
   listRowTitleText,
@@ -2300,7 +2299,6 @@ const styles = StyleSheet.create({
   },
   addFriendsTitle: {
     ...stackScreenHeaderTitle,
-    fontSize: TYPE_MODAL_TITLE,
     flex: 1,
     marginRight: SPACE_3,
     lineHeight: 30,

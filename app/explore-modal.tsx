@@ -28,6 +28,9 @@ import {
   cardTitleText,
   fonts,
   listRowTitleText,
+  primaryButtonText,
+  profileNameText,
+  sheetTitleText,
 } from "@/constants/Variables";
 import BackButton from "@/src/components/BackButton";
 import CloseButton from "@/src/components/CloseButton";
@@ -511,10 +514,8 @@ const styles = StyleSheet.create({
         minWidth: 0,
     },
     headerTitle: {
-        color: TEXT,
-        fontSize: TYPE_TITLE,
+        ...profileNameText,
         lineHeight: 32,
-        fontFamily: fonts.heavy,
         letterSpacing: 0.15,
     },
     bodyContent: {
@@ -604,11 +605,7 @@ const styles = StyleSheet.create({
     sendBtnDisabled: {
         opacity: 0.45,
     },
-    sendText: {
-        fontSize: TYPE_BODY,
-        color: ON_ACCENT_TEXT,
-        fontFamily: fonts.medium,
-    },
+    sendText: primaryButtonText,
     emptyState: {
         flex: 1,
         alignItems: "center",
@@ -617,9 +614,7 @@ const styles = StyleSheet.create({
         paddingBottom: 48,
     },
     emptyStateTitle: {
-        color: TEXT,
-        fontSize: TYPE_SUBHEAD,
-        fontFamily: fonts.heavy,
+        ...sheetTitleText,
         marginBottom: 8,
     },
     emptyStateText: {

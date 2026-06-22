@@ -14,6 +14,8 @@ import {
   TYPE_CTA,
   TYPE_FINE,
   TYPE_LEAD,
+  listRowTitleText,
+  cardMetaText,
   fonts,
 } from "@/constants/Variables";
 import { filterOutPastOpenPlans, sortOpenPlansByDateTime } from "@/src/lib/planEvents";
@@ -134,7 +136,7 @@ export default function FriendOpenPlans({
                 hasInterestLine && styles.planBodyWithInterest,
               ]}
             >
-              <Text style={[styles.title, { fontFamily: fonts.medium }]}>
+              <Text style={styles.title}>
                 {p.title}
               </Text>
               <Text style={styles.meta}>
@@ -142,7 +144,7 @@ export default function FriendOpenPlans({
                 {p.location ? ` · ${p.location}` : ""}
               </Text>
               {rowHostLabel ? (
-                <Text style={[styles.planOwnerLine, { fontFamily: fonts.medium }]}>
+                <Text style={styles.planOwnerLine}>
                   {rowHostLabel}
                 </Text>
               ) : null}
@@ -154,7 +156,6 @@ export default function FriendOpenPlans({
                   style={[
                     styles.interestText,
                     styles.hostPillText,
-                    { fontFamily: fonts.medium },
                   ]}
                 >
                   Your plan
@@ -271,18 +272,17 @@ const styles = StyleSheet.create({
   },
 
   title: {
-    color: TEXT,
-    fontSize: TYPE_BUTTON,
+    ...listRowTitleText,
   },
 
   meta: {
+    ...cardMetaText,
     color: TEXT_MUTED_DARKER,
     marginTop: 3,
-    fontSize: TYPE_CAPTION,
   },
 
   planOwnerLine: {
-    color: MUTED2,
+    ...cardMetaText,
     fontSize: TYPE_FINE,
     marginTop: 5,
   },

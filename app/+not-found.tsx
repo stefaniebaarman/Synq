@@ -4,10 +4,10 @@ import {
   ACCENT,
   BG,
   MUTED,
-  TEXT,
-  TYPE_BODY,
-  TYPE_TITLE,
-  fonts,
+  ON_ACCENT_TEXT,
+  modalBodyText,
+  primaryButtonText,
+  profileNameText,
 } from "../constants/Variables";
 
 export default function NotFoundScreen() {
@@ -35,15 +35,12 @@ const styles = StyleSheet.create({
     backgroundColor: BG,
   },
   title: {
-    fontSize: TYPE_TITLE,
-    fontFamily: fonts.heavy,
-    color: TEXT,
+    ...profileNameText,
     textAlign: "center",
     marginBottom: 8,
   },
   subtitle: {
-    fontSize: TYPE_BODY,
-    fontFamily: fonts.medium,
+    ...modalBodyText,
     color: MUTED,
     textAlign: "center",
     marginBottom: 28,
@@ -54,9 +51,5 @@ const styles = StyleSheet.create({
     borderRadius: 14,
     backgroundColor: ACCENT,
   },
-  linkText: {
-    fontSize: TYPE_BODY,
-    fontFamily: fonts.heavy,
-    color: BG,
-  },
+  linkText: primaryButtonText,
 });

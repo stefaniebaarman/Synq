@@ -29,6 +29,7 @@ import {
   TYPE_SUBHEAD,
   fonts,
   listSectionTitle,
+  sheetTitleText,
   synqOutlineAddBtnCompact,
   synqOutlineAddBtnText,
 } from "@/constants/Variables";
@@ -667,9 +668,5 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: BORDER,
   },
-  optionsCancelText: {
-    fontFamily: fonts.heavy,
-    fontSize: TYPE_SUBHEAD,
-    color: TEXT,
-  },
+  optionsCancelText: sheetTitleText,
 });

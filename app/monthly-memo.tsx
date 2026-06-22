@@ -25,12 +25,12 @@ import {
   TYPE_FINE,
   TYPE_LEAD,
   TYPE_MICRO,
-  TYPE_MODAL_TITLE,
   TYPE_NANO,
   TYPE_SECTION,
   cardMetaText,
   cardTitleText,
   fonts,
+  modalTitleText,
   profileScreenSectionTitle,
 } from "@/constants/Variables";
 import CloseButton from "@/src/components/CloseButton";
@@ -1150,10 +1150,8 @@ const styles = StyleSheet.create({
     marginBottom: 6,
   },
   popupTitle: {
+    ...modalTitleText,
     flex: 1,
-    color: TEXT,
-    fontFamily: fonts.heavy,
-    fontSize: TYPE_MODAL_TITLE,
     letterSpacing: -0.2,
   },
   popupScrollContent: {

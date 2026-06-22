@@ -54,10 +54,10 @@ import {
   TYPE_BUTTON,
   TYPE_CAPTION,
   TYPE_MICRO,
-  TYPE_MODAL_TITLE,
   TYPE_SECTION,
   emptyStateTitleText,
   fonts,
+  modalTitleText,
 } from "../constants/Variables";
 import { acceptPlanInvite, acceptPlanInviteErrorMessage, declinePlanInvite, declinePlanInviteErrorMessage } from "../src/lib/planInvite";
 import {
@@ -1325,9 +1325,9 @@ const styles = StyleSheet.create({
     borderRadius: 28,
   },
   rowKicker: {
-    color: ACCENT,
+    color: MUTED2,
     fontSize: TYPE_MICRO,
-    fontFamily: fonts.black,
+    fontFamily: fonts.heavy,
     textTransform: "uppercase",
     letterSpacing: 1,
     marginBottom: 3,
@@ -1365,11 +1365,8 @@ const styles = StyleSheet.create({
     marginBottom: SPACE_5,
   },
   emptyHeadline: {
-    color: TEXT,
-    fontSize: TYPE_MODAL_TITLE,
-    fontFamily: fonts.heavy,
+    ...modalTitleText,
     textAlign: "center",
-    letterSpacing: 0.15,
   },
   emptyHelper: {
     color: MUTED,
