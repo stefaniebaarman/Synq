@@ -250,7 +250,7 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   cardBody: {
-    color: "rgba(255,255,255,0.88)",
+    color: TEXT,
     fontFamily: fonts.medium,
     fontSize: TYPE_BUTTON,
     lineHeight: 22,

@@ -181,6 +181,20 @@ export const ACCENT_SELECTED_BG = "rgba(120,255,120,0.08)";
 export const STATUS_AVAILABLE = "#34D399";
 /** Group list borders — slightly subtler than BORDER. */
 export const GROUP_BORDER = "rgba(255,255,255,0.06)";
+/** Hairline dividers and faint wells. */
+export const SURFACE_FAINT = "rgba(255,255,255,0.03)";
+export const SURFACE_SUBTLE = "rgba(255,255,255,0.04)";
+export const SURFACE_MUTED = "rgba(255,255,255,0.05)";
+export const SURFACE_SOFT = "rgba(255,255,255,0.07)";
+export const BORDER_SOFT = "rgba(255,255,255,0.1)";
+export const BORDER_LIGHT = "rgba(255,255,255,0.12)";
+export const BORDER_HAIRLINE = "rgba(255,255,255,0.14)";
+export const DIVIDER = "rgba(255,255,255,0.16)";
+export const DIVIDER_STRONG = "rgba(255,255,255,0.22)";
+/** Friends tab list/card stroke. */
+export const FRIENDS_BORDER = "rgba(255,255,255,0.035)";
+/** Search field stroke on Friends tab. */
+export const FRIENDS_SEARCH_BORDER = "rgba(255,255,255,0.12)";
 /** Standard horizontal inset for scrollable screen content. */
 export const SCREEN_H_PADDING = SPACE_5;
 
@@ -351,6 +365,52 @@ export const tabScreenMainHeaderTitle: TextStyle = {
 /** Stack screen titles (settings, notifications, profile settings). */
 export const stackScreenHeaderTitle: TextStyle = {
   ...modalTitleText,
+};
+
+/** In-sheet panel titles (Share with, action sheets). */
+export const sheetTitleText: TextStyle = {
+  color: TEXT,
+  fontSize: TYPE_SUBHEAD,
+  fontFamily: fonts.heavy,
+  letterSpacing: 0.06,
+};
+
+/** Inline sheet header (Change audience, QR scanner). */
+export const sheetHeaderTitleText: TextStyle = {
+  color: TEXT,
+  fontSize: TYPE_BODY,
+  fontFamily: fonts.heavy,
+};
+
+/** Form / settings hero headings. */
+export const heroTitleText: TextStyle = {
+  color: TEXT,
+  fontSize: TYPE_SECTION,
+  fontFamily: fonts.heavy,
+  letterSpacing: 0.04,
+};
+
+/** Empty state primary line. */
+export const emptyStateTitleText: TextStyle = {
+  color: TEXT,
+  fontSize: TYPE_SECTION,
+  fontFamily: fonts.heavy,
+  letterSpacing: 0.04,
+};
+
+/** Sheet kicker above options (chat inbox actions). */
+export const sheetKickerText: TextStyle = {
+  color: MUTED2,
+  fontSize: TYPE_CAPTION,
+  fontFamily: fonts.medium,
+  textAlign: "center",
+};
+
+/** Secondary / cancel button label. */
+export const secondaryButtonText: TextStyle = {
+  color: MUTED2,
+  fontSize: TYPE_LEAD,
+  fontFamily: fonts.medium,
 };
 
 /** Compact back control for stack headers (chevron sits closer to the left edge). */

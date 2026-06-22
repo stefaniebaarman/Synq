@@ -3,6 +3,7 @@ import {
   ACCENT,
   BG,
   BORDER,
+  GROUP_BORDER,
   MUTED2,
   MUTED3,
   RADIUS_MD,
@@ -499,7 +500,7 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     paddingVertical: 14,
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: "rgba(255,255,255,0.06)",
+    borderBottomColor: GROUP_BORDER,
   },
   categoryRowText: {
     fontFamily: fonts.book,

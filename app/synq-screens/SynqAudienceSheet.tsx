@@ -1,4 +1,5 @@
 import SynqAudiencePicker from "@/src/components/synq/SynqAudiencePicker";
+import { sheetStyles } from "@/constants/sheetStyles";
 import {
   ACCENT,
   BORDER,
@@ -6,12 +7,14 @@ import {
   ON_ACCENT_TEXT,
   SHEET_OVERLAY,
   SHEET_SURFACE,
+  SPACE_3,
   SPACE_4,
   SPACE_5,
   SPACE_6,
+  GROUP_BORDER,
   TEXT,
   TYPE_BODY,
-  TYPE_SUBHEAD,
+  primaryButtonText,
   fonts,
 } from "@/constants/Variables";
 import type { FriendGroup } from "@/src/lib/friendGroups";
@@ -50,7 +53,7 @@ export default function SynqAudienceSheet({
         <Pressable style={styles.backdrop} onPress={onClose} accessibilityLabel="Close" />
         <View style={[styles.sheetGroup, { paddingBottom: insets.bottom + SPACE_4 }]}>
           <View style={styles.sheetCard}>
-            <Text style={styles.sheetTitle}>Share with</Text>
+            <Text style={[sheetStyles.sheetTitle, styles.sheetTitlePad]}>Share with</Text>
             <View style={styles.pickerSection}>
               <SynqAudiencePicker
                 groups={groups}
@@ -95,11 +98,7 @@ const styles = StyleSheet.create({
     borderColor: BORDER,
     overflow: "hidden",
   },
-  sheetTitle: {
-    color: TEXT,
-    fontSize: TYPE_SUBHEAD,
-    fontFamily: fonts.heavy,
-    textAlign: "center",
+  sheetTitlePad: {
     paddingTop: SPACE_4 + 2,
     paddingBottom: SPACE_4,
     paddingHorizontal: SPACE_4,
@@ -113,7 +112,7 @@ const styles = StyleSheet.create({
     paddingTop: SPACE_6,
     paddingBottom: SPACE_5,
     borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: "rgba(255,255,255,0.06)",
+    borderTopColor: GROUP_BORDER,
     backgroundColor: SHEET_SURFACE,
   },
   doneBtn: {
@@ -127,10 +126,5 @@ const styles = StyleSheet.create({
     paddingHorizontal: SPACE_5,
     paddingVertical: 12,
   },
-  doneText: {
-    color: ON_ACCENT_TEXT,
-    fontSize: TYPE_BODY,
-    fontFamily: fonts.heavy,
-    letterSpacing: 0.15,
-  },
+  doneText: primaryButtonText,
 });

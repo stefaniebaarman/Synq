@@ -11,6 +11,10 @@ import {
   modalBodyText,
   modalTitleText,
   primaryButtonText,
+  secondaryButtonText,
+  sheetHeaderTitleText,
+  sheetKickerText,
+  sheetTitleText,
   TYPE_LEAD,
   fonts,
   MUTED2,
@@ -61,6 +65,16 @@ export const sheetStyles = StyleSheet.create({
     ...modalTitleText,
     marginBottom: 6,
   },
+  sheetTitle: {
+    ...sheetTitleText,
+    textAlign: "center",
+  },
+  sheetHeaderTitle: sheetHeaderTitleText,
+  sheetKicker: {
+    ...sheetKickerText,
+    marginBottom: 10,
+    paddingHorizontal: SPACE_5,
+  },
   body: {
     ...modalBodyText,
     lineHeight: 22,
@@ -71,11 +85,7 @@ export const sheetStyles = StyleSheet.create({
     fontFamily: fonts.book,
     lineHeight: 20,
   },
-  secondaryBtnText: {
-    color: MUTED2,
-    fontSize: TYPE_LEAD,
-    fontFamily: fonts.medium,
-  },
+  secondaryBtnText: secondaryButtonText,
   primaryBtnText: primaryButtonText,
   destructiveText: {
     color: TEXT,

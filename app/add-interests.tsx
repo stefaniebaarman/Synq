@@ -22,6 +22,7 @@ import {
   ACCENT,
   BG,
   BORDER,
+  BORDER_HAIRLINE,
   BUTTON_RADIUS,
   MUTED,
   ON_ACCENT_TEXT,
@@ -209,7 +210,7 @@ const styles = StyleSheet.create({
         marginBottom: 10,
         backgroundColor: BORDER,
         borderWidth: 1,
-        borderColor: "rgba(255,255,255,0.15)",
+        borderColor: BORDER_HAIRLINE,
     },
     pillOn: {
         backgroundColor: "rgba(125,255,166,0.18)",

@@ -18,6 +18,7 @@ import {
   modalBodyText,
   modalTitleText,
   primaryButtonText,
+  secondaryButtonText,
   TYPE_LEAD,
 } from "./Variables";
 
@@ -69,11 +70,7 @@ export const modalStyles = StyleSheet.create({
   },
   primaryBtnText: primaryButtonText,
   ctaBtnText: ctaButtonText,
-  secondaryBtnText: {
-    color: MUTED2,
-    fontSize: TYPE_LEAD,
-    fontFamily: fonts.medium,
-  },
+  secondaryBtnText: secondaryButtonText,
   destructiveBtn: {
     backgroundColor: DESTRUCTIVE,
   },

@@ -1,7 +1,10 @@
 import {
+  BORDER_HAIRLINE,
   MUTED,
+  MUTED2,
   MUTED3,
   SURFACE,
+  SURFACE_SUBTLE,
   TEXT,
   TEXT_MUTED_DARK,
   TEXT_MUTED_DARKER,
@@ -164,7 +167,7 @@ export default function FriendOpenPlans({
                     styles.planSidePill,
                     joined
                       ? {
-                          borderColor: "rgba(255,255,255,0.14)",
+                          borderColor: BORDER_HAIRLINE,
                           backgroundColor: SURFACE,
                         }
                       : { borderColor: ACCENT },
@@ -278,7 +281,7 @@ const styles = StyleSheet.create({
   },
 
   planOwnerLine: {
-    color: "rgba(255,255,255,0.45)",
+    color: MUTED2,
     fontSize: TYPE_FINE,
     marginTop: 5,
   },
@@ -290,7 +293,7 @@ const styles = StyleSheet.create({
   hostPill: {
     ...PLAN_PILL_LAYOUT,
     borderColor: MUTED3,
-    backgroundColor: "rgba(255,255,255,0.04)",
+    backgroundColor: SURFACE_SUBTLE,
   },
   hostPillText: {
     color: MUTED,

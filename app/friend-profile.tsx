@@ -2,6 +2,7 @@ import {
   ACCENT,
   BG,
   BORDER,
+  BORDER_SOFT,
   BUTTON_RADIUS,
   DESTRUCTIVE,
   GROUP_BORDER,
@@ -1811,7 +1812,7 @@ const styles = StyleSheet.create({
   },
 
   lastSynqText: {
-    color: "rgba(255,255,255,0.4)",
+    color: MUTED3,
     marginTop: 6,
     fontFamily: fonts.book,
     fontSize: TYPE_CAPTION,
@@ -1861,7 +1862,7 @@ const styles = StyleSheet.create({
     borderTopLeftRadius: MODAL_RADIUS,
     borderTopRightRadius: MODAL_RADIUS,
     borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: "rgba(255,255,255,0.06)",
+    borderTopColor: GROUP_BORDER,
     overflow: "hidden",
   },
   optionsRow: {
@@ -1916,7 +1917,7 @@ const styles = StyleSheet.create({
     height: 55,
     borderRadius: 50,
     borderWidth: StyleSheet.hairlineWidth,
-    borderColor: "rgba(255,255,255,0.1)",
+    borderColor: BORDER_SOFT,
     justifyContent: "center",
     alignItems: "center",
     overflow: "hidden",
@@ -1952,7 +1953,7 @@ const styles = StyleSheet.create({
     paddingVertical: 7,
   },
   pillText: {
-    color: "rgba(255,255,255,0.88)",
+    color: TEXT,
     fontSize: TYPE_LEAD,
     fontFamily: fonts.book,
   },

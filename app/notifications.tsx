@@ -44,6 +44,7 @@ import {
   SPACE_5,
   SPACE_6,
   SURFACE,
+  SURFACE_FAINT,
   TEXT,
   TEXT_MUTED_DARKER,
   TEXT_MUTED_HEX,
@@ -53,6 +54,7 @@ import {
   TYPE_MICRO,
   TYPE_MODAL_TITLE,
   TYPE_SECTION,
+  emptyStateTitleText,
   fonts,
 } from "../constants/Variables";
 import { acceptPlanInvite, acceptPlanInviteErrorMessage, declinePlanInvite, declinePlanInviteErrorMessage } from "../src/lib/planInvite";
@@ -1283,7 +1285,7 @@ const styles = StyleSheet.create({
     borderBottomWidth: 0,
   },
   activityRowUnread: {
-    backgroundColor: "rgba(255,255,255,0.03)",
+    backgroundColor: SURFACE_FAINT,
   },
   activityTapArea: {
     flex: 1,
@@ -1377,9 +1379,7 @@ const styles = StyleSheet.create({
     maxWidth: 280,
   },
   emptyTitle: {
-    color: TEXT,
-    fontSize: TYPE_SECTION,
-    fontFamily: fonts.heavy,
+    ...emptyStateTitleText,
     marginBottom: 4,
   },
   emptySubtitle: {

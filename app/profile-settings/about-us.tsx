@@ -23,6 +23,7 @@ import {
   TEXT,
   TYPE_BODY,
   TYPE_BUTTON,
+  heroTitleText,
   TYPE_CTA,
   TYPE_SECTION,
   fonts,
@@ -131,9 +132,7 @@ const styles = StyleSheet.create({
     borderColor: BORDER,
   },
   heroTitle: {
-    fontSize: TYPE_SECTION,
-    fontFamily: fonts.black,
-    color: TEXT,
+    ...heroTitleText,
     marginBottom: SPACE_3 - 4,
   },
   heroSubtitle: {

@@ -13,6 +13,7 @@ import {
   SPACE_5,
   SPACE_6,
   TEXT,
+  heroTitleText,
   TYPE_BODY,
   TYPE_SECTION,
   fonts,
@@ -183,9 +184,7 @@ const styles = StyleSheet.create({
     marginBottom: SPACE_5,
   },
   heroTitle: {
-    color: TEXT,
-    fontSize: TYPE_SECTION,
-    fontFamily: fonts.heavy,
+    ...heroTitleText,
     marginBottom: SPACE_3,
   },
   heroSubtitle: {

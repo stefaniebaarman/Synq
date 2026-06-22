@@ -31,6 +31,7 @@ import {
   BG,
   BORDER,
   BUTTON_RADIUS,
+  DIVIDER,
   MUTED,
   MUTED2,
   MUTED3,
@@ -669,7 +670,7 @@ const styles = StyleSheet.create({
   colDivider: {
     width: 1,
     alignSelf: "stretch",
-    backgroundColor: "rgba(255,255,255,0.16)",
+    backgroundColor: DIVIDER,
     marginHorizontal: SPACE_3 - 2,
     marginVertical: 6,
   },
