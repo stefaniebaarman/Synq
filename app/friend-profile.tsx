@@ -34,6 +34,12 @@ import {
 } from "@/constants/Variables";
 import BackButton from "@/src/components/BackButton";
 import AddFriendToGroupSheet from "@/src/components/friends/AddFriendToGroupSheet";
+import FriendPlanCard from "@/src/components/friends/FriendPlanCard";
+import {
+  appendOptimisticJoinedViewerEvent,
+  removeJoinedViewerEvent,
+  type FriendOpenPlanEvent,
+} from "@/src/lib/friendOpenPlanJoin";
 import ProfileTabHeaderOverlay, {
   useTabHeaderLayout,
 } from "@/src/components/ProfileTabHeaderOverlay";
@@ -110,6 +116,7 @@ import {
   filterOutPastOpenPlans,
   matchesPlanEvent,
   matchesPlanEventForHostSync,
+  sortOpenPlansByDateTime,
 } from "../src/lib/planEvents";
 import {
   communityGroupsCacheByUser,
@@ -125,7 +132,6 @@ import {
 import AlertModal from "./alert-modal";
 import CheckmarkToast from "@/src/components/CheckmarkToast";
 import ConfirmModal from "./confirm-modal";
-import MonthlyMemoReadOnly from "./readonly-monthly-memo";
 import ReportModal from "./report-modal";
 
 function formatSharedCommunityGroupsLabel(groups: { name: string }[]): string | null {
@@ -281,6 +287,7 @@ export default function FriendProfile({
   const [addToGroupSheetVisible, setAddToGroupSheetVisible] = useState(false);
   const [addToGroupBusy, setAddToGroupBusy] = useState(false);
   const [joinedPlanKeys, setJoinedPlanKeys] = useState<Record<string, boolean>>({});
+  const [busyPlanId, setBusyPlanId] = useState<string | null>(null);
   const [showUnjoinModal, setShowUnjoinModal] = useState(false);
   const [pendingUnjoinEvent, setPendingUnjoinEvent] = useState<any>(null);
   const [avatarPreviewOpen, setAvatarPreviewOpen] = useState(false);
@@ -362,6 +369,19 @@ export default function FriendProfile({
     () => isFriend && filterOutPastOpenPlans(friend?.events).length > 0,
     [isFriend, friend?.events]
   );
+
+  const profileOpenPlans = useMemo((): FriendOpenPlanEvent[] => {
+    const events = Array.isArray(friend?.events) ? friend.events : [];
+    return sortOpenPlansByDateTime(
+      filterOutPastOpenPlans(events)
+    ) as FriendOpenPlanEvent[];
+  }, [friend?.events]);
+
+  const friendPlanImageByUid = useMemo(() => {
+    const url = String(friend?.imageurl || "").trim();
+    if (!friendKey || !url) return {};
+    return { [friendKey]: url };
+  }, [friendKey, friend?.imageurl]);
 
   const isInSharedPlanWithFriend = (e: any, myUid: string, friendUid: string) => {
     if (!e || !friendUid) return false;
@@ -845,6 +865,7 @@ export default function FriendProfile({
   }) => {
     const user = auth.currentUser;
     if (!user) return;
+    setBusyPlanId(event.id);
     try {
       const meRef = doc(db, "users", user.uid);
       const meSnap = await getDoc(meRef);
@@ -1032,7 +1053,18 @@ export default function FriendProfile({
         await updateDoc(meRef, { events: updatedExistingEvents });
         await syncAttendeesAcrossUsers(sourceIds);
         setJoinedKeysForEvent(event, true);
-        showPlanSuccessToast("Joined!");
+        if (user.uid && friendKey) {
+          setViewerEvents((prev) =>
+            appendOptimisticJoinedViewerEvent(
+              prev,
+              event,
+              friendKey,
+              profileName,
+              user.uid
+            )
+          );
+        }
+        setTimeout(() => showPlanSuccessToast("Joined!"), 280);
         return;
       }
 
@@ -1062,9 +1094,22 @@ export default function FriendProfile({
       await syncAttendeesAcrossUsers(sourceIds);
 
       setJoinedKeysForEvent(event, true);
-      showPlanSuccessToast("Joined!");
+      if (user.uid && friendKey) {
+        setViewerEvents((prev) =>
+          appendOptimisticJoinedViewerEvent(
+            prev,
+            event,
+            friendKey,
+            profileName,
+            user.uid
+          )
+        );
+      }
+      setTimeout(() => showPlanSuccessToast("Joined!"), 280);
     } catch (e: any) {
       showAlert("Error", e?.message || "Could not join this plan right now.");
+    } finally {
+      setBusyPlanId(null);
     }
   };
 
@@ -1089,19 +1134,21 @@ export default function FriendProfile({
     return false;
   };
 
-  const handlePlanPress = (event: any) => {
+  const handleProfilePlanAction = (event: any) => {
     if (isViewerHostOfFriendsPlan(event)) return;
     if (planLooksJoined(event)) {
+      if (showUnjoinModal) return;
       setPendingUnjoinEvent(event);
       setShowUnjoinModal(true);
     } else {
-      joinPlan(event);
+      void joinPlan(event);
     }
   };
 
   const unjoinPlan = async (event: any) => {
     const user = auth.currentUser;
     if (!user || !friendKey) return;
+    setBusyPlanId(String(event?.id || ""));
     try {
       const meRef = doc(db, "users", user.uid);
       const meSnap = await getDoc(meRef);
@@ -1208,9 +1255,16 @@ export default function FriendProfile({
       await updateDoc(meRef, { events: nextEvents });
 
       setJoinedKeysForEvent(event, false);
-      showPlanSuccessToast("Removed");
+      if (user.uid && friendKey) {
+        setViewerEvents((prev) =>
+          removeJoinedViewerEvent(prev, event, friendKey, user.uid)
+        );
+      }
+      setTimeout(() => showPlanSuccessToast("Removed"), 280);
     } catch (e: any) {
       showAlert("Error", e?.message || "Could not remove this plan.");
+    } finally {
+      setBusyPlanId(null);
     }
   };
 
@@ -1407,18 +1461,37 @@ export default function FriendProfile({
                 {`${friend.displayName?.trim().split(/\s+/)[0] || "Friend"}'s plans`}
               </Text>
 
-              <MonthlyMemoReadOnly
-                events={friend.events || []}
-                ACCENT={ACCENT}
-                fonts={fonts}
-                viewerUid={viewerId}
-                profileSubjectUid={friendKey}
-                viewerEvents={viewerEvents}
-                onPressPlan={handlePlanPress}
-                isPlanJoined={planLooksJoined}
-                isViewerHostOfPlan={isViewerHostOfFriendsPlan}
-                hostDisplayNameByUid={hostDisplayNameByUid}
-              />
+              <View style={styles.profilePlansList}>
+                {profileOpenPlans.map((event) => {
+                  const item = {
+                    event,
+                    sourceFriendId: friendKey,
+                    sourceFriendName: String(friend?.displayName || "Friend").trim(),
+                  };
+                  return (
+                    <FriendPlanCard
+                      key={event.id}
+                      item={item}
+                      viewerId={viewerId}
+                      hostDisplayNameByUid={hostDisplayNameByUid}
+                      viewerEvents={viewerEvents}
+                      friendImageByUid={friendPlanImageByUid}
+                      joined={planLooksJoined(event)}
+                      isHost={isViewerHostOfFriendsPlan(event)}
+                      busy={busyPlanId === event.id}
+                      onPressCard={() => {}}
+                      onPressAction={() => handleProfilePlanAction(event)}
+                      onOpenPersonProfile={(userId) => {
+                        if (!userId || userId === viewerId) return;
+                        router.push({
+                          pathname: "/friend-profile",
+                          params: { friendId: userId },
+                        });
+                      }}
+                    />
+                  );
+                })}
+              </View>
             </View>
           </>
         ) : null}
@@ -1852,6 +1925,9 @@ const styles = StyleSheet.create({
   },
 
   profileSection: {},
+  profilePlansList: {
+    width: "100%",
+  },
 
   profileSectionLead: {
     marginTop: 16,

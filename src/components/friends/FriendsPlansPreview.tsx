@@ -1,6 +1,7 @@
 import {
   listSectionTitle,
   sectionLinkText,
+  SPACE_4,
 } from "@/constants/Variables";
 import FriendPlanCard from "@/src/components/friends/FriendPlanCard";
 import type { FriendOpenPlanEvent } from "@/src/lib/friendOpenPlanJoin";
@@ -85,6 +86,7 @@ const styles = StyleSheet.create({
   wrap: {
     marginBottom: 8,
     paddingHorizontal: 20,
+    paddingTop: SPACE_4,
   },
   header: {
     flexDirection: "row",

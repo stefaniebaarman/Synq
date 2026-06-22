@@ -33,7 +33,7 @@ export default function CheckmarkToast({
   }, [visible, message, durationMs, onDismiss]);
 
   return (
-    <Modal visible={visible} transparent animationType="fade" onRequestClose={onDismiss}>
+    <Modal visible={visible} transparent animationType="none" onRequestClose={onDismiss}>
       <View style={styles.overlay} pointerEvents="none">
         <View style={styles.card}>
           <Ionicons name="checkmark-circle" size={40} color={ACCENT} />

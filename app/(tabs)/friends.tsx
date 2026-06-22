@@ -593,7 +593,9 @@ export default function FriendsScreen() {
             ]}
           >
             <View style={styles.friendsSectionHeader}>
-              <Text style={styles.friendsSectionTitle}>All friends</Text>
+              <Text style={styles.friendsSectionTitle}>
+                {searchText.trim().length > 0 ? "Results" : "All friends"}
+              </Text>
               <FriendsSortTrigger
                 sortMode={sortMode}
                 onPress={() => setSortMenuVisible(true)}
@@ -606,6 +608,7 @@ export default function FriendsScreen() {
   }, [
     showFriendsPlansPreview,
     showFriendSearch,
+    searchText,
     sortMode,
     myId,
     friendPlansFeed.aggregatedPlans,
@@ -860,31 +863,29 @@ export default function FriendsScreen() {
           onOpenFriendProfile={openFriendProfileFromFriendsTab}
         />
         {!plansSheetVisible ? (
-          <>
-            <ConfirmModal
-              visible={friendPlansFeed.pendingUnjoin != null}
-              title="Remove this plan?"
-              message=""
-              confirmText="Remove"
-              destructive
-              onCancel={friendPlansFeed.cancelUnjoin}
-              onConfirm={() => {
-                void friendPlansFeed.confirmUnjoin();
-              }}
-            />
-            <CheckmarkToast
-              visible={!!friendPlansFeed.successToast}
-              message={friendPlansFeed.successToast ?? ""}
-              onDismiss={friendPlansFeed.dismissSuccessToast}
-            />
-            <AlertModal
-              visible={friendPlansFeed.errorAlertVisible}
-              title="Error"
-              message={friendPlansFeed.errorAlertMessage}
-              onClose={friendPlansFeed.dismissErrorAlert}
-            />
-          </>
+          <ConfirmModal
+            visible={friendPlansFeed.pendingUnjoin != null}
+            title="Remove this plan?"
+            message=""
+            confirmText="Remove"
+            destructive
+            onCancel={friendPlansFeed.cancelUnjoin}
+            onConfirm={() => {
+              void friendPlansFeed.confirmUnjoin();
+            }}
+          />
         ) : null}
+        <CheckmarkToast
+          visible={!!friendPlansFeed.successToast}
+          message={friendPlansFeed.successToast ?? ""}
+          onDismiss={friendPlansFeed.dismissSuccessToast}
+        />
+        <AlertModal
+          visible={friendPlansFeed.errorAlertVisible}
+          title="Error"
+          message={friendPlansFeed.errorAlertMessage}
+          onClose={friendPlansFeed.dismissErrorAlert}
+        />
       </View>
     </TouchableWithoutFeedback>
   );

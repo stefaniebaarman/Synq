@@ -9,8 +9,6 @@ import {
   listRowTitleText,
   sheetHeaderTitleText,
 } from "@/constants/Variables";
-import AlertModal from "@/app/alert-modal";
-import CheckmarkToast from "@/src/components/CheckmarkToast";
 import ConfirmModal from "@/app/confirm-modal";
 import CloseButton from "@/src/components/CloseButton";
 import FriendPlanCard from "@/src/components/friends/FriendPlanCard";
@@ -55,11 +53,6 @@ export default function FriendsPlansSheet({
     pendingUnjoin,
     confirmUnjoin,
     cancelUnjoin,
-    successToast,
-    dismissSuccessToast,
-    errorAlertVisible,
-    errorAlertMessage,
-    dismissErrorAlert,
   } = feed;
 
   return (
@@ -117,17 +110,6 @@ export default function FriendsPlansSheet({
         onConfirm={() => {
           void confirmUnjoin();
         }}
-      />
-      <CheckmarkToast
-        visible={!!successToast}
-        message={successToast ?? ""}
-        onDismiss={dismissSuccessToast}
-      />
-      <AlertModal
-        visible={errorAlertVisible}
-        title="Error"
-        message={errorAlertMessage}
-        onClose={dismissErrorAlert}
       />
     </Modal>
   );

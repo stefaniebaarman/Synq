@@ -1,4 +1,4 @@
-import { resolvePlanHostUidForJoin } from "@/src/lib/planAttribution";
+import { planLooseMatch, resolvePlanHostUidForJoin } from "@/src/lib/planAttribution";
 import {
   eventKey,
   eventKeyLoose,
@@ -81,6 +81,78 @@ export function planLooksJoinedForFriend(
   event: FriendOpenPlanEvent
 ): boolean {
   return !!(joinedPlanKeys[eventKey(event)] || joinedPlanKeys[eventKeyLoose(event)]);
+}
+
+export function buildOptimisticJoinedViewerEvent(
+  event: FriendOpenPlanEvent,
+  sourceFriendId: string,
+  sourceFriendName: string,
+  viewerId: string
+): FriendOpenPlanEvent {
+  const friendKey = String(sourceFriendId || "").trim();
+  const vid = String(viewerId || "").trim();
+  const profileName = String(sourceFriendName || "Friend").trim();
+  const sourceIds = Array.from(
+    new Set(
+      [
+        ...(Array.isArray(event?.joinedFromIds) ? event.joinedFromIds : []),
+        String(event?.joinedFromId || "").trim(),
+        friendKey,
+        vid,
+      ]
+        .map((id) => String(id).trim())
+        .filter(Boolean)
+    )
+  );
+
+  return {
+    ...event,
+    id: `optimistic-${String(event.id || "plan")}`,
+    planHostUid: String(event.planHostUid || "").trim() || friendKey,
+    joinedFromFriendUid: friendKey,
+    joinedFromId: friendKey,
+    joinedFromIds: sourceIds,
+    joinedFromName: profileName,
+    joinedFromNames: [profileName],
+    attendeeDisplayNames: {
+      ...(event.attendeeDisplayNames && typeof event.attendeeDisplayNames === "object"
+        ? event.attendeeDisplayNames
+        : {}),
+      ...(friendKey ? { [friendKey]: profileName } : {}),
+    },
+  };
+}
+
+export function appendOptimisticJoinedViewerEvent(
+  viewerEvents: FriendOpenPlanEvent[],
+  event: FriendOpenPlanEvent,
+  sourceFriendId: string,
+  sourceFriendName: string,
+  viewerId: string
+): FriendOpenPlanEvent[] {
+  const joinedKeys = buildJoinedPlanKeysForFriend(viewerEvents, viewerId, sourceFriendId);
+  if (planLooksJoinedForFriend(joinedKeys, event)) return viewerEvents;
+  const optimistic = buildOptimisticJoinedViewerEvent(
+    event,
+    sourceFriendId,
+    sourceFriendName,
+    viewerId
+  );
+  return [...viewerEvents, optimistic];
+}
+
+export function removeJoinedViewerEvent(
+  viewerEvents: FriendOpenPlanEvent[],
+  event: FriendOpenPlanEvent,
+  sourceFriendId: string,
+  viewerId: string
+): FriendOpenPlanEvent[] {
+  return viewerEvents.filter(
+    (row) =>
+      !(
+        isInSharedPlanWithFriend(row, viewerId, sourceFriendId) && planLooseMatch(row, event)
+      )
+  );
 }
 
 export type JoinFriendOpenPlanResult = "added" | "updated" | "error";

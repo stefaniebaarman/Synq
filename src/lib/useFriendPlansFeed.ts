@@ -3,10 +3,12 @@ import { aggregateFriendPlans } from "@/src/lib/aggregateFriendPlans.js";
 import { db } from "@/src/lib/firebase";
 import { ignoreSnapshotPermissionDenied } from "@/src/lib/firestoreListeners";
 import {
+  appendOptimisticJoinedViewerEvent,
   buildJoinedPlanKeysForFriend,
   isViewerHostOfFriendPlan,
   joinFriendOpenPlan,
   planLooksJoinedForFriend,
+  removeJoinedViewerEvent,
   unjoinFriendOpenPlan,
   type FriendOpenPlanEvent,
 } from "@/src/lib/friendOpenPlanJoin";
@@ -218,7 +220,7 @@ export function useFriendPlansFeed({ userId, friends, isBlocked }: Options) {
       if (planIsHost(item)) return;
 
       if (planJoined(item)) {
-        setPendingUnjoin(item);
+        setPendingUnjoin((current) => current ?? item);
         return;
       }
 
@@ -229,7 +231,18 @@ export function useFriendPlansFeed({ userId, friends, isBlocked }: Options) {
           item.sourceFriendId,
           item.sourceFriendName
         );
-        showSuccessToast("Joined!");
+        setViewerEvents((prev) => {
+          const next = appendOptimisticJoinedViewerEvent(
+            prev,
+            item.event,
+            item.sourceFriendId,
+            item.sourceFriendName,
+            userId
+          );
+          viewerEventsCacheByUser[userId] = next;
+          return next;
+        });
+        setTimeout(() => showSuccessToast("Joined!"), 280);
       } catch (err: unknown) {
         showErrorAlert(
           err instanceof Error ? err.message : "Could not join this plan right now."
@@ -249,7 +262,17 @@ export function useFriendPlansFeed({ userId, friends, isBlocked }: Options) {
     setBusyPlanKey(planKey);
     try {
       await unjoinFriendOpenPlan(item.event, item.sourceFriendId);
-      showSuccessToast("Removed");
+      setViewerEvents((prev) => {
+        const next = removeJoinedViewerEvent(
+          prev,
+          item.event,
+          item.sourceFriendId,
+          userId
+        );
+        viewerEventsCacheByUser[userId] = next;
+        return next;
+      });
+      setTimeout(() => showSuccessToast("Removed"), 280);
     } catch (err: unknown) {
       showErrorAlert(
         err instanceof Error ? err.message : "Could not remove this plan."
@@ -257,7 +280,7 @@ export function useFriendPlansFeed({ userId, friends, isBlocked }: Options) {
     } finally {
       setBusyPlanKey(null);
     }
-  }, [pendingUnjoin, showSuccessToast, showErrorAlert]);
+  }, [pendingUnjoin, userId, showSuccessToast, showErrorAlert]);
 
   const cancelUnjoin = useCallback(() => setPendingUnjoin(null), []);
 

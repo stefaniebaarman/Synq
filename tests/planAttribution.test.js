@@ -67,7 +67,7 @@ describe("planAttribution", () => {
     );
 
     expect(result.primary).toBe("Shawn's plan");
-    expect(result.secondary).toBe("Elliott is going");
+    expect(result.secondary).toBe("You and Elliott are going");
     expect(result.goingPeople).toHaveLength(1);
     expect(result.goingPeople[0].displayName).toBe("Elliott");
   });
@@ -135,7 +135,28 @@ describe("planAttribution", () => {
     );
 
     expect(result.primary).toBe("Shawn's plan");
-    expect(result.secondary).toBe("Elliott is going");
+    expect(result.secondary).toBe("You and Elliott are going");
+  });
+
+  test("shows you and the host when viewer joined a solo friend plan", () => {
+    const result = resolvePlanAttribution(
+      {
+        planHostUid: "elliott",
+        joinedFromFriendUid: "elliott",
+        joinedFromIds: ["elliott", "viewer"],
+        joinedFromNames: ["Elliott"],
+        attendeeDisplayNames: {
+          elliott: "Elliott",
+          viewer: "Me",
+        },
+      },
+      "viewer",
+      { elliott: "Elliott" },
+      "viewer"
+    );
+
+    expect(result.primary).toBe("Elliott's plan");
+    expect(result.secondary).toBeNull();
   });
 
   test("shows Shawns plan on Elliott profile without planHostUid", () => {
@@ -157,7 +178,7 @@ describe("planAttribution", () => {
     );
 
     expect(result.primary).toBe("Shawn's plan");
-    expect(result.secondary).toBe("Elliott is going");
+    expect(result.secondary).toBe("You and Elliott are going");
   });
 
   test("shows Elliott's plan on Elliott profile when Priscilla joined", () => {
@@ -223,5 +244,37 @@ describe("planAttribution", () => {
     // Host is the viewer — card shows "Your plan" pill instead of a name line.
     expect(result.primary).toBeNull();
     expect(result.secondary).toBe("Elliott is going");
+  });
+
+  test("shows Shawns plan on Elliott profile from solo-shaped row via viewer copy", () => {
+    const result = resolvePlanAttribution(
+      {
+        planHostUid: "elliott",
+        title: "Janes Birth",
+        date: "2099-07-01",
+        time: "9:00 PM",
+      },
+      "viewer",
+      { shawn: "Shawn", elliott: "Elliott" },
+      "elliott",
+      [
+        {
+          planHostUid: "shawn",
+          joinedFromFriendUid: "shawn",
+          joinedFromIds: ["shawn", "elliott", "viewer"],
+          joinedFromNames: ["Elliott"],
+          title: "Jane's Birth",
+          date: "2099-07-01",
+          time: "9:00 PM",
+          attendeeDisplayNames: {
+            shawn: "Shawn",
+            elliott: "Elliott",
+          },
+        },
+      ]
+    );
+
+    expect(result.primary).toBe("Shawn's plan");
+    expect(result.secondary).toBe("You and Elliott are going");
   });
 });
