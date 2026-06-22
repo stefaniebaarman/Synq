@@ -86,12 +86,19 @@ import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context"
 type MessagesPane = "inbox" | "chat" | "profile";
 import {
   ACCENT,
+  ACCENT_BORDER_SUBTLE,
+  ACCENT_FILL_MUTED,
+  ACCENT_FILL_SUBTLE,
   AI_PLACE_SUGGESTIONS_ENABLED,
   BG,
   BORDER,
   BORDER_LIGHT,
   BORDER_MUTED,
+  BORDER_PANEL,
+  BORDER_STRONG,
   BUTTON_RADIUS,
+  CHAT_FAILED_OTHER,
+  CHAT_FAILED_SELF,
   DESTRUCTIVE,
   DISABLED_CTA,
   DIVIDER,
@@ -99,18 +106,23 @@ import {
   EXPIRATION_HOURS,
   GROUP_BORDER,
   HEADER_BLACK,
+  HEART_LIKE,
   MODAL_RADIUS,
   MUTED,
   MUTED2,
   MUTED3,
   ON_ACCENT_TEXT,
+  OVERLAY_NEAR_FULL,
   PRIMARY_CTA_HEIGHT,
   PRIMARY_CTA_WIDTH,
+  SHADOW,
   SHEET_SURFACE,
   SPACE_3,
   SPACE_4,
   SPACE_5,
   STATUS_AVAILABLE,
+  STATUS_AVAILABLE_BORDER,
+  STATUS_AVAILABLE_FILL,
   SURFACE,
   SURFACE_ELEVATED,
   SURFACE_INPUT,
@@ -274,7 +286,7 @@ function ChatMessageBubble({
               maxWidth: innerMax,
               textAlign: "left",
             },
-            sendStatus === "failed" && { color: isMe ? "#8B0000" : "#FFB4B4" },
+            sendStatus === "failed" && { color: isMe ? CHAT_FAILED_SELF : CHAT_FAILED_OTHER },
           ]}
           {...Platform.select({
             ios: { lineBreakStrategyIOS: "standard" as const },
@@ -301,7 +313,7 @@ function ChatMessageBubble({
                   i > 0 && styles.heartReactionBadgeOverlap,
                 ]}
               >
-                <Ionicons name="heart" size={12} color="#FF2D55" />
+                <Ionicons name="heart" size={12} color={HEART_LIKE} />
               </View>
             ))}
           </View>
@@ -2430,9 +2442,9 @@ const styles = StyleSheet.create({
     paddingHorizontal: 8,
     paddingVertical: 3,
     borderRadius: 999,
-    backgroundColor: "rgba(52, 211, 153, 0.12)",
+    backgroundColor: STATUS_AVAILABLE_FILL,
     borderWidth: StyleSheet.hairlineWidth,
-    borderColor: "rgba(52, 211, 153, 0.28)",
+    borderColor: STATUS_AVAILABLE_BORDER,
   },
   liveBadgeText: {
     color: STATUS_AVAILABLE,
@@ -2560,7 +2572,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  btnText: { fontSize: TYPE_BODY, color: ON_ACCENT_TEXT, fontFamily: fonts.heavy },
   synqHomeLayer: {
     flex: 1,
   },
@@ -2622,7 +2633,7 @@ const styles = StyleSheet.create({
     marginTop: 32,
     backgroundColor: SURFACE_PANEL,
     borderWidth: 1,
-    borderColor: "#1B1D20",
+    borderColor: BORDER_PANEL,
     borderRadius: 16,
     paddingHorizontal: 14,
     paddingTop: 12,
@@ -2650,7 +2661,7 @@ const styles = StyleSheet.create({
   },
   centeredModalOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.9)',
+    backgroundColor: OVERLAY_NEAR_FULL,
     justifyContent: 'center',
     alignItems: 'center',
     padding: 25,
@@ -2770,7 +2781,7 @@ const styles = StyleSheet.create({
     paddingBottom: 12,
   },
   inboxItemSelected: {
-    backgroundColor: 'rgba(0,255,133,0.06)',
+    backgroundColor: ACCENT_FILL_MUTED,
   },
   inboxSelectBadge: {
     width: 26,
@@ -2823,7 +2834,7 @@ const styles = StyleSheet.create({
     width: "100%",
   },
   inboxItemUnread: {
-    backgroundColor: 'rgba(43,255,136,0.10)',
+    backgroundColor: ACCENT_FILL_SUBTLE,
     borderLeftWidth: 2,
     borderLeftColor: ACCENT,
   },
@@ -3029,7 +3040,7 @@ const styles = StyleSheet.create({
   sectionHeader: { ...listSectionTitle, color: TEXT, marginBottom: 20, paddingHorizontal: 20 },
   scrollRow: { marginBottom: 30, paddingLeft: 20 },
   ideaCircle: { alignItems: 'center', marginRight: 25 },
-  circlePlaceholder: { width: 70, height: 70, borderRadius: 35, backgroundColor: SURFACE_ELEVATED, justifyContent: 'center', alignItems: 'center', marginBottom: 10, borderWidth: 1, borderColor: '#333' },
+  circlePlaceholder: { width: 70, height: 70, borderRadius: 35, backgroundColor: SURFACE_ELEVATED, justifyContent: 'center', alignItems: 'center', marginBottom: 10, borderWidth: 1, borderColor: BORDER_MUTED },
   circleText: { ...cardMetaText, color: TEXT },
   venueCard: {
     flexDirection: 'row',
@@ -3039,7 +3050,7 @@ const styles = StyleSheet.create({
     borderRadius: 18,
     marginBottom: 12,
     borderWidth: 1,
-    borderColor: '#222',
+    borderColor: BORDER_STRONG,
   },
   selectedCard: {
     borderColor: ACCENT,
@@ -3073,7 +3084,7 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     padding: 18,
     borderWidth: 1,
-    borderColor: 'rgba(43,255,136,0.18)',
+    borderColor: ACCENT_BORDER_SUBTLE,
   },
   aiCardHeader: { flexDirection: 'row', alignItems: 'center', marginBottom: 12 },
   aiCardTitleSmall: { color: ACCENT, fontSize: TYPE_LEAD, fontFamily: fonts.heavy, letterSpacing: 0.5 },
@@ -3115,7 +3126,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     marginTop: 20,
   },
-  saveBtnText: { color: ON_ACCENT_TEXT, fontSize: TYPE_BODY, fontFamily: fonts.heavy },
   centeredIdeaContainer: {
     alignItems: 'center',
     marginVertical: 15,
@@ -3145,7 +3155,7 @@ const styles = StyleSheet.create({
     overflow: "hidden",
     ...Platform.select({
       ios: {
-        shadowColor: "#000",
+        shadowColor: SHADOW,
         shadowOffset: { width: 0, height: 1 },
         shadowOpacity: 0.35,
         shadowRadius: 2,
@@ -3369,9 +3379,9 @@ const styles = StyleSheet.create({
     borderRadius: 29,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: "rgba(43,255,136,0.08)",
+    backgroundColor: ACCENT_FILL_SUBTLE,
     borderWidth: 1,
-    borderColor: "rgba(43,255,136,0.22)",
+    borderColor: ACCENT_BORDER_SUBTLE,
     marginBottom: 14,
   },
   chatEmptyTitle: {

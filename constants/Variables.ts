@@ -175,10 +175,66 @@ export const MODAL_OVERLAY = "rgba(0,0,0,0.75)";
 export const SHEET_OVERLAY = "rgba(0,0,0,0.55)";
 /** Disabled primary CTA fill (iOS system gray). */
 export const DISABLED_CTA = "#8E8E93";
+export const DISABLED_ACCENT = "rgba(125,255,166,0.30)";
+export const DISABLED_ACCENT_SUBTLE = "rgba(125,255,166,0.06)";
+/** Drop shadow color for elevated cards. */
+export const SHADOW = "#000";
+export const OVERLAY_DIM = "rgba(0,0,0,0.45)";
+export const OVERLAY_NEAR_FULL = "rgba(0,0,0,0.9)";
+export const BG_FADE_MID = "rgba(9,10,11,0.5)";
+export const BG_FADE_HEAVY = "rgba(9,10,11,0.88)";
+export const BG_TRANSPARENT = "rgba(9,10,11,0)";
+export const ACCENT_GRADIENT_START = "rgba(0,255,133,0.14)";
+export const ACCENT_GRADIENT_END = "rgba(0,255,133,0.03)";
+export const SHARE_GRADIENT_START = "#101215";
+export const SHARE_GRADIENT_ACCENT = "#0B100E";
+export const TEXT_BRIGHT_HEX = "#FFFFFF";
+export const OVERLAY_ZERO = "rgba(0,0,0,0)";
+export const OVERLAY_SOFT = "rgba(0,0,0,0.08)";
+export const OVERLAY_MID = "rgba(0,0,0,0.65)";
+export const OVERLAY_CHAT_TOP = "rgba(0,0,0,0.94)";
+export const OVERLAY_FADE = "rgba(0,0,0,0.42)";
+export const OVERLAY_TINT = "rgba(0,0,0,0.35)";
+export const OVERLAY_WHISPER = "rgba(0,0,0,0.16)";
+export const DESTRUCTIVE_IOS_FILL = "rgba(255, 59, 48, 0.15)";
 export const ACCENT_SUBTLE = "rgba(0,255,133,0.28)";
 /** Selected row tint on accent-bordered lists. */
 export const ACCENT_SELECTED_BG = "rgba(120,255,120,0.08)";
+/** Accent borders and fills for chips, selected rows, CTAs. */
+export const ACCENT_BORDER = "rgba(0,255,133,0.45)";
+export const ACCENT_BORDER_SUBTLE = "rgba(0,255,133,0.22)";
+export const ACCENT_BORDER_MUTED = "rgba(0,255,133,0.1)";
+export const ACCENT_FILL = "rgba(0,255,133,0.12)";
+export const ACCENT_FILL_SUBTLE = "rgba(0,255,133,0.08)";
+export const ACCENT_FILL_MUTED = "rgba(0,255,133,0.06)";
+export const ACCENT_FILL_FAINT = "rgba(0,255,133,0.04)";
+export const ACCENT_FILL_WHISPER = "rgba(0,255,133,0.02)";
+export const ACCENT_ICON = "rgba(0,255,133,0.88)";
+export const ACCENT_FILL_STRONG = "rgba(0,255,133,0.32)";
+export const ACCENT_REFRESH_TINT = "rgba(0,255,133,0.58)";
+/** Destructive borders and fills. */
+export const DESTRUCTIVE_BORDER = "rgba(255,69,58,0.35)";
+export const DESTRUCTIVE_BORDER_STRONG = "rgba(255,69,58,0.45)";
+export const DESTRUCTIVE_FILL = "rgba(255,69,58,0.12)";
+export const DESTRUCTIVE_FILL_SUBTLE = "rgba(255,69,58,0.06)";
+/** Modal/sheet scrims. */
+export const OVERLAY_DARK = "rgba(0,0,0,0.72)";
+export const OVERLAY_HEAVY = "rgba(0,0,0,0.78)";
+export const OVERLAY_SCRIM = "rgba(0,0,0,0.88)";
+export const OVERLAY_FULL = "rgba(0,0,0,0.95)";
+export const OVERLAY_PANEL = "rgba(18,18,18,0.96)";
+/** Status available pill. */
+export const STATUS_AVAILABLE_FILL = "rgba(52, 211, 153, 0.12)";
+export const STATUS_AVAILABLE_BORDER = "rgba(52, 211, 153, 0.28)";
 export const STATUS_AVAILABLE = "#34D399";
+/** Misc UI chrome. */
+export const BORDER_SUBTLE_HEX = "#252525";
+export const BORDER_PANEL = "#1B1D20";
+export const PLACEHOLDER_DARK = "#555";
+export const HEART_LIKE = "#FF2D55";
+export const TEXT_ON_BRIGHT = "rgba(255,255,255,0.85)";
+export const CHAT_FAILED_SELF = "#8B0000";
+export const CHAT_FAILED_OTHER = "#FFB4B4";
 /** Group list borders — slightly subtler than BORDER. */
 export const GROUP_BORDER = "rgba(255,255,255,0.06)";
 /** Hairline dividers and faint wells. */

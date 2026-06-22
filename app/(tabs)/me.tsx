@@ -1,5 +1,7 @@
 import {
   ACCENT,
+  ACCENT_BORDER,
+  ACCENT_FILL,
   BG,
   BORDER,
   BORDER_MUTED,
@@ -11,6 +13,8 @@ import {
   MUTED2,
   MUTED3,
   ON_ACCENT_TEXT,
+  OVERLAY_FULL,
+  OVERLAY_SCRIM,
   PRIMARY_CTA_HEIGHT,
   PRIMARY_CTA_WIDTH,
   SPACE_6,
@@ -1815,7 +1819,7 @@ const styles = StyleSheet.create({
   },
   avatarPreviewDim: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: "rgba(0,0,0,0.88)",
+    backgroundColor: OVERLAY_SCRIM,
   },
   avatarPreviewImage: {
     width: 300,
@@ -1927,7 +1931,7 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
   },
   interestText: profileInterestPillText,
-  modalOverlay: { flex: 1, backgroundColor: "rgba(0,0,0,0.95)", justifyContent: "center", alignItems: "center" },
+  modalOverlay: { flex: 1, backgroundColor: OVERLAY_FULL, justifyContent: "center", alignItems: "center" },
   qrModalBox: { backgroundColor: "white", padding: 25, borderRadius: MODAL_RADIUS + 18 },
   interestModalFullscreen: {
     flex: 1,
@@ -1979,8 +1983,8 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   interestPillOn: {
-    backgroundColor: "rgba(0,255,133,0.12)",
-    borderColor: "rgba(0,255,133,0.55)",
+    backgroundColor: ACCENT_FILL,
+    borderColor: ACCENT_BORDER,
   },
   interestPillText: profileInterestPillText,
   interestPillTextOn: profileInterestPillTextActive,

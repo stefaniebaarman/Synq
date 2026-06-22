@@ -1,5 +1,7 @@
 import {
   BORDER,
+  SURFACE_DEEPER,
+  TEXT_BRIGHT_HEX,
   fonts,
 } from "@/constants/Variables";
 import DateTimePicker, {
@@ -8,7 +10,7 @@ import DateTimePicker, {
 import React, { useCallback } from "react";
 import { Platform, StyleSheet, View } from "react-native";
 
-const WHEEL_BG = "#050505";
+const WHEEL_BG = SURFACE_DEEPER;
 
 type Props = {
   value: Date;
@@ -54,7 +56,7 @@ export default function PlanTimePicker({ value, onChange, accentColor }: Props) 
           onChange={handleChange}
           themeVariant="dark"
           accentColor={accentColor}
-          textColor="#FFFFFF"
+          textColor={TEXT_BRIGHT_HEX}
           style={styles.picker}
         />
       </View>

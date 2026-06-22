@@ -1,4 +1,5 @@
 import {
+  BORDER_MUTED,
   MUTED3,
   ON_ACCENT_TEXT,
   TEXT,
@@ -112,7 +113,7 @@ export default function PlanDateCalendar({
           <Ionicons
             name="chevron-back"
             size={20}
-            color={canGoPrev ? "#fff" : "#333"}
+            color={canGoPrev ? TEXT : BORDER_MUTED}
           />
         </TouchableOpacity>
         <Text style={styles.monthLabel}>{monthLabel}</Text>
@@ -125,7 +126,7 @@ export default function PlanDateCalendar({
           style={styles.navBtn}
           accessibilityLabel="Next month"
         >
-          <Ionicons name="chevron-forward" size={20} color="#fff" />
+          <Ionicons name="chevron-forward" size={20} color={TEXT} />
         </TouchableOpacity>
       </View>
 

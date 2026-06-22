@@ -8,6 +8,7 @@ import {
   TYPE_BODY,
   TYPE_TITLE,
   fonts,
+  primaryButtonText,
 } from "../constants/Variables";
 import { captureClientError } from "../src/lib/sentryInit";
 
@@ -46,7 +47,7 @@ export class ErrorBoundary extends Component<Props, State> {
             accessibilityRole="button"
             accessibilityLabel="Try again"
           >
-            <Text style={styles.btnText}>Try again</Text>
+            <Text style={primaryButtonText}>Try again</Text>
           </Pressable>
         </View>
       );
@@ -82,10 +83,5 @@ const styles = StyleSheet.create({
     paddingVertical: 14,
     paddingHorizontal: 28,
     borderRadius: 14,
-  },
-  btnText: {
-    color: BG,
-    fontFamily: fonts.heavy,
-    fontSize: TYPE_BODY,
   },
 });

@@ -1,5 +1,7 @@
 import {
   ACCENT,
+  ACCENT_BORDER,
+  ACCENT_FILL_STRONG,
   BG,
   MUTED,
   TYPE_MODAL_TITLE,
@@ -234,14 +236,14 @@ const styles = StyleSheet.create({
     height: PULSE_SIZE,
     borderRadius: PULSE_SIZE / 2,
     borderWidth: 2,
-    borderColor: "rgba(0,255,133,0.42)",
+    borderColor: ACCENT_BORDER,
   },
   pulseGlow: {
     position: "absolute",
     width: PULSE_SIZE + 28,
     height: PULSE_SIZE + 28,
     borderRadius: (PULSE_SIZE + 28) / 2,
-    backgroundColor: "rgba(0,255,133,0.32)",
+    backgroundColor: ACCENT_FILL_STRONG,
   },
   pulseGif: {
     width: PULSE_SIZE,

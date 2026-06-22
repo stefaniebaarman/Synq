@@ -1,4 +1,5 @@
 import {
+  ACCENT_ICON,
   SYNQ_PLUS_ADD_GLYPH_SIZE,
   synqPlusAddBtn,
   synqPlusAddBtnIcon,
@@ -46,7 +47,7 @@ export default function SynqPlusAddButton({
         <Ionicons
           name={iconName}
           size={SYNQ_PLUS_ADD_GLYPH_SIZE}
-          color="rgba(0,255,133,0.88)"
+          color={ACCENT_ICON}
         />
       </View>
       <Text style={synqPlusAddBtnText}>{label}</Text>

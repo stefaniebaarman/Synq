@@ -2,14 +2,11 @@ import {
   ACCENT,
   BG,
   BUTTON_RADIUS,
-  MUTED,
-  ON_ACCENT_TEXT,
   PRIMARY_CTA_HEIGHT,
   PRIMARY_CTA_WIDTH,
-  TEXT,
-  TYPE_BODY,
-  TYPE_MODAL_TITLE,
-  fonts,
+  modalBodyText,
+  modalTitleText,
+  primaryButtonText,
 } from "@/constants/Variables";
 import { openAppStore } from "@/src/lib/appUpdateGate";
 import React from "react";
@@ -31,8 +28,8 @@ export default function RequiredUpdateBlocker({ storeUrl }: Props) {
   return (
     <View style={styles.container}>
       <Image source={SPLASH_LOGO} style={styles.logo} resizeMode="contain" />
-      <Text style={styles.title}>Update required</Text>
-      <Text style={styles.message}>
+      <Text style={[modalTitleText, styles.title]}>Update required</Text>
+      <Text style={[modalBodyText, styles.message]}>
         A new version of Synq is available. Please update to continue.
       </Text>
       <TouchableOpacity
@@ -44,7 +41,7 @@ export default function RequiredUpdateBlocker({ storeUrl }: Props) {
         accessibilityRole="button"
         accessibilityLabel="Update Synq"
       >
-        <Text style={styles.buttonText}>Update Synq</Text>
+        <Text style={primaryButtonText}>Update Synq</Text>
       </TouchableOpacity>
     </View>
   );
@@ -64,16 +61,10 @@ const styles = StyleSheet.create({
     marginBottom: 32,
   },
   title: {
-    color: TEXT,
-    fontFamily: fonts.heavy,
-    fontSize: TYPE_MODAL_TITLE,
     textAlign: "center",
     marginBottom: 12,
   },
   message: {
-    color: MUTED,
-    fontFamily: fonts.medium,
-    fontSize: TYPE_BODY,
     lineHeight: 24,
     textAlign: "center",
     marginBottom: 28,
@@ -85,10 +76,5 @@ const styles = StyleSheet.create({
     backgroundColor: ACCENT,
     alignItems: "center",
     justifyContent: "center",
-  },
-  buttonText: {
-    color: ON_ACCENT_TEXT,
-    fontFamily: fonts.heavy,
-    fontSize: TYPE_BODY,
   },
 });

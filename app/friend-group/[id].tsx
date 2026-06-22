@@ -5,8 +5,14 @@ import {
   BORDER,
   BUTTON_RADIUS,
   DESTRUCTIVE,
+  DESTRUCTIVE_BORDER,
+  DESTRUCTIVE_FILL_SUBTLE,
   Friend,
+  HEADER_BLACK,
   MUTED2,
+  OVERLAY_MID,
+  OVERLAY_DIM,
+  OVERLAY_ZERO,
   RADIUS_MD,
   SHEET_OVERLAY,
   SHEET_SURFACE,
@@ -89,10 +95,10 @@ function removedFromGroupSuccessMessage(displayName: string, groupName: string):
 
 const ADD_MEMBERS_FOOTER_FADE_HEIGHT = 56;
 const ADD_MEMBERS_FOOTER_FADE_GRADIENT = [
-  "rgba(0,0,0,0)",
-  "rgba(0,0,0,0.45)",
-  "#000000",
-  "#000000",
+  OVERLAY_ZERO,
+  OVERLAY_DIM,
+  HEADER_BLACK,
+  HEADER_BLACK,
 ] as const;
 const ADD_MEMBERS_FOOTER_FADE_LOCATIONS = [0, 0.28, 0.48, 1] as const;
 /** Fade zone + button row + bottom inset. */
@@ -557,8 +563,8 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
     borderRadius: BUTTON_RADIUS,
     borderWidth: StyleSheet.hairlineWidth,
-    borderColor: "rgba(255,69,58,0.35)",
-    backgroundColor: "rgba(255,69,58,0.06)",
+    borderColor: DESTRUCTIVE_BORDER,
+    backgroundColor: DESTRUCTIVE_FILL_SUBTLE,
     alignItems: "center",
     justifyContent: "center",
   },
@@ -594,7 +600,7 @@ const styles = StyleSheet.create({
   },
   successOverlay: {
     flex: 1,
-    backgroundColor: "rgba(0,0,0,0.65)",
+    backgroundColor: OVERLAY_MID,
     alignItems: "center",
     justifyContent: "center",
     padding: SPACE_6,

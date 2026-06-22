@@ -27,6 +27,7 @@ import {
   TYPE_BUTTON,
   TYPE_CAPTION,
   fonts,
+  primaryButtonText,
 } from "../../constants/Variables";
 import { auth } from "../../src/lib/firebase";
 import { submitReport, type ReportReason } from "../../src/lib/moderation";
@@ -167,7 +168,7 @@ export default function SafetyReportScreen() {
           disabled={submitting || !reason}
           onPress={handleSubmit}
         >
-          <Text style={styles.submitText}>
+          <Text style={primaryButtonText}>
             {submitting ? "Submitting…" : "Submit report"}
           </Text>
         </TouchableOpacity>
@@ -231,5 +232,4 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   submitDisabled: { opacity: 0.45 },
-  submitText: { color: ON_ACCENT_TEXT, fontFamily: fonts.heavy, fontSize: TYPE_BODY },
 });

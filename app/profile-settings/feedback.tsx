@@ -32,6 +32,7 @@ import {
   SURFACE,
   TEXT,
   heroTitleText,
+  primaryButtonText,
   TYPE_BODY,
   TYPE_BUTTON,
   TYPE_CAPTION,
@@ -191,7 +192,7 @@ export default function FeedbackScreen() {
             activeOpacity={0.9}
             style={[styles.submitBtn, !canSubmit && styles.submitBtnDisabled]}
           >
-            <Text style={styles.submitText}>Submit</Text>
+            <Text style={primaryButtonText}>Submit</Text>
             <Ionicons name="send" size={18} color="black" />
           </TouchableOpacity>
 
@@ -301,11 +302,6 @@ const styles = StyleSheet.create({
   },
   submitBtnDisabled: {
     opacity: 0.5,
-  },
-  submitText: {
-    color: ON_ACCENT_TEXT,
-    fontFamily: fonts.black,
-    fontSize: TYPE_BODY,
   },
 
   footerSpace: { height: SPACE_5 },

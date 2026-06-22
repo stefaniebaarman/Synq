@@ -3,6 +3,7 @@ import {
   BORDER,
   MUTED2,
   SURFACE_ELEVATED,
+  SURFACE_INSET,
   TEXT,
   TYPE_CAPTION,
   fonts,
@@ -106,7 +107,7 @@ const styles = StyleSheet.create({
   },
   avatarWrap: {
     borderWidth: 1.5,
-    borderColor: "#101214",
+    borderColor: SURFACE_INSET,
     backgroundColor: SURFACE_ELEVATED,
     overflow: "visible",
   },
@@ -116,7 +117,7 @@ const styles = StyleSheet.create({
   },
   overflow: {
     borderWidth: 1.5,
-    borderColor: "#101214",
+    borderColor: SURFACE_INSET,
     backgroundColor: SURFACE_ELEVATED,
     alignItems: "center",
     justifyContent: "center",

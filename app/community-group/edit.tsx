@@ -6,11 +6,14 @@ import {
   GROUP_BORDER,
   MUTED2,
   MUTED3,
+  OVERLAY_DARK,
+  OVERLAY_FADE,
   RADIUS_MD,
   SPACE_3,
   SPACE_4,
   SPACE_5,
   SPACE_6,
+  SURFACE_RAISED,
   TEXT,
   TYPE_BODY,
   TYPE_CAPTION,
@@ -285,7 +288,7 @@ export default function EditCommunityScreen() {
                     contentFit="cover"
                   />
                   <View style={styles.coverOverlay}>
-                    <Ionicons name="camera-outline" size={22} color="#fff" />
+                    <Ionicons name="camera-outline" size={22} color={TEXT} />
                     <Text style={styles.coverOverlayText}>Change photo</Text>
                   </View>
                 </>
@@ -344,8 +347,8 @@ export default function EditCommunityScreen() {
   );
 }
 
-const FIELD_SURFACE = "#0E1012";
-const FIELD_BORDER = "rgba(255,255,255,0.18)";
+const FIELD_SURFACE = SURFACE_RAISED;
+const FIELD_BORDER = MUTED3;
 
 const styles = StyleSheet.create({
   screen: {
@@ -458,7 +461,7 @@ const styles = StyleSheet.create({
   },
   coverOverlay: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: "rgba(0,0,0,0.42)",
+    backgroundColor: OVERLAY_FADE,
     alignItems: "center",
     justifyContent: "center",
     gap: 6,
@@ -475,7 +478,7 @@ const styles = StyleSheet.create({
   },
   modalOverlay: {
     flex: 1,
-    backgroundColor: "rgba(0,0,0,0.72)",
+    backgroundColor: OVERLAY_DARK,
     justifyContent: "flex-end",
   },
   categorySheet: {

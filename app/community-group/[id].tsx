@@ -2,14 +2,21 @@ import ConfirmModal from "@/app/confirm-modal";
 import { resolveAvatar } from "@/src/lib/helpers";
 import {
   ACCENT,
+  ACCENT_FILL,
   BG,
   BORDER,
   BUTTON_RADIUS,
   DESTRUCTIVE,
+  DESTRUCTIVE_BORDER,
+  DESTRUCTIVE_FILL_SUBTLE,
   Friend,
   HEADER_BLACK,
   MUTED2,
   MUTED3,
+  OVERLAY_DIM,
+  OVERLAY_DARK,
+  OVERLAY_MID,
+  OVERLAY_SOFT,
   PROFILE_HEADER_FADE_GRADIENT,
   PROFILE_HEADER_FADE_LOCATIONS,
   RADIUS_MD,
@@ -113,9 +120,9 @@ const MEMBER_AVATAR_SIZE = 48;
 const MEMBER_PREVIEW_COUNT = 6;
 const AVAILABLE_PREVIEW_COUNT = 3;
 const COVER_HERO_GRADIENT = [
-  "rgba(0,0,0,0.45)",
-  "rgba(0,0,0,0.08)",
-  "rgba(0,0,0,0.72)",
+  OVERLAY_DIM,
+  OVERLAY_SOFT,
+  OVERLAY_DARK,
   BG,
 ] as const;
 const COVER_HERO_GRADIENT_LOCATIONS = [0, 0.42, 0.82, 1] as const;
@@ -1139,7 +1146,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 8,
     paddingVertical: 2,
     borderRadius: 10,
-    backgroundColor: "rgba(0,255,133,0.12)",
+    backgroundColor: ACCENT_FILL,
   },
   adminBadgeText: {
     fontFamily: fonts.medium,
@@ -1229,8 +1236,8 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
     borderRadius: BUTTON_RADIUS,
     borderWidth: StyleSheet.hairlineWidth,
-    borderColor: "rgba(255,69,58,0.35)",
-    backgroundColor: "rgba(255,69,58,0.06)",
+    borderColor: DESTRUCTIVE_BORDER,
+    backgroundColor: DESTRUCTIVE_FILL_SUBTLE,
     alignItems: "center",
     justifyContent: "center",
   },
@@ -1242,7 +1249,7 @@ const styles = StyleSheet.create({
   },
   successOverlay: {
     flex: 1,
-    backgroundColor: "rgba(0,0,0,0.65)",
+    backgroundColor: OVERLAY_MID,
     alignItems: "center",
     justifyContent: "center",
     padding: SPACE_6,

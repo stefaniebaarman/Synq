@@ -1,3 +1,7 @@
+import {
+  MUTED,
+  MUTED3,
+} from "@/constants/Variables";
 import CloseButton from "@/src/components/CloseButton";
 import { Ionicons } from "@expo/vector-icons";
 import React, { useEffect, useState } from "react";
@@ -75,7 +79,7 @@ export default function EditSynqModal({
                 value={memo}
                 onChangeText={setMemo}
                 placeholder="e.g. let's grab drinks"
-                placeholderTextColor="rgba(255,255,255,0.25)"
+                placeholderTextColor={MUTED3}
                 multiline
                 submitBehavior="blurAndSubmit"
                 returnKeyType="done"
@@ -93,7 +97,7 @@ export default function EditSynqModal({
                   <Ionicons
                     name="shuffle-outline"
                     size={24}
-                    color="rgba(255,255,255,0.55)"
+                    color={MUTED}
                   />
                 </TouchableOpacity>
               </View>

@@ -6,6 +6,7 @@ import {
   DESTRUCTIVE,
   DIVIDER,
   MUTED2,
+  OVERLAY_TINT,
   SHEET_OVERLAY,
   SHEET_SURFACE,
   SPACE_3,
@@ -399,7 +400,7 @@ const styles = StyleSheet.create({
   },
   goerActionBackdrop: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: "rgba(0,0,0,0.35)",
+    backgroundColor: OVERLAY_TINT,
   },
   goerActionGroup: {
     paddingHorizontal: 12,
