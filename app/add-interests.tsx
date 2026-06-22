@@ -40,7 +40,7 @@ const INTERESTS = [
     "🍽️ Going out to eat",
     "☕ Coffee",
     "🍹 Drinks",
-    "🚶 Walk",
+    "🚶 Walking",
     "🏋️ Gym",
     "🧘 Pilates / Yoga",
     "🎾 Pickleball",
