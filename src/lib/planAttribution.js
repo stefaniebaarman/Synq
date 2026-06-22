@@ -20,6 +20,22 @@ function formatTruncatedGoingLine(names) {
   return `${visible.join(", ")} and ${remaining} more are going`;
 }
 
+/** "You and X are going" when the viewer joined someone else's plan. */
+function formatYouAndGoingLine(names) {
+  const firsts = Array.from(
+    new Set(names.map(firstNameFromDisplay).filter(Boolean))
+  );
+  if (firsts.length === 0) return "You are going";
+  if (firsts.length === 1) return `You and ${firsts[0]} are going`;
+  if (firsts.length === 2) return `You, ${firsts[0]} and ${firsts[1]} are going`;
+  if (firsts.length === 3) {
+    return `You, ${firsts[0]}, ${firsts[1]} and ${firsts[2]} are going`;
+  }
+  const visible = firsts.slice(0, MAX_VISIBLE_GOING_NAMES);
+  const remaining = firsts.length - MAX_VISIBLE_GOING_NAMES;
+  return `You, ${visible.join(", ")} and ${remaining} more are going`;
+}
+
 function collectJoinedIds(event) {
   return Array.from(
     new Set(
@@ -31,6 +47,89 @@ function collectJoinedIds(event) {
         .filter(Boolean)
     )
   );
+}
+
+function normalizePlanTitle(title) {
+  return String(title || "")
+    .trim()
+    .toLowerCase()
+    .replace(/[`''']/g, "")
+    .replace(/[^a-z0-9]+/g, " ")
+    .trim();
+}
+
+function planLooseMatch(a, b) {
+  const dateA = String(a?.date || "").trim();
+  const dateB = String(b?.date || "").trim();
+  if (!dateA || dateA !== dateB) return false;
+  const titleA = normalizePlanTitle(a?.title);
+  const titleB = normalizePlanTitle(b?.title);
+  if (!titleA || !titleB) return false;
+  return titleA === titleB;
+}
+
+function hasJoinMetadata(event, joinedIds = collectJoinedIds(event)) {
+  return (
+    joinedIds.length > 1 ||
+    !!event?.joinedFromId ||
+    !!event?.joinedFromName ||
+    (Array.isArray(event?.joinedFromNames) && event.joinedFromNames.length > 0) ||
+    !!event?.joinedFromFriendUid
+  );
+}
+
+function findMatchingViewerEvent(event, viewerEvents) {
+  if (!Array.isArray(viewerEvents)) return null;
+  for (const row of viewerEvents) {
+    if (planLooseMatch(row, event)) return row;
+  }
+  return null;
+}
+
+/**
+ * Friend profiles can store a solo-shaped row for a plan the friend joined.
+ * When the viewer is on the same plan, use their copy for attribution.
+ */
+function enrichEventForFriendProfileAttribution(
+  event,
+  viewerUid,
+  profileSubjectUid,
+  viewerEvents
+) {
+  const viewer = String(viewerUid || "").trim();
+  const profileSubject = String(profileSubjectUid || "").trim();
+  if (!profileSubject || profileSubject === viewer || !Array.isArray(viewerEvents)) {
+    return event;
+  }
+
+  const viewerRow = findMatchingViewerEvent(event, viewerEvents);
+  if (!viewerRow || !hasJoinMetadata(viewerRow)) return event;
+
+  const profileJoinedIds = collectJoinedIds(event);
+  const profileHost = resolveEffectiveHostUid(
+    event,
+    viewer,
+    profileJoinedIds,
+    profileSubject
+  );
+  const viewerHost = resolveEffectiveHostUid(
+    viewerRow,
+    viewer,
+    collectJoinedIds(viewerRow),
+    profileSubject
+  );
+
+  if (!viewerHost || viewerHost === profileSubject) return event;
+
+  if (!hasJoinMetadata(event, profileJoinedIds)) {
+    return viewerRow;
+  }
+
+  if (profileHost === profileSubject) {
+    return viewerRow;
+  }
+
+  return event;
 }
 
 function displayNameForUid(uid, event, hostDisplayNameByUid) {
@@ -184,23 +283,27 @@ function resolvePlanAttribution(
   event,
   viewerUid,
   hostDisplayNameByUid = {},
-  profileSubjectUid
+  profileSubjectUid,
+  viewerEvents
 ) {
-  const isJoinedPlan =
-    !!event?.joinedFromId ||
-    !!event?.joinedFromName ||
-    (Array.isArray(event?.joinedFromNames) && event.joinedFromNames.length > 0);
-  if (!isJoinedPlan) {
+  const profileSubject = String(profileSubjectUid || viewerUid || "").trim();
+  const effectiveEvent = enrichEventForFriendProfileAttribution(
+    event,
+    viewerUid,
+    profileSubject,
+    viewerEvents
+  );
+
+  if (!hasJoinMetadata(effectiveEvent)) {
     return { primary: null, secondary: null, goingPeople: [] };
   }
 
-  const profileSubject = String(profileSubjectUid || viewerUid || "").trim();
-  const joinedIds = collectJoinedIds(event);
+  const joinedIds = collectJoinedIds(effectiveEvent);
   const anchorUid = String(
-    event?.joinedFromFriendUid || event?.joinedFromId || ""
+    effectiveEvent?.joinedFromFriendUid || effectiveEvent?.joinedFromId || ""
   ).trim();
   const hostUid = resolveEffectiveHostUid(
-    event,
+    effectiveEvent,
     viewerUid,
     joinedIds,
     profileSubject
@@ -215,7 +318,7 @@ function resolvePlanAttribution(
     .filter((id) => !excludeUids.has(id))
     .map((id) => {
       const displayName =
-        displayNameForUid(id, event, hostDisplayNameByUid) || "Friend";
+        displayNameForUid(id, effectiveEvent, hostDisplayNameByUid) || "Friend";
       return {
         userId: id,
         displayName,
@@ -227,10 +330,16 @@ function resolvePlanAttribution(
     new Set(goingPeople.map((p) => firstNameFromDisplay(p.displayName)).filter(Boolean))
   );
 
+  const viewerAttending = !!(
+    viewerUid &&
+    joinedIds.includes(String(viewerUid).trim()) &&
+    !hostIsViewer
+  );
+
   const hostFn =
     hostUid && !hostIsViewer
       ? resolveHostFirstName(
-          event,
+          effectiveEvent,
           hostUid,
           viewerUid,
           anchorUid,
@@ -240,8 +349,13 @@ function resolvePlanAttribution(
 
   const primary =
     hostIsViewer || !hostUid ? null : hostFn ? `${hostFn}'s plan` : null;
-  const secondary =
-    othersFirsts.length > 0 ? formatTruncatedGoingLine(othersFirsts) : null;
+  const secondary = viewerAttending
+    ? othersFirsts.length > 0
+      ? formatYouAndGoingLine(othersFirsts)
+      : null
+    : othersFirsts.length > 0
+      ? formatTruncatedGoingLine(othersFirsts)
+      : null;
 
   return { primary, secondary, goingPeople };
 }
@@ -267,4 +381,6 @@ module.exports = {
   resolveEffectiveHostUid,
   resolvePlanAttribution,
   resolvePlanHostUidForJoin,
+  planLooseMatch,
+  enrichEventForFriendProfileAttribution,
 };
