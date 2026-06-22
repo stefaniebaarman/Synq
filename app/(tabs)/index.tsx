@@ -89,10 +89,13 @@ import {
   AI_PLACE_SUGGESTIONS_ENABLED,
   BG,
   BORDER,
+  BORDER_LIGHT,
   BORDER_MUTED,
   BUTTON_RADIUS,
   DESTRUCTIVE,
   DISABLED_CTA,
+  DIVIDER,
+  DIVIDER_STRONG,
   EXPIRATION_HOURS,
   GROUP_BORDER,
   HEADER_BLACK,
@@ -114,6 +117,8 @@ import {
   SURFACE_LIFTED,
   SURFACE_PANEL,
   SURFACE_SHEET_ALT,
+  SURFACE_SOFT,
+  SURFACE_SUBTLE,
   SURFACE_WELL,
   TEXT,
   TEXT_MUTED_HEX,
@@ -132,7 +137,9 @@ import {
   cardTitleText,
   eyebrowLabel,
   fonts,
+  listRowTitleText,
   listSectionTitle,
+  modalTitleText,
   tabScreenMainHeaderTitle,
 } from '../../constants/Variables';
 import ActiveSynqSection from '../../src/components/synq/ActiveSynqSection';
@@ -2458,7 +2465,7 @@ const styles = StyleSheet.create({
   },
   headerDivider: {
     height: StyleSheet.hairlineWidth,
-    backgroundColor: "rgba(255,255,255,0.16)",
+    backgroundColor: DIVIDER,
   },
   activeMemoRow: {
     marginTop: 14,
@@ -2540,7 +2547,7 @@ const styles = StyleSheet.create({
     backgroundColor: BORDER,
   },
   friendImg: { width: 50, height: 50, borderRadius: 25, marginRight: 15 },
-  whiteBold: { color: TEXT, fontSize: TYPE_SUBHEAD, fontFamily: fonts.medium },
+  whiteBold: { ...listRowTitleText, fontFamily: fonts.heavy },
   grayText: { ...cardMetaText, marginTop: 2 },
   communityChatMeta: { ...cardMetaText, fontSize: TYPE_FINE, marginTop: 1, color: MUTED2 },
   locationText: { ...cardMetaText, fontSize: TYPE_FINE, marginTop: 2 },
@@ -2603,7 +2610,7 @@ const styles = StyleSheet.create({
     width: 4,
     height: 4,
     borderRadius: 999,
-    backgroundColor: "rgba(255,255,255,0.22)",
+    backgroundColor: DIVIDER_STRONG,
   },
   inlineMetaText: {
     color: MUTED2,
@@ -2774,7 +2781,7 @@ const styles = StyleSheet.create({
     marginRight: 10,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: 'rgba(255,255,255,0.04)',
+    backgroundColor: SURFACE_SUBTLE,
   },
   inboxSelectBadgeActive: {
     backgroundColor: ACCENT,
@@ -2782,10 +2789,10 @@ const styles = StyleSheet.create({
   },
   messagesHeaderDivider: {
     height: StyleSheet.hairlineWidth,
-    backgroundColor: "rgba(255,255,255,0.16)",
+    backgroundColor: DIVIDER,
     marginHorizontal: 20,
   },
-  modalTitle: { color: TEXT, fontSize: TYPE_MODAL_TITLE, fontFamily: fonts.medium },
+  modalTitle: modalTitleText,
   messagesInboxTitle: tabScreenMainHeaderTitle,
   deleteAction: { backgroundColor: DESTRUCTIVE, justifyContent: 'center', alignItems: 'center', width: 80, height: '100%' },
   inboxItem: {
@@ -2812,7 +2819,7 @@ const styles = StyleSheet.create({
   },
   inboxSeparatorLine: {
     height: StyleSheet.hairlineWidth,
-    backgroundColor: "rgba(255,255,255,0.12)",
+    backgroundColor: BORDER_LIGHT,
     width: "100%",
   },
   inboxItemUnread: {
@@ -2996,7 +3003,7 @@ const styles = StyleSheet.create({
     flexShrink: 0,
   },
   sendBtnInsetDisabled: {
-    backgroundColor: 'rgba(255,255,255,0.07)',
+    backgroundColor: SURFACE_SOFT,
   },
   sendIconWrap: {
     width: 22,
@@ -3303,7 +3310,7 @@ const styles = StyleSheet.create({
   suggestionChip: {
     borderWidth: 1,
     borderColor: BORDER,
-    backgroundColor: "rgba(255,255,255,0.04)",
+    backgroundColor: SURFACE_SUBTLE,
     paddingHorizontal: 14,
     paddingVertical: 10,
     borderRadius: 999,

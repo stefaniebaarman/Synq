@@ -4,6 +4,8 @@ import {
   BORDER,
   BUTTON_RADIUS,
   DESTRUCTIVE,
+  FRIENDS_BORDER,
+  FRIENDS_SEARCH_BORDER,
   Friend,
   MUTED,
   MUTED2,
@@ -15,6 +17,7 @@ import {
   SPACE_6,
   SURFACE,
   SURFACE_INPUT,
+  SURFACE_MUTED,
   SURFACE_RAISED,
   TAB_BAR_SCROLL_INSET,
   TEXT,
@@ -653,7 +656,7 @@ export default function FriendsScreen() {
                 <Ionicons name="search-outline" size={17} color={MUTED2} />
                 <TextInput
                   placeholder="Search"
-                  placeholderTextColor="rgba(255,255,255,0.38)"
+                  placeholderTextColor={MUTED3}
                   style={styles.searchBarInput}
                   value={searchText}
                   onChangeText={setSearchText}
@@ -1907,10 +1910,7 @@ function SearchModal({
   );
 }
 
-/** Friends tab surfaces — solid charcoals (not milky white overlays). */
-const FRIENDS_BORDER = "rgba(255,255,255,0.035)";
-/** Original fill; slightly brighter stroke so the pill edge reads more clearly. */
-const FRIENDS_SEARCH_BORDER = "rgba(255,255,255,0.12)";
+/** Friends tab search fade gradient. */
 const FRIENDS_SEARCH_FADE_GRADIENT = [
   BG,
   "rgba(9,10,11,0.88)",
@@ -2071,7 +2071,7 @@ const styles = StyleSheet.create({
   },
   separator: {
     height: StyleSheet.hairlineWidth,
-    backgroundColor: "rgba(255,255,255,0.05)",
+    backgroundColor: SURFACE_MUTED,
     marginLeft: 69,
   },
   avatar: {

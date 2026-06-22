@@ -1,8 +1,10 @@
 import SynqAudiencePicker from "@/src/components/synq/SynqAudiencePicker";
+import { sheetStyles } from "@/constants/sheetStyles";
 import {
   ACCENT,
   BORDER,
   BUTTON_RADIUS,
+  GROUP_BORDER,
   MUTED2,
   SHEET_OVERLAY,
   SHEET_SURFACE,
@@ -90,7 +92,7 @@ export default function ChangeSynqAudienceModal({
         <View style={[styles.sheetGroup, { paddingBottom: insets.bottom + SPACE_3 }]}>
           <View style={styles.sheetCard}>
             <View style={styles.headerRow}>
-              <Text style={styles.sheetTitle}>Change audience</Text>
+              <Text style={[sheetStyles.sheetHeaderTitle, styles.sheetTitleFlex]}>Change audience</Text>
               <TouchableOpacity
                 style={styles.saveBtn}
                 onPress={() => void handleSave()}
@@ -164,13 +166,10 @@ const styles = StyleSheet.create({
     paddingBottom: SPACE_3,
     paddingHorizontal: 16,
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: "rgba(255,255,255,0.06)",
+    borderBottomColor: GROUP_BORDER,
   },
-  sheetTitle: {
+  sheetTitleFlex: {
     flex: 1,
-    color: TEXT,
-    fontSize: TYPE_BODY,
-    fontFamily: fonts.heavy,
     marginRight: SPACE_3,
   },
   saveBtn: {

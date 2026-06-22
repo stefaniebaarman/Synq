@@ -17,6 +17,7 @@ import {
   BORDER,
   BUTTON_RADIUS,
   MUTED,
+  MUTED2,
   MUTED3,
   ON_ACCENT_TEXT,
   PRIMARY_CTA_HEIGHT,
@@ -452,7 +453,7 @@ const styles = StyleSheet.create({
     letterSpacing: 0.8,
   },
   helper: {
-    color: "rgba(255,255,255,0.45)",
+    color: MUTED2,
     fontSize: TYPE_CAPTION,
     marginTop: 18,
     fontFamily: fonts.book,

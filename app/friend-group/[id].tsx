@@ -15,13 +15,14 @@ import {
   SPACE_5,
   SPACE_6,
   SURFACE,
+  SURFACE_MUTED,
   TEXT,
   TYPE_BODY,
   TYPE_CAPTION,
   TYPE_SECTION,
   TYPE_SUBHEAD,
-  listSectionTitle,
   fonts,
+  listSectionTitle,
   synqOutlineAddBtnCompact,
   synqOutlineAddBtnText,
 } from "@/constants/Variables";
@@ -569,7 +570,7 @@ const styles = StyleSheet.create({
   },
   separator: {
     height: StyleSheet.hairlineWidth,
-    backgroundColor: "rgba(255,255,255,0.05)",
+    backgroundColor: SURFACE_MUTED,
     marginLeft: 48 + 12 + SPACE_5,
   },
   addMembersFooter: {

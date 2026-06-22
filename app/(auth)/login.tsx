@@ -17,6 +17,7 @@ import {
   BORDER,
   BUTTON_RADIUS,
   MUTED,
+  MUTED2,
   ON_ACCENT_TEXT,
   PRIMARY_CTA_HEIGHT,
   PRIMARY_CTA_WIDTH,
@@ -307,7 +308,7 @@ const styles = StyleSheet.create({
   },
   forgotBtn: { alignSelf: "flex-end", marginTop: 10, paddingVertical: 4 },
   forgotText: {
-    color: "rgba(255,255,255,0.45)",
+    color: MUTED2,
     fontSize: TYPE_CAPTION,
     fontFamily: fonts.book,
   },

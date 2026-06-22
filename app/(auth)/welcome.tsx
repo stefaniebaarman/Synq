@@ -2,6 +2,7 @@ import {
   ACCENT,
   BG,
   BORDER,
+  DIVIDER,
   MUTED,
   PRIMARY_CTA_HEIGHT,
   PRIMARY_CTA_WIDTH,
@@ -224,6 +225,6 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   dot: { width: 7, height: 7, borderRadius: 99 },
-  dotInactive: { backgroundColor: "rgba(255,255,255,0.18)" },
+  dotInactive: { backgroundColor: DIVIDER },
   dotActive: { backgroundColor: ACCENT },
 });

@@ -27,6 +27,7 @@ import {
   ACCENT,
   BG,
   BORDER,
+  BORDER_HAIRLINE,
   BUTTON_RADIUS,
   MUTED,
   MUTED2,
@@ -423,7 +424,7 @@ const styles = StyleSheet.create({
     fontSize: TYPE_BODY,
     fontFamily: fonts.medium,
     borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.15)",
+    borderColor: BORDER_HAIRLINE,
   },
 
   locationRow: {
@@ -433,7 +434,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     backgroundColor: BORDER,
     borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.15)",
+    borderColor: BORDER_HAIRLINE,
     flexDirection: "row",
     alignItems: "center",
     gap: 12,
@@ -487,7 +488,7 @@ const styles = StyleSheet.create({
 
   skipButton: { marginTop: 20, alignSelf: "center" },
   skipText: {
-    color: "rgba(255,255,255,0.5)",
+    color: MUTED,
     fontSize: TYPE_LEAD,
     fontFamily: fonts.medium,
   },

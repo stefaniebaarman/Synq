@@ -15,6 +15,7 @@ import {
   BORDER,
   BUTTON_RADIUS,
   MUTED,
+  MUTED2,
   ON_ACCENT_TEXT,
   PRIMARY_CTA_HEIGHT,
   PRIMARY_CTA_WIDTH,
@@ -236,7 +237,7 @@ const styles = StyleSheet.create({
   disabledButton: { backgroundColor: "rgba(125,255,166,0.30)" },
   small: {
     marginTop: 18,
-    color: "rgba(255,255,255,0.45)",
+    color: MUTED2,
     fontSize: TYPE_CAPTION,
     textAlign: "center",
     lineHeight: 18,
