@@ -57,8 +57,8 @@ import {
 import { buildProfileShareWebUrl } from "@/src/lib/profileShareUrl";
 import { clearPushTokenOnSignOut } from "@/src/lib/pushToken";
 import {
-  captureAndShareProfileCard,
   shareProfileLink,
+  warmProfileShareOgPreview,
 } from "@/src/lib/shareProfileCard";
 import { removeProfilePhoto } from "@/src/lib/uploadProfilePhoto";
 import { Ionicons } from "@expo/vector-icons";
@@ -1184,11 +1184,15 @@ export default function ProfileScreen() {
 
   const shareProfile = async () => {
     if (sharingProfile) return;
-    setSharingProfile(true);
+    const needsInviteFetch = !profileQrUrl;
+    if (needsInviteFetch) setSharingProfile(true);
     void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     try {
-      const code = await fetchInviteCode();
-      const shareUrl = buildProfileShareWebUrl(code);
+      let shareUrl = profileQrUrl;
+      if (!shareUrl) {
+        const code = await fetchInviteCode();
+        shareUrl = buildProfileShareWebUrl(code);
+      }
       if (!shareUrl) {
         showAlert(
           "Share unavailable",
@@ -1196,24 +1200,12 @@ export default function ProfileScreen() {
         );
         return;
       }
-      const uid = auth.currentUser?.uid;
-      if (!uid) {
-        showAlert("Share unavailable", "Please sign in and try again.");
-        return;
-      }
-      await captureAndShareProfileCard(shareCardRef, shareUrl);
+      warmProfileShareOgPreview(shareCardRef);
+      await shareProfileLink(shareUrl);
     } catch {
-      try {
-        const code = await fetchInviteCode();
-        const shareUrl = buildProfileShareWebUrl(code);
-        if (shareUrl) {
-          await shareProfileLink(shareUrl);
-        }
-      } catch {
-        // User dismissed the share sheet.
-      }
+      // User dismissed the share sheet.
     } finally {
-      setSharingProfile(false);
+      if (needsInviteFetch) setSharingProfile(false);
     }
   };
 

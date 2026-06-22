@@ -2564,13 +2564,14 @@ const styles = StyleSheet.create({
   locationText: { ...cardMetaText, fontSize: TYPE_FINE, marginTop: 2 },
   btn: {
     alignSelf: 'center',
-    width: '62%',
+    width: PRIMARY_CTA_WIDTH,
     height: PRIMARY_CTA_HEIGHT,
     backgroundColor: ACCENT,
     borderRadius: BUTTON_RADIUS,
     alignItems: 'center',
     justifyContent: 'center',
   },
+  btnText: primaryButtonText,
   synqHomeLayer: {
     flex: 1,
   },
