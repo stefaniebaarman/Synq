@@ -1,21 +1,15 @@
 import StackScreenHeader from "@/src/components/StackScreenHeader";
-import { formScreenStyles } from "@/constants/formScreenStyles";
 import {
   BG,
-  BORDER,
   BUTTON_RADIUS,
   DESTRUCTIVE,
-  MUTED,
   MUTED2,
-  RADIUS_MD,
   SPACE_3,
   SPACE_4,
   SPACE_5,
   SPACE_6,
-  TEXT,
   heroTitleText,
   TYPE_BODY,
-  TYPE_SECTION,
   fonts,
 } from "@/constants/Variables";
 import { Ionicons } from "@expo/vector-icons";
@@ -110,24 +104,6 @@ export default function DeleteAccountScreen() {
           </Text>
         </View>
 
-        <Text style={formScreenStyles.groupTitle}>What will be deleted</Text>
-        <View style={[formScreenStyles.group, styles.bulletGroup]}>
-          <View style={styles.bulletRow}>
-            <Text style={styles.bulletDot}>•</Text>
-            <Text style={styles.bulletText}>Your profile</Text>
-          </View>
-          <View style={styles.bulletRow}>
-            <Text style={styles.bulletDot}>•</Text>
-            <Text style={styles.bulletText}>Friends (removed on both sides)</Text>
-          </View>
-          <View style={[styles.bulletRow, styles.bulletRowLast]}>
-            <Text style={styles.bulletDot}>•</Text>
-            <Text style={styles.bulletText}>
-              Chats and messages you're part of
-            </Text>
-          </View>
-        </View>
-
         <TouchableOpacity
           onPress={() => setShowConfirm(true)}
           activeOpacity={0.85}
@@ -137,10 +113,10 @@ export default function DeleteAccountScreen() {
           accessibilityLabel="Delete my account"
         >
           {busy ? (
-            <ActivityIndicator color={TEXT} />
+            <ActivityIndicator color={DESTRUCTIVE} />
           ) : (
             <>
-              <Ionicons name="trash-outline" size={18} color={TEXT} />
+              <Ionicons name="trash-outline" size={18} color={DESTRUCTIVE} />
               <Text style={styles.deleteBtnText}>Delete my account</Text>
             </>
           )}
@@ -193,45 +169,24 @@ const styles = StyleSheet.create({
     fontFamily: fonts.medium,
     lineHeight: 22,
   },
-  bulletGroup: {
-    paddingVertical: SPACE_3,
-    paddingHorizontal: SPACE_4,
-  },
-  bulletRow: {
-    flexDirection: "row",
-    marginBottom: SPACE_3,
-  },
-  bulletRowLast: {
-    marginBottom: 0,
-  },
-  bulletDot: {
-    color: MUTED2,
-    marginRight: SPACE_3,
-    fontSize: TYPE_BODY,
-    lineHeight: 22,
-  },
-  bulletText: {
-    color: TEXT,
-    fontFamily: fonts.medium,
-    fontSize: TYPE_BODY,
-    lineHeight: 22,
-    flex: 1,
-  },
   deleteBtn: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
+    alignSelf: "center",
     gap: SPACE_3,
-    backgroundColor: DESTRUCTIVE,
+    backgroundColor: "transparent",
+    borderWidth: 1,
+    borderColor: DESTRUCTIVE,
     borderRadius: BUTTON_RADIUS,
     paddingVertical: 14,
-    paddingHorizontal: SPACE_4,
+    paddingHorizontal: SPACE_5,
   },
   deleteBtnDisabled: {
     opacity: 0.7,
   },
   deleteBtnText: {
-    color: TEXT,
+    color: DESTRUCTIVE,
     fontFamily: fonts.heavy,
     fontSize: TYPE_BODY,
   },

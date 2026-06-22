@@ -1,14 +1,19 @@
 import type { Friend } from "@/constants/Variables";
 import {
-  MUTED2,
+  ACCENT,
   SPACE_3,
   SPACE_4,
   SPACE_5,
   TYPE_SUBHEAD,
   modalBodyText,
   modalTitleText,
+  synqOutlineAddBtn,
+  synqOutlineAddBtnText,
 } from "@/constants/Variables";
 import SynqNudgeCard from "@/src/components/synq/SynqNudgeCard";
+import { fetchOrCreateInviteCode } from "@/src/lib/inviteCode";
+import { buildProfileShareWebUrl } from "@/src/lib/profileShareUrl";
+import { shareProfileLink } from "@/src/lib/shareProfileCard";
 import {
   nudgeCooldownRemainingMs,
   nudgeSentStorageKey,
@@ -18,8 +23,9 @@ import {
   synqNudgeErrorMessage,
   warmSynqNudgeClient,
 } from "@/src/lib/synqNudge";
+import { Ionicons } from "@expo/vector-icons";
 import React, { useCallback, useEffect, useState } from "react";
-import { Alert, StyleSheet, Text, View } from "react-native";
+import { Alert, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 
 type NudgeRowState = { loading: boolean; sent: boolean };
 
@@ -30,6 +36,7 @@ type Props = {
 
 export default function ActiveSynqEmptyState({ viewerId, candidates }: Props) {
   const [nudgeByFriendId, setNudgeByFriendId] = useState<Record<string, NudgeRowState>>({});
+  const [sharingProfile, setSharingProfile] = useState(false);
 
   useEffect(() => {
     if (!viewerId || candidates.length === 0) return;
@@ -117,6 +124,27 @@ export default function ActiveSynqEmptyState({ viewerId, candidates }: Props) {
     [viewerId]
   );
 
+  const handleShareProfile = useCallback(async () => {
+    if (sharingProfile) return;
+    setSharingProfile(true);
+    try {
+      const code = await fetchOrCreateInviteCode();
+      const shareUrl = buildProfileShareWebUrl(code);
+      if (!shareUrl) {
+        Alert.alert(
+          "Share unavailable",
+          "We couldn't generate your profile link yet. Please try again in a moment."
+        );
+        return;
+      }
+      await shareProfileLink(shareUrl);
+    } catch {
+      Alert.alert("Share unavailable", "Please try again in a moment.");
+    } finally {
+      setSharingProfile(false);
+    }
+  }, [sharingProfile]);
+
   const hasCandidates = candidates.length > 0;
 
   return (
@@ -125,7 +153,7 @@ export default function ActiveSynqEmptyState({ viewerId, candidates }: Props) {
       <Text style={styles.subtitle}>
         {hasCandidates
           ? "Nudge your friends to see if they're free."
-          : "Check back soon — or add more friends to grow your circle."}
+          : "Check back soon — or share your profile to grow your circle."}
       </Text>
 
       {hasCandidates ? (
@@ -146,7 +174,23 @@ export default function ActiveSynqEmptyState({ viewerId, candidates }: Props) {
             })}
           </View>
         </View>
-      ) : null}
+      ) : (
+        <View style={styles.growthSection}>
+          <TouchableOpacity
+            style={[synqOutlineAddBtn, styles.shareCta]}
+            onPress={() => void handleShareProfile()}
+            disabled={sharingProfile}
+            activeOpacity={0.85}
+            accessibilityRole="button"
+            accessibilityLabel="Share profile"
+          >
+            <Ionicons name="share-social-outline" size={20} color={ACCENT} />
+            <Text style={synqOutlineAddBtnText}>
+              {sharingProfile ? "Preparing…" : "Share profile"}
+            </Text>
+          </TouchableOpacity>
+        </View>
+      )}
     </View>
   );
 }
@@ -177,5 +221,13 @@ const styles = StyleSheet.create({
   },
   nudgeList: {
     gap: 10,
+  },
+  growthSection: {
+    marginTop: SPACE_5,
+    alignItems: "center",
+  },
+  shareCta: {
+    flexDirection: "row",
+    gap: 8,
   },
 });

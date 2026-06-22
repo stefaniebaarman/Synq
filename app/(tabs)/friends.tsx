@@ -68,6 +68,7 @@ import TabHeaderIconRow from "@/src/components/TabHeaderIconRow";
 import { useBlockedUsers } from "@/src/lib/blockedUsers";
 import { ignoreSnapshotPermissionDenied } from "@/src/lib/firestoreListeners";
 import { createFriendGroup } from "@/src/lib/friendGroups";
+import { friendLocationLine, resolveAvatar } from "@/src/lib/helpers";
 import {
   fetchSuggestedFriends,
   searchUsersForFriend,
@@ -119,10 +120,10 @@ import {
   type ViewStyle
 } from "react-native";
 import Animated, {
-  cancelAnimation,
   Easing,
   FadeIn,
   FadeInDown,
+  cancelAnimation,
   runOnJS,
   useAnimatedStyle,
   useReducedMotion,
@@ -135,11 +136,11 @@ import Animated, {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { auth, db } from "../../src/lib/firebase";
 import { FRIENDS_TAB_PRESS } from "../../src/lib/friendsTabEvents";
-import { registerDismissNavigationOverlaysHandler } from "../../src/lib/navigationOverlayEvents";
 import { LOCATION_PROMPT_CHECK_REQUEST } from "../../src/lib/locationPromptEvents";
+import { registerDismissNavigationOverlaysHandler } from "../../src/lib/navigationOverlayEvents";
 import {
-  friendProfileCacheByUser,
   friendIdsKey,
+  friendProfileCacheByUser,
   friendsListCacheByUser,
   hydrateMutualCountsForUsers,
   resolveMutualFriendCount,
@@ -153,7 +154,6 @@ import {
 import { useAuthRefresh } from "../_layout";
 import AlertModal from "../alert-modal";
 import ConfirmModal from "../confirm-modal";
-import { friendLocationLine, resolveAvatar } from "@/src/lib/helpers";
 
 const { width } = Dimensions.get("window");
 
@@ -257,9 +257,6 @@ function FriendsEmptyMainContent({
         </Text>
         <Text style={styles.emptyHeroSubtitle}>
           {`Build your circle — then see who's free.`}
-        </Text>
-        <Text style={styles.emptyHeroHint}>
-          Your friends will show up here once you connect.
         </Text>
       </Animated.View>
 
