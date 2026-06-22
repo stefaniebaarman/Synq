@@ -85,6 +85,7 @@ import {
   resolveMutualFriendsForTarget,
   warmFriendsAndConnectionsCache,
   warmOutgoingFriendRequestsCache,
+  communityGroupsCacheByUser,
 } from "../src/lib/socialCache";
 import AlertModal from "./alert-modal";
 import ConfirmModal from "./confirm-modal";
@@ -116,6 +117,20 @@ import {
   removeFriendMutualErrorMessage,
 } from "@/src/lib/friends";
 import { requestDismissNavigationOverlays } from "@/src/lib/navigationOverlayEvents";
+import {
+  subscribeJoinedCommunityGroups,
+  type CommunityGroup,
+} from "@/src/lib/communityGroups";
+
+function formatSharedCommunityGroupsLabel(groups: { name: string }[]): string | null {
+  const names = groups
+    .map((group) => String(group.name || "").trim())
+    .filter(Boolean);
+  if (names.length === 0) return null;
+  if (names.length === 1) return `Both in ${names[0]}`;
+  if (names.length === 2) return `Both in ${names[0]} and ${names[1]}`;
+  return `Both in ${names.slice(0, -1).join(", ")}, and ${names[names.length - 1]}`;
+}
 
 type FriendProfileProps = {
   embeddedFriendId?: string;
@@ -178,17 +193,6 @@ export default function FriendProfile({
   const handleBack = () => {
     goBackOrHome();
   };
-
-  const communityContextLabel = useMemo(() => {
-    if (from !== "community") return null;
-    const planTitle = String(communityPlanTitle || "").trim();
-    const groupName = String(communityGroupName || "").trim();
-    if (planTitle && groupName) {
-      return `You were both in for ${planTitle} in ${groupName}.`;
-    }
-    if (groupName) return `You met in ${groupName}.`;
-    return "You met through a community.";
-  }, [from, communityPlanTitle, communityGroupName]);
 
   const viewerId = auth.currentUser?.uid ?? "";
   const routeFriendId = Array.isArray(friendId) ? friendId[0] : friendId || "";
@@ -286,6 +290,35 @@ export default function FriendProfile({
   const { isBlocked } = useBlockedUsers();
   const userIsBlocked = friendKey ? isBlocked(friendKey) : false;
   const [hostDisplayNameByUid, setHostDisplayNameByUid] = useState<Record<string, string>>({});
+  const [viewerCommunityGroups, setViewerCommunityGroups] = useState<CommunityGroup[]>(
+    () => (viewerId ? communityGroupsCacheByUser[viewerId] ?? [] : [])
+  );
+
+  const sharedCommunityGroups = useMemo(() => {
+    if (!friendKey) return [];
+    return viewerCommunityGroups.filter((group) => group.memberIds.includes(friendKey));
+  }, [viewerCommunityGroups, friendKey]);
+
+  const communityContextLabel = useMemo(() => {
+    const routeGroupId = String(communityGroupId || "").trim();
+    const routeGroupName = String(communityGroupName || "").trim();
+
+    if (sharedCommunityGroups.length > 0) {
+      const ordered = routeGroupId
+        ? [
+            ...sharedCommunityGroups.filter((group) => group.id === routeGroupId),
+            ...sharedCommunityGroups.filter((group) => group.id !== routeGroupId),
+          ]
+        : sharedCommunityGroups;
+      return formatSharedCommunityGroupsLabel(ordered);
+    }
+
+    if (routeGroupName) {
+      return `Both in ${routeGroupName}`;
+    }
+
+    return null;
+  }, [sharedCommunityGroups, communityGroupId, communityGroupName]);
 
   const showAlert = (title: string, message: string) => {
     setAlertTitle(title);
@@ -314,8 +347,8 @@ export default function FriendProfile({
   }, [friendKey, goBackOrHome]);
 
   const showFriendOpenPlansSection = useMemo(
-    () => filterOutPastOpenPlans(friend?.events).length > 0,
-    [friend?.events]
+    () => isFriend && filterOutPastOpenPlans(friend?.events).length > 0,
+    [isFriend, friend?.events]
   );
 
   const isInSharedPlanWithFriend = (e: any, myUid: string, friendUid: string) => {
@@ -384,6 +417,21 @@ export default function FriendProfile({
     };
     hydrateJoinedPlans();
   }, [friendKey]);
+
+  useEffect(() => {
+    if (!viewerId) return;
+    const cached = communityGroupsCacheByUser[viewerId];
+    if (cached) setViewerCommunityGroups(cached);
+    const unsub = subscribeJoinedCommunityGroups(
+      viewerId,
+      (groups) => {
+        communityGroupsCacheByUser[viewerId] = groups;
+        setViewerCommunityGroups(groups);
+      },
+      () => {}
+    );
+    return unsub;
+  }, [viewerId]);
 
   useEffect(() => {
     if (!viewerId || !isFriend) {
@@ -1178,12 +1226,21 @@ export default function FriendProfile({
               {friend.displayName || "User"}
             </Text>
 
-            {locationText && (
+            {locationText ? (
               <View style={styles.locationRow}>
                 <Ionicons name="location-outline" size={14} color={MUTED2} />
                 <Text style={styles.locationText}>{locationText}</Text>
               </View>
-            )}
+            ) : null}
+
+            {!isFriend && communityContextLabel ? (
+              <View style={styles.communityContextRow}>
+                <Ionicons name="people-outline" size={14} color={MUTED2} />
+                <Text style={styles.communityContextText} numberOfLines={2}>
+                  {communityContextLabel}
+                </Text>
+              </View>
+            ) : null}
 
             {lastSynq ? (
               <Text style={styles.lastSynqText}>
@@ -1209,9 +1266,6 @@ export default function FriendProfile({
           </View>
         ) : !isFriend ? (
           <View style={styles.profileActionWrap}>
-            {communityContextLabel ? (
-              <Text style={styles.communityContextText}>{communityContextLabel}</Text>
-            ) : null}
             <TouchableOpacity
               activeOpacity={0.8}
               style={[synqOutlineAddBtn, requestSent && synqOutlineAddBtnDisabled]}
@@ -1293,7 +1347,9 @@ export default function FriendProfile({
           </View>
         )}
 
-        {mutualFriends.length > 0 ? <View style={styles.profileSectionDivider} /> : null}
+        {mutualFriends.length > 0 ? (
+          <View style={styles.profileSectionDivider} />
+        ) : null}
 
         <View
           style={[
@@ -1742,6 +1798,18 @@ const styles = StyleSheet.create({
     marginLeft: 4,
   },
 
+  communityContextRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginTop: 6,
+  },
+
+  communityContextText: {
+    ...profileLocationText,
+    marginLeft: 4,
+    flexShrink: 1,
+  },
+
   lastSynqText: {
     color: "rgba(255,255,255,0.4)",
     marginTop: 6,
@@ -1754,29 +1822,21 @@ const styles = StyleSheet.create({
   profileSection: {},
 
   profileSectionLead: {
-    marginTop: 12,
+    marginTop: 16,
   },
 
   profileSectionDivider: {
     height: StyleSheet.hairlineWidth,
     backgroundColor: BORDER,
-    marginVertical: 20,
+    marginTop: 16,
+    marginBottom: 16,
   },
 
   profileActionWrap: {
     width: "100%",
-    marginTop: 22,
-    marginBottom: 4,
+    marginTop: 10,
     alignItems: "center",
-    gap: 12,
-  },
-  communityContextText: {
-    color: MUTED2,
-    fontFamily: fonts.book,
-    fontSize: TYPE_LEAD,
-    lineHeight: 20,
-    textAlign: "center",
-    paddingHorizontal: 24,
+    gap: 10,
   },
 
   profileSectionLabel: profileScreenSectionTitle,
