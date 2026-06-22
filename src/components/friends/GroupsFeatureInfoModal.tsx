@@ -6,10 +6,12 @@ import {
   MODAL_RADIUS,
   MUTED2,
   ON_ACCENT_TEXT,
+  OVERLAY_DARK,
   TEXT,
   TYPE_BODY,
   TYPE_SECTION,
   fonts,
+  primaryButtonText,
 } from "@/constants/Variables";
 import {
   Modal,
@@ -64,7 +66,7 @@ export default function GroupsFeatureInfoModal({ visible, variant, onClose }: Pr
             accessibilityRole="button"
             accessibilityLabel="Got it"
           >
-            <Text style={styles.buttonText}>Got it</Text>
+            <Text style={primaryButtonText}>Got it</Text>
           </TouchableOpacity>
         </View>
       </View>
@@ -75,7 +77,7 @@ export default function GroupsFeatureInfoModal({ visible, variant, onClose }: Pr
 const styles = StyleSheet.create({
   overlay: {
     flex: 1,
-    backgroundColor: "rgba(0,0,0,0.72)",
+    backgroundColor: OVERLAY_DARK,
     justifyContent: "center",
     alignItems: "center",
     paddingHorizontal: 28,
@@ -115,11 +117,5 @@ const styles = StyleSheet.create({
     paddingHorizontal: 28,
     alignItems: "center",
     backgroundColor: ACCENT,
-  },
-  buttonText: {
-    fontFamily: fonts.heavy,
-    fontSize: TYPE_BODY,
-    color: ON_ACCENT_TEXT,
-    letterSpacing: 0.04,
   },
 });

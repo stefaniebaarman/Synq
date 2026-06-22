@@ -1,5 +1,7 @@
 import {
   ACCENT,
+  ACCENT_BORDER,
+  ACCENT_FILL,
   BG,
   BORDER,
   BORDER_HAIRLINE,
@@ -8,6 +10,7 @@ import {
   MUTED2,
   MUTED3,
   ON_ACCENT_TEXT,
+  OVERLAY_DARK,
   RADIUS_LG,
   SURFACE,
   SURFACE_MUTED,
@@ -434,7 +437,7 @@ export default function CommunityGroupSearchSheet({
 const styles = StyleSheet.create({
   overlay: {
     flex: 1,
-    backgroundColor: "rgba(0,0,0,0.72)",
+    backgroundColor: OVERLAY_DARK,
     justifyContent: "flex-end",
   },
   sheet: {
@@ -513,8 +516,8 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
   },
   categoryChipOn: {
-    backgroundColor: "rgba(0,255,133,0.12)",
-    borderColor: "rgba(0,255,133,0.55)",
+    backgroundColor: ACCENT_FILL,
+    borderColor: ACCENT_BORDER,
   },
   categoryChipText: profileInterestPillText,
   categoryChipTextOn: profileInterestPillTextActive,

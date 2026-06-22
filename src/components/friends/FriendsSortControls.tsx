@@ -3,12 +3,15 @@ import {
   BG,
   BORDER_SOFT,
   BUTTON_RADIUS,
+  FRIENDS_SEARCH_BORDER,
   GROUP_BORDER,
   MUTED,
   MUTED2,
   MUTED3,
+  OVERLAY_HEAVY,
   RADIUS_LG,
   SURFACE,
+  SURFACE_INPUT,
   TEXT,
   TYPE_CAPTION,
   TYPE_SUBHEAD,
@@ -41,8 +44,8 @@ export const FRIENDS_SORT_LABELS: Record<FriendsSortMode, string> = {
   distance: "Distance",
 };
 
-const SORT_SURFACE = "#0A0B0D";
-const SORT_BORDER = "rgba(255,255,255,0.12)";
+const SORT_SURFACE = SURFACE_INPUT;
+const SORT_BORDER = FRIENDS_SEARCH_BORDER;
 const SORT_MENU_FADE_MS = 280;
 
 export function FriendsSortTrigger({
@@ -195,7 +198,7 @@ const styles = StyleSheet.create({
   },
   sortMenuOverlay: {
     flex: 1,
-    backgroundColor: "rgba(0,0,0,0.78)",
+    backgroundColor: OVERLAY_HEAVY,
     justifyContent: "flex-end",
   },
   sortMenuBackdrop: {

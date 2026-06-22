@@ -1,6 +1,7 @@
 import {
   ACCENT,
   MUTED2,
+  MUTED3,
   TYPE_SECTION,
   TYPE_SUBHEAD,
   fonts,
@@ -78,7 +79,7 @@ const styles = StyleSheet.create({
     fontFamily: fonts.book,
     fontSize: TYPE_SUBHEAD,
     lineHeight: 26,
-    color: "rgba(255,255,255,0.22)",
+    color: MUTED3,
     marginTop: 1,
   },
 });

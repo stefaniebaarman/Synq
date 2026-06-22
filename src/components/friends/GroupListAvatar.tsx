@@ -5,6 +5,7 @@ import {
   BORDER_SOFT,
   SURFACE_ELEVATED,
   SURFACE_MUTED,
+  SURFACE_RAISED,
 } from "@/constants/Variables";
 import { Ionicons } from "@expo/vector-icons";
 import { Image as ExpoImage } from "expo-image";
@@ -12,7 +13,7 @@ import React, { useMemo } from "react";
 import { StyleSheet, View } from "react-native";
 
 const AVATAR_SLOT = 48;
-const GROUP_SURFACE = "#0E1012";
+const GROUP_SURFACE = SURFACE_RAISED;
 
 type FriendLike = { id: string; imageurl?: string };
 

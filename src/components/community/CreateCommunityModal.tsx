@@ -1,6 +1,9 @@
 import AlertModal from "@/app/alert-modal";
 import {
   ACCENT,
+  ACCENT_BORDER,
+  ACCENT_BORDER_SUBTLE,
+  ACCENT_FILL,
   BG,
   BORDER_HAIRLINE,
   BORDER_SOFT,
@@ -8,6 +11,8 @@ import {
   DIVIDER,
   MUTED2,
   ON_ACCENT_TEXT,
+  OVERLAY_DARK,
+  OVERLAY_MID,
   RADIUS_LG,
   SHEET_OVERLAY,
   TEXT,
@@ -227,7 +232,7 @@ export default function CreateCommunityModal({
                         contentFit="cover"
                       />
                       <LinearGradient
-                        colors={["transparent", "rgba(0,0,0,0.65)"]}
+                        colors={["transparent", OVERLAY_MID]}
                         style={styles.coverImageFade}
                       />
                       <View style={styles.coverChangePill}>
@@ -377,7 +382,7 @@ const styles = StyleSheet.create({
   overlay: {
     flex: 1,
     justifyContent: "flex-end",
-    backgroundColor: "rgba(0,0,0,0.72)",
+    backgroundColor: OVERLAY_DARK,
   },
   sheet: {
     backgroundColor: BG,
@@ -442,9 +447,9 @@ const styles = StyleSheet.create({
     borderRadius: 24,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: "rgba(0,255,133,0.1)",
+    backgroundColor: ACCENT_FILL,
     borderWidth: StyleSheet.hairlineWidth,
-    borderColor: "rgba(0,255,133,0.22)",
+    borderColor: ACCENT_BORDER_SUBTLE,
     marginBottom: 4,
   },
   coverEmptyTitle: {
@@ -511,8 +516,8 @@ const styles = StyleSheet.create({
     backgroundColor: GROUP_SURFACE,
   },
   categoryChipOn: {
-    borderColor: "rgba(0,255,133,0.45)",
-    backgroundColor: "rgba(0,255,133,0.1)",
+    borderColor: ACCENT_BORDER,
+    backgroundColor: ACCENT_FILL,
   },
   categoryChipText: {
     color: MUTED2,

@@ -1,6 +1,7 @@
 import AlertModal from "@/app/alert-modal";
 import {
   ACCENT,
+  ACCENT_FILL_SUBTLE,
   BG,
   BORDER,
   BORDER_SOFT,
@@ -9,10 +10,13 @@ import {
   MODAL_RADIUS,
   MUTED2,
   ON_ACCENT_TEXT,
+  OVERLAY_HEAVY,
+  PLACEHOLDER_DARK,
   PRIMARY_CTA_WIDTH,
   SURFACE_DEEP,
   SURFACE_DEEPER,
   TEXT,
+  TEXT_MUTED_LIGHT,
   TYPE_BODY,
   TYPE_BUTTON,
   TYPE_FINE,
@@ -263,7 +267,7 @@ export default function CreateCommunityPlanModal({ visible, busy, onClose, onCre
                   <View>
                     <TextInput
                       placeholder="What's the plan?"
-                      placeholderTextColor="#555"
+                      placeholderTextColor={PLACEHOLDER_DARK}
                       style={styles.planInput}
                       value={title}
                       onFocus={() => setTimePickerOpen(false)}
@@ -309,7 +313,7 @@ export default function CreateCommunityPlanModal({ visible, busy, onClose, onCre
                         <Ionicons
                           name="time-outline"
                           size={18}
-                          color={timePickerOpen ? ACCENT : "#888"}
+                          color={timePickerOpen ? ACCENT : TEXT_MUTED_LIGHT}
                         />
                         <View style={styles.timeFieldTextWrap}>
                           <Text style={styles.timeFieldLabel}>Time</Text>
@@ -329,7 +333,7 @@ export default function CreateCommunityPlanModal({ visible, busy, onClose, onCre
                     <View style={styles.locationFieldWrap}>
                       <TextInput
                         placeholder="Add location (optional)"
-                        placeholderTextColor="#555"
+                        placeholderTextColor={PLACEHOLDER_DARK}
                         style={styles.planInputSecondary}
                         value={location}
                         onFocus={() => setTimePickerOpen(false)}
@@ -346,7 +350,7 @@ export default function CreateCommunityPlanModal({ visible, busy, onClose, onCre
                       activeOpacity={0.88}
                     >
                       {busy ? (
-                        <ActivityIndicator color="#061006" size="small" />
+                        <ActivityIndicator color={ON_ACCENT_TEXT} size="small" />
                       ) : (
                         <Text style={styles.popupPostBtnText}>Share</Text>
                       )}
@@ -371,7 +375,7 @@ export default function CreateCommunityPlanModal({ visible, busy, onClose, onCre
 const styles = StyleSheet.create({
   popupOverlay: {
     flex: 1,
-    backgroundColor: "rgba(0,0,0,0.78)",
+    backgroundColor: OVERLAY_HEAVY,
     justifyContent: "flex-start",
     alignItems: "center",
     paddingHorizontal: 20,
@@ -479,7 +483,7 @@ const styles = StyleSheet.create({
   },
   timeFieldActive: {
     borderColor: ACCENT,
-    backgroundColor: "rgba(0,255,133,0.08)",
+    backgroundColor: ACCENT_FILL_SUBTLE,
   },
   timeFieldTextWrap: {
     flex: 1,

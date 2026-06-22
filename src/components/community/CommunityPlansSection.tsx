@@ -1,5 +1,8 @@
 import {
   ACCENT,
+  ACCENT_FILL,
+  ACCENT_FILL_MUTED,
+  ACCENT_SUBTLE,
   BORDER,
   MUTED2,
   RADIUS_LG,
@@ -523,8 +526,8 @@ const styles = StyleSheet.create({
     minHeight: 54,
     borderRadius: RADIUS_MD,
     borderWidth: StyleSheet.hairlineWidth,
-    borderColor: "rgba(0,255,133,0.28)",
-    backgroundColor: "rgba(0,255,133,0.06)",
+    borderColor: ACCENT_SUBTLE,
+    backgroundColor: ACCENT_FILL_MUTED,
   },
   startSynqIconWrap: {
     width: 28,
@@ -619,7 +622,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   pillJoined: {
-    backgroundColor: "rgba(0,255,133,0.12)",
+    backgroundColor: ACCENT_FILL,
   },
   pillText: {
     fontFamily: fonts.medium,

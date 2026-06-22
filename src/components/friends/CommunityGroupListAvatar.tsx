@@ -1,5 +1,7 @@
 import {
   ACCENT,
+  ACCENT_BORDER_SUBTLE,
+  ACCENT_FILL,
   BORDER_SOFT,
   SURFACE_ELEVATED,
 } from "@/constants/Variables";
@@ -63,8 +65,8 @@ const styles = StyleSheet.create({
     borderRadius: AVATAR_SIZE / 2,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: "rgba(0,255,133,0.1)",
+    backgroundColor: ACCENT_FILL,
     borderWidth: StyleSheet.hairlineWidth,
-    borderColor: "rgba(0,255,133,0.22)",
+    borderColor: ACCENT_BORDER_SUBTLE,
   },
 });

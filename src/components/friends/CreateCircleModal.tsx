@@ -7,6 +7,7 @@ import {
   MUTED2,
   MUTED3,
   ON_ACCENT_TEXT,
+  OVERLAY_DARK,
   SURFACE,
   TEXT,
   TYPE_BODY,
@@ -260,7 +261,7 @@ const styles = StyleSheet.create({
   overlay: {
     flex: 1,
     justifyContent: "flex-end",
-    backgroundColor: "rgba(0,0,0,0.72)",
+    backgroundColor: OVERLAY_DARK,
   },
   sheet: {
     backgroundColor: BG,

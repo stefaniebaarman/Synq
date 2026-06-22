@@ -6,6 +6,7 @@ import {
   MUTED2,
   MUTED3,
   ON_ACCENT_TEXT,
+  OVERLAY_DARK,
   SURFACE_SUBTLE,
   TEXT,
   TYPE_BODY,
@@ -135,7 +136,7 @@ export default function CreateGroupModal({
 const styles = StyleSheet.create({
   overlay: {
     flex: 1,
-    backgroundColor: "rgba(0,0,0,0.72)",
+    backgroundColor: OVERLAY_DARK,
   },
   sheetAnchor: {
     width: "100%",
