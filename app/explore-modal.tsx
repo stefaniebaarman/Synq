@@ -149,7 +149,6 @@ export default function ExploreModal({
     errorMessage,
 }: Props) {
     const insets = useSafeAreaInsets();
-    const categoryImageUrl = vibeCategoryImageUrl(currentCategory);
 
     if (!visible) return null;
 
@@ -299,17 +298,10 @@ export default function ExploreModal({
                                             }
                                         >
                                             <View style={styles.placeIconWrap}>
-                                                <ExpoImage
-                                                    source={{
-                                                        uri:
-                                                            typeof item.imageUrl === "string" &&
-                                                            item.imageUrl.startsWith("http")
-                                                                ? item.imageUrl
-                                                                : categoryImageUrl,
-                                                    }}
-                                                    style={styles.placeImage}
-                                                    contentFit="cover"
-                                                    transition={120}
+                                                <Ionicons
+                                                    name="location-outline"
+                                                    size={20}
+                                                    color={MUTED2}
                                                 />
                                             </View>
                                             <View style={styles.placeCopy}>
@@ -551,11 +543,8 @@ const styles = StyleSheet.create({
         backgroundColor: SURFACE_SUBTLE,
         borderWidth: StyleSheet.hairlineWidth,
         borderColor: GROUP_BORDER,
-        overflow: "hidden",
-    },
-    placeImage: {
-        width: "100%",
-        height: "100%",
+        alignItems: "center",
+        justifyContent: "center",
     },
     placeCopy: {
         flex: 1,
