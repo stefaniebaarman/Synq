@@ -18,6 +18,8 @@ import {
   TYPE_LEAD,
   TYPE_TITLE,
   fonts,
+  profileLocationText,
+  profileNameText,
 } from "@/constants/Variables";
 import { Image as ExpoImage } from "expo-image";
 import { LinearGradient } from "expo-linear-gradient";
@@ -164,18 +166,14 @@ const styles = StyleSheet.create({
     height: "100%",
   },
   name: {
-    color: TEXT,
-    fontFamily: fonts.heavy,
-    fontSize: TYPE_TITLE,
+    ...profileNameText,
     lineHeight: 32,
     textAlign: "center",
     letterSpacing: 0.2,
     maxWidth: "100%",
   },
   location: {
-    color: MUTED2,
-    fontFamily: fonts.book,
-    fontSize: TYPE_LEAD,
+    ...profileLocationText,
     textAlign: "center",
     marginTop: 6,
     maxWidth: "100%",

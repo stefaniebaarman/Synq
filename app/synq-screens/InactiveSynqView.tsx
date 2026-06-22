@@ -22,8 +22,8 @@ import {
   TYPE_BODY,
   TYPE_BUTTON,
   TYPE_CAPTION,
-  TYPE_TITLE,
   fonts,
+  profileNameText,
 } from "@/constants/Variables";
 import type { FriendGroup } from "@/src/lib/friendGroups";
 import { formatAudienceSelectionLabel, type SynqAudienceSelection } from "@/src/lib/synqBroadcast";
@@ -454,10 +454,8 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   title: {
-    color: TEXT,
-    fontSize: TYPE_TITLE,
+    ...profileNameText,
     lineHeight: 36,
-    fontFamily: fonts.heavy,
     letterSpacing: -0.45,
     textAlign: "center",
     marginBottom: SPACE_6 + SPACE_4,

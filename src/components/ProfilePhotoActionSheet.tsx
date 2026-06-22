@@ -7,6 +7,7 @@ import {
   TEXT,
   TYPE_SUBHEAD,
   fonts,
+  sheetTitleText,
 } from "@/constants/Variables";
 import { Ionicons } from "@expo/vector-icons";
 import { useBottomTabBarHeight } from "@react-navigation/bottom-tabs";
@@ -148,9 +149,5 @@ const styles = StyleSheet.create({
     paddingVertical: 16,
     alignItems: "center",
   },
-  cancelText: {
-    color: TEXT,
-    fontSize: TYPE_SUBHEAD,
-    fontFamily: fonts.heavy,
-  },
+  cancelText: sheetTitleText,
 });

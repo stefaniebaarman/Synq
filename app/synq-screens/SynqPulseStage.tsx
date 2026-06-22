@@ -4,8 +4,7 @@ import {
   ACCENT_FILL_STRONG,
   BG,
   MUTED,
-  TYPE_MODAL_TITLE,
-  fonts,
+  modalTitleText,
   synqSvg,
 } from "@/constants/Variables";
 import { Image as ExpoImage } from "expo-image";
@@ -250,10 +249,9 @@ const styles = StyleSheet.create({
     height: PULSE_SIZE,
   },
   title: {
+    ...modalTitleText,
     marginTop: 28,
     color: MUTED,
-    fontSize: TYPE_MODAL_TITLE,
-    fontFamily: fonts.heavy,
     letterSpacing: 0.2,
   },
 });

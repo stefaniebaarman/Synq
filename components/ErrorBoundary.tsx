@@ -6,8 +6,9 @@ import {
   MUTED2,
   TEXT,
   TYPE_BODY,
-  TYPE_TITLE,
   fonts,
+  modalBodyText,
+  profileNameText,
   primaryButtonText,
 } from "../constants/Variables";
 import { captureClientError } from "../src/lib/sentryInit";
@@ -65,16 +66,13 @@ const styles = StyleSheet.create({
     padding: 24,
   },
   title: {
-    color: TEXT,
-    fontFamily: fonts.heavy,
-    fontSize: TYPE_TITLE,
-    marginBottom: 12,
+    ...profileNameText,
     textAlign: "center",
+    marginBottom: 12,
   },
   body: {
-    color: MUTED2,
+    ...modalBodyText,
     fontFamily: fonts.medium,
-    fontSize: TYPE_BODY,
     textAlign: "center",
     marginBottom: 28,
   },

@@ -19,7 +19,7 @@ import {
   TYPE_BODY,
   TYPE_CAPTION,
   TYPE_MODAL_TITLE,
-  TYPE_SECTION,
+  heroTitleText,
   fonts,
 } from "@/constants/Variables";
 import CloseButton from "@/src/components/CloseButton";
@@ -408,10 +408,7 @@ const styles = StyleSheet.create({
     marginBottom: 18,
   },
   title: {
-    fontFamily: fonts.heavy,
-    fontSize: TYPE_SECTION,
-    color: TEXT,
-    letterSpacing: 0.06,
+    ...heroTitleText,
   },
   scroll: {
     flexShrink: 1,

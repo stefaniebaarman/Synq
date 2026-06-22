@@ -22,6 +22,7 @@ import {
   fonts,
   profileInterestPillText,
   profileInterestPillTextActive,
+  profileNameText,
 } from "@/constants/Variables";
 import CloseButton from "@/src/components/CloseButton";
 import CommunityGroupListAvatar from "@/src/components/friends/CommunityGroupListAvatar";
@@ -486,10 +487,8 @@ const styles = StyleSheet.create({
     marginRight: -10,
   },
   title: {
-    color: TEXT,
-    fontSize: TYPE_TITLE,
+    ...profileNameText,
     lineHeight: 32,
-    fontFamily: fonts.heavy,
     letterSpacing: 0.15,
   },
   searchRow: {

@@ -1,11 +1,10 @@
 import {
   ACCENT,
+  heroTitleText,
   MUTED2,
   MUTED3,
-  TYPE_SECTION,
   TYPE_SUBHEAD,
   fonts,
-  stackScreenHeaderTitle,
 } from "@/constants/Variables";
 import React from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
@@ -62,8 +61,7 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   title: {
-    ...stackScreenHeaderTitle,
-    fontSize: TYPE_SECTION,
+    ...heroTitleText,
     lineHeight: 26,
     includeFontPadding: false,
   },

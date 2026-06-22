@@ -14,7 +14,7 @@ import {
   TEXT,
   TYPE_BODY,
   TYPE_CAPTION,
-  TYPE_SECTION,
+  heroTitleText,
   fonts,
   synqOutlineAddBtnCompact,
   synqOutlineAddBtnDisabled,
@@ -773,11 +773,7 @@ const styles = StyleSheet.create({
 
   heading: {
 
-    color: TEXT,
-
-    fontSize: TYPE_SECTION,
-
-    fontFamily: fonts.heavy,
+    ...heroTitleText,
 
   },
 

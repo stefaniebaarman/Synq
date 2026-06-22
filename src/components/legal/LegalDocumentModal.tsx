@@ -4,9 +4,7 @@ import {
   MODAL_RADIUS,
   OVERLAY_DARK,
   SURFACE,
-  TEXT,
-  TYPE_SECTION,
-  fonts,
+  heroTitleText,
 } from "@/constants/Variables";
 import CloseButton from "@/src/components/CloseButton";
 import React from "react";
@@ -97,10 +95,8 @@ const styles = StyleSheet.create({
     backgroundColor: SURFACE,
   },
   title: {
+    ...heroTitleText,
     flex: 1,
-    color: TEXT,
-    fontFamily: fonts.heavy,
-    fontSize: TYPE_SECTION,
     lineHeight: 26,
     marginRight: 12,
   },

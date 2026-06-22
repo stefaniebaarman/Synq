@@ -21,7 +21,7 @@ import {
   TYPE_BUTTON,
   TYPE_FINE,
   TYPE_LEAD,
-  TYPE_MODAL_TITLE,
+  modalTitleText,
   fonts,
 } from "@/constants/Variables";
 import CloseButton from "@/src/components/CloseButton";
@@ -405,10 +405,8 @@ const styles = StyleSheet.create({
     marginBottom: 4,
   },
   popupTitle: {
+    ...modalTitleText,
     flex: 1,
-    color: TEXT,
-    fontFamily: fonts.heavy,
-    fontSize: TYPE_MODAL_TITLE,
     letterSpacing: -0.2,
   },
   popupScrollContent: {

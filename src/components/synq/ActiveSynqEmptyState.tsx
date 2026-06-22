@@ -4,10 +4,9 @@ import {
   SPACE_3,
   SPACE_4,
   SPACE_5,
-  TEXT,
-  TYPE_MODAL_TITLE,
   TYPE_SUBHEAD,
-  fonts,
+  modalBodyText,
+  modalTitleText,
 } from "@/constants/Variables";
 import SynqNudgeCard from "@/src/components/synq/SynqNudgeCard";
 import {
@@ -162,16 +161,12 @@ const styles = StyleSheet.create({
     width: "100%",
   },
   title: {
-    color: TEXT,
-    fontFamily: fonts.heavy,
-    fontSize: TYPE_MODAL_TITLE,
+    ...modalTitleText,
     lineHeight: 32,
-    letterSpacing: 0.15,
     textAlign: "center",
   },
   subtitle: {
-    color: MUTED2,
-    fontFamily: fonts.book,
+    ...modalBodyText,
     fontSize: TYPE_SUBHEAD,
     lineHeight: 24,
     textAlign: "center",

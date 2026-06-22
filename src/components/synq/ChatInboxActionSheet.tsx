@@ -7,9 +7,9 @@ import {
   SHEET_OVERLAY,
   SHEET_SURFACE,
   TEXT,
-  TYPE_SUBHEAD,
-  fonts,
   listRowTitleText,
+  sheetTitleText,
+  TYPE_SUBHEAD,
 } from "@/constants/Variables";
 import { Ionicons } from "@expo/vector-icons";
 import {
@@ -150,9 +150,5 @@ const styles = StyleSheet.create({
     paddingVertical: 16,
     alignItems: "center",
   },
-  cancelText: {
-    color: TEXT,
-    fontSize: TYPE_SUBHEAD,
-    fontFamily: fonts.heavy,
-  },
+  cancelText: sheetTitleText,
 });

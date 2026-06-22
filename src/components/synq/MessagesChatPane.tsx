@@ -22,6 +22,7 @@ import {
   TYPE_LEAD,
   TYPE_SECTION,
   fonts,
+  heroTitleText,
 } from "@/constants/Variables";
 import CloseButton from "@/src/components/CloseButton";
 import CloseIcon from "@/src/components/CloseIcon";
@@ -1437,9 +1438,7 @@ const chatHeaderOverlayStyles = RNStyleSheet.create({
     letterSpacing: 0.1,
   },
   expandedHeadline: {
-    color: TEXT,
-    fontSize: TYPE_SECTION,
-    fontFamily: fonts.heavy,
+    ...heroTitleText,
     letterSpacing: 0.15,
   },
   showLessLink: {

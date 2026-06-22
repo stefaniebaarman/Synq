@@ -18,6 +18,7 @@ import {
   TEXT,
   TYPE_SUBHEAD,
   fonts,
+  sheetTitleText,
 } from "../../constants/Variables";
 
 type Props = {
@@ -151,9 +152,5 @@ const styles = StyleSheet.create({
     paddingVertical: 16,
     alignItems: "center",
   },
-  cancelText: {
-    color: TEXT,
-    fontSize: TYPE_SUBHEAD,
-    fontFamily: fonts.heavy,
-  },
+  cancelText: sheetTitleText,
 });
