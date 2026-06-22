@@ -164,7 +164,7 @@ import {
   subscribeFriendsIdsMultiplexed,
   subscribeUserDocMultiplexed,
 } from "../../src/lib/socialListenerHub";
-import { computeTopSynqRows, getCachedOwnProfile } from "../../src/lib/ownProfileCache";
+import { getCachedOwnProfile } from "../../src/lib/ownProfileCache";
 import { userHasLocation } from "../../src/lib/userProfile";
 import { useAuthRefresh } from '../_layout';
 import AlertModal from '../alert-modal';
@@ -380,6 +380,9 @@ export default function SynqScreen() {
   });
   const [changeAudienceVisible, setChangeAudienceVisible] = useState(false);
   const [friendIds, setFriendIds] = useState<string[]>([]);
+  const [nudgeCandidates, setNudgeCandidates] = useState<any[]>([]);
+  const nudgeEmptyEpochRef = useRef(0);
+  const nudgePickRef = useRef<{ epoch: number; picks: any[] } | null>(null);
   const [showDeleteChatModal, setShowDeleteChatModal] = useState(false);
   const [pendingDeleteChatId, setPendingDeleteChatId] = useState<string | null>(null);
   const [mergeSelectMode, setMergeSelectMode] = useState(false);
@@ -937,16 +940,48 @@ export default function SynqScreen() {
     });
   }, [availableFriends, isBlocked, userProfile, resolvedFriendIds, status, user?.uid]);
 
-  const nudgeCandidates = useMemo(() => {
+  useEffect(() => {
     const uid = user?.uid;
-    if (!uid || status !== "active" || visibleAvailableFriends.length > 0) return [];
+    if (!uid || status !== "active" || visibleAvailableFriends.length > 0) {
+      if (visibleAvailableFriends.length > 0) {
+        nudgeEmptyEpochRef.current += 1;
+      }
+      nudgePickRef.current = null;
+      setNudgeCandidates([]);
+      return;
+    }
+
     const friends = friendsListCacheByUser[uid] ?? [];
-    if (!friends.length) return [];
     const activeIds = new Set(availableFriends.map((f) => f.id));
-    return computeTopSynqRows(uid, friends)
-      .map(({ friend }) => friend)
-      .filter((f) => !activeIds.has(f.id) && !isBlocked(f.id))
-      .slice(0, 3);
+    const pool = friends.filter((f) => !activeIds.has(f.id) && !isBlocked(f.id));
+
+    if (!pool.length) {
+      setNudgeCandidates([]);
+      return;
+    }
+
+    const epoch = nudgeEmptyEpochRef.current;
+    const cached = nudgePickRef.current;
+    if (cached?.epoch === epoch) {
+      const poolById = new Map(pool.map((f) => [f.id, f]));
+      const picks = cached.picks
+        .map((f) => poolById.get(f.id))
+        .filter(Boolean)
+        .slice(0, 3);
+      if (picks.length) {
+        setNudgeCandidates(picks);
+        return;
+      }
+    }
+
+    const shuffled = [...pool];
+    for (let i = shuffled.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+    }
+    const picks = shuffled.slice(0, 3);
+    nudgePickRef.current = { epoch, picks };
+    setNudgeCandidates(picks);
   }, [
     user?.uid,
     status,

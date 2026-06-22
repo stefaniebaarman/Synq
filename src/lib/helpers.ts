@@ -201,11 +201,20 @@ export function getStackAvatarUris(
   return uris;
 }
 
-export const prefetchResolvedAvatar = (url?: any) => {
-  const resolved = resolveAvatar(url);
-  if (typeof resolved === "string" && resolved.startsWith("http")) {
-    ExpoImage.Image.prefetch(resolved, "memory-disk").catch(() => {});
+const prefetchedAvatarUrls = new Set<string>();
+const PREFETCHED_AVATAR_URL_CAP = 64;
+
+/** Prefetch a single avatar URL once per session (own profile only — avoid bulk friend prefetch). */
+export const prefetchResolvedAvatar = (url?: unknown) => {
+  if (!isCustomAvatar(url)) return;
+  const resolved = url.trim();
+  if (prefetchedAvatarUrls.has(resolved)) return;
+  prefetchedAvatarUrls.add(resolved);
+  if (prefetchedAvatarUrls.size > PREFETCHED_AVATAR_URL_CAP) {
+    prefetchedAvatarUrls.clear();
+    prefetchedAvatarUrls.add(resolved);
   }
+  ExpoImage.Image.prefetch(resolved, "memory-disk").catch(() => {});
 };
 
 export const wrapChatTitle = (text: string, maxChars = 30) => {
