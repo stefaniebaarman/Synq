@@ -1,4 +1,8 @@
-import { ACCENT } from "@/constants/Variables";
+import {
+  ACCENT,
+  ACCENT_BORDER_SUBTLE,
+  ACCENT_FILL,
+} from "@/constants/Variables";
 import { Ionicons } from "@expo/vector-icons";
 import {
   COMMUNITY_GROUP_CATEGORIES,
@@ -25,7 +29,7 @@ export function getCommunityCategoryIcon(
 }
 
 export const COMMUNITY_CATEGORY_ICON_RING = {
-  backgroundColor: "rgba(0,255,133,0.1)",
-  borderColor: "rgba(0,255,133,0.22)",
+  backgroundColor: ACCENT_FILL,
+  borderColor: ACCENT_BORDER_SUBTLE,
   iconColor: ACCENT,
 } as const;

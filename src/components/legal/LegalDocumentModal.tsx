@@ -2,6 +2,7 @@ import {
   BG,
   BORDER,
   MODAL_RADIUS,
+  OVERLAY_DARK,
   SURFACE,
   TEXT,
   TYPE_SECTION,
@@ -72,7 +73,7 @@ export default function LegalDocumentModal({
 const styles = StyleSheet.create({
   overlay: {
     flex: 1,
-    backgroundColor: "rgba(0,0,0,0.72)",
+    backgroundColor: OVERLAY_DARK,
     paddingHorizontal: 16,
     justifyContent: "center",
   },

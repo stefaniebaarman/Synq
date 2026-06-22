@@ -1,11 +1,17 @@
 import {
   ACCENT,
+  ACCENT_FILL_SUBTLE,
+  ACCENT_GRADIENT_END,
+  ACCENT_GRADIENT_START,
   BG,
   BORDER_HAIRLINE,
   BORDER_SOFT,
   DIVIDER,
+  FRIENDS_BORDER,
   GROUP_BORDER,
   MUTED2,
+  SHARE_GRADIENT_ACCENT,
+  SHARE_GRADIENT_START,
   SURFACE_WELL,
   TEXT,
   TYPE_CTA,
@@ -37,20 +43,20 @@ export default function ProfileShareCard({
   return (
     <View style={styles.outer}>
       <LinearGradient
-        colors={["#101215", "#090A0B", "#0B100E", "#090A0B"]}
+        colors={[SHARE_GRADIENT_START, BG, SHARE_GRADIENT_ACCENT, BG]}
         locations={[0, 0.38, 0.72, 1]}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
         style={styles.baseFill}
       />
       <LinearGradient
-        colors={["rgba(0,255,133,0.14)", "rgba(0,255,133,0.03)", "transparent"]}
+        colors={[ACCENT_GRADIENT_START, ACCENT_GRADIENT_END, "transparent"]}
         start={{ x: 0.5, y: 0 }}
         end={{ x: 0.5, y: 0.55 }}
         style={styles.accentWash}
       />
       <LinearGradient
-        colors={["transparent", "rgba(255,255,255,0.035)", "transparent"]}
+        colors={["transparent", FRIENDS_BORDER, "transparent"]}
         start={{ x: 0, y: 0.5 }}
         end={{ x: 1, y: 0.5 }}
         style={styles.sheen}
@@ -136,7 +142,7 @@ const styles = StyleSheet.create({
     width: 136,
     height: 136,
     borderRadius: 68,
-    backgroundColor: "rgba(0,255,133,0.08)",
+    backgroundColor: ACCENT_FILL_SUBTLE,
   },
   avatarRingOuter: {
     width: 124,

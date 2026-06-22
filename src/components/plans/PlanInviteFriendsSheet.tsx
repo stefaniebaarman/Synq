@@ -3,6 +3,7 @@ import {
   BG,
   BORDER,
   BORDER_STRONG,
+  BORDER_SUBTLE_HEX,
   BUTTON_RADIUS,
   DEFAULT_AVATAR,
   MUTED,
@@ -816,7 +817,7 @@ const styles = StyleSheet.create({
 
     borderBottomWidth: StyleSheet.hairlineWidth,
 
-    borderBottomColor: "#252525",
+    borderBottomColor: BORDER_SUBTLE_HEX,
 
   },
 

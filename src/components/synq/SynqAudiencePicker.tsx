@@ -1,5 +1,6 @@
 import {
   ACCENT,
+  ACCENT_FILL_FAINT,
   BORDER,
   MUTED2,
   MUTED3,
@@ -154,7 +155,7 @@ const styles = StyleSheet.create({
     borderTopColor: BORDER,
   },
   rowSelected: {
-    backgroundColor: "rgba(0,255,133,0.04)",
+    backgroundColor: ACCENT_FILL_FAINT,
   },
   rowPressed: {
     backgroundColor: SURFACE_FAINT,

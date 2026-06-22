@@ -1,4 +1,7 @@
-import { BG } from "@/constants/Variables";
+import {
+  BG,
+  SHADOW,
+} from "@/constants/Variables";
 import React, { useLayoutEffect, useState } from "react";
 import { Platform, StyleSheet, View } from "react-native";
 import { Gesture, GestureDetector } from "react-native-gesture-handler";
@@ -202,7 +205,7 @@ const styles = StyleSheet.create({
   },
   stackShadow: Platform.select({
     ios: {
-      shadowColor: "#000",
+      shadowColor: SHADOW,
       shadowOffset: { width: -3, height: 0 },
       shadowOpacity: 0.22,
       shadowRadius: 10,

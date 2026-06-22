@@ -29,9 +29,12 @@ import { friendLocationLine, resolveAvatar } from "@/src/lib/helpers";
 import {
   ACCENT,
   BG,
+  BG_FADE_MID,
+  BG_TRANSPARENT,
   MUTED2,
   PRIMARY_CTA_HEIGHT,
   TAB_BAR_SCROLL_INSET,
+  TEXT_MUTED_HEX,
 } from "../../../constants/Variables";
 
 /** Matches audience lead icon on the active Synq screen. */
@@ -237,7 +240,7 @@ export default function ActiveSynqSection({
                       <Ionicons
                         name="location-outline"
                         size={14}
-                        color="#999"
+                        color={TEXT_MUTED_HEX}
                         style={{ marginRight: 4 }}
                       />
                       <Text style={styles.locationText}>{locationLine}</Text>
@@ -273,7 +276,7 @@ export default function ActiveSynqSection({
           <>
             <LinearGradient
               pointerEvents="none"
-              colors={["rgba(9,10,11,0)", "rgba(9,10,11,0.5)", BG]}
+              colors={[BG_TRANSPARENT, BG_FADE_MID, BG]}
               locations={[0, 0.55, 1]}
               start={{ x: 0.5, y: 0 }}
               end={{ x: 0.5, y: 1 }}

@@ -3,10 +3,17 @@ import {
   BG,
   BORDER_HAIRLINE,
   BORDER_LIGHT,
+  BG_TRANSPARENT,
+  DESTRUCTIVE_IOS_FILL,
   HEADER_BLACK,
   MUTED2,
   MUTED3,
   ON_ACCENT_TEXT,
+  OVERLAY_CHAT_TOP,
+  OVERLAY_DARK,
+  OVERLAY_FADE,
+  OVERLAY_WHISPER,
+  OVERLAY_ZERO,
   PROFILE_HEADER_TOP_OFFSET,
   SURFACE_ELEVATED,
   TEXT,
@@ -97,11 +104,11 @@ const CHAT_LIST_INITIAL_RENDER_MIN = 10;
 const CHAT_ESTIMATED_ROW_HEIGHT = 76;
 const CHAT_HEADER_FADE_GRADIENT = [
   HEADER_BLACK,
-  "rgba(0,0,0,0.94)",
-  "rgba(0,0,0,0.72)",
-  "rgba(0,0,0,0.42)",
-  "rgba(0,0,0,0.16)",
-  "rgba(9,10,11,0)",
+  OVERLAY_CHAT_TOP,
+  OVERLAY_DARK,
+  OVERLAY_FADE,
+  OVERLAY_WHISPER,
+  BG_TRANSPARENT,
 ] as const;
 const CHAT_HEADER_FADE_LOCATIONS = [0, 0.1, 0.3, 0.52, 0.76, 1] as const;
 
@@ -1502,7 +1509,7 @@ const chatHeaderOverlayStyles = RNStyleSheet.create({
     marginTop: 2,
   },
   chatErrorBanner: {
-    backgroundColor: "rgba(255, 59, 48, 0.15)",
+    backgroundColor: DESTRUCTIVE_IOS_FILL,
     paddingHorizontal: 16,
     paddingVertical: 10,
     borderBottomWidth: RNStyleSheet.hairlineWidth,

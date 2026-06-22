@@ -1,6 +1,8 @@
 import { resolveAvatar } from "@/src/lib/helpers";
 import {
   ACCENT,
+  ACCENT_BORDER,
+  ACCENT_FILL_SUBTLE,
   BORDER_SOFT,
   MUTED2,
   RADIUS_MD,
@@ -163,8 +165,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     borderRadius: 10,
     borderWidth: 1,
-    borderColor: "rgba(0,255,133,0.45)",
-    backgroundColor: "rgba(0,255,133,0.08)",
+    borderColor: ACCENT_BORDER,
+    backgroundColor: ACCENT_FILL_SUBTLE,
     alignItems: "center",
     justifyContent: "center",
   },

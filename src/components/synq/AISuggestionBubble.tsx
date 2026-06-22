@@ -1,7 +1,9 @@
 import {
   BORDER,
+  HEART_LIKE,
   MUTED2,
   MUTED3,
+  SHADOW,
   SURFACE,
   SURFACE_ELEVATED,
   TEXT,
@@ -98,7 +100,7 @@ export default function AISuggestionBubble({
               key={i}
               style={[styles.heartReactionBadge, i > 0 && styles.heartReactionOverlap]}
             >
-              <Ionicons name="heart" size={12} color="#FF2D55" />
+              <Ionicons name="heart" size={12} color={HEART_LIKE} />
             </View>
           ))}
         </View>
@@ -191,7 +193,7 @@ const styles = StyleSheet.create({
     overflow: "hidden",
     ...Platform.select({
       ios: {
-        shadowColor: "#000",
+        shadowColor: SHADOW,
         shadowOffset: { width: 0, height: 1 },
         shadowOpacity: 0.35,
         shadowRadius: 2,
