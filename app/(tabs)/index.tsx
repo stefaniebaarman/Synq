@@ -2844,8 +2844,6 @@ const styles = StyleSheet.create({
     width: 34,
     height: 34,
     borderRadius: 17,
-    borderColor: BORDER,
-    borderWidth: 1.5,
     marginRight: 7,
   },
   messageBubbleColumn: {
@@ -2914,8 +2912,6 @@ const styles = StyleSheet.create({
     width: 44,
     height: 44,
     borderRadius: 22,
-    borderWidth: 1.5,
-    borderColor: MUTED3,
     backgroundColor: SURFACE_ELEVATED,
     marginRight: 12,
     alignItems: 'center',
@@ -3193,8 +3189,6 @@ const styles = StyleSheet.create({
     width: 48,
     height: 48,
     borderRadius: 24,
-    borderWidth: 2,
-    borderColor: MUTED3,
     backgroundColor: SURFACE_ELEVATED,
   },
   inboxStackWrap: {
@@ -3207,8 +3201,6 @@ const styles = StyleSheet.create({
     height: 42,
     borderRadius: 21,
     position: "absolute",
-    borderWidth: 2,
-    borderColor: BG,
     backgroundColor: SURFACE_ELEVATED,
   },
   inboxStackPhotoBack: {
@@ -3253,8 +3245,6 @@ const styles = StyleSheet.create({
     paddingVertical: 6,
     borderRadius: 14,
     backgroundColor: SURFACE_WELL,
-    borderWidth: 1,
-    borderColor: SURFACE_ELEVATED,
   },
   aiChipPremium: {
     flexDirection: "row",
@@ -3265,8 +3255,6 @@ const styles = StyleSheet.create({
     paddingVertical: 4,
     borderRadius: 999,
     backgroundColor: "transparent",
-    borderWidth: 1,
-    borderColor: SURFACE_ELEVATED,
     gap: 4,
     maxWidth: "92%",
   },
@@ -3338,8 +3326,6 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     backgroundColor: SURFACE,
-    borderWidth: 1,
-    borderColor: MUTED3,
     marginBottom: 14,
   },
   inboxEmptyTitle: {
@@ -3370,8 +3356,6 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     backgroundColor: ACCENT_FILL_SUBTLE,
-    borderWidth: 1,
-    borderColor: ACCENT_BORDER_SUBTLE,
     marginBottom: 14,
   },
   chatEmptyTitle: {

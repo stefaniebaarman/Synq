@@ -1468,8 +1468,6 @@ const chatHeaderOverlayStyles = RNStyleSheet.create({
     width: 48,
     height: 48,
     borderRadius: 24,
-    borderWidth: 1.5,
-    borderColor: BORDER_HAIRLINE,
     backgroundColor: SURFACE_ELEVATED,
     overflow: "hidden",
   },
