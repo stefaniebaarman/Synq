@@ -34,7 +34,9 @@ import {
   ACCENT,
   BG,
   BORDER,
+  BORDER_MUTED,
   BORDER_STRONG,
+  BORDER_SUBTLE_HEX,
   MUTED,
   MUTED2,
   MUTED3,
@@ -1279,7 +1281,7 @@ const styles = StyleSheet.create({
     paddingVertical: SPACE_4 + 2,
     paddingHorizontal: SPACE_4 + 2,
     borderBottomWidth: 0.5,
-    borderBottomColor: "#252525",
+    borderBottomColor: BORDER_SUBTLE_HEX,
   },
   activityRow: {
     borderBottomWidth: 0,
@@ -1299,7 +1301,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
     borderWidth: 1,
-    borderColor: "#333",
+    borderColor: BORDER_MUTED,
   },
   rowLeft: {
     flexDirection: "row",

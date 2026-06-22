@@ -14,8 +14,10 @@ import {
   BG,
   BORDER,
   BUTTON_RADIUS,
+  DISABLED_ACCENT,
   MUTED,
   MUTED2,
+  MUTED3,
   ON_ACCENT_TEXT,
   PRIMARY_CTA_HEIGHT,
   PRIMARY_CTA_WIDTH,
@@ -117,7 +119,7 @@ export default function EmailSignup() {
                 value={email}
                 onChangeText={setEmail}
                 placeholder="Email"
-                placeholderTextColor="rgba(255,255,255,0.25)"
+                placeholderTextColor={MUTED3}
                 autoCapitalize="none"
                 autoCorrect={false}
                 keyboardType="email-address"
@@ -129,7 +131,7 @@ export default function EmailSignup() {
                 value={password}
                 onChangeText={setPassword}
                 placeholder="Password (6+ characters)"
-                placeholderTextColor="rgba(255,255,255,0.25)"
+                placeholderTextColor={MUTED3}
                 secureTextEntry
                 textContentType="newPassword"
                 style={[styles.input, { marginTop: 12 }]}
@@ -143,7 +145,7 @@ export default function EmailSignup() {
               style={[styles.primaryButton, !canContinue && styles.disabledButton]}
             >
               {loading ? (
-                <ActivityIndicator color="#061006" />
+                <ActivityIndicator color={ON_ACCENT_TEXT} />
               ) : (
                 <Text style={styles.primaryButtonText}>Continue</Text>
               )}
@@ -234,7 +236,7 @@ const styles = StyleSheet.create({
     fontFamily: fonts.heavy,
     letterSpacing: 0.2,
   },
-  disabledButton: { backgroundColor: "rgba(125,255,166,0.30)" },
+  disabledButton: { backgroundColor: DISABLED_ACCENT },
   small: {
     marginTop: 18,
     color: MUTED2,

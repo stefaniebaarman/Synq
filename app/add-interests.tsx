@@ -20,6 +20,8 @@ import {
 } from "../constants/onboardingLayout";
 import {
   ACCENT,
+  ACCENT_BORDER,
+  ACCENT_FILL,
   BG,
   BORDER,
   BORDER_HAIRLINE,
@@ -31,6 +33,7 @@ import {
   TEXT,
   TYPE_CTA,
   TYPE_LEAD,
+  ctaButtonText,
   fonts,
 } from "../constants/Variables";
 import { auth, db } from "../src/lib/firebase";
@@ -149,7 +152,7 @@ export default function InterestsOnboarding() {
                 {loading ? (
                     <ActivityIndicator color="black" />
                 ) : (
-                    <Text style={styles.buttonText}>
+                    <Text style={ctaButtonText}>
                         Continue{selected.length ? ` (${selected.length})` : ""}
                     </Text>
                 )}
@@ -213,8 +216,8 @@ const styles = StyleSheet.create({
         borderColor: BORDER_HAIRLINE,
     },
     pillOn: {
-        backgroundColor: "rgba(125,255,166,0.18)",
-        borderColor: "rgba(125,255,166,0.6)",
+        backgroundColor: ACCENT_FILL,
+        borderColor: ACCENT_BORDER,
     },
     pillText: {
         color: TEXT,
@@ -233,7 +236,6 @@ const styles = StyleSheet.create({
         alignItems: "center",
         justifyContent: "center",
     },
-    buttonText: { color: ON_ACCENT_TEXT, fontSize: TYPE_CTA, fontFamily: fonts.heavy, letterSpacing: 0.2 },
     skipButton: { marginTop: 20, alignSelf: "center" },
     skipText: {
         color: MUTED,

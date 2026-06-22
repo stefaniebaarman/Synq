@@ -16,6 +16,8 @@ import {
   BG,
   BORDER,
   BUTTON_RADIUS,
+  DISABLED_ACCENT,
+  DISABLED_ACCENT_SUBTLE,
   MUTED,
   MUTED2,
   MUTED3,
@@ -248,7 +250,7 @@ export default function Phone() {
                     style={styles.countryInput}
                     keyboardType="phone-pad"
                     placeholder="+1"
-                    placeholderTextColor="rgba(255,255,255,0.25)"
+                    placeholderTextColor={MUTED3}
                   />
                 </View>
 
@@ -259,7 +261,7 @@ export default function Phone() {
                     style={styles.phoneInput}
                     keyboardType="phone-pad"
                     placeholder="555 555 0100"
-                    placeholderTextColor="rgba(255,255,255,0.20)"
+                    placeholderTextColor={MUTED3}
                     autoFocus={false}
                   />
                 </View>
@@ -281,7 +283,7 @@ export default function Phone() {
                 activeOpacity={0.85}
               >
                 {loading ? (
-                  <ActivityIndicator color="#061006" />
+                  <ActivityIndicator color={ON_ACCENT_TEXT} />
                 ) : (
                   <Text style={styles.primaryButtonText}>Send Code</Text>
                 )}
@@ -361,7 +363,7 @@ export default function Phone() {
                 activeOpacity={0.85}
               >
                 {loading ? (
-                  <ActivityIndicator color="#061006" />
+                  <ActivityIndicator color={ON_ACCENT_TEXT} />
                 ) : (
                   <Text style={styles.primaryButtonText}>Continue</Text>
                 )}
@@ -475,7 +477,7 @@ const styles = StyleSheet.create({
     fontFamily: fonts.heavy,
     letterSpacing: 0.2,
   },
-  disabledButton: { backgroundColor: "rgba(125, 255, 166, 0.30)" },
+  disabledButton: { backgroundColor: DISABLED_ACCENT },
   otpRow: {
     flexDirection: "row",
     justifyContent: "space-between",
@@ -505,7 +507,7 @@ const styles = StyleSheet.create({
   },
   otpBoxFilled: {
     borderColor: ACCENT,
-    backgroundColor: "rgba(125, 255, 166, 0.06)",
+    backgroundColor: DISABLED_ACCENT_SUBTLE,
   },
   linkBtn: { marginTop: 18, alignSelf: "center" },
   otpLinksRow: {

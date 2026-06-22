@@ -35,7 +35,9 @@ import {
   BG,
   BORDER,
   BUTTON_RADIUS,
+  DISABLED_ACCENT,
   MUTED,
+  MUTED3,
   ON_ACCENT_TEXT,
   PRIMARY_CTA_HEIGHT,
   PRIMARY_CTA_WIDTH,
@@ -114,7 +116,7 @@ export default function Verify() {
               value={code}
               onChangeText={setCode}
               placeholder="123456"
-              placeholderTextColor="rgba(255,255,255,0.25)"
+              placeholderTextColor={MUTED3}
               keyboardType="number-pad"
               style={styles.input}
               maxLength={6}
@@ -127,7 +129,7 @@ export default function Verify() {
               style={[styles.primaryButton, !canVerify && styles.primaryButtonDisabled]}
             >
               {loading ? (
-                <ActivityIndicator color="#061006" />
+                <ActivityIndicator color={ON_ACCENT_TEXT} />
               ) : (
                 <Text style={styles.primaryButtonText}>Verify</Text>
               )}
@@ -194,7 +196,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
   },
-  primaryButtonDisabled: { backgroundColor: "rgba(125, 255, 166, 0.30)" },
+  primaryButtonDisabled: { backgroundColor: DISABLED_ACCENT },
   primaryButtonText: {
     color: ON_ACCENT_TEXT,
     fontSize: TYPE_CTA,

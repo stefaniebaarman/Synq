@@ -1,5 +1,6 @@
 import {
   BORDER_HAIRLINE,
+  BORDER_MUTED,
   MUTED,
   MUTED2,
   MUTED3,
@@ -187,7 +188,7 @@ export default function FriendOpenPlans({
                     style={[
                       styles.interestText,
                       {
-                        color: joined ? "rgba(255,255,255,0.48)" : ACCENT,
+                        color: joined ? MUTED2 : ACCENT,
                         fontFamily: joined ? fonts.medium : fonts.heavy,
                       },
                     ]}
@@ -288,7 +289,7 @@ const styles = StyleSheet.create({
 
   interestPill: {
     ...PLAN_PILL_LAYOUT,
-    borderColor: "#333",
+    borderColor: BORDER_MUTED,
   },
   hostPill: {
     ...PLAN_PILL_LAYOUT,

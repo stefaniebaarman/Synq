@@ -1,5 +1,7 @@
 import {
   ACCENT,
+  ACCENT_BORDER,
+  ACCENT_FILL_SUBTLE,
   BG,
   BORDER,
   BORDER_SOFT,
@@ -8,6 +10,8 @@ import {
   MUTED2,
   MUTED3,
   ON_ACCENT_TEXT,
+  OVERLAY_HEAVY,
+  PLACEHOLDER_DARK,
   PRIMARY_CTA_WIDTH,
   RADIUS_LG,
   SURFACE_DEEP,
@@ -746,7 +750,7 @@ export default function OpenPlans({
               <View>
               <TextInput
                 placeholder="What's the plan?"
-                placeholderTextColor="#555"
+                placeholderTextColor={PLACEHOLDER_DARK}
                 style={styles.planInput}
                 value={newEvent.title}
                 onFocus={dismissPickers}
@@ -771,7 +775,7 @@ export default function OpenPlans({
                         <Ionicons
                           name="calendar-outline"
                           size={18}
-                          color={activePicker === "date" ? ACCENT : "#888"}
+                          color={activePicker === "date" ? ACCENT : TEXT_MUTED_LIGHT}
                         />
                         <View style={styles.dateTimeTextWrap}>
                           <Text style={styles.dateTimeValue}>
@@ -790,7 +794,7 @@ export default function OpenPlans({
                         <Ionicons
                           name="time-outline"
                           size={18}
-                          color={activePicker === "time" ? ACCENT : "#888"}
+                          color={activePicker === "time" ? ACCENT : TEXT_MUTED_LIGHT}
                         />
                         <View style={styles.dateTimeTextWrap}>
                           <Text style={styles.dateTimeValue}>
@@ -826,7 +830,7 @@ export default function OpenPlans({
                 <TextInput
                   ref={locationInputRef}
                   placeholder="Add location"
-                  placeholderTextColor="#555"
+                  placeholderTextColor={PLACEHOLDER_DARK}
                   style={styles.planInputSecondary}
                   value={newEvent.location}
                   onFocus={dismissPickers}
@@ -1011,7 +1015,7 @@ const styles = StyleSheet.create({
     overflow: "hidden",
   },
   cardHighlighted: {
-    borderColor: "rgba(0,255,133,0.45)",
+    borderColor: ACCENT_BORDER,
     borderWidth: 1,
   },
   cardMain: {
@@ -1062,7 +1066,7 @@ const styles = StyleSheet.create({
     paddingTop: 1,
   },
   actionSep: {
-    color: "rgba(255,255,255,0.2)",
+    color: MUTED3,
     fontSize: TYPE_MICRO,
     marginHorizontal: 4,
   },
@@ -1072,7 +1076,7 @@ const styles = StyleSheet.create({
     fontFamily: fonts.medium,
   },
   actionDeleteText: {
-    color: "rgba(255,255,255,0.32)",
+    color: MUTED3,
     fontSize: TYPE_FINE,
     fontFamily: fonts.medium,
   },
@@ -1116,7 +1120,7 @@ const styles = StyleSheet.create({
   addBtnSpacing: { marginTop: 16, marginBottom: 8 },
   popupOverlay: {
     flex: 1,
-    backgroundColor: "rgba(0,0,0,0.78)",
+    backgroundColor: OVERLAY_HEAVY,
     justifyContent: "flex-start",
     alignItems: "center",
     paddingHorizontal: 20,
@@ -1204,8 +1208,8 @@ const styles = StyleSheet.create({
     gap: 8,
     borderRadius: BUTTON_RADIUS,
     borderWidth: 1,
-    borderColor: "rgba(43,255,136,0.35)",
-    backgroundColor: "rgba(43,255,136,0.08)",
+    borderColor: ACCENT_BORDER,
+    backgroundColor: ACCENT_FILL_SUBTLE,
   },
   inviteFriendsBtnText: {
     color: ACCENT,
@@ -1255,7 +1259,7 @@ const styles = StyleSheet.create({
   },
   dateTimeFieldActive: {
     borderColor: ACCENT,
-    backgroundColor: "rgba(0,255,133,0.08)",
+    backgroundColor: ACCENT_FILL_SUBTLE,
   },
   dateTimeTextWrap: { flex: 1 },
   dateTimeValue: {

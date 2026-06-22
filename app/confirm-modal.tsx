@@ -3,6 +3,7 @@ import {
   ACCENT,
   BUTTON_RADIUS,
   DESTRUCTIVE,
+  DESTRUCTIVE_FILL,
   TYPE_LEAD,
   primaryButtonText,
 } from "@/constants/Variables";
@@ -105,7 +106,7 @@ const styles = StyleSheet.create({
     fontSize: TYPE_LEAD,
   },
   destructiveBtn: {
-    backgroundColor: "rgba(255,69,58,0.12)",
+    backgroundColor: DESTRUCTIVE_FILL,
     borderWidth: 1,
     borderColor: DESTRUCTIVE,
   },

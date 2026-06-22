@@ -1,14 +1,19 @@
 import { formatVenueAddressDisplay } from "@/src/lib/helpers";
 import {
   ACCENT,
+  ACCENT_BORDER,
+  ACCENT_FILL_MUTED,
   BG,
   BORDER,
   BUTTON_RADIUS,
   DESTRUCTIVE,
+  DESTRUCTIVE_BORDER,
+  DESTRUCTIVE_FILL,
   MODAL_RADIUS,
   MUTED2,
   MUTED3,
   ON_ACCENT_TEXT,
+  OVERLAY_DARK,
   PRIMARY_CTA_HEIGHT,
   PRIMARY_CTA_WIDTH,
   RADIUS_LG,
@@ -187,7 +192,7 @@ export default function ExploreModal({
             <View style={[styles.panel, { paddingBottom: insets.bottom }]}>
                 {errorMessage ? (
                     <View style={styles.errorBanner}>
-                        <Ionicons name="alert-circle" size={20} color="#FF8A84" />
+                        <Ionicons name="alert-circle" size={20} color={DESTRUCTIVE} />
                         <Text style={styles.errorBannerText}>{errorMessage}</Text>
                         {!isAILoading && !showOptionsList ? (
                             <Text style={styles.errorHintText}>
@@ -359,7 +364,7 @@ const styles = StyleSheet.create({
     },
     backdrop: {
         ...StyleSheet.absoluteFillObject,
-        backgroundColor: "rgba(0,0,0,0.72)",
+        backgroundColor: OVERLAY_DARK,
     },
     panel: {
         position: "absolute",
@@ -535,8 +540,8 @@ const styles = StyleSheet.create({
         marginBottom: 10,
     },
     placeRowSelected: {
-        borderColor: "rgba(0,255,133,0.45)",
-        backgroundColor: "rgba(0,255,133,0.06)",
+        borderColor: ACCENT_BORDER,
+        backgroundColor: ACCENT_FILL_MUTED,
     },
     placeIconWrap: {
         width: 44,
@@ -629,9 +634,9 @@ const styles = StyleSheet.create({
         paddingHorizontal: 14,
         paddingVertical: 12,
         borderRadius: 14,
-        backgroundColor: "rgba(255,69,58,0.12)",
+        backgroundColor: DESTRUCTIVE_FILL,
         borderWidth: 1,
-        borderColor: "rgba(255,69,58,0.35)",
+        borderColor: DESTRUCTIVE_BORDER,
         alignItems: "center",
         gap: 8,
     },
@@ -643,7 +648,7 @@ const styles = StyleSheet.create({
         textAlign: "center",
     },
     errorHintText: {
-        color: "rgba(255,138,132,0.75)",
+        color: DESTRUCTIVE,
         fontSize: TYPE_CAPTION,
         fontFamily: fonts.medium,
         textAlign: "center",

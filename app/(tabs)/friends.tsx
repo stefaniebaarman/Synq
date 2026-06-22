@@ -1,6 +1,10 @@
 import {
   ACCENT,
+  ACCENT_BORDER,
+  ACCENT_ICON,
   BG,
+  BG_FADE_HEAVY,
+  BG_TRANSPARENT,
   BORDER,
   BUTTON_RADIUS,
   DESTRUCTIVE,
@@ -10,7 +14,10 @@ import {
   MUTED,
   MUTED2,
   MUTED3,
+  OVERLAY_HEAVY,
+  OVERLAY_PANEL,
   RADIUS_MD,
+  SHADOW,
   SPACE_3,
   SPACE_4,
   SPACE_5,
@@ -221,7 +228,7 @@ function FriendsHeaderAddButton({
       activeOpacity={0.75}
     >
       <Animated.View style={[animatedStyle, styles.headerAddBtn]}>
-        <Ionicons name="person-add-outline" size={22} color="rgba(0,255,133,0.88)" />
+        <Ionicons name="person-add-outline" size={22} color={ACCENT_ICON} />
       </Animated.View>
     </TouchableOpacity>
   );
@@ -1913,8 +1920,8 @@ function SearchModal({
 /** Friends tab search fade gradient. */
 const FRIENDS_SEARCH_FADE_GRADIENT = [
   BG,
-  "rgba(9,10,11,0.88)",
-  "rgba(9,10,11,0)",
+  BG_FADE_HEAVY,
+  BG_TRANSPARENT,
 ] as const;
 
 const styles = StyleSheet.create({
@@ -1940,7 +1947,7 @@ const styles = StyleSheet.create({
     borderTopLeftRadius: 16,
     borderTopRightRadius: 16,
     overflow: "hidden",
-    shadowColor: "#000",
+    shadowColor: SHADOW,
     shadowOpacity: 0.28,
     shadowRadius: 16,
     shadowOffset: { width: 0, height: -6 },
@@ -2203,7 +2210,7 @@ const styles = StyleSheet.create({
   emptyText: { ...cardMetaText, color: MUTED, textAlign: "center", marginTop: 12, lineHeight: 20, paddingHorizontal: 8 },
   popupOverlay: {
     flex: 1,
-    backgroundColor: "rgba(0,0,0,0.78)",
+    backgroundColor: OVERLAY_HEAVY,
     justifyContent: "center",
     alignItems: "center",
     paddingHorizontal: 18,
@@ -2211,7 +2218,7 @@ const styles = StyleSheet.create({
   popupContent: {
     width: width * 0.9,
     maxHeight: "86%",
-    backgroundColor: "rgba(18,18,18,0.96)",
+    backgroundColor: OVERLAY_PANEL,
     borderRadius: 28,
     padding: 22,
     alignItems: "center",
@@ -2328,7 +2335,7 @@ const styles = StyleSheet.create({
   addFriendsSectionGap: { height: 8 },
   addFriendCardIncoming: {
     borderLeftWidth: 2,
-    borderLeftColor: "rgba(0,255,133,0.45)",
+    borderLeftColor: ACCENT_BORDER,
     paddingLeft: 10,
   },
   addFriendCardMain: {

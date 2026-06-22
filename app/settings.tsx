@@ -23,6 +23,7 @@ import {
   BG,
   BORDER,
   BORDER_MUTED,
+  BORDER_SUBTLE_HEX,
   DESTRUCTIVE,
   MUTED,
   MUTED2,
@@ -300,7 +301,7 @@ const styles = StyleSheet.create({
     paddingVertical: SPACE_4 + 2,
     paddingHorizontal: SPACE_4 + 2,
     borderBottomWidth: 0.5,
-    borderBottomColor: "#252525",
+    borderBottomColor: BORDER_SUBTLE_HEX,
   },
   itemLeft: { flexDirection: "row", alignItems: "center" },
   itemLabel: {

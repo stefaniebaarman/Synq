@@ -28,6 +28,9 @@ import Animated, {
 import { formScreenStyles } from "../constants/formScreenStyles";
 import {
   ACCENT,
+  ACCENT_BORDER,
+  ACCENT_BORDER_SUBTLE,
+  ACCENT_FILL,
   BG,
   BORDER,
   BUTTON_RADIUS,
@@ -708,15 +711,15 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: "rgba(0,255,133,0.12)",
+    backgroundColor: ACCENT_FILL,
     borderWidth: 1,
-    borderColor: "rgba(0,255,133,0.22)",
+    borderColor: ACCENT_BORDER_SUBTLE,
     alignItems: "center",
     justifyContent: "center",
   },
   actionIconSuccess: {
-    backgroundColor: "rgba(0,255,133,0.18)",
-    borderColor: "rgba(0,255,133,0.45)",
+    backgroundColor: ACCENT_FILL,
+    borderColor: ACCENT_BORDER,
   },
   actionCopy: { flex: 1, minWidth: 0 },
   actionTitle: {

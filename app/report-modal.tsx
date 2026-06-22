@@ -14,6 +14,7 @@ import {
   TYPE_BUTTON,
   TYPE_CAPTION,
   fonts,
+  primaryButtonText,
 } from "@/constants/Variables";
 import { ReportReason, submitReport, type ReportContentType } from "@/src/lib/moderation";
 import { useState } from "react";
@@ -123,7 +124,7 @@ export default function ReportModal({
             {submitting ? (
               <ActivityIndicator color={ON_ACCENT_TEXT} />
             ) : (
-              <Text style={styles.submitText}>Submit report</Text>
+              <Text style={primaryButtonText}>Submit report</Text>
             )}
           </TouchableOpacity>
 
@@ -181,11 +182,6 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   submitDisabled: { opacity: 0.45 },
-  submitText: {
-    color: ON_ACCENT_TEXT,
-    fontFamily: fonts.heavy,
-    fontSize: TYPE_BODY,
-  },
   cancelBtn: {
     marginTop: 12,
     alignItems: "center",

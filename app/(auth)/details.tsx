@@ -37,6 +37,7 @@ import {
   BORDER_HAIRLINE,
   BORDER_SOFT,
   BUTTON_RADIUS,
+  MUTED,
   MUTED3,
   ON_ACCENT_TEXT,
   PRIMARY_CTA_HEIGHT,
@@ -45,6 +46,7 @@ import {
   TYPE_BODY,
   TYPE_CTA,
   TYPE_FINE,
+  ctaButtonText,
   fonts,
 } from "../../constants/Variables";
 import { auth, db } from "../../src/lib/firebase";
@@ -238,7 +240,7 @@ export default function Details() {
                   />
                 ) : (
                   <View style={styles.placeholderIcon}>
-                    <Icon name="camera-outline" size={28} color="rgba(255,255,255,0.5)" />
+                    <Icon name="camera-outline" size={28} color={MUTED} />
                     <Text style={styles.addPhotoText}>
                       {isUploading ? "Uploading..." : "Add Photo"}
                     </Text>
@@ -288,7 +290,7 @@ export default function Details() {
             {loading ? (
               <ActivityIndicator color="black" />
             ) : (
-              <Text style={styles.buttonText}>Continue</Text>
+              <Text style={ctaButtonText}>Continue</Text>
             )}
           </TouchableOpacity>
           <AlertModal
@@ -388,7 +390,7 @@ const styles = StyleSheet.create({
     marginLeft: 0.5,
   },
   optionalText: {
-    color: "rgba(255,255,255,0.3)",
+    color: MUTED3,
     fontSize: TYPE_FINE,
     marginTop: 6,
     fontFamily: fonts.book,
@@ -416,10 +418,5 @@ const styles = StyleSheet.create({
     borderRadius: 14,
     alignItems: "center",
     justifyContent: "center",
-  },
-  buttonText: {
-    color: ON_ACCENT_TEXT,
-    fontSize: TYPE_CTA,
-    fontFamily: fonts.heavy,
   },
 });

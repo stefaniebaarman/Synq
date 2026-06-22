@@ -25,6 +25,8 @@ import {
 } from "@/constants/onboardingLayout";
 import {
   ACCENT,
+  ACCENT_BORDER_SUBTLE,
+  ACCENT_FILL,
   BG,
   BORDER,
   BORDER_HAIRLINE,
@@ -40,6 +42,7 @@ import {
   TYPE_CAPTION,
   TYPE_CTA,
   TYPE_LEAD,
+  ctaButtonText,
   fonts,
 } from "../../constants/Variables";
 import { auth, db } from "../../src/lib/firebase";
@@ -350,7 +353,7 @@ export default function LocationDetails() {
           {loading ? (
             <ActivityIndicator color="black" />
           ) : (
-            <Text style={styles.buttonText}>Continue</Text>
+            <Text style={ctaButtonText}>Continue</Text>
           )}
         </TouchableOpacity>
 
@@ -446,9 +449,9 @@ const styles = StyleSheet.create({
     width: 32,
     height: 32,
     borderRadius: 16,
-    backgroundColor: "rgba(0,255,133,0.12)",
+    backgroundColor: ACCENT_FILL,
     borderWidth: 1,
-    borderColor: "rgba(0,255,133,0.22)",
+    borderColor: ACCENT_BORDER_SUBTLE,
     alignItems: "center",
     justifyContent: "center",
   },
@@ -479,11 +482,6 @@ const styles = StyleSheet.create({
     borderRadius: 14,
     alignItems: "center",
     justifyContent: "center",
-  },
-  buttonText: {
-    color: ON_ACCENT_TEXT,
-    fontSize: TYPE_CTA,
-    fontFamily: fonts.heavy,
   },
 
   skipButton: { marginTop: 20, alignSelf: "center" },

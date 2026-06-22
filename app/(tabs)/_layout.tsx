@@ -7,15 +7,16 @@ import { DeviceEventEmitter, Platform, Pressable, StyleSheet, View } from "react
 import { FRIENDS_TAB_PRESS } from "../../src/lib/friendsTabEvents";
 import { SYNQ_TAB_LONG_PRESS } from "../../src/lib/synqTabEvents";
 import {
-    ACCENT,
-    SPACE_2,
-    SPACE_3,
-    SPACE_4,
-    SPACE_5,
-    TAB_BAR_BG,
-    TAB_BAR_FADE_GRADIENT,
-    TYPE_CAPTION,
-    fonts,
+  ACCENT,
+  MUTED3,
+  SPACE_2,
+  SPACE_3,
+  SPACE_4,
+  SPACE_5,
+  TAB_BAR_BG,
+  TAB_BAR_FADE_GRADIENT,
+  TYPE_CAPTION,
+  fonts,
 } from "../../constants/Variables";
 
 const TAB_BAR_HEIGHT = Platform.OS === "ios" ? 92 : 74;
@@ -46,7 +47,7 @@ export default function TabsLayout() {
         tabBarBackground: () => <TabBarBackground />,
         tabBarStyle: styles.tabBar,
         tabBarActiveTintColor: ACCENT,
-        tabBarInactiveTintColor: "rgba(255,255,255,0.4)",
+        tabBarInactiveTintColor: MUTED3,
         tabBarShowLabel: true,
         tabBarIconStyle: { marginTop: TAB_BAR_ICON_NUDGE },
         tabBarLabelStyle: { fontSize: TYPE_CAPTION, marginBottom: -SPACE_2, fontFamily: fonts.medium, letterSpacing: 0.2 },

@@ -5,12 +5,15 @@ import {
 import {
   ACCENT,
   BG,
+  BORDER_LIGHT,
+  BORDER_SOFT,
   BUTTON_RADIUS,
   MUTED,
   ON_ACCENT_TEXT,
   PRIMARY_CTA_HEIGHT,
   SURFACE,
   TEXT,
+  TEXT_ON_BRIGHT,
   TYPE_BODY,
   TYPE_BUTTON,
   TYPE_CTA,
@@ -164,7 +167,7 @@ export default function CommunityTermsScreen() {
           accessibilityState={{ checked }}
         >
           <View style={[styles.checkbox, checked && styles.checkboxOn]}>
-            {checked ? <Ionicons name="checkmark" size={16} color="#061006" /> : null}
+            {checked ? <Ionicons name="checkmark" size={16} color={ON_ACCENT_TEXT} /> : null}
           </View>
           <Text style={styles.checkLabel}>
             I agree to the Terms & Community Standards and confirm there is no
@@ -181,7 +184,7 @@ export default function CommunityTermsScreen() {
           onPress={handleContinue}
         >
           {submitting ? (
-            <ActivityIndicator color="#061006" />
+            <ActivityIndicator color={ON_ACCENT_TEXT} />
           ) : (
             <Text style={styles.primaryText}>
               {isPostAuth ? "Continue to Synq" : "Agree and continue"}
@@ -229,7 +232,7 @@ const styles = StyleSheet.create({
   },
   sub: {
     marginTop: 12,
-    color: "rgba(255,255,255,0.78)",
+    color: TEXT_ON_BRIGHT,
     fontFamily: fonts.medium,
     fontSize: TYPE_BODY,
     lineHeight: 24,
@@ -240,7 +243,7 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     backgroundColor: SURFACE,
     borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.10)",
+    borderColor: BORDER_SOFT,
   },
   cardLead: {
     color: ACCENT,
@@ -280,7 +283,7 @@ const styles = StyleSheet.create({
     height: 24,
     borderRadius: 6,
     borderWidth: 2,
-    borderColor: "rgba(255,255,255,0.35)",
+    borderColor: BORDER_LIGHT,
     alignItems: "center",
     justifyContent: "center",
     marginTop: 2,
@@ -291,7 +294,7 @@ const styles = StyleSheet.create({
   },
   checkLabel: {
     flex: 1,
-    color: "rgba(255,255,255,0.9)",
+    color: TEXT,
     fontFamily: fonts.medium,
     fontSize: TYPE_LEAD,
     lineHeight: 20,

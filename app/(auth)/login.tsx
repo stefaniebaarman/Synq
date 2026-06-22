@@ -16,9 +16,13 @@ import {
   BG,
   BORDER,
   BUTTON_RADIUS,
+  DISABLED_ACCENT,
   MUTED,
   MUTED2,
+  MUTED3,
   ON_ACCENT_TEXT,
+  OVERLAY_HEAVY,
+  OVERLAY_PANEL,
   PRIMARY_CTA_HEIGHT,
   PRIMARY_CTA_WIDTH,
   SURFACE,
@@ -27,7 +31,7 @@ import {
   TYPE_CAPTION,
   TYPE_CTA,
   TYPE_LEAD,
-  TYPE_MODAL_TITLE,
+  modalTitleText,
   fonts,
   synqSvg,
 } from "@/constants/Variables";
@@ -147,7 +151,7 @@ export default function Login() {
               <TextInput
                 style={styles.input}
                 placeholder="Email"
-                placeholderTextColor="rgba(255,255,255,0.25)"
+                placeholderTextColor={MUTED3}
                 value={email}
                 onChangeText={setEmail}
                 autoCapitalize="none"
@@ -158,7 +162,7 @@ export default function Login() {
                 <TextInput
                   style={styles.input}
                   placeholder="Password"
-                  placeholderTextColor="rgba(255,255,255,0.25)"
+                  placeholderTextColor={MUTED3}
                   value={password}
                   onChangeText={setPassword}
                   secureTextEntry
@@ -187,7 +191,7 @@ export default function Login() {
               activeOpacity={0.85}
             >
               {loading ? (
-                <ActivityIndicator color="#061006" />
+                <ActivityIndicator color={ON_ACCENT_TEXT} />
               ) : (
                 <Text style={styles.primaryButtonText}>Sign In</Text>
               )}
@@ -207,7 +211,7 @@ export default function Login() {
                 onScrollBeginDrag={Keyboard.dismiss}
               >
               <View style={styles.modalContent}>
-                <Text style={styles.modalTitle}>Reset password</Text>
+                <Text style={[modalTitleText, styles.modalTitleSpacing]}>Reset password</Text>
                 <Text style={styles.modalSubtitle}>
                   Enter your email and we’ll send you a link to get back into your account.
                 </Text>
@@ -215,7 +219,7 @@ export default function Login() {
                 <TextInput
                   style={styles.modalInput}
                   placeholder="Email address"
-                  placeholderTextColor="rgba(255,255,255,0.25)"
+                  placeholderTextColor={MUTED3}
                   value={resetEmail}
                   onChangeText={setResetEmail}
                   autoCapitalize="none"
@@ -328,10 +332,10 @@ const styles = StyleSheet.create({
     fontFamily: fonts.heavy,
     letterSpacing: 0.2,
   },
-  disabledButton: { backgroundColor: "rgba(125,255,166,0.30)" },
+  disabledButton: { backgroundColor: DISABLED_ACCENT },
   modalOverlay: {
     flex: 1,
-    backgroundColor: "rgba(0,0,0,0.78)",
+    backgroundColor: OVERLAY_HEAVY,
     justifyContent: "center",
     padding: ONBOARDING_H_PADDING,
   },
@@ -341,17 +345,13 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
   },
   modalContent: {
-    backgroundColor: "rgba(18,18,18,0.96)",
+    backgroundColor: OVERLAY_PANEL,
     borderRadius: 22,
     padding: 22,
     borderWidth: 1,
     borderColor: BORDER,
   },
-  modalTitle: {
-    color: TEXT,
-    fontSize: TYPE_MODAL_TITLE,
-    fontFamily: fonts.heavy,
-    letterSpacing: 0.2,
+  modalTitleSpacing: {
     marginBottom: 8,
   },
   modalSubtitle: {

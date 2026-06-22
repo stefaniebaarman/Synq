@@ -5,13 +5,19 @@ import {
   BORDER_SOFT,
   BUTTON_RADIUS,
   DESTRUCTIVE,
+  DESTRUCTIVE_BORDER_STRONG,
+  FRIENDS_BORDER,
   GROUP_BORDER,
   MODAL_RADIUS,
   MUTED2,
   MUTED3,
+  OVERLAY_HEAVY,
+  OVERLAY_SCRIM,
   RADIUS_MD,
   SURFACE,
+  SURFACE_INPUT,
   SURFACE_LIFTED,
+  SURFACE_RAISED,
   TEXT,
   TYPE_BODY,
   TYPE_BUTTON,
@@ -1652,9 +1658,9 @@ export default function FriendProfile({
   );
 }
 
-const PROFILE_SURFACE = "#0A0B0D";
-const PROFILE_SURFACE_RAISED = "#0E1012";
-const PROFILE_BORDER = "rgba(255,255,255,0.035)";
+const PROFILE_SURFACE = SURFACE_INPUT;
+const PROFILE_SURFACE_RAISED = SURFACE_RAISED;
+const PROFILE_BORDER = FRIENDS_BORDER;
 const styles = StyleSheet.create({
   safeArea: { flex: 1, backgroundColor: BG },
   screen: { flex: 1, backgroundColor: BG, position: "relative" },
@@ -1735,7 +1741,7 @@ const styles = StyleSheet.create({
     minHeight: 44,
     paddingHorizontal: 28,
     borderWidth: StyleSheet.hairlineWidth,
-    borderColor: "rgba(255,69,58,0.45)",
+    borderColor: DESTRUCTIVE_BORDER_STRONG,
     borderRadius: BUTTON_RADIUS,
     alignItems: "center",
     justifyContent: "center",
@@ -1767,7 +1773,7 @@ const styles = StyleSheet.create({
   },
   avatarPreviewDim: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: "rgba(0,0,0,0.88)",
+    backgroundColor: OVERLAY_SCRIM,
   },
   avatarPreviewImage: {
     width: 300,
@@ -1852,7 +1858,7 @@ const styles = StyleSheet.create({
   optionsOverlay: {
     flex: 1,
     justifyContent: "flex-end",
-    backgroundColor: "rgba(0,0,0,0.78)",
+    backgroundColor: OVERLAY_HEAVY,
   },
   optionsSheetGroup: {
     paddingBottom: 34,
