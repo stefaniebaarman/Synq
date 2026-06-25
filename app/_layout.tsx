@@ -27,6 +27,7 @@ import {
 import { getFunctions, httpsCallable } from "firebase/functions";
 import React, {
   createContext,
+  useCallback,
   useContext,
   useEffect,
   useRef,
@@ -152,6 +153,7 @@ async function registerForPushNotificationsAsync(): Promise<string | null> {
 const AuthContext = createContext({
   refreshAuth: () => {},
   user: null as User | null,
+  markCommunityTermsOk: () => {},
 });
 export const useAuthRefresh = () => useContext(AuthContext);
 const PENDING_INVITE_FROM_UID_KEY = "synq:pendingInviteFromUid";
@@ -217,6 +219,7 @@ export default function RootLayout() {
     storeUrl: string | null;
   }>({ checked: false, required: false, storeUrl: null });
   const [communityTermsOk, setCommunityTermsOk] = useState<boolean | null>(null);
+  const communityTermsOkRef = useRef<boolean | null>(null);
   const [userProfileGate, setUserProfileGate] = useState<{
     hasDisplayName: boolean;
     hasLocation: boolean;
@@ -241,6 +244,21 @@ export default function RootLayout() {
   const refreshAuth = () => {
     setUser(auth.currentUser ? ({ ...auth.currentUser } as User) : null);
   };
+
+  const setCommunityTermsGate = useCallback(
+    (value: boolean | null | ((prev: boolean | null) => boolean | null)) => {
+      setCommunityTermsOk((prev) => {
+        const next = typeof value === "function" ? value(prev) : value;
+        communityTermsOkRef.current = next;
+        return next;
+      });
+    },
+    []
+  );
+
+  const markCommunityTermsOk = useCallback(() => {
+    setCommunityTermsGate(true);
+  }, [setCommunityTermsGate]);
 
   useEffect(() => {
     let cancelled = false;
@@ -440,11 +458,11 @@ export default function RootLayout() {
           setUserProfileGate({ hasDisplayName: false, hasLocation: false });
         }
         void getPreAuthTermsAccepted().then((accepted) => {
-          if (accepted) setCommunityTermsOk(true);
+          if (accepted) setCommunityTermsGate(true);
         });
       } else {
         setUserProfileGate(null);
-        setCommunityTermsOk(null);
+        setCommunityTermsGate(null);
       }
       setUser(u);
       setAuthReady(true);
@@ -523,7 +541,7 @@ export default function RootLayout() {
 
   useEffect(() => {
     if (!user?.uid) {
-      setCommunityTermsOk(null);
+      setCommunityTermsGate(null);
       setUserProfileGate(null);
       return;
     }
@@ -542,7 +560,7 @@ export default function RootLayout() {
           }
         );
       });
-      setCommunityTermsOk((prev) => {
+      setCommunityTermsGate((prev) => {
         if (prev !== null) return prev;
         return cachedGate?.hasDisplayName || !!user.displayName ? true : false;
       });
@@ -550,7 +568,7 @@ export default function RootLayout() {
 
     const markTermsOkForReturningUser = () => {
       if (cancelled) return;
-      setCommunityTermsOk(true);
+      setCommunityTermsGate(true);
       void persistCommunityTermsAcceptance(user.uid).catch(() => {});
     };
 
@@ -568,7 +586,7 @@ export default function RootLayout() {
         if (data?.suspended === true) {
           await signOut(auth);
           if (!cancelled) {
-            setCommunityTermsOk(null);
+            setCommunityTermsGate(null);
             setUserProfileGate(null);
           }
           return;
@@ -592,7 +610,7 @@ export default function RootLayout() {
         }
 
         if (userHasAcceptedCommunityTerms(data)) {
-          if (!cancelled) setCommunityTermsOk(true);
+          if (!cancelled) setCommunityTermsGate(true);
           return;
         }
 
@@ -607,7 +625,9 @@ export default function RootLayout() {
           markTermsOkForReturningUser();
           return;
         }
-        if (!cancelled) setCommunityTermsOk(false);
+        if (!cancelled) {
+          setCommunityTermsGate((prev) => (prev === true ? true : false));
+        }
       } catch {
         if (!cancelled) {
           const fallbackGate =
@@ -616,7 +636,11 @@ export default function RootLayout() {
               ? { hasDisplayName: true, hasLocation: false }
               : { hasDisplayName: false, hasLocation: false });
           setUserProfileGate(fallbackGate);
-          setCommunityTermsOk(fallbackGate.hasDisplayName ? true : false);
+          setCommunityTermsGate((prev) => {
+            if (prev === true) return true;
+            if (fallbackGate.hasDisplayName || !!user.displayName) return true;
+            return prev;
+          });
         }
       }
     })();
@@ -664,14 +688,15 @@ export default function RootLayout() {
       return;
     }
 
-    if (communityTermsOk === false) {
-      if (!onCommunityTermsPage) {
+    const termsAccepted =
+      communityTermsOk === true || communityTermsOkRef.current === true;
+
+    if (!termsAccepted) {
+      if (communityTermsOk === false && !onCommunityTermsPage) {
         router.replace("/(auth)/community-terms?postAuth=1");
       }
       return;
     }
-
-    if (communityTermsOk !== true) return;
 
     if (
       (onLocationPage && userProfileGate.hasLocation) ||
@@ -993,7 +1018,7 @@ export default function RootLayout() {
     <GestureHandlerRootView style={{ flex: 1 }}>
       <KeyboardProvider>
       <ErrorBoundary>
-        <AuthContext.Provider value={{ refreshAuth, user }}>
+        <AuthContext.Provider value={{ refreshAuth, user, markCommunityTermsOk }}>
           <SynqBootProvider
             value={synqBoot ?? { cachedSynqActive: false }}
           >

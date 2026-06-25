@@ -21,6 +21,7 @@ import {
   TYPE_LEAD,
   fonts,
 } from "@/constants/Variables";
+import { useAuthRefresh } from "../_layout";
 import { auth, db } from "@/src/lib/firebase";
 import {
   COMMUNITY_TERMS_VERSION,
@@ -50,6 +51,7 @@ import {
 type NextRoute = "phone" | "login" | "email";
 
 export default function CommunityTermsScreen() {
+  const { markCommunityTermsOk } = useAuthRefresh();
   const { next, postAuth } = useLocalSearchParams<{
     next?: string;
     postAuth?: string;
@@ -75,14 +77,17 @@ export default function CommunityTermsScreen() {
           data?.communityTermsVersion === COMMUNITY_TERMS_VERSION ||
           data?.communityTermsAcceptedAt
         ) {
-          if (!cancelled) router.replace("/(tabs)");
+          if (!cancelled) {
+            markCommunityTermsOk();
+            router.replace("/(tabs)");
+          }
         }
       } catch {}
     })();
     return () => {
       cancelled = true;
     };
-  }, [isPostAuth]);
+  }, [isPostAuth, markCommunityTermsOk]);
 
   const continueToAuth = () => {
     if (nextRoute === "login") router.replace("/(auth)/login");
@@ -97,12 +102,14 @@ export default function CommunityTermsScreen() {
       await setPreAuthTermsAccepted();
       if (isPostAuth && auth.currentUser) {
         await persistCommunityTermsAcceptance(auth.currentUser.uid);
+        markCommunityTermsOk();
         router.replace("/(tabs)");
         return;
       }
       continueToAuth();
     } catch {
       if (isPostAuth && auth.currentUser) {
+        markCommunityTermsOk();
         router.replace("/(tabs)");
       } else {
         continueToAuth();
