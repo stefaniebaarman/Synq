@@ -33,12 +33,14 @@ export type ProfileShareCardProps = {
   displayName: string;
   avatarUri: string;
   location?: string | null;
+  onAvatarLoad?: () => void;
 };
 
 export default function ProfileShareCard({
   displayName,
   avatarUri,
   location,
+  onAvatarLoad,
 }: ProfileShareCardProps) {
   const name = displayName.trim() || "Synq friend";
 
@@ -76,6 +78,7 @@ export default function ProfileShareCard({
                 cachePolicy="memory-disk"
                 contentFit="cover"
                 transition={0}
+                onLoad={onAvatarLoad}
               />
             </View>
           </View>

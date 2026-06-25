@@ -57,8 +57,10 @@ import {
 import { buildProfileShareWebUrl } from "@/src/lib/profileShareUrl";
 import { clearPushTokenOnSignOut } from "@/src/lib/pushToken";
 import {
-  shareProfileLink,
-  warmProfileShareOgPreview,
+  invalidateProfileShareCardCache,
+  isProfileShareCardCached,
+  shareProfileWithCard,
+  warmProfileShareCardCapture,
 } from "@/src/lib/shareProfileCard";
 import { removeProfilePhoto } from "@/src/lib/uploadProfilePhoto";
 import { Ionicons } from "@expo/vector-icons";
@@ -1137,6 +1139,10 @@ export default function ProfileScreen() {
     if (!inviteCode) return "";
     return `synq://invite/${encodeURIComponent(inviteCode)}`;
   }, [inviteCode]);
+  const shareCardCacheKey = useMemo(() => {
+    const location = city && state ? `${city}, ${state}` : "";
+    return `${auth.currentUser?.displayName ?? ""}|${resolvedProfileImage}|${location}`;
+  }, [auth.currentUser?.displayName, resolvedProfileImage, city, state]);
 
   const fetchInviteCode = useCallback(async (): Promise<string> => {
     if (inviteCode) return inviteCode;
@@ -1182,10 +1188,16 @@ export default function ProfileScreen() {
     };
   }, [auth.currentUser?.uid, fetchInviteCode]);
 
+  useEffect(() => {
+    if (!auth.currentUser?.uid || !shareCardCacheKey) return;
+    warmProfileShareCardCapture(shareCardRef, shareCardCacheKey);
+  }, [auth.currentUser?.uid, shareCardCacheKey]);
+
   const shareProfile = async () => {
     if (sharingProfile) return;
     const needsInviteFetch = !profileQrUrl;
-    if (needsInviteFetch) setSharingProfile(true);
+    const needsCapture = !isProfileShareCardCached(shareCardCacheKey);
+    if (needsInviteFetch || needsCapture) setSharingProfile(true);
     void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     try {
       let shareUrl = profileQrUrl;
@@ -1200,12 +1212,11 @@ export default function ProfileScreen() {
         );
         return;
       }
-      warmProfileShareOgPreview(shareCardRef);
-      await shareProfileLink(shareUrl);
+      await shareProfileWithCard(shareCardRef, shareUrl, shareCardCacheKey);
     } catch {
       // User dismissed the share sheet.
     } finally {
-      if (needsInviteFetch) setSharingProfile(false);
+      if (needsInviteFetch || needsCapture) setSharingProfile(false);
     }
   };
 
@@ -1726,6 +1737,9 @@ export default function ProfileScreen() {
           pointerEvents="none"
           style={styles.shareCardCaptureHost}
           collapsable={false}
+          onLayout={() => {
+            warmProfileShareCardCapture(shareCardRef, shareCardCacheKey);
+          }}
         >
           <ViewShot
             ref={shareCardRef}
@@ -1735,6 +1749,10 @@ export default function ProfileScreen() {
               displayName={auth.currentUser?.displayName || ""}
               avatarUri={resolvedProfileImage}
               location={locationLower}
+              onAvatarLoad={() => {
+                invalidateProfileShareCardCache();
+                warmProfileShareCardCapture(shareCardRef, shareCardCacheKey);
+              }}
             />
           </ViewShot>
         </View>
