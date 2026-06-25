@@ -1,3 +1,6 @@
+// Profile share card UI — disabled for now (link-only sharing).
+
+/*
 import {
   ACCENT,
   ACCENT_FILL_SUBTLE,
@@ -70,15 +73,17 @@ export default function ProfileShareCard({
       <View style={styles.content}>
         <View style={styles.avatarWrap}>
           <View style={styles.avatarHalo} />
-          <View style={styles.avatarRingOuter}>
-            <View style={styles.avatarRingInner}>
+          <View style={styles.avatarRingOuter} collapsable={false}>
+            <View style={styles.avatarRingInner} collapsable={false}>
               <ExpoImage
                 source={{ uri: avatarUri }}
                 style={styles.avatar}
                 cachePolicy="memory-disk"
                 contentFit="cover"
                 transition={0}
+                recyclingKey={avatarUri}
                 onLoad={onAvatarLoad}
+                onError={onAvatarLoad}
               />
             </View>
           </View>
@@ -197,3 +202,4 @@ const styles = StyleSheet.create({
     letterSpacing: 0.3,
   },
 });
+*/
