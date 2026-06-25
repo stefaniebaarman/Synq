@@ -14,7 +14,9 @@
     "test:jest": "node ./node_modules/jest/bin/jest.js --runInBand",
     "verify:ios-pod-network": "node scripts/verify-ios-pod-network.mjs",
     "set-app-config": "node scripts/set-app-config.mjs",
-    "setup:share-domain": "node scripts/setup-share-domain.mjs"
+    "setup:share-domain": "node scripts/setup-share-domain.mjs",
+    "deploy:functions": "node scripts/deploy-functions.mjs",
+    "deploy:functions:delete-account": "node scripts/deploy-functions.mjs --only functions:deleteMyAccount"
   },
   "dependencies": {
     "@expo/vector-icons": "^15.0.3",

@@ -194,6 +194,227 @@ describe("aggregateFriendPlans", () => {
     expect(plans).toHaveLength(0);
   });
 
+  test("excludes join rows with planHostUid and joinedFromFriendUid wrongly set to the friend", () => {
+    const friends = [
+      {
+        id: "elliott",
+        displayName: "Elliott",
+        events: [
+          {
+            id: "joined-row",
+            title: "Jane's Birth",
+            date: "2099-07-01",
+            time: "9:00 PM",
+            planHostUid: "elliott",
+            joinedFromFriendUid: "elliott",
+            joinedFromIds: ["shawn", "elliott"],
+            attendeeDisplayNames: {
+              shawn: "Shawn",
+              elliott: "Elliott",
+            },
+          },
+        ],
+      },
+    ];
+
+    const plans = aggregateFriendPlans(friends);
+    expect(plans).toHaveLength(0);
+  });
+
+  test("excludes join rows when a non-friend is listed first in joinedFromIds", () => {
+    const friends = [
+      {
+        id: "elliott",
+        displayName: "Elliott",
+        events: [
+          {
+            id: "joined-row",
+            title: "Jane's Birth",
+            date: "2099-07-01",
+            planHostUid: "elliott",
+            joinedFromId: "elliott",
+            joinedFromIds: ["shawn", "elliott"],
+            joinedFromNames: ["Shawn"],
+          },
+        ],
+      },
+    ];
+
+    const plans = aggregateFriendPlans(friends);
+    expect(plans).toHaveLength(0);
+  });
+
+  test("keeps a friend-hosted plan with a non-friend guest when host is listed first", () => {
+    const friends = [
+      {
+        id: "elliott",
+        displayName: "Elliott",
+        events: [
+          {
+            id: "host-row",
+            title: "Jane's Birth",
+            date: "2099-07-01",
+            planHostUid: "elliott",
+            joinedFromId: "elliott",
+            joinedFromIds: ["elliott", "shawn"],
+            joinedFromNames: ["Shawn"],
+            attendeeDisplayNames: {
+              elliott: "Elliott",
+              shawn: "Shawn",
+            },
+          },
+        ],
+      },
+    ];
+
+    const plans = aggregateFriendPlans(friends);
+    expect(plans).toHaveLength(1);
+    expect(plans[0].sourceFriendId).toBe("elliott");
+  });
+
+  test("excludes legacy rows with display names stored in joinedFromId", () => {
+    const friends = [
+      {
+        id: "elliott",
+        displayName: "Elliott",
+        events: [
+          {
+            id: "legacy-row",
+            title: "Jane's Birth",
+            date: "2099-07-01",
+            planHostUid: "elliott",
+            joinedFromId: "Shawn",
+            joinedFromName: "Shawn",
+          },
+        ],
+      },
+    ];
+
+    const plans = aggregateFriendPlans(friends);
+    expect(plans).toHaveLength(0);
+  });
+
+  test("excludes legacy join rows missing attendeeDisplayNames sync", () => {
+    const friends = [
+      {
+        id: "elliott",
+        displayName: "Elliott",
+        events: [
+          {
+            id: "legacy-row",
+            title: "Jane's Birth",
+            date: "2099-07-01",
+            planHostUid: "elliott",
+            joinedFromId: "elliott",
+            joinedFromIds: ["elliott", "shawn"],
+            joinedFromNames: ["Shawn"],
+          },
+        ],
+      },
+    ];
+
+    const plans = aggregateFriendPlans(friends);
+    expect(plans).toHaveLength(0);
+  });
+
+  test("keeps host plans that list guest names before joinedFromIds sync", () => {
+    const uid = "abcdefghijklmnopqrstuvwxyz12";
+    const friends = [
+      {
+        id: uid,
+        displayName: "Alice",
+        events: [
+          {
+            id: "host-row",
+            title: "House party",
+            date: "2099-07-01",
+            planHostUid: uid,
+            joinedFromId: uid,
+            joinedFromNames: ["Bob"],
+            joinedFromIds: [uid],
+          },
+        ],
+      },
+    ];
+
+    const plans = aggregateFriendPlans(friends);
+    expect(plans).toHaveLength(1);
+    expect(plans[0].sourceFriendId).toBe(uid);
+  });
+
+  test("excludes legacy rows with joinedFromNames but no attendee uids", () => {
+    const friends = [
+      {
+        id: "elliott",
+        displayName: "Elliott",
+        events: [
+          {
+            id: "legacy-row",
+            title: "Jane's Birth",
+            date: "2099-07-01",
+            planHostUid: "elliott",
+            joinedFromFriendUid: "elliott",
+            joinedFromName: "Shawn",
+            joinedFromNames: ["Shawn"],
+          },
+        ],
+      },
+    ];
+
+    const plans = aggregateFriendPlans(friends);
+    expect(plans).toHaveLength(0);
+  });
+
+  test("excludes join rows with only joinedFromIds when the host is not a friend", () => {
+    const friends = [
+      {
+        id: "elliott",
+        displayName: "Elliott",
+        events: [
+          {
+            id: "joined-row",
+            title: "Jane's Birth",
+            date: "2099-07-01",
+            time: "9:00 PM",
+            joinedFromIds: ["shawn", "elliott"],
+            attendeeDisplayNames: {
+              shawn: "Shawn",
+              elliott: "Elliott",
+            },
+          },
+        ],
+      },
+    ];
+
+    const plans = aggregateFriendPlans(friends);
+    expect(plans).toHaveLength(0);
+  });
+
+  test("excludes solo-shaped joiner rows when attendee metadata names a non-friend host", () => {
+    const friends = [
+      {
+        id: "elliott",
+        displayName: "Elliott",
+        events: [
+          {
+            id: "solo-shaped",
+            title: "Jane's Birth",
+            date: "2099-07-01",
+            time: "9:00 PM",
+            planHostUid: "elliott",
+            attendeeDisplayNames: {
+              shawn: "Shawn",
+              elliott: "Elliott",
+            },
+          },
+        ],
+      },
+    ];
+
+    const plans = aggregateFriendPlans(friends);
+    expect(plans).toHaveLength(0);
+  });
+
   test("excludes solo-shaped joiner rows when the viewer is on the same plan with another host", () => {
     const friends = [
       {

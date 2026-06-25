@@ -5,12 +5,11 @@ const {
   onDocumentUpdated,
   onDocumentWritten,
 } = require("firebase-functions/v2/firestore");
-const { GoogleGenerativeAI } = require("@google/generative-ai");
 const axios = require("axios");
 const admin = require("firebase-admin");
 const { logError, logWarn, logInfo } = require("./serverLog");
 const { registerModerationExports } = require("./moderation");
-const { handleUserEventsChange, matchesPlanEvent } = require("./openPlanSync");
+const { handleUserEventsChange, matchesPlanEvent, findHostPlanIndex } = require("./openPlanSync");
 const {
   buildSuggestionCacheKey,
   readSuggestionListCache,
@@ -331,6 +330,11 @@ exports.deleteMyAccount = onCall(
       await deleteCollectionInChunks(db, db.collection("users").doc(uid).collection("notificationLocks"), 400);
       await deleteCollectionInChunks(db, db.collection("users").doc(uid).collection("notifications"), 400);
       await deleteCollectionInChunks(db, db.collection("users").doc(uid).collection("friendGroups"), 400);
+      const bucket = admin.storage().bucket();
+      await Promise.allSettled([
+        bucket.file(`profiles/${uid}`).delete(),
+        bucket.file(`profileShareCards/${uid}/card.png`).delete(),
+      ]);
       await db.collection("users").doc(uid).delete();
       await admin.auth().deleteUser(uid);
 
@@ -655,6 +659,59 @@ function publicUserFields(doc) {
   };
 }
 
+function buildUserSearchFields(data) {
+  const displayName = String(data.displayName || "").trim();
+  const firstName = String(data.firstName || "").trim();
+  const lastName = String(data.lastName || "").trim();
+  const email = String(data.email || "").trim().toLowerCase();
+  const fullName = `${firstName} ${lastName}`.trim();
+  const displayNameLower = (displayName || fullName)
+    .toLowerCase()
+    .replace(/\s+/g, " ");
+  const searchNameLower = (fullName || displayName)
+    .toLowerCase()
+    .replace(/\s+/g, " ");
+  return {
+    displayNameLower,
+    searchNameLower,
+    emailLower: email,
+  };
+}
+
+function pushSearchUser(users, seen, exclude, userDoc) {
+  if (seen.has(userDoc.id) || exclude.has(userDoc.id)) return;
+  const fields = publicUserFields(userDoc);
+  seen.add(userDoc.id);
+  users.push({
+    id: fields.id,
+    displayName: fields.displayName,
+    imageurl: fields.imageurl,
+    email: fields.email,
+  });
+}
+
+async function assertCallableRateLimit(db, uid, key, windowMs, maxCalls) {
+  const ref = db.collection("users").doc(uid).collection("rateLimits").doc(key);
+  const now = Date.now();
+  await db.runTransaction(async (tx) => {
+    const snap = await tx.get(ref);
+    const data = snap.data() || {};
+    const windowStart = Number(data.windowStart || 0);
+    const count = Number(data.count || 0);
+    if (!windowStart || now - windowStart > windowMs) {
+      tx.set(ref, { windowStart: now, count: 1 });
+      return;
+    }
+    if (count >= maxCalls) {
+      throw new HttpsError(
+        "resource-exhausted",
+        "Too many requests. Try again in a few minutes."
+      );
+    }
+    tx.set(ref, { windowStart, count: count + 1 }, { merge: true });
+  });
+}
+
 /** Friend discovery search (server-side; clients cannot list /users). */
 exports.searchUsersForFriend = onCall(
   { region: "us-central1" },
@@ -677,29 +734,44 @@ exports.searchUsersForFriend = onCall(
     const exclude = new Set(myFriendsSnap.docs.map((d) => d.id));
     exclude.add(myId);
 
-    const usersSnap = await db.collection("users").get();
     const users = [];
+    const seen = new Set();
 
-    for (const userDoc of usersSnap.docs) {
-      if (exclude.has(userDoc.id)) continue;
-      const fields = publicUserFields(userDoc);
-      const displayName = normalizeSearchText(fields.displayName);
-      const fullName = normalizeSearchText(
-        `${fields.firstName} ${fields.lastName}`
-      );
-      const email = normalizeSearchText(fields.email);
-      const matches =
-        displayName.includes(query) ||
-        fullName.includes(query) ||
-        email.includes(query);
-      if (!matches) continue;
-      users.push({
-        id: fields.id,
-        displayName: fields.displayName,
-        imageurl: fields.imageurl,
-        email: fields.email,
-      });
+    const prefixSnap = await db
+      .collection("users")
+      .where("displayNameLower", ">=", query)
+      .where("displayNameLower", "<=", `${query}\uf8ff`)
+      .limit(40)
+      .get();
+
+    for (const userDoc of prefixSnap.docs) {
       if (users.length >= 30) break;
+      pushSearchUser(users, seen, exclude, userDoc);
+    }
+
+    if (query.includes("@") && users.length < 30) {
+      const emailSnap = await db
+        .collection("users")
+        .where("emailLower", "==", query)
+        .limit(5)
+        .get();
+      for (const userDoc of emailSnap.docs) {
+        if (users.length >= 30) break;
+        pushSearchUser(users, seen, exclude, userDoc);
+      }
+    }
+
+    if (users.length < 30 && query.length >= 2) {
+      const searchSnap = await db
+        .collection("users")
+        .where("searchNameLower", ">=", query)
+        .where("searchNameLower", "<=", `${query}\uf8ff`)
+        .limit(20)
+        .get();
+      for (const userDoc of searchSnap.docs) {
+        if (users.length >= 30) break;
+        pushSearchUser(users, seen, exclude, userDoc);
+      }
     }
 
     return { users };
@@ -721,7 +793,7 @@ exports.getSuggestedFriends = onCall(
       .doc(myId)
       .collection("friends")
       .get();
-    const myFriendIds = myFriendsSnap.docs.map((d) => d.id);
+    const myFriendIds = myFriendsSnap.docs.map((d) => d.id).slice(0, 40);
     const exclude = new Set([...myFriendIds, myId]);
     const mutualCounts = new Map();
 
@@ -1691,6 +1763,10 @@ exports.sendPlanInvite = onCall({ region: "us-central1" }, async (request) => {
   const hostUid = request.auth.uid;
   const toUserId = String(request.data?.toUserId || "").trim();
   const eventId = String(request.data?.eventId || "").trim();
+  const planTitleHint = String(request.data?.planTitle || "").trim();
+  const planDateHint = String(request.data?.planDate || "").trim();
+  const planTimeHint = String(request.data?.planTime || "").trim();
+  const planLocationHint = String(request.data?.planLocation || "").trim();
   if (!toUserId || toUserId === hostUid) {
     throw new HttpsError("invalid-argument", "Invalid recipient.");
   }
@@ -1724,7 +1800,21 @@ exports.sendPlanInvite = onCall({ region: "us-central1" }, async (request) => {
   const hostData = hostDoc.data() || {};
   const recipientData = recipientDoc.data() || {};
   const hostEvents = Array.isArray(hostData.events) ? hostData.events : [];
-  const hostPlan = hostEvents.find((e) => String(e?.id || "").trim() === eventId);
+  let hostPlan = hostEvents.find((e) => String(e?.id || "").trim() === eventId);
+  if (!hostPlan && planTitleHint && planDateHint) {
+    const idx = findHostPlanIndex(
+      hostEvents,
+      {
+        title: planTitleHint,
+        date: planDateHint,
+        time: planTimeHint,
+        location: planLocationHint,
+        planHostUid: hostUid,
+      },
+      hostUid
+    );
+    if (idx >= 0) hostPlan = hostEvents[idx];
+  }
   if (!hostPlan) {
     throw new HttpsError("not-found", "Plan not found.");
   }
@@ -1807,12 +1897,51 @@ exports.sendPlanInvite = onCall({ region: "us-central1" }, async (request) => {
     const hostDataTx = hostSnap.data() || {};
     const events = Array.isArray(hostDataTx.events) ? [...hostDataTx.events] : [];
     const idx = events.findIndex((e) => String(e?.id || "").trim() === eventId);
-    if (idx === -1) return;
-    const plan = { ...(events[idx] || {}) };
+    if (idx === -1 && planTitleHint && planDateHint) {
+      const hintIdx = findHostPlanIndex(
+        events,
+        {
+          title: planTitleHint,
+          date: planDateHint,
+          time: planTimeHint,
+          location: planLocationHint,
+          planHostUid: hostUid,
+        },
+        hostUid
+      );
+      if (hintIdx >= 0) {
+        const row = { ...(events[hintIdx] || {}) };
+        if (!String(row.id || "").trim()) row.id = eventId;
+        if (!String(row.planHostUid || "").trim()) row.planHostUid = hostUid;
+        events[hintIdx] = row;
+      }
+    }
+    const resolvedIdx =
+      idx >= 0
+        ? idx
+        : events.findIndex((e) => String(e?.id || "").trim() === eventId);
+    let planIdx = resolvedIdx;
+    if (planIdx === -1 && planTitleHint && planDateHint) {
+      planIdx = findHostPlanIndex(
+        events,
+        {
+          title: planTitleHint,
+          date: planDateHint,
+          time: planTimeHint,
+          location: planLocationHint,
+          planHostUid: hostUid,
+        },
+        hostUid
+      );
+    }
+    if (planIdx === -1) return;
+    const plan = { ...(events[planIdx] || {}) };
+    if (!String(plan.id || "").trim()) plan.id = eventId;
+    if (!String(plan.planHostUid || "").trim()) plan.planHostUid = hostUid;
     const nextInvited = collectInvitedIds(plan);
     nextInvited.add(toUserId);
     plan.planInvitedIds = [...nextInvited];
-    events[idx] = plan;
+    events[planIdx] = plan;
     t.update(hostRef, { events });
   });
 
@@ -2263,6 +2392,7 @@ async function generateVenueNames(geminiKey, location, interests, category) {
     let lastError;
     for (const modelName of GEMINI_MODELS) {
         try {
+            const { GoogleGenerativeAI } = require("@google/generative-ai");
             const genAI = new GoogleGenerativeAI(geminiKey);
             const model = genAI.getGenerativeModel({ model: modelName });
             const result = await model.generateContent(prompt);
@@ -2444,6 +2574,16 @@ exports.getSynqSuggestions = onCall(
                 );
             }
 
+            const uid = String(request.auth.uid || "").trim();
+            const db = admin.firestore();
+            await assertCallableRateLimit(
+                db,
+                uid,
+                "synqSuggestions",
+                60 * 60 * 1000,
+                12
+            );
+
             const geminiKey = process.env.GEMINI_API_KEY;
             const googleKey = process.env.GOOGLE_MAPS_API_KEY;
             if (!geminiKey || !googleKey) {
@@ -2463,7 +2603,6 @@ exports.getSynqSuggestions = onCall(
 
             const interests = Array.isArray(shared) ? shared : ["exploring new spots"];
             const normalizedCategory = normalizeCategory(category);
-            const db = admin.firestore();
             const listCacheKey = buildSuggestionCacheKey(location, category, interests);
 
             try {

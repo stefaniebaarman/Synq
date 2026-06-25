@@ -65,6 +65,65 @@ function hasJoinMetadata(event, joinedIds) {
   );
 }
 
+function looksLikeUserUid(id) {
+  const s = String(id || "").trim();
+  return s.length >= 20 && /^[A-Za-z0-9]+$/.test(s);
+}
+
+/** Old rows stored a person's display name in joinedFromId instead of their uid. */
+function looksLikeDisplayNameInIdField(id) {
+  const s = String(id || "").trim();
+  if (!s) return false;
+  if (looksLikeUserUid(s)) return false;
+  if (/\s/.test(s)) return true;
+  return /^[A-Z][a-z]+$/.test(s);
+}
+
+function hasModernAttendeeSync(event) {
+  const stored = event?.attendeeDisplayNames;
+  return !!stored && typeof stored === "object" && Object.keys(stored).length > 0;
+}
+
+/** Pre-2026 rows that stored display names in joinedFromId or lack attendee sync metadata. */
+function looksLikeLegacyJoinedNonFriendPlan(event, friendId, friendIdSet) {
+  const fid = String(friendId || "").trim();
+  const storedHost = String(event?.planHostUid || "").trim();
+  const joinedIds = collectJoinedIds(event);
+  if (storedHost !== fid) return false;
+
+  const nonUidAttendees = joinedIds.filter(
+    (id) => id !== fid && looksLikeDisplayNameInIdField(id)
+  );
+  if (nonUidAttendees.length > 0) return true;
+
+  const nonFriendAttendees = joinedIds.filter((id) => id !== fid && !friendIdSet.has(id));
+  const friendAttendees = joinedIds.filter((id) => id !== fid && friendIdSet.has(id));
+  const joinedNames = Array.isArray(event?.joinedFromNames)
+    ? event.joinedFromNames
+    : [event?.joinedFromName].filter(Boolean);
+
+  if (
+    joinedNames.length > 0 &&
+    joinedIds.filter((id) => id !== fid).length === 0
+  ) {
+    const joinedThrough = String(event?.joinedFromFriendUid || "").trim();
+    const anchorId = String(event?.joinedFromId || "").trim();
+    if (joinedThrough === fid || looksLikeDisplayNameInIdField(anchorId)) {
+      return true;
+    }
+  }
+
+  if (
+    nonFriendAttendees.length > 0 &&
+    friendAttendees.length === 0 &&
+    !hasModernAttendeeSync(event)
+  ) {
+    return true;
+  }
+
+  return false;
+}
+
 /** Resolve who created/hosts an open plan row (may live on a joiner's profile). */
 function resolveOpenPlanHostUid(event, profileFriendId) {
   const fid = String(profileFriendId || "").trim();
@@ -132,6 +191,52 @@ function hostDisplayName(event, hostUid, friendById) {
   return "Friend";
 }
 
+/** Skip rows that belong to a non-friend host (e.g. a friend joined Shawn's plan). */
+function referencesNonFriendHost(event, friendId, friendIdSet) {
+  const fid = String(friendId || "").trim();
+  const storedHost = String(event?.planHostUid || "").trim();
+  const joinedThrough = String(event?.joinedFromFriendUid || "").trim();
+  const joinedIds = collectJoinedIds(event);
+  const hasMeta = hasJoinMetadata(event, joinedIds);
+  const nonFriendAttendees = joinedIds.filter((id) => id !== fid && !friendIdSet.has(id));
+
+  if (storedHost && storedHost !== fid && !friendIdSet.has(storedHost)) return true;
+  if (joinedThrough && joinedThrough !== fid && !friendIdSet.has(joinedThrough)) return true;
+
+  // Joined through themselves while a non-friend is on the plan — not a plan they created.
+  if (nonFriendAttendees.length > 0 && joinedThrough === fid) return true;
+
+  // Sync orders host first in joinedFromIds; a leading non-friend means this friend joined.
+  if (
+    nonFriendAttendees.length > 0 &&
+    storedHost === fid &&
+    !joinedThrough &&
+    joinedIds.length > 1
+  ) {
+    const first = String(joinedIds[0] || "").trim();
+    if (first && first !== fid && !friendIdSet.has(first)) return true;
+  }
+
+  if (hasMeta && !storedHost && !joinedThrough && nonFriendAttendees.length > 0) {
+    return true;
+  }
+
+  if (!hasMeta) {
+    const stored = event?.attendeeDisplayNames;
+    if (stored && typeof stored === "object") {
+      const hasNonFriend = Object.keys(stored).some((uid) => {
+        const id = String(uid || "").trim();
+        return id && id !== fid && !friendIdSet.has(id);
+      });
+      if (hasNonFriend) return true;
+    }
+  }
+
+  if (looksLikeLegacyJoinedNonFriendPlan(event, friendId, friendIdSet)) return true;
+
+  return false;
+}
+
 /**
  * Merge upcoming open plans from friends' profiles.
  * Only includes plans created/hosted by that friend (not plans they joined).
@@ -154,6 +259,8 @@ function aggregateFriendPlans(friends, options = {}) {
 
       // Only show plans this friend created — skip rows where they are attending.
       if (hostUid !== friend.id) continue;
+
+      if (referencesNonFriendHost(event, friend.id, friendIdSet)) continue;
 
       if (
         viewerContradictsFriendAsHost(

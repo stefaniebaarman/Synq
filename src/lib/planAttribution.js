@@ -166,6 +166,19 @@ function resolveEffectiveHostUid(event, viewerUid, joinedIds, profileSubjectUid)
     if (!storedHost) return profileSubject;
   }
 
+  // Friend profile with multiple attendees but no host metadata: profile owner joined.
+  if (
+    profileSubject &&
+    profileSubject !== viewer &&
+    !storedHost &&
+    !joinedThrough &&
+    joinedIds.includes(profileSubject) &&
+    joinedIds.length > 1
+  ) {
+    const others = joinedIds.filter((id) => id !== profileSubject);
+    if (others.length === 1) return others[0];
+  }
+
   // Friend profile: planHostUid can be wrongly stored as the profile owner instead of
   // the real host when they joined someone else's plan.
   if (
@@ -230,6 +243,18 @@ function resolveEffectiveHostUid(event, viewerUid, joinedIds, profileSubjectUid)
         return storedHost;
       }
       return anchorOthers[0];
+    }
+    // Profile owner wrongly stored as host and join anchor; another attendee is the host.
+    if (
+      anchorOthers.length === 0 &&
+      profileSubject &&
+      storedHost === profileSubject &&
+      joinedThrough === profileSubject
+    ) {
+      const outsiders = joinedIds.filter(
+        (id) => id !== profileSubject && id !== viewer
+      );
+      if (outsiders.length === 1) return outsiders[0];
     }
   }
 
