@@ -1,6 +1,3 @@
-// Profile share card UI — disabled for now (link-only sharing).
-
-/*
 import {
   ACCENT,
   ACCENT_FILL_SUBTLE,
@@ -12,14 +9,10 @@ import {
   DIVIDER,
   FRIENDS_BORDER,
   GROUP_BORDER,
-  MUTED2,
   SHARE_GRADIENT_ACCENT,
   SHARE_GRADIENT_START,
   SURFACE_WELL,
-  TEXT,
   TYPE_CTA,
-  TYPE_LEAD,
-  TYPE_TITLE,
   fonts,
   profileLocationText,
   profileNameText,
@@ -202,4 +195,3 @@ const styles = StyleSheet.create({
     letterSpacing: 0.3,
   },
 });
-*/

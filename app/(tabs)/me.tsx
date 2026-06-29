@@ -38,7 +38,7 @@ import {
 import CloseButton from "@/src/components/CloseButton";
 import HeaderIconButton from "@/src/components/HeaderIconButton";
 import NotificationBadge from "@/src/components/NotificationBadge";
-// import ProfileShareCard from "@/src/components/profile/ProfileShareCard";
+import ProfileShareCard from "@/src/components/profile/ProfileShareCard";
 import ProfilePhotoActionSheet from "@/src/components/ProfilePhotoActionSheet";
 import ProfileTabHeaderOverlay, {
   useTabHeaderLayout,
@@ -56,15 +56,13 @@ import {
 } from "@/src/lib/profilePhotoPicker";
 import { buildProfileShareWebUrl } from "@/src/lib/profileShareUrl";
 import { clearPushTokenOnSignOut } from "@/src/lib/pushToken";
-import { shareProfileLink } from "@/src/lib/shareProfileCard";
-// import {
-//   invalidateProfileShareCardCache,
-//   isProfileShareCardCached,
-//   markShareCardAvatarPainted,
-//   shareProfileWithCard,
-//   syncShareCardAvatarUri,
-//   warmProfileShareCardCapture,
-// } from "@/src/lib/shareProfileCard";
+import {
+  invalidateProfileShareCardCache,
+  markShareCardAvatarPainted,
+  shareProfileLink,
+  syncShareCardAvatarUri,
+  warmProfileShareCardCapture,
+} from "@/src/lib/shareProfileCard";
 import { removeProfilePhoto } from "@/src/lib/uploadProfilePhoto";
 import { Ionicons } from "@expo/vector-icons";
 import { useIsFocused } from "@react-navigation/native";
@@ -105,7 +103,7 @@ import Animated, {
   withSpring,
 } from "react-native-reanimated";
 import { SafeAreaProvider, SafeAreaView } from "react-native-safe-area-context";
-// import ViewShot from "react-native-view-shot";
+import ViewShot from "react-native-view-shot";
 import { presetActivities, stateAbbreviations } from "../../assets/Mocks";
 import { auth, db } from "../../src/lib/firebase";
 import {
@@ -341,7 +339,7 @@ export default function ProfileScreen() {
   const isFocused = useIsFocused();
   const headerLayout = useTabHeaderLayout();
   const scrollRef = useRef<ScrollView>(null);
-  // const shareCardRef = useRef<ViewShot>(null);
+  const shareCardRef = useRef<ViewShot>(null);
   const [sharingProfile, setSharingProfile] = useState(false);
   const profileScrollPaddingBottom = TAB_BAR_SCROLL_INSET + SPACE_6;
   const params = useLocalSearchParams<{ focusEventId?: string | string[] }>();
@@ -1142,10 +1140,10 @@ export default function ProfileScreen() {
     if (!inviteCode) return "";
     return `synq://invite/${encodeURIComponent(inviteCode)}`;
   }, [inviteCode]);
-  // const shareCardCacheKey = useMemo(() => {
-  //   const location = city && state ? `${city}, ${state}` : "";
-  //   return `${auth.currentUser?.displayName ?? ""}|${resolvedProfileImage}|${location}`;
-  // }, [auth.currentUser?.displayName, resolvedProfileImage, city, state]);
+  const shareCardCacheKey = useMemo(() => {
+    const location = city && state ? `${city}, ${state}` : "";
+    return `${auth.currentUser?.displayName ?? ""}|${resolvedProfileImage}|${location}`;
+  }, [auth.currentUser?.displayName, resolvedProfileImage, city, state]);
 
   const fetchInviteCode = useCallback(async (): Promise<string> => {
     if (inviteCode) return inviteCode;
@@ -1191,10 +1189,14 @@ export default function ProfileScreen() {
     };
   }, [auth.currentUser?.uid, fetchInviteCode]);
 
-  // useEffect(() => {
-  //   if (!auth.currentUser?.uid || !shareCardCacheKey) return;
-  //   warmProfileShareCardCapture(shareCardRef, shareCardCacheKey);
-  // }, [auth.currentUser?.uid, shareCardCacheKey]);
+  useEffect(() => {
+    syncShareCardAvatarUri(resolvedProfileImage);
+  }, [resolvedProfileImage]);
+
+  useEffect(() => {
+    if (!auth.currentUser?.uid || !shareCardCacheKey) return;
+    warmProfileShareCardCapture(shareCardRef, shareCardCacheKey);
+  }, [auth.currentUser?.uid, shareCardCacheKey]);
 
   const shareProfile = async () => {
     if (sharingProfile) return;
@@ -1734,8 +1736,7 @@ export default function ProfileScreen() {
         onRemove={handleRemovePhoto}
       />
 
-      {/* Profile share card — disabled for now; link-only sharing via shareProfileLink */}
-      {/* {auth.currentUser?.uid ? (
+      {auth.currentUser?.uid ? (
         <View
           pointerEvents="none"
           style={styles.shareCardCaptureHost}
@@ -1760,7 +1761,7 @@ export default function ProfileScreen() {
             />
           </ViewShot>
         </View>
-      ) : null} */}
+      ) : null}
     </View>
   );
 }
@@ -1768,13 +1769,13 @@ export default function ProfileScreen() {
 const styles = StyleSheet.create({
   /** Full-width scroll (no gutter scrollbar); sections pad themselves. */
   screen: { flex: 1, backgroundColor: BG, position: "relative" },
-  // shareCardCaptureHost: {
-  //   position: "absolute",
-  //   top: 0,
-  //   left: 0,
-  //   opacity: 0,
-  //   zIndex: -1,
-  // },
+  shareCardCaptureHost: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    opacity: 0,
+    zIndex: -1,
+  },
   scrollView: { flex: 1 },
   scrollContent: {
     paddingHorizontal: 20,

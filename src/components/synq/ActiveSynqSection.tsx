@@ -305,14 +305,14 @@ export default function ActiveSynqSection({
                 accessibilityRole="button"
                 accessibilityLabel={
                   selectedFriends.length === 0
-                    ? "Select friends who are free to start planning"
-                    : `Start plan with ${selectedFriends.length} friend${
+                    ? "Select friends who are free to chat"
+                    : `Start chat with ${selectedFriends.length} friend${
                         selectedFriends.length === 1 ? "" : "s"
                       }`
                 }
               >
                 <Text style={styles.btnText}>
-                  {selectedFriends.length === 0 ? "Select friends" : "Start plan"}
+                  {selectedFriends.length === 0 ? "Select friends" : "Start chat"}
                 </Text>
               </TouchableOpacity>
             </View>
