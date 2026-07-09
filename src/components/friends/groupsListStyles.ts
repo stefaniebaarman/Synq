@@ -9,6 +9,7 @@ import {
   SURFACE_RAISED,
   TYPE_BUTTON,
   TYPE_CAPTION,
+  TYPE_CTA,
   TYPE_FINE,
   TYPE_MICRO,
   TYPE_SECTION,
@@ -52,6 +53,8 @@ export const groupsPageStyles = StyleSheet.create({
   },
   sectionTitle: {
     ...listSectionTitle,
+    fontSize: TYPE_CTA,
+    lineHeight: 23,
     marginTop: 0,
   },
   sectionAddBtn: {
