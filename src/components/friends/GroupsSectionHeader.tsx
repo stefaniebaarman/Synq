@@ -4,7 +4,7 @@ import { Ionicons } from "@expo/vector-icons";
 import React from "react";
 import { Text, TouchableOpacity, View } from "react-native";
 
-const SECTION_ADD_GLYPH_SIZE = 16;
+const SECTION_ADD_GLYPH_SIZE = 14;
 const SECTION_INFO_GLYPH_SIZE = 18;
 
 type Props = {

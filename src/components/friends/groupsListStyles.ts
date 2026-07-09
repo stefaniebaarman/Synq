@@ -58,9 +58,9 @@ export const groupsPageStyles = StyleSheet.create({
     marginTop: 0,
   },
   sectionAddBtn: {
-    width: 28,
-    height: 28,
-    borderRadius: 14,
+    width: 24,
+    height: 24,
+    borderRadius: 12,
     borderWidth: 1.5,
     borderColor: ACCENT,
     alignItems: "center",
