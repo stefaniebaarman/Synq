@@ -1,8 +1,8 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Redirect, useLocalSearchParams } from "expo-router";
-import React, { useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import { ActivityIndicator, StyleSheet, View } from "react-native";
-import { BG } from "../../constants/Variables";
+import { ACCENT, BG } from "../../constants/Variables";
 import { auth } from "../../src/lib/firebase";
 
 const PENDING_INVITE_FROM_UID_KEY = "synq:pendingInviteFromUid";
@@ -14,6 +14,7 @@ export default function InviteRoute() {
     from?: string | string[];
     code?: string | string[];
   }>();
+  const [persistReady, setPersistReady] = useState(false);
 
   const resolveParam = (value: string | string[] | undefined): string => {
     if (typeof value === "string") return value.trim();
@@ -24,14 +25,39 @@ export default function InviteRoute() {
   useEffect(() => {
     const inviteFrom = resolveParam(params.inviteFrom) || resolveParam(params.from);
     const inviteCode = resolveParam(params.code);
-    if (inviteFrom) {
-      AsyncStorage.setItem(PENDING_INVITE_FROM_UID_KEY, inviteFrom).catch(() => {});
+    if (!inviteFrom && !inviteCode) {
+      setPersistReady(true);
       return;
     }
-    if (inviteCode) {
-      AsyncStorage.setItem(PENDING_INVITE_CODE_KEY, inviteCode).catch(() => {});
-    }
+
+    let cancelled = false;
+    const persist = async () => {
+      try {
+        if (inviteFrom) {
+          await AsyncStorage.setItem(PENDING_INVITE_FROM_UID_KEY, inviteFrom);
+        }
+        if (inviteCode) {
+          await AsyncStorage.setItem(PENDING_INVITE_CODE_KEY, inviteCode);
+        }
+      } catch {
+        // Root layout will still attempt accept if keys were written earlier.
+      } finally {
+        if (!cancelled) setPersistReady(true);
+      }
+    };
+    void persist();
+    return () => {
+      cancelled = true;
+    };
   }, [params.code, params.from, params.inviteFrom]);
+
+  if (!persistReady) {
+    return (
+      <View style={styles.container}>
+        <ActivityIndicator color={ACCENT} />
+      </View>
+    );
+  }
 
   if (auth.currentUser) {
     return <Redirect href="/(tabs)" />;
@@ -41,7 +67,7 @@ export default function InviteRoute() {
     <>
       <Redirect href="/(auth)/welcome" />
       <View style={styles.container}>
-        <ActivityIndicator />
+        <ActivityIndicator color={ACCENT} />
       </View>
     </>
   );

@@ -747,8 +747,14 @@ export default function NotificationsScreen() {
         });
 
         batch.delete(doc(db, "users", myId, "friendRequests", request.id));
+        batch.delete(doc(db, "users", myId, "outgoingFriendRequests", senderId));
+        batch.delete(doc(db, "users", senderId, "outgoingFriendRequests", myId));
 
         await batch.commit();
+
+        await deleteDoc(doc(db, "users", senderId, "friendRequests", myId)).catch(
+          () => {}
+        );
 
         showAlert("Success", `You are now connected with ${senderName}!`);
       } else {

@@ -103,7 +103,6 @@ import {
   DISABLED_CTA,
   DIVIDER,
   DIVIDER_STRONG,
-  EXPIRATION_HOURS,
   GROUP_BORDER,
   HEADER_BLACK,
   HEART_LIKE,
@@ -175,6 +174,8 @@ import type { SynqSuggestion } from "../../src/lib/synqSuggestions";
 import {
   computeSynqActiveFromUserData,
   getCachedSynqActiveSync,
+  millisUntilSynqExpires,
+  synqStartedAtMillis,
   writeCachedSynqActive,
 } from "../../src/lib/synqSession";
 import { registerDismissNavigationOverlaysHandler } from "../../src/lib/navigationOverlayEvents";
@@ -936,11 +937,74 @@ export default function SynqScreen() {
     return subscribeUserDocMultiplexed(uid, (data) => {
       if (!data) return;
       setUserProfile(data);
-      if (computeSynqActiveFromUserData(data)) {
+      const isActive = computeSynqActiveFromUserData(data);
+      if (isActive) {
         setAudienceSelection(selectionFromUserBroadcastFields(data));
+        setSynq((s) => {
+          if (s.status === "activating" || s.status === "active") return s;
+          writeCachedSynqActive(uid, true);
+          return { ...s, status: "active" };
+        });
+        return;
       }
+
+      setSynq((s) => {
+        if (s.status === "activating" || s.status === "idle") return s;
+        writeCachedSynqActive(uid, false);
+        setMemo("");
+        setAudienceSelection({ mode: "all", groupIds: [] });
+        if (
+          data.status === "available" &&
+          synqStartedAtMillis(data) != null &&
+          auth.currentUser?.uid === uid
+        ) {
+          void updateDoc(doc(db, "users", uid), {
+            status: "inactive",
+            memo: "",
+            ...clearSynqBroadcastFields,
+          }).catch(() => {});
+        }
+        return { ...s, status: "idle" };
+      });
     });
-  }, [user?.uid]);
+  }, [user?.uid, clearSynqBroadcastFields]);
+
+  useEffect(() => {
+    const effectUid = user?.uid;
+    if (!effectUid || status !== "active") return;
+
+    const expireLocally = () => {
+      setSynq((s) => {
+        if (s.status !== "active") return s;
+        writeCachedSynqActive(effectUid, false);
+        return { ...s, status: "idle" };
+      });
+      setMemo("");
+      setAudienceSelection({ mode: "all", groupIds: [] });
+      if (auth.currentUser?.uid === effectUid) {
+        void updateDoc(doc(db, "users", effectUid), {
+          status: "inactive",
+          memo: "",
+          ...clearSynqBroadcastFields,
+        }).catch(() => {});
+      }
+    };
+
+    const delay = millisUntilSynqExpires(userProfile);
+    if (delay <= 0) {
+      expireLocally();
+      return;
+    }
+
+    const timer = setTimeout(expireLocally, delay);
+    return () => clearTimeout(timer);
+  }, [
+    user?.uid,
+    status,
+    userProfile?.synqStartedAt,
+    userProfile?.status,
+    clearSynqBroadcastFields,
+  ]);
 
   const resolvedFriendIds = useMemo(() => {
     const uid = user?.uid;
@@ -1045,19 +1109,19 @@ export default function SynqScreen() {
             nextStatus = "active";
             writeCachedSynqActive(effectUid, true);
           } else {
-            if (data.status === 'available' && data.synqStartedAt) {
-              const startTime = data.synqStartedAt.toDate().getTime();
-              const hoursElapsed = (new Date().getTime() - startTime) / (1000 * 60 * 60);
-              if (hoursElapsed > EXPIRATION_HOURS) {
-                if (!cancelled && auth.currentUser?.uid === effectUid) {
-                  await updateDoc(userRef, {
-                    status: "inactive",
-                    memo: "",
-                    ...clearSynqBroadcastFields,
-                  });
-                }
-                if (!cancelled) setMemo("");
+            if (
+              data.status === "available" &&
+              synqStartedAtMillis(data) != null &&
+              !computeSynqActiveFromUserData(data)
+            ) {
+              if (!cancelled && auth.currentUser?.uid === effectUid) {
+                await updateDoc(userRef, {
+                  status: "inactive",
+                  memo: "",
+                  ...clearSynqBroadcastFields,
+                });
               }
+              if (!cancelled) setMemo("");
             }
             nextStatus = "idle";
             writeCachedSynqActive(effectUid, false);

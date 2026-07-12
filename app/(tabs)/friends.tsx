@@ -1638,6 +1638,8 @@ function SearchModal({
       });
       const requestDocId = targetUser.friendRequestDocId ?? senderId;
       batch.delete(doc(db, "users", myId, "friendRequests", requestDocId));
+      batch.delete(doc(db, "users", myId, "outgoingFriendRequests", senderId));
+      batch.delete(doc(db, "users", senderId, "outgoingFriendRequests", myId));
       await batch.commit();
 
       incomingCheckCacheRef.current[senderId] = false;

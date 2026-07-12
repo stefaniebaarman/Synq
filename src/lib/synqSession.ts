@@ -9,11 +9,31 @@ export function synqStatusStorageKey(uid: string) {
 
 const synqActiveMemoryCache: Record<string, boolean | undefined> = {};
 
+export function synqStartedAtMillis(data: DocumentData | undefined): number | null {
+  const raw = data?.synqStartedAt;
+  if (!raw || typeof raw !== "object") return null;
+  if (typeof (raw as { toDate?: unknown }).toDate !== "function") return null;
+  try {
+    return (raw as { toDate: () => Date }).toDate().getTime();
+  } catch {
+    return null;
+  }
+}
+
 export function computeSynqActiveFromUserData(data: DocumentData | undefined): boolean {
-  if (!data || data.status !== "available" || !data.synqStartedAt) return false;
-  const startTime = data.synqStartedAt.toDate().getTime();
-  const hoursElapsed = (Date.now() - startTime) / (1000 * 60 * 60);
+  if (!data || data.status !== "available") return false;
+  const startMs = synqStartedAtMillis(data);
+  if (startMs == null) return false;
+  const hoursElapsed = (Date.now() - startMs) / (1000 * 60 * 60);
   return hoursElapsed <= EXPIRATION_HOURS;
+}
+
+/** Milliseconds until the current Synq window ends, or 0 if already expired. */
+export function millisUntilSynqExpires(data: DocumentData | undefined): number {
+  const startMs = synqStartedAtMillis(data);
+  if (startMs == null) return 0;
+  const expireMs = startMs + EXPIRATION_HOURS * 60 * 60 * 1000;
+  return Math.max(0, expireMs - Date.now());
 }
 
 export async function readCachedSynqActive(uid: string): Promise<boolean> {

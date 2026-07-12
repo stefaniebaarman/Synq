@@ -240,12 +240,16 @@ export function useSendMessage({
           createdAt: serverTimestamp(),
         });
 
-        await updateDoc(doc(db, "chats", chatId!), {
-          lastMessage: trimmed,
-          lastMessageSenderId: myId,
-          updatedAt: serverTimestamp(),
-          [`participantImages.${myId}`]: myAvatar,
-        });
+        try {
+          await updateDoc(doc(db, "chats", chatId!), {
+            lastMessage: trimmed,
+            lastMessageSenderId: myId,
+            updatedAt: serverTimestamp(),
+            [`participantImages.${myId}`]: myAvatar,
+          });
+        } catch {
+          // Message is already on the server; inbox preview can lag briefly.
+        }
 
         recentlySentRef.current.set(clientId, {
           text: trimmed,
