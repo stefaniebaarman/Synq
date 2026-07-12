@@ -1,9 +1,87 @@
-import { Dimensions } from "react-native";
+import { Dimensions, StyleSheet } from "react-native";
+import {
+  ACCENT,
+  BORDER,
+  BUTTON_RADIUS,
+  DIVIDER,
+  MUTED,
+  PRIMARY_CTA_HEIGHT,
+  PRIMARY_CTA_WIDTH,
+  SURFACE,
+  TEXT,
+  TYPE_BODY,
+  TYPE_CTA,
+  TYPE_DISPLAY,
+  fonts,
+} from "./Variables";
 
 const { height: WINDOW_HEIGHT } = Dimensions.get("window");
 
+/** Carousel slide count (index / welcome / next). */
+export const ONBOARDING_CAROUSEL_STEPS = 3;
+
+/** Shared swipe thresholds for onboarding carousel screens. */
+export const ONBOARDING_SWIPE_DISTANCE = 60;
+export const ONBOARDING_SWIPE_VELOCITY = 700;
+
 /** Horizontal inset for onboarding form columns (auth + post-auth). */
 export const ONBOARDING_H_PADDING = 22;
+
+/** Shared chrome for the three carousel slides. */
+export const onboardingCarouselStyles = StyleSheet.create({
+  skip: { position: "absolute", top: 14, right: 18, zIndex: 10 },
+  skipText: {
+    color: MUTED,
+    fontFamily: fonts.book,
+    fontSize: TYPE_BODY,
+  },
+  topCopy: { paddingTop: 86 },
+  title: {
+    color: TEXT,
+    fontFamily: fonts.heavy,
+    fontSize: TYPE_DISPLAY,
+    letterSpacing: -0.4,
+    lineHeight: 40,
+  },
+  sub: {
+    marginTop: 16,
+    color: MUTED,
+    fontFamily: fonts.book,
+    fontSize: TYPE_BODY,
+    lineHeight: 23,
+    maxWidth: 320,
+  },
+  bottom: {
+    paddingBottom: 26,
+    alignItems: "center",
+  },
+  nextBtn: {
+    width: PRIMARY_CTA_WIDTH,
+    height: PRIMARY_CTA_HEIGHT,
+    borderRadius: BUTTON_RADIUS,
+    backgroundColor: SURFACE,
+    borderWidth: 1,
+    borderColor: BORDER,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  nextText: {
+    color: ACCENT,
+    fontFamily: fonts.heavy,
+    fontSize: TYPE_CTA,
+    letterSpacing: 0.2,
+  },
+  dots: {
+    flexDirection: "row",
+    gap: 8,
+    marginTop: 14,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  dot: { width: 7, height: 7, borderRadius: 99 },
+  dotInactive: { backgroundColor: DIVIDER },
+  dotActive: { backgroundColor: ACCENT },
+});
 
 /** Top offset for absolute back controls (chevron). */
 export const ONBOARDING_BACK_TOP = 56;

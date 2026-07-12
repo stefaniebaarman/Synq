@@ -4,6 +4,7 @@ import {
   BG,
   BORDER_SOFT,
   BUTTON_RADIUS,
+  MUTED,
   MUTED3,
   ON_ACCENT_TEXT,
   OVERLAY_DARK,
@@ -47,7 +48,9 @@ export default function GetStartedScreen() {
             paddingHorizontal: ONBOARDING_H_PADDING,
           }}
         >
-          <Text style={styles.title}>Let’s Synq.</Text>
+          <Text style={styles.title}>
+            Let&apos;s <Text style={styles.titleAccent}>Synq.</Text>
+          </Text>
           <Text style={styles.sub}>
             Less scrolling, more time with the people{"\n"}
             you care about.
@@ -95,15 +98,19 @@ const styles = StyleSheet.create({
     color: TEXT,
     fontFamily: fonts.heavy,
     fontSize: TYPE_DISPLAY,
-    letterSpacing: -0.8,
-    lineHeight: 48,
+    letterSpacing: -0.4,
+    lineHeight: 40,
+  },
+  titleAccent: {
+    color: ACCENT,
+    fontFamily: fonts.heavy,
   },
   sub: {
-    marginTop: 14,
-    color: TEXT_ON_BRIGHT,
-    fontFamily: fonts.medium,
+    marginTop: 16,
+    color: MUTED,
+    fontFamily: fonts.book,
     fontSize: TYPE_BODY,
-    lineHeight: 24,
+    lineHeight: 23,
     width: "92%",
   },
   bottom: {
