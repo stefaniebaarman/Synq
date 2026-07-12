@@ -2,9 +2,13 @@ import { StyleSheet } from "react-native";
 import {
   BG,
   BORDER,
+  BUTTON_RADIUS,
   MODAL_RADIUS,
+  MUTED3,
   SHEET_OVERLAY,
   SHEET_SURFACE,
+  SPACE_2,
+  SPACE_3,
   SPACE_4,
   SPACE_5,
   SURFACE_SHEET_ALT,
@@ -21,6 +25,10 @@ import {
   TEXT,
 } from "./Variables";
 
+/** Bottom sheets rise; centered alerts/dialogs stay fade. */
+export const SHEET_ANIMATION = "slide" as const;
+export const DIALOG_ANIMATION = "fade" as const;
+
 export const sheetStyles = StyleSheet.create({
   overlay: {
     flex: 1,
@@ -33,6 +41,10 @@ export const sheetStyles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
     paddingHorizontal: SPACE_5,
+  },
+  /** Full-bleed backdrop press target behind a bottom sheet. */
+  backdrop: {
+    ...StyleSheet.absoluteFillObject,
   },
   sheet: {
     backgroundColor: SHEET_SURFACE,
@@ -51,6 +63,25 @@ export const sheetStyles = StyleSheet.create({
     paddingBottom: 36,
     borderWidth: 1,
     borderColor: BORDER,
+  },
+  /** Rounded floating sheet card (Synq options / audience). */
+  sheetCard: {
+    backgroundColor: SHEET_SURFACE,
+    borderRadius: BUTTON_RADIUS + 4,
+    borderWidth: 1,
+    borderColor: BORDER,
+    overflow: "hidden",
+  },
+  grabberWrap: {
+    alignItems: "center",
+    paddingTop: SPACE_3,
+    paddingBottom: SPACE_2,
+  },
+  grabber: {
+    width: 36,
+    height: 4,
+    borderRadius: 99,
+    backgroundColor: MUTED3,
   },
   card: {
     width: "100%",

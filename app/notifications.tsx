@@ -1,6 +1,7 @@
 import CloseIcon from "@/src/components/CloseIcon";
 import StackScreenHeader from "@/src/components/StackScreenHeader";
 import { Ionicons } from "@expo/vector-icons";
+import * as Haptics from "expo-haptics";
 import { Image as ExpoImage } from "expo-image";
 import { router } from "expo-router";
 import {
@@ -752,12 +753,15 @@ export default function NotificationsScreen() {
 
         await batch.commit();
 
+        void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+
         await deleteDoc(doc(db, "users", senderId, "friendRequests", myId)).catch(
           () => {}
         );
 
         showAlert("Success", `You are now connected with ${senderName}!`);
       } else {
+        void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
         await deleteDoc(doc(db, "users", myId, "friendRequests", request.id));
       }
     } catch (e: unknown) {

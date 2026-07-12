@@ -1642,6 +1642,7 @@ function SearchModal({
       batch.delete(doc(db, "users", senderId, "outgoingFriendRequests", myId));
       await batch.commit();
 
+      void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       incomingCheckCacheRef.current[senderId] = false;
       setIncomingRequestIds((prev) => ({ ...prev, [senderId]: false }));
       setAcceptedIds((prev) => ({ ...prev, [senderId]: true }));
@@ -1668,6 +1669,7 @@ function SearchModal({
     const requestDocId = targetUser.friendRequestDocId ?? senderId;
 
     try {
+      void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
       Keyboard.dismiss();
       await deleteDoc(doc(db, "users", myId, "friendRequests", requestDocId));
       await deleteDoc(doc(db, "users", senderId, "friendRequests", myId)).catch(() => {});

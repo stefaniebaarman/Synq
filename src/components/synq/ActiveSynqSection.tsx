@@ -3,6 +3,7 @@ import NotificationBadge from "@/src/components/NotificationBadge";
 import TabHeaderIconRow from "@/src/components/TabHeaderIconRow";
 import { useTabHeaderLayout } from "@/src/components/ProfileTabHeaderOverlay";
 import { Ionicons } from "@expo/vector-icons";
+import * as Haptics from "expo-haptics";
 import { Image as ExpoImage } from "expo-image";
 import { LinearGradient } from "expo-linear-gradient";
 import SynqOptionsSheet from "../../../app/synq-screens/SynqOptionsSheet";
@@ -10,7 +11,6 @@ import ActiveSynqEmptyState from "@/src/components/synq/ActiveSynqEmptyState";
 import type { Friend } from "@/constants/Variables";
 import {
   FriendsSortMenu,
-  FriendsSortTrigger,
   type FriendsSortMode,
 } from "@/src/components/friends/FriendsSortControls";
 import { useSortedFriendsList } from "@/src/lib/useSortedFriendsList";
@@ -188,15 +188,6 @@ export default function ActiveSynqSection({
           </Pressable>
         ) : null}
 
-        {availableFriends.length > 0 ? (
-          <View style={styles.sortBar}>
-            <FriendsSortTrigger
-              sortMode={sortMode}
-              onPress={() => setSortMenuVisible(true)}
-            />
-          </View>
-        ) : null}
-
         <FlatList
           style={styles.activeFriendsList}
           data={sortedAvailableFriends}
@@ -214,13 +205,14 @@ export default function ActiveSynqSection({
             const selected = selectedFriends.includes(item.id);
             return (
               <TouchableOpacity
-                onPress={() =>
+                onPress={() => {
+                  void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
                   setSelectedFriends((prev) =>
                     prev.includes(item.id)
                       ? prev.filter((id) => id !== item.id)
                       : [...prev, item.id]
-                  )
-                }
+                  );
+                }}
                 style={[
                   styles.friendCard,
                   selected ? styles.friendCardSelected : styles.friendCardUnselected,
@@ -333,6 +325,11 @@ export default function ActiveSynqSection({
         onClose={() => setOptionsVisible(false)}
         onEditMemo={openEditModal}
         onChangeAudience={openChangeAudience}
+        onSortFriends={
+          availableFriends.length > 0
+            ? () => setSortMenuVisible(true)
+            : undefined
+        }
         onEndSynq={endSynq}
       />
     </View>

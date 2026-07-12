@@ -1,3 +1,4 @@
+import { DIALOG_ANIMATION } from "@/constants/sheetStyles";
 import {
   MUTED,
   MUTED3,
@@ -64,7 +65,7 @@ export default function EditSynqModal({
   }, [visible]);
 
   return (
-    <Modal visible={visible} transparent animationType="fade">
+    <Modal visible={visible} transparent animationType={DIALOG_ANIMATION}>
       <TouchableWithoutFeedback onPress={onClose}>
         <View style={styles.centeredModalOverlay}>
           <TouchableWithoutFeedback onPress={Keyboard.dismiss}>

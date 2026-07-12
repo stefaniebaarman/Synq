@@ -1,21 +1,16 @@
 import SynqAudiencePicker from "@/src/components/synq/SynqAudiencePicker";
-import { sheetStyles } from "@/constants/sheetStyles";
+import { SHEET_ANIMATION, sheetStyles } from "@/constants/sheetStyles";
 import {
   ACCENT,
-  BORDER,
   BUTTON_RADIUS,
-  ON_ACCENT_TEXT,
+  GROUP_BORDER,
   SHEET_OVERLAY,
   SHEET_SURFACE,
   SPACE_3,
   SPACE_4,
   SPACE_5,
   SPACE_6,
-  GROUP_BORDER,
-  TEXT,
-  TYPE_BODY,
   primaryButtonText,
-  fonts,
 } from "@/constants/Variables";
 import type { FriendGroup } from "@/src/lib/friendGroups";
 import type { SynqAudienceSelection } from "@/src/lib/synqBroadcast";
@@ -48,12 +43,26 @@ export default function SynqAudienceSheet({
   const insets = useSafeAreaInsets();
 
   return (
-    <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
+    <Modal
+      visible={visible}
+      transparent
+      animationType={SHEET_ANIMATION}
+      onRequestClose={onClose}
+    >
       <View style={styles.overlay}>
-        <Pressable style={styles.backdrop} onPress={onClose} accessibilityLabel="Close" />
+        <Pressable
+          style={sheetStyles.backdrop}
+          onPress={onClose}
+          accessibilityLabel="Close"
+        />
         <View style={[styles.sheetGroup, { paddingBottom: insets.bottom + SPACE_4 }]}>
-          <View style={styles.sheetCard}>
-            <Text style={[sheetStyles.sheetTitle, styles.sheetTitlePad]}>Share with</Text>
+          <View style={sheetStyles.sheetCard}>
+            <View style={sheetStyles.grabberWrap}>
+              <View style={sheetStyles.grabber} />
+            </View>
+            <Text style={[sheetStyles.sheetTitle, styles.sheetTitlePad]}>
+              Share with
+            </Text>
             <View style={styles.pickerSection}>
               <SynqAudiencePicker
                 groups={groups}
@@ -85,21 +94,11 @@ const styles = StyleSheet.create({
     justifyContent: "flex-end",
     backgroundColor: SHEET_OVERLAY,
   },
-  backdrop: {
-    ...StyleSheet.absoluteFillObject,
-  },
   sheetGroup: {
     paddingHorizontal: SPACE_5,
   },
-  sheetCard: {
-    backgroundColor: SHEET_SURFACE,
-    borderRadius: BUTTON_RADIUS + 4,
-    borderWidth: 1,
-    borderColor: BORDER,
-    overflow: "hidden",
-  },
   sheetTitlePad: {
-    paddingTop: SPACE_4 + 2,
+    paddingTop: SPACE_3,
     paddingBottom: SPACE_4,
     paddingHorizontal: SPACE_4,
   },

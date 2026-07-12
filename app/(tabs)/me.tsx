@@ -39,6 +39,7 @@ import CloseButton from "@/src/components/CloseButton";
 import HeaderIconButton from "@/src/components/HeaderIconButton";
 import NotificationBadge from "@/src/components/NotificationBadge";
 import ProfileShareCard from "@/src/components/profile/ProfileShareCard";
+import { TopSynqsSkeleton } from "@/src/components/loading/BrandSkeletons";
 import ProfilePhotoActionSheet from "@/src/components/ProfilePhotoActionSheet";
 import ProfileTabHeaderOverlay, {
   useTabHeaderLayout,
@@ -83,7 +84,6 @@ import { getFunctions, httpsCallable } from "firebase/functions";
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { StyleProp, ViewStyle } from "react-native";
 import {
-  ActivityIndicator,
   AppState,
   AppStateStatus,
   Keyboard,
@@ -1448,7 +1448,7 @@ export default function ProfileScreen() {
               : "Message friends to see your top Synqs here."}
           </Text>
         ) : (
-          <ActivityIndicator color={ACCENT} style={styles.topSynqsLoading} />
+          <TopSynqsSkeleton />
         )}
       </View>
 
@@ -1786,7 +1786,6 @@ const styles = StyleSheet.create({
     paddingBottom: 8,
     position: "relative",
   },
-  topSynqsLoading: { alignSelf: "center", marginVertical: 16 },
   profileSection: { alignItems: "center", marginTop: 0, overflow: "visible" },
   qrContainer: {
     width: 200,

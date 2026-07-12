@@ -1,16 +1,11 @@
 import SynqAudiencePicker from "@/src/components/synq/SynqAudiencePicker";
-import { sheetStyles } from "@/constants/sheetStyles";
+import { SHEET_ANIMATION, sheetStyles } from "@/constants/sheetStyles";
 import {
   ACCENT,
-  BORDER,
-  BUTTON_RADIUS,
   GROUP_BORDER,
   MUTED2,
   SHEET_OVERLAY,
-  SHEET_SURFACE,
   SPACE_3,
-  SPACE_4,
-  TEXT,
   TYPE_BODY,
   fonts,
 } from "@/constants/Variables";
@@ -82,17 +77,27 @@ export default function ChangeSynqAudienceModal({
   };
 
   return (
-    <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
+    <Modal
+      visible={visible}
+      transparent
+      animationType={SHEET_ANIMATION}
+      onRequestClose={onClose}
+    >
       <View style={styles.overlay}>
         <Pressable
-          style={styles.backdrop}
+          style={sheetStyles.backdrop}
           onPress={onClose}
           accessibilityLabel="Close change audience"
         />
         <View style={[styles.sheetGroup, { paddingBottom: insets.bottom + SPACE_3 }]}>
-          <View style={styles.sheetCard}>
+          <View style={[sheetStyles.sheetCard, styles.sheetCard]}>
+            <View style={sheetStyles.grabberWrap}>
+              <View style={sheetStyles.grabber} />
+            </View>
             <View style={styles.headerRow}>
-              <Text style={[sheetStyles.sheetHeaderTitle, styles.sheetTitleFlex]}>Change audience</Text>
+              <Text style={[sheetStyles.sheetHeaderTitle, styles.sheetTitleFlex]}>
+                Change audience
+              </Text>
               <TouchableOpacity
                 style={styles.saveBtn}
                 onPress={() => void handleSave()}
@@ -144,25 +149,17 @@ const styles = StyleSheet.create({
     justifyContent: "flex-end",
     backgroundColor: SHEET_OVERLAY,
   },
-  backdrop: {
-    ...StyleSheet.absoluteFillObject,
-  },
   sheetGroup: {
     paddingHorizontal: 12,
   },
   sheetCard: {
-    backgroundColor: SHEET_SURFACE,
-    borderRadius: BUTTON_RADIUS + 4,
-    borderWidth: 1,
-    borderColor: BORDER,
-    overflow: "hidden",
     maxHeight: Dimensions.get("window").height * 0.58,
   },
   headerRow: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    paddingTop: SPACE_3 + 2,
+    paddingTop: SPACE_3,
     paddingBottom: SPACE_3,
     paddingHorizontal: 16,
     borderBottomWidth: StyleSheet.hairlineWidth,

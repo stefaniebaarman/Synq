@@ -1,4 +1,5 @@
 import { Ionicons } from "@expo/vector-icons";
+import { SHEET_ANIMATION, sheetStyles } from "@/constants/sheetStyles";
 import React from "react";
 import {
   Modal,
@@ -14,7 +15,6 @@ import {
   BUTTON_RADIUS,
   DESTRUCTIVE,
   SHEET_OVERLAY,
-  SHEET_SURFACE,
   TEXT,
   TYPE_SUBHEAD,
   fonts,
@@ -26,6 +26,7 @@ type Props = {
   onClose: () => void;
   onEditMemo: () => void;
   onChangeAudience?: () => void;
+  onSortFriends?: () => void;
   onEndSynq: () => void;
 };
 
@@ -34,14 +35,22 @@ export default function SynqOptionsSheet({
   onClose,
   onEditMemo,
   onChangeAudience,
+  onSortFriends,
   onEndSynq,
 }: Props) {
   return (
-    <Modal visible={visible} transparent animationType="fade">
+    <Modal visible={visible} transparent animationType={SHEET_ANIMATION}>
       <View style={styles.overlay}>
-        <Pressable style={styles.backdrop} onPress={onClose} accessibilityLabel="Close menu" />
+        <Pressable
+          style={sheetStyles.backdrop}
+          onPress={onClose}
+          accessibilityLabel="Close menu"
+        />
         <View style={styles.sheetGroup}>
-          <View style={styles.sheet}>
+          <View style={sheetStyles.sheetCard}>
+            <View style={sheetStyles.grabberWrap}>
+              <View style={sheetStyles.grabber} />
+            </View>
             <TouchableOpacity
               style={styles.option}
               onPress={() => {
@@ -73,6 +82,24 @@ export default function SynqOptionsSheet({
                 </TouchableOpacity>
               </>
             ) : null}
+            {onSortFriends ? (
+              <>
+                <View style={styles.divider} />
+                <TouchableOpacity
+                  style={styles.option}
+                  onPress={() => {
+                    onClose();
+                    onSortFriends();
+                  }}
+                  activeOpacity={0.75}
+                  accessibilityRole="button"
+                  accessibilityLabel="Sort friends"
+                >
+                  <Ionicons name="swap-vertical-outline" size={22} color={TEXT} />
+                  <Text style={styles.optionText}>Sort friends</Text>
+                </TouchableOpacity>
+              </>
+            ) : null}
             <View style={styles.divider} />
             <TouchableOpacity
               style={styles.option}
@@ -85,7 +112,9 @@ export default function SynqOptionsSheet({
               accessibilityLabel="End Synq"
             >
               <Ionicons name="stop-circle-outline" size={22} color={DESTRUCTIVE} />
-              <Text style={[styles.optionText, styles.destructiveText]}>End Synq</Text>
+              <Text style={[styles.optionText, styles.destructiveText]}>
+                End Synq
+              </Text>
             </TouchableOpacity>
           </View>
           <TouchableOpacity
@@ -109,19 +138,9 @@ const styles = StyleSheet.create({
     justifyContent: "flex-end",
     backgroundColor: SHEET_OVERLAY,
   },
-  backdrop: {
-    ...StyleSheet.absoluteFillObject,
-  },
   sheetGroup: {
     paddingHorizontal: 12,
     paddingBottom: 34,
-  },
-  sheet: {
-    backgroundColor: SHEET_SURFACE,
-    borderRadius: BUTTON_RADIUS + 4,
-    borderWidth: 1,
-    borderColor: BORDER,
-    overflow: "hidden",
   },
   option: {
     flexDirection: "row",

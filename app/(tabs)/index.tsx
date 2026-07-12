@@ -155,6 +155,7 @@ import {
   tabScreenMainHeaderTitle,
 } from '../../constants/Variables';
 import ActiveSynqSection from '../../src/components/synq/ActiveSynqSection';
+import { SynqBootSkeleton } from '@/src/components/loading/BrandSkeletons';
 import MessagesChatPane from '../../src/components/synq/MessagesChatPane';
 import MessagesInboxPane from '../../src/components/synq/MessagesInboxPane';
 import MessagesModalStack from '../../src/components/synq/MessagesModalStack';
@@ -1622,6 +1623,7 @@ export default function SynqScreen() {
 
   const handleConnect = async () => {
     if (selectedFriends.length === 0 || !auth.currentUser) return;
+    void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     const participants = [auth.currentUser.uid, ...selectedFriends].sort();
     await executeConnection(participants);
   };
@@ -2063,7 +2065,7 @@ export default function SynqScreen() {
   if (!hydrated && !bootActive) {
     return (
       <View style={[styles.darkFill, styles.bootLoading]}>
-        <ActivityIndicator size="large" color={ACCENT} accessibilityLabel="Loading Synq" />
+        <SynqBootSkeleton />
       </View>
     );
   }
@@ -2419,7 +2421,10 @@ export default function SynqScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: BG },
   darkFill: { flex: 1, backgroundColor: BG, justifyContent: 'center' },
-  bootLoading: { alignItems: 'center' },
+  bootLoading: {
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   activeSynqRoot: { flex: 1, backgroundColor: BG, paddingHorizontal: 26 },
   activeListFooterDock: {
     flex: 1,
