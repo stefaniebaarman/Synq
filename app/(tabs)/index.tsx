@@ -78,6 +78,8 @@ import {
 import Reanimated, {
   FadeOut,
 } from 'react-native-reanimated';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
+import { KeyboardProvider } from 'react-native-keyboard-controller';
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 
 type MessagesPane = "inbox" | "chat" | "profile";
@@ -2157,6 +2159,8 @@ export default function SynqScreen() {
           }}
           onDismiss={closeMessagesModal}
         >
+          <GestureHandlerRootView style={styles.messagesModalRoot}>
+          <KeyboardProvider>
           <View style={styles.messagesModalRoot}>
           <SafeAreaView style={styles.modalBg} edges={["bottom"]}>
           <MessagesModalStack
@@ -2357,6 +2361,8 @@ export default function SynqScreen() {
             />
           ) : null}
           </View>
+          </KeyboardProvider>
+          </GestureHandlerRootView>
         </Modal>
 
         <EditSynqModal

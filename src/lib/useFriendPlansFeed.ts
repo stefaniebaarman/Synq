@@ -57,6 +57,7 @@ export function useFriendPlansFeed({ userId, friends, isBlocked }: Options) {
     () => (userId ? viewerEventsCacheByUser[userId] ?? [] : [])
   );
   const [busyPlanKey, setBusyPlanKey] = useState<string | null>(null);
+  const [pendingJoin, setPendingJoin] = useState<AggregatedFriendPlan | null>(null);
   const [pendingUnjoin, setPendingUnjoin] = useState<AggregatedFriendPlan | null>(null);
   const [successToast, setSuccessToast] = useState<string | null>(null);
   const [errorAlertVisible, setErrorAlertVisible] = useState(false);
@@ -214,54 +215,49 @@ export function useFriendPlansFeed({ userId, friends, isBlocked }: Options) {
   );
 
   const handlePlanAction = useCallback(
-    async (item: AggregatedFriendPlan) => {
+    (item: AggregatedFriendPlan) => {
       if (!userId) return;
-      const planKey = `${item.sourceFriendId}|${item.event.id}`;
       if (planIsHost(item)) return;
 
       if (planJoined(item)) {
+        setPendingJoin(null);
         setPendingUnjoin((current) => current ?? item);
         return;
       }
 
-      setBusyPlanKey(planKey);
-      try {
-        await joinFriendOpenPlan(
-          item.event,
-          item.sourceFriendId,
-          item.sourceFriendName
-        );
-        setViewerEvents((prev) => {
-          const next = appendOptimisticJoinedViewerEvent(
-            prev,
-            item.event,
-            item.sourceFriendId,
-            item.sourceFriendName,
-            userId
-          );
-          viewerEventsCacheByUser[userId] = next;
-          return next;
-        });
-        setTimeout(() => showSuccessToast("Joined!"), 280);
-      } catch (err: unknown) {
-        showErrorAlert(
-          err instanceof Error ? err.message : "Could not join this plan right now."
-        );
-      } finally {
-        setBusyPlanKey(null);
-      }
+      setPendingUnjoin(null);
+      setPendingJoin((current) => current ?? item);
     },
-    [userId, planIsHost, planJoined, showSuccessToast, showErrorAlert]
+    [userId, planIsHost, planJoined]
   );
 
-  const confirmUnjoin = useCallback(async () => {
-    const item = pendingUnjoin;
-    setPendingUnjoin(null);
-    if (!item) return;
+  const confirmJoin = useCallback(async () => {
+    const item = pendingJoin;
+    setPendingJoin(null);
+    if (!item || !userId) return;
     const planKey = `${item.sourceFriendId}|${item.event.id}`;
+
+    // Flip the card immediately as the confirm closes — don't wait on Firestore.
+    setViewerEvents((prev) => {
+      const next = appendOptimisticJoinedViewerEvent(
+        prev,
+        item.event,
+        item.sourceFriendId,
+        item.sourceFriendName,
+        userId
+      );
+      viewerEventsCacheByUser[userId] = next;
+      return next;
+    });
+
     setBusyPlanKey(planKey);
     try {
-      await unjoinFriendOpenPlan(item.event, item.sourceFriendId);
+      await joinFriendOpenPlan(
+        item.event,
+        item.sourceFriendId,
+        item.sourceFriendName
+      );
+    } catch (err: unknown) {
       setViewerEvents((prev) => {
         const next = removeJoinedViewerEvent(
           prev,
@@ -272,15 +268,55 @@ export function useFriendPlansFeed({ userId, friends, isBlocked }: Options) {
         viewerEventsCacheByUser[userId] = next;
         return next;
       });
-      setTimeout(() => showSuccessToast("Removed"), 280);
+      showErrorAlert(
+        err instanceof Error ? err.message : "Could not join this plan right now."
+      );
+    } finally {
+      setBusyPlanKey(null);
+    }
+  }, [pendingJoin, userId, showErrorAlert]);
+
+  const cancelJoin = useCallback(() => setPendingJoin(null), []);
+
+  const confirmUnjoin = useCallback(async () => {
+    const item = pendingUnjoin;
+    setPendingUnjoin(null);
+    if (!item || !userId) return;
+    const planKey = `${item.sourceFriendId}|${item.event.id}`;
+
+    setViewerEvents((prev) => {
+      const next = removeJoinedViewerEvent(
+        prev,
+        item.event,
+        item.sourceFriendId,
+        userId
+      );
+      viewerEventsCacheByUser[userId] = next;
+      return next;
+    });
+
+    setBusyPlanKey(planKey);
+    try {
+      await unjoinFriendOpenPlan(item.event, item.sourceFriendId);
     } catch (err: unknown) {
+      setViewerEvents((prev) => {
+        const next = appendOptimisticJoinedViewerEvent(
+          prev,
+          item.event,
+          item.sourceFriendId,
+          item.sourceFriendName,
+          userId
+        );
+        viewerEventsCacheByUser[userId] = next;
+        return next;
+      });
       showErrorAlert(
         err instanceof Error ? err.message : "Could not remove this plan."
       );
     } finally {
       setBusyPlanKey(null);
     }
-  }, [pendingUnjoin, userId, showSuccessToast, showErrorAlert]);
+  }, [pendingUnjoin, userId, showErrorAlert]);
 
   const cancelUnjoin = useCallback(() => setPendingUnjoin(null), []);
 
@@ -310,6 +346,9 @@ export function useFriendPlansFeed({ userId, friends, isBlocked }: Options) {
     planIsHost,
     handlePlanAction,
     isPlanBusy,
+    pendingJoin,
+    confirmJoin,
+    cancelJoin,
     pendingUnjoin,
     confirmUnjoin,
     cancelUnjoin,

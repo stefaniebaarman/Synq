@@ -56,7 +56,6 @@ import {
   View,
 } from "react-native";
 import {
-  KeyboardStickyView,
   useReanimatedKeyboardAnimation,
 } from "react-native-keyboard-controller";
 import Animated, {
@@ -295,12 +294,13 @@ export default function MessagesChatPane({
     height: Math.max(0, -keyboardHeight.value),
   }));
 
-  /** Safe-area padding eases out as the keyboard covers the home indicator. */
+  /** Stick the composer to the keyboard on the UI thread (same shared value as spacer). */
   const composerDockAnimStyle = useAnimatedStyle(() => {
     const closedPad = Math.max(insets.bottom, 10) + 6;
     return {
       paddingBottom:
         closedPad + (COMPOSER_KEYBOARD_GAP - closedPad) * keyboardProgress.value,
+      transform: [{ translateY: keyboardHeight.value }],
     };
   });
 
@@ -1205,51 +1205,49 @@ export default function MessagesChatPane({
         <Animated.View style={keyboardSpacerStyle} />
       </View>
 
-      <KeyboardStickyView>
-        <Animated.View
-          style={[
-            styles.composerDock,
-            { backgroundColor: BG },
-            composerDockAnimStyle,
-          ]}
-        >
-          <View style={styles.composerShell}>
-            <TextInput
-              style={styles.composerInput}
-              value={inputText}
-              onChangeText={onComposerChange ?? setInputText}
-              onFocus={handleComposerFocus}
-              placeholder="Message"
-              placeholderTextColor={MUTED3}
-              multiline
-              textAlignVertical="center"
-              scrollEnabled
-              returnKeyType="default"
-            />
-            <TouchableOpacity
-              onPress={handleSend}
-              style={[
-                styles.sendBtnInset,
-                !canSend && styles.sendBtnInsetDisabled,
-              ]}
-              activeOpacity={canSend ? 0.85 : 1}
-              disabled={!canSend}
-              accessibilityRole="button"
-              accessibilityLabel="Send message"
-              accessibilityState={{ disabled: !canSend }}
-            >
-              <View style={styles.sendIconWrap}>
-                <Ionicons
-                  name="send"
-                  size={18}
-                  color={canSend ? ON_ACCENT_TEXT : MUTED2}
-                  style={canSend ? styles.sendIcon : styles.sendIconDisabled}
-                />
-              </View>
-            </TouchableOpacity>
-          </View>
-        </Animated.View>
-      </KeyboardStickyView>
+      <Animated.View
+        style={[
+          styles.composerDock,
+          { backgroundColor: BG },
+          composerDockAnimStyle,
+        ]}
+      >
+        <View style={styles.composerShell}>
+          <TextInput
+            style={styles.composerInput}
+            value={inputText}
+            onChangeText={onComposerChange ?? setInputText}
+            onFocus={handleComposerFocus}
+            placeholder="Message"
+            placeholderTextColor={MUTED3}
+            multiline
+            textAlignVertical="center"
+            scrollEnabled
+            returnKeyType="default"
+          />
+          <TouchableOpacity
+            onPress={handleSend}
+            style={[
+              styles.sendBtnInset,
+              !canSend && styles.sendBtnInsetDisabled,
+            ]}
+            activeOpacity={canSend ? 0.85 : 1}
+            disabled={!canSend}
+            accessibilityRole="button"
+            accessibilityLabel="Send message"
+            accessibilityState={{ disabled: !canSend }}
+          >
+            <View style={styles.sendIconWrap}>
+              <Ionicons
+                name="send"
+                size={18}
+                color={canSend ? ON_ACCENT_TEXT : MUTED2}
+                style={canSend ? styles.sendIcon : styles.sendIconDisabled}
+              />
+            </View>
+          </TouchableOpacity>
+        </View>
+      </Animated.View>
 
       <View
         style={chatHeaderOverlayStyles.shell}

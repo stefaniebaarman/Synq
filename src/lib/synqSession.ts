@@ -23,15 +23,24 @@ export function synqStartedAtMillis(data: DocumentData | undefined): number | nu
 export function computeSynqActiveFromUserData(data: DocumentData | undefined): boolean {
   if (!data || data.status !== "available") return false;
   const startMs = synqStartedAtMillis(data);
+  // Missing start time is ambiguous (pending serverTimestamp) — not proof of expiry.
   if (startMs == null) return false;
   const hoursElapsed = (Date.now() - startMs) / (1000 * 60 * 60);
   return hoursElapsed <= EXPIRATION_HOURS;
 }
 
-/** Milliseconds until the current Synq window ends, or 0 if already expired. */
-export function millisUntilSynqExpires(data: DocumentData | undefined): number {
+/** True when status is available but synqStartedAt has not resolved yet. */
+export function isSynqAvailablePendingStart(
+  data: DocumentData | undefined
+): boolean {
+  return !!data && data.status === "available" && synqStartedAtMillis(data) == null;
+}
+
+/** Milliseconds until the current Synq window ends, or 0 if already expired.
+ * Returns null when start time is unknown (do not treat as expired). */
+export function millisUntilSynqExpires(data: DocumentData | undefined): number | null {
   const startMs = synqStartedAtMillis(data);
-  if (startMs == null) return 0;
+  if (startMs == null) return null;
   const expireMs = startMs + EXPIRATION_HOURS * 60 * 60 * 1000;
   return Math.max(0, expireMs - Date.now());
 }
