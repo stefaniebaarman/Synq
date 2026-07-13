@@ -1,3 +1,4 @@
+import AlertModal from "@/app/alert-modal";
 import {
   ACCENT,
   ACCENT_BORDER,
@@ -38,9 +39,8 @@ import {
   searchCommunityGroups,
 } from "@/src/lib/communityGroups";
 import { Ionicons } from "@expo/vector-icons";
-import React, { useEffect, useMemo, useRef, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
-  Alert,
   FlatList,
   Keyboard,
   Platform,
@@ -111,6 +111,15 @@ export default function CommunityGroupSearchSheet({
   const [allGroupsLoading, setAllGroupsLoading] = useState(false);
   const searchTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [keyboardOpen, setKeyboardOpen] = useState(false);
+  const [alertVisible, setAlertVisible] = useState(false);
+  const [alertTitle, setAlertTitle] = useState<string | undefined>();
+  const [alertMessage, setAlertMessage] = useState("");
+
+  const showAlert = useCallback((title: string, message: string) => {
+    setAlertTitle(title);
+    setAlertMessage(message);
+    setAlertVisible(true);
+  }, []);
 
   const dismissKeyboard = () => Keyboard.dismiss();
   const listContentPadding = { paddingBottom: Math.max(insets.bottom, 16) + 12 };
@@ -212,7 +221,7 @@ export default function CommunityGroupSearchSheet({
       onOpenGroup(group.id);
       onClose();
     } catch (err: unknown) {
-      Alert.alert(
+      showAlert(
         "Could not join",
         err instanceof Error ? err.message : "Try again."
       );
@@ -428,6 +437,13 @@ export default function CommunityGroupSearchSheet({
       <View style={styles.listArea} {...listTouchProps}>
         {listContent}
       </View>
+
+      <AlertModal
+        visible={alertVisible}
+        title={alertTitle}
+        message={alertMessage}
+        onClose={() => setAlertVisible(false)}
+      />
     </SpringBottomSheet>
   );
 }

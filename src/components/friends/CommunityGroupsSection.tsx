@@ -1,3 +1,4 @@
+import AlertModal from "@/app/alert-modal";
 import {
   Friend,
   MUTED2,
@@ -20,9 +21,8 @@ import { communityGroupsCacheByUser } from "@/src/lib/socialCache";
 import { Ionicons } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
 import { useRouter } from "expo-router";
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import {
-  Alert,
   Text,
   TouchableOpacity,
   View,
@@ -45,6 +45,15 @@ export default function CommunitySection({ userId, friends = [] }: Props) {
   const [createVisible, setCreateVisible] = useState(false);
   const [createBusy, setCreateBusy] = useState(false);
   const [communityInfoVisible, setCommunityInfoVisible] = useState(false);
+  const [alertVisible, setAlertVisible] = useState(false);
+  const [alertTitle, setAlertTitle] = useState<string | undefined>();
+  const [alertMessage, setAlertMessage] = useState("");
+
+  const showAlert = useCallback((title: string, message: string) => {
+    setAlertTitle(title);
+    setAlertMessage(message);
+    setAlertVisible(true);
+  }, []);
 
   const joinedIds = useMemo(() => new Set(joined.map((g) => g.id)), [joined]);
 
@@ -94,7 +103,7 @@ export default function CommunitySection({ userId, friends = [] }: Props) {
       setCreateVisible(false);
       router.push({ pathname: "/community-group/[id]", params: { id } });
     } catch (err: unknown) {
-      Alert.alert(
+      showAlert(
         "Could not create community",
         err instanceof Error ? err.message : "Try again."
       );
@@ -177,6 +186,13 @@ export default function CommunitySection({ userId, friends = [] }: Props) {
         visible={communityInfoVisible}
         variant="community"
         onClose={() => setCommunityInfoVisible(false)}
+      />
+
+      <AlertModal
+        visible={alertVisible}
+        title={alertTitle}
+        message={alertMessage}
+        onClose={() => setAlertVisible(false)}
       />
     </>
   );

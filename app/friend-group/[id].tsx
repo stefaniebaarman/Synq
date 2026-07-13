@@ -1,3 +1,4 @@
+import AlertModal from "@/app/alert-modal";
 import ConfirmModal from "@/app/confirm-modal";
 import {
   ACCENT,
@@ -56,9 +57,8 @@ import { Image as ExpoImage } from "expo-image";
 import { LinearGradient } from "expo-linear-gradient";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { onSnapshot } from "firebase/firestore";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
-  Alert,
   FlatList,
   Modal,
   SafeAreaView,
@@ -126,6 +126,15 @@ export default function FriendGroupDetailScreen() {
     id: string;
     displayName: string;
   } | null>(null);
+  const [alertVisible, setAlertVisible] = useState(false);
+  const [alertTitle, setAlertTitle] = useState<string | undefined>();
+  const [alertMessage, setAlertMessage] = useState("");
+
+  const showAlert = useCallback((title: string, message: string) => {
+    setAlertTitle(title);
+    setAlertMessage(message);
+    setAlertVisible(true);
+  }, []);
 
   const goBack = () => {
     if (router.canGoBack()) router.back();
@@ -205,7 +214,7 @@ export default function FriendGroupDetailScreen() {
       (e: unknown) => {
         pendingMemberIdsRef.current = null;
         setGroup((g) => (g ? { ...g, memberIds: previousMemberIds } : g));
-        Alert.alert("Could not add members", e instanceof Error ? e.message : "Try again.");
+        showAlert("Could not add members", e instanceof Error ? e.message : "Try again.");
       }
     );
   };
@@ -236,7 +245,7 @@ export default function FriendGroupDetailScreen() {
     void removeMemberFromFriendGroup(uid, group.id, previousMemberIds, memberId).catch(() => {
       pendingMemberIdsRef.current = null;
       setGroup((g) => (g ? { ...g, memberIds: previousMemberIds } : g));
-      Alert.alert("Error", "Could not remove member.");
+      showAlert("Couldn't remove member", "Please try again.");
     });
   };
 
@@ -247,7 +256,7 @@ export default function FriendGroupDetailScreen() {
       await renameFriendGroup(uid, group.id, name);
       setRenameVisible(false);
     } catch (e: unknown) {
-      Alert.alert("Could not rename", e instanceof Error ? e.message : "Try again.");
+      showAlert("Could not rename", e instanceof Error ? e.message : "Try again.");
     } finally {
       setRenameBusy(false);
     }
@@ -260,7 +269,7 @@ export default function FriendGroupDetailScreen() {
       setDeleteVisible(false);
       goBack();
     } catch {
-      Alert.alert("Error", "Could not delete circle.");
+      showAlert("Couldn't delete circle", "Please try again.");
     }
   };
 
@@ -481,6 +490,13 @@ export default function FriendGroupDetailScreen() {
         destructive
         onCancel={() => setPendingRemoveMember(null)}
         onConfirm={() => void confirmRemoveMember()}
+      />
+
+      <AlertModal
+        visible={alertVisible}
+        title={alertTitle}
+        message={alertMessage}
+        onClose={() => setAlertVisible(false)}
       />
     </SafeAreaView>
   );

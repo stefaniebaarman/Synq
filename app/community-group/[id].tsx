@@ -1,3 +1,4 @@
+import AlertModal from "@/app/alert-modal";
 import ConfirmModal from "@/app/confirm-modal";
 import { resolveAvatar } from "@/src/lib/helpers";
 import {
@@ -83,7 +84,6 @@ import { doc, getDoc, onSnapshot } from "firebase/firestore";
 import { db } from "@/src/lib/firebase";
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
-  Alert,
   Modal,
   ScrollView,
   StatusBar,
@@ -166,6 +166,15 @@ export default function CommunityGroupDetailScreen() {
   } | null>(null);
   const [showAllMembers, setShowAllMembers] = useState(false);
   const [showAllAvailable, setShowAllAvailable] = useState(false);
+  const [alertVisible, setAlertVisible] = useState(false);
+  const [alertTitle, setAlertTitle] = useState<string | undefined>();
+  const [alertMessage, setAlertMessage] = useState("");
+
+  const showAlert = useCallback((title: string, message: string) => {
+    setAlertTitle(title);
+    setAlertMessage(message);
+    setAlertVisible(true);
+  }, []);
 
   const goBack = () => {
     if (router.canGoBack()) router.back();
@@ -328,7 +337,7 @@ export default function CommunityGroupDetailScreen() {
       }
       void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     } catch (e: unknown) {
-      Alert.alert("Could not join", e instanceof Error ? e.message : "Try again.");
+      showAlert("Could not join", e instanceof Error ? e.message : "Try again.");
     } finally {
       setJoinBusy(false);
     }
@@ -352,7 +361,7 @@ export default function CommunityGroupDetailScreen() {
         memberIds
       );
       if (sent.length === 0) {
-        Alert.alert("No invites sent", "Those friends may already have a pending invite.");
+        showAlert("No invites sent", "Those friends may already have a pending invite.");
         return;
       }
       setSuccessMessage(invitedFriendsSuccessMessage(sent, friends, group.name));
@@ -363,7 +372,7 @@ export default function CommunityGroupDetailScreen() {
         setSuccessMessage("");
       }, 1800);
     } catch (e: unknown) {
-      Alert.alert("Could not send invites", e instanceof Error ? e.message : "Try again.");
+      showAlert("Could not send invites", e instanceof Error ? e.message : "Try again.");
     } finally {
       setInviteBusy(false);
     }
@@ -389,7 +398,7 @@ export default function CommunityGroupDetailScreen() {
     void removeMemberFromCommunityGroup(group.id, previousMemberIds, memberId).catch(() => {
       pendingMemberIdsRef.current = null;
       setGroup((g) => (g ? { ...g, memberIds: previousMemberIds } : g));
-      Alert.alert("Error", "Could not remove member.");
+      showAlert("Couldn't remove member", "Please try again.");
     });
   };
 
@@ -400,7 +409,7 @@ export default function CommunityGroupDetailScreen() {
       setDeleteVisible(false);
       goBack();
     } catch {
-      Alert.alert("Error", "Could not delete group.");
+      showAlert("Couldn't delete group", "Please try again.");
     }
   };
 
@@ -411,7 +420,7 @@ export default function CommunityGroupDetailScreen() {
       setLeaveVisible(false);
       goBack();
     } catch {
-      Alert.alert("Error", "Could not leave group.");
+      showAlert("Couldn't leave group", "Please try again.");
     }
   };
 
@@ -925,6 +934,13 @@ export default function CommunityGroupDetailScreen() {
         destructive
         onCancel={() => setPendingRemoveMember(null)}
         onConfirm={() => void confirmRemoveMember()}
+      />
+
+      <AlertModal
+        visible={alertVisible}
+        title={alertTitle}
+        message={alertMessage}
+        onClose={() => setAlertVisible(false)}
       />
     </SafeAreaView>
     </View>
