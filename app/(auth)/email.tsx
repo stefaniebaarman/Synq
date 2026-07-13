@@ -213,7 +213,7 @@ const styles = StyleSheet.create({
     color: TEXT,
     backgroundColor: SURFACE,
     height: 56,
-    borderRadius: 14,
+    borderRadius: BUTTON_RADIUS,
     paddingHorizontal: 16,
     fontSize: TYPE_BODY,
     fontFamily: fonts.medium,

@@ -415,7 +415,7 @@ const styles = StyleSheet.create({
     width: PRIMARY_CTA_WIDTH,
     backgroundColor: ACCENT,
     height: PRIMARY_CTA_HEIGHT,
-    borderRadius: 14,
+    borderRadius: BUTTON_RADIUS,
     alignItems: "center",
     justifyContent: "center",
   },

@@ -50,6 +50,7 @@ import {
   TYPE_CAPTION,
   TYPE_LEAD,
   fonts,
+  RADIUS_LG,
 } from "../constants/Variables";
 import { auth, db } from "../src/lib/firebase";
 import { filterOrReject } from "@/src/lib/contentFilter";
@@ -710,7 +711,7 @@ const styles = StyleSheet.create({
   actionIconWrap: {
     width: 40,
     height: 40,
-    borderRadius: 20,
+    borderRadius: RADIUS_LG,
     backgroundColor: ACCENT_FILL,
     borderWidth: 1,
     borderColor: ACCENT_BORDER_SUBTLE,

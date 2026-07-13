@@ -34,6 +34,7 @@ import {
   modalTitleText,
   fonts,
   synqSvg,
+  MODAL_RADIUS,
 } from "@/constants/Variables";
 import BackButton from "@/src/components/BackButton";
 import { Ionicons } from "@expo/vector-icons";
@@ -302,7 +303,7 @@ const styles = StyleSheet.create({
   input: {
     backgroundColor: SURFACE,
     height: 56,
-    borderRadius: 14,
+    borderRadius: BUTTON_RADIUS,
     paddingHorizontal: 16,
     color: TEXT,
     fontSize: TYPE_BODY,
@@ -346,7 +347,7 @@ const styles = StyleSheet.create({
   },
   modalContent: {
     backgroundColor: OVERLAY_PANEL,
-    borderRadius: 22,
+    borderRadius: MODAL_RADIUS,
     padding: 22,
     borderWidth: 1,
     borderColor: BORDER,

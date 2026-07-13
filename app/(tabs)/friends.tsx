@@ -48,6 +48,9 @@ import {
   synqOutlineAddBtnTextCompact,
   synqOutlineAddBtnTextDisabled,
   tabScreenMainHeaderTitle,
+  MODAL_RADIUS,
+  RADIUS_2XL,
+  RADIUS_XL,
 } from "@/constants/Variables";
 import CloseButton from "@/src/components/CloseButton";
 import CloseIcon from "@/src/components/CloseIcon";
@@ -2223,7 +2226,7 @@ const styles = StyleSheet.create({
   avatarRing: {
     width: 48,
     height: 48,
-    borderRadius: 24,
+    borderRadius: RADIUS_XL,
     marginRight: 12,
     overflow: "hidden",
     backgroundColor: SURFACE_INPUT,
@@ -2231,7 +2234,7 @@ const styles = StyleSheet.create({
   img: {
     width: 48,
     height: 48,
-    borderRadius: 24,
+    borderRadius: RADIUS_XL,
   },
   friendName: { ...listRowTitleText, fontFamily: fonts.heavy },
   mutualText: { ...cardMetaText, marginTop: 3 },
@@ -2331,7 +2334,7 @@ const styles = StyleSheet.create({
   emptyContainer: { flex: 1, justifyContent: "center", marginTop: 30, paddingHorizontal: 10 },
   emptyCard: {
     backgroundColor: SURFACE,
-    borderRadius: 22,
+    borderRadius: MODAL_RADIUS,
     borderWidth: 1,
     borderColor: BORDER,
     padding: 18,
@@ -2349,7 +2352,7 @@ const styles = StyleSheet.create({
     width: width * 0.9,
     maxHeight: "86%",
     backgroundColor: OVERLAY_PANEL,
-    borderRadius: 28,
+    borderRadius: RADIUS_2XL,
     padding: 22,
     alignItems: "center",
     borderWidth: 1,
@@ -2519,7 +2522,7 @@ const styles = StyleSheet.create({
   addFriendsEmptyIcon: {
     width: 56,
     height: 56,
-    borderRadius: 28,
+    borderRadius: RADIUS_2XL,
     backgroundColor: SURFACE_RAISED,
     borderWidth: StyleSheet.hairlineWidth,
     borderColor: FRIENDS_BORDER,

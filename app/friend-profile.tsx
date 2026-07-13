@@ -15,8 +15,8 @@ import {
   OVERLAY_SCRIM,
   RADIUS_MD,
   SURFACE,
+  SURFACE_ELEVATED,
   SURFACE_INPUT,
-  SURFACE_LIFTED,
   SURFACE_RAISED,
   TEXT,
   TYPE_BODY,
@@ -97,7 +97,6 @@ import React, {
 } from "react";
 import {
   ActivityIndicator,
-  Animated,
   Modal,
   Pressable,
   ScrollView,
@@ -1373,25 +1372,9 @@ export default function FriendProfile({
               showsHorizontalScrollIndicator={false}
               contentContainerStyle={styles.synqsContainer}
             >
-              {mutualFriends.map((item) => {
-                const scale = new Animated.Value(1);
-
-                return (
+              {mutualFriends.map((item) => (
                   <View key={item.id} style={styles.connItem}>
-                    <TouchableOpacity
-                      activeOpacity={0.9}
-                      onPressIn={() =>
-                        Animated.spring(scale, {
-                          toValue: 0.92,
-                          useNativeDriver: true,
-                        }).start()
-                      }
-                      onPressOut={() =>
-                        Animated.spring(scale, {
-                          toValue: 1,
-                          useNativeDriver: true,
-                        }).start()
-                      }
+                    <Pressable
                       onPress={() =>
                         router.push({
                           pathname: "/friend-profile",
@@ -1401,28 +1384,24 @@ export default function FriendProfile({
                           },
                         })
                       }
+                      style={({ pressed }) => [
+                        styles.imageCircle,
+                        pressed && styles.connImgPressed,
+                      ]}
                     >
-                      <Animated.View
-                        style={[
-                          styles.imageCircle,
-                          { transform: [{ scale }] },
-                        ]}
-                      >
-                        <ExpoImage
-                          source={{ uri: resolveAvatar(item.imageurl) }}
-                          style={styles.connImg}
-                          cachePolicy="memory-disk"
-                          transition={0}
-                        />
-                      </Animated.View>
-                    </TouchableOpacity>
+                      <ExpoImage
+                        source={{ uri: resolveAvatar(item.imageurl) }}
+                        style={styles.connImg}
+                        cachePolicy="memory-disk"
+                        transition={0}
+                      />
+                    </Pressable>
 
                     <Text style={styles.connName} numberOfLines={1}>
                       {item.displayName?.split(" ")[0] || "User"}
                     </Text>
                   </View>
-                );
-              })}
+              ))}
             </ScrollView>
           </View>
         )}
@@ -1882,7 +1861,7 @@ const styles = StyleSheet.create({
   },
 
   avatarFallback: {
-    backgroundColor: SURFACE_LIFTED,
+    backgroundColor: SURFACE_ELEVATED,
     justifyContent: "center",
     alignItems: "center",
   },
@@ -2029,6 +2008,10 @@ const styles = StyleSheet.create({
     alignItems: "center",
     overflow: "hidden",
     backgroundColor: PROFILE_SURFACE,
+  },
+
+  connImgPressed: {
+    transform: [{ scale: 0.92 }],
   },
 
   connImg: {

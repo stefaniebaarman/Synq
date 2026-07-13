@@ -20,6 +20,7 @@ import {
   TYPE_DISPLAY,
   TYPE_LEAD,
   fonts,
+  RADIUS_MD,
 } from "@/constants/Variables";
 import { useAuthRefresh } from "../_layout";
 import { auth, db } from "@/src/lib/firebase";
@@ -247,7 +248,7 @@ const styles = StyleSheet.create({
   card: {
     marginTop: 24,
     padding: 18,
-    borderRadius: 16,
+    borderRadius: RADIUS_MD,
     backgroundColor: SURFACE,
     borderWidth: 1,
     borderColor: BORDER_SOFT,
