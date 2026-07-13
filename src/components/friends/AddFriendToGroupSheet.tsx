@@ -17,7 +17,7 @@ import { FriendGroup } from "@/src/lib/friendGroups";
 import { Ionicons } from "@expo/vector-icons";
 import { useEffect, useMemo, useState } from "react";
 import {
-  FlatList,
+  ScrollView,
   StyleSheet,
   Text,
   TouchableOpacity,
@@ -38,6 +38,11 @@ type Props = {
   }) => void | Promise<void>;
 };
 
+/** Row: 10+10 padding + ~24 icon/text line. */
+const ROW_HEIGHT = 44;
+const LIST_MAX_ROWS = 8;
+const LIST_MAX_HEIGHT = ROW_HEIGHT * LIST_MAX_ROWS;
+
 function saveCtaLabel(changeCount: number): string {
   if (changeCount === 0) return "Save";
   if (changeCount === 1) return "Save change";
@@ -48,7 +53,7 @@ export default function AddFriendToGroupSheet({
   visible,
   busy,
   groups,
-  friendName,
+  friendName: _friendName,
   memberId,
   onClose,
   onSave,
@@ -71,6 +76,9 @@ export default function AddFriendToGroupSheet({
     () => [...groups].sort((a, b) => a.sortOrder - b.sortOrder || a.name.localeCompare(b.name)),
     [groups]
   );
+
+  const listHeight = Math.min(LIST_MAX_HEIGHT, Math.max(ROW_HEIGHT, sortedGroups.length * ROW_HEIGHT));
+  const needsScroll = sortedGroups.length > LIST_MAX_ROWS;
 
   const { addedGroupIds, removedGroupIds, changeCount } = useMemo(() => {
     const added = [...selected].filter((id) => !memberGroupIds.has(id));
@@ -101,6 +109,28 @@ export default function AddFriendToGroupSheet({
     void onSave({ addedGroupIds, removedGroupIds });
   };
 
+  const rows = sortedGroups.map((item) => {
+    const checked = selected.has(item.id);
+    return (
+      <TouchableOpacity
+        key={item.id}
+        style={styles.row}
+        onPress={() => toggle(item.id)}
+        accessibilityRole="checkbox"
+        accessibilityState={{ checked }}
+      >
+        <Text style={styles.rowName} numberOfLines={1}>
+          {item.name}
+        </Text>
+        <Ionicons
+          name={checked ? "checkbox" : "square-outline"}
+          size={22}
+          color={checked ? ACCENT : MUTED2}
+        />
+      </TouchableOpacity>
+    );
+  });
+
   return (
     <SpringBottomSheet
       visible={visible}
@@ -108,40 +138,26 @@ export default function AddFriendToGroupSheet({
       cardStyle={[styles.sheet, { paddingBottom: Math.max(24, insets.bottom) }]}
     >
       <View style={styles.header}>
-        <Text style={styles.title}>Add to group</Text>
+        <Text style={styles.title}>Add friend to circle</Text>
         <CloseButton onPress={handleClose} />
       </View>
       {sortedGroups.length === 0 ? (
         <View style={styles.empty}>
-          <Text style={styles.emptyText}>Create a group from the Friends tab first.</Text>
+          <Text style={styles.emptyText}>Create a circle from the Friends tab first.</Text>
+        </View>
+      ) : needsScroll ? (
+        <View style={{ height: listHeight }}>
+          <ScrollView
+            style={styles.listScroll}
+            keyboardShouldPersistTaps="handled"
+            showsVerticalScrollIndicator
+            nestedScrollEnabled
+          >
+            {rows}
+          </ScrollView>
         </View>
       ) : (
-        <FlatList
-          data={sortedGroups}
-          keyExtractor={(item) => item.id}
-          style={styles.list}
-          keyboardShouldPersistTaps="handled"
-          renderItem={({ item }) => {
-            const checked = selected.has(item.id);
-            return (
-              <TouchableOpacity
-                style={styles.row}
-                onPress={() => toggle(item.id)}
-                accessibilityRole="checkbox"
-                accessibilityState={{ checked }}
-              >
-                <Text style={styles.rowName} numberOfLines={1}>
-                  {item.name}
-                </Text>
-                <Ionicons
-                  name={checked ? "checkbox" : "square-outline"}
-                  size={22}
-                  color={checked ? ACCENT : MUTED2}
-                />
-              </TouchableOpacity>
-            );
-          }}
-        />
+        <View style={{ height: listHeight }}>{rows}</View>
       )}
       <TouchableOpacity
         style={[styles.cta, (changeCount === 0 || busy) && styles.ctaDisabled]}
@@ -158,14 +174,10 @@ export default function AddFriendToGroupSheet({
 
 const styles = StyleSheet.create({
   sheet: {
-    maxHeight: "88%",
     backgroundColor: BG,
-    borderTopLeftRadius: RADIUS_MD,
-    borderTopRightRadius: RADIUS_MD,
     borderRadius: RADIUS_MD,
     paddingHorizontal: 20,
     paddingTop: 8,
-    overflow: "hidden",
   },
   header: {
     flexDirection: "row",
@@ -176,13 +188,13 @@ const styles = StyleSheet.create({
   title: {
     ...sheetHeaderTitleText,
   },
-  list: {
-    maxHeight: 340,
+  listScroll: {
+    flex: 1,
   },
   row: {
+    height: ROW_HEIGHT,
     flexDirection: "row",
     alignItems: "center",
-    paddingVertical: 10,
     gap: 12,
   },
   rowName: {

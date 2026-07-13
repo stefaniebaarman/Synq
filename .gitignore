@@ -34,7 +34,19 @@ yarn-error.*
 *.pem
 
 # local env files
+.env
+.env.*
+!.env.example
 .env*.local
+
+# Firebase / GCP credentials (never commit)
+serviceAccountKey.json
+*-firebase-adminsdk-*.json
+**/serviceAccount*.json
+
+# local tooling / deploy cache
+.cursor/
+.firebase/
 
 # typescript
 *.tsbuildinfo

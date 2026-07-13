@@ -1,20 +1,17 @@
 import {
-  ACCENT,
   BG,
   BORDER_SOFT,
-  BUTTON_RADIUS,
   MODAL_RADIUS,
   OVERLAY_DARK,
   emptyStateTitleText,
   modalBodyText,
-  primaryButtonText,
 } from "@/constants/Variables";
+import CloseButton from "@/src/components/CloseButton";
 import {
   Modal,
   Pressable,
   StyleSheet,
   Text,
-  TouchableOpacity,
   View,
 } from "react-native";
 
@@ -33,15 +30,16 @@ const COPY: Record<
     body: string;
   }
 > = {
- circles: {
-  title: "Circles",
-  body: "Choose exactly who sees when you're available.",
-},
-
-community: {
-  title: "Communities",
-  body: "Meet new people through shared interests.",
-},
+  circles: {
+    title: "Circles",
+    body:
+      "Private friend lists you create. Share your availability with only those people.",
+  },
+  community: {
+    title: "Communities",
+    body:
+      "Open groups around a shared interest. Anyone can join to meet people beyond your circle.",
+  },
 };
 
 export default function GroupsFeatureInfoModal({ visible, variant, onClose }: Props) {
@@ -52,18 +50,9 @@ export default function GroupsFeatureInfoModal({ visible, variant, onClose }: Pr
       <View style={styles.overlay}>
         <Pressable style={StyleSheet.absoluteFill} onPress={onClose} accessibilityLabel="Dismiss" />
         <View style={styles.card}>
+          <CloseButton onPress={onClose} style={styles.close} />
           <Text style={styles.title}>{content.title}</Text>
           <Text style={styles.body}>{content.body}</Text>
-
-          <TouchableOpacity
-            style={styles.button}
-            onPress={onClose}
-            activeOpacity={0.85}
-            accessibilityRole="button"
-            accessibilityLabel="Got it"
-          >
-            <Text style={primaryButtonText}>Got it</Text>
-          </TouchableOpacity>
         </View>
       </View>
     </Modal>
@@ -89,23 +78,21 @@ const styles = StyleSheet.create({
     borderColor: BORDER_SOFT,
     alignItems: "center",
   },
+  close: {
+    position: "absolute",
+    top: 14,
+    right: 14,
+    zIndex: 1,
+  },
   title: {
     ...emptyStateTitleText,
     marginBottom: 10,
     textAlign: "center",
+    paddingHorizontal: 28,
   },
   body: {
     ...modalBodyText,
     lineHeight: 22,
     textAlign: "center",
-    marginBottom: 22,
-  },
-  button: {
-    minWidth: 140,
-    borderRadius: BUTTON_RADIUS,
-    paddingVertical: 13,
-    paddingHorizontal: 28,
-    alignItems: "center",
-    backgroundColor: ACCENT,
   },
 });

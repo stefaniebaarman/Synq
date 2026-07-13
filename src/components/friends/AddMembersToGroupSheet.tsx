@@ -2,6 +2,7 @@ import {
   ACCENT,
   BG,
   BUTTON_RADIUS,
+  DISABLED_ACCENT,
   Friend,
   MODAL_RADIUS,
   MUTED2,
@@ -60,7 +61,8 @@ function actionCtaLabel(mode: "add" | "invite", selectedCount: number): string {
 
 const WINDOW_HEIGHT = Dimensions.get("window").height;
 const LIST_MAX_HEIGHT_DEFAULT = 340;
-const SHEET_CHROME_HEIGHT = 200;
+/** Grabber + header + search + CTA + vertical padding (excludes safe-area bottom). */
+const SHEET_CHROME_HEIGHT = 220;
 
 export default function AddMembersToGroupSheet({
   visible,
@@ -76,6 +78,7 @@ export default function AddMembersToGroupSheet({
   const [query, setQuery] = useState("");
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [keyboardInset, setKeyboardInset] = useState(0);
+  const paddingBottom = Math.max(24, insets.bottom);
 
   useEffect(() => {
     if (!visible) {
@@ -95,12 +98,12 @@ export default function AddMembersToGroupSheet({
     };
   }, [visible]);
 
-  const listMaxHeight = useMemo(() => {
-    if (keyboardInset <= 0) return LIST_MAX_HEIGHT_DEFAULT;
+  const listHeight = useMemo(() => {
     const sheetCap = WINDOW_HEIGHT * 0.88;
-    const available = sheetCap - keyboardInset - SHEET_CHROME_HEIGHT;
+    const keyboardPad = keyboardInset > 0 ? Math.min(keyboardInset, WINDOW_HEIGHT * 0.45) : 0;
+    const available = sheetCap - SHEET_CHROME_HEIGHT - paddingBottom - keyboardPad;
     return Math.max(120, Math.min(LIST_MAX_HEIGHT_DEFAULT, available));
-  }, [keyboardInset]);
+  }, [keyboardInset, paddingBottom]);
 
   const existingSet = useMemo(() => new Set(existingMemberIds), [existingMemberIds]);
   const pendingInviteSet = useMemo(() => new Set(pendingInviteIds), [pendingInviteIds]);
@@ -152,14 +155,14 @@ export default function AddMembersToGroupSheet({
       visible={visible}
       onClose={handleClose}
       onBackdropPress={handleBackdropPress}
-      cardStyle={styles.keyboardAvoid}
+      cardStyle={styles.card}
     >
       <KeyboardAvoidingView
         style={styles.keyboardInner}
         behavior="padding"
         keyboardVerticalOffset={insets.bottom}
       >
-        <View style={[styles.sheet, { paddingBottom: Math.max(24, insets.bottom) }]}>
+        <View style={[styles.sheet, { paddingBottom }]}>
           <View style={styles.header}>
             <Text style={styles.title}>{mode === "invite" ? "Invite friends" : "Add members"}</Text>
             <CloseButton onPress={handleClose} />
@@ -178,7 +181,7 @@ export default function AddMembersToGroupSheet({
           <FlatList
             data={candidates}
             keyExtractor={(item) => item.id}
-            style={{ maxHeight: listMaxHeight }}
+            style={{ height: listHeight }}
             keyboardShouldPersistTaps="handled"
             keyboardDismissMode="on-drag"
             ListEmptyComponent={
@@ -225,7 +228,7 @@ export default function AddMembersToGroupSheet({
             disabled={selected.size === 0 || busy}
             onPress={() => void handleAdd()}
           >
-            <Text style={[styles.ctaText, busy && { opacity: 0.5 }]}>
+            <Text style={styles.ctaText}>
               {actionCtaLabel(mode, selected.size)}
             </Text>
           </TouchableOpacity>
@@ -236,12 +239,11 @@ export default function AddMembersToGroupSheet({
 }
 
 const styles = StyleSheet.create({
-  keyboardAvoid: {
+  card: {
     width: "100%",
     maxHeight: "88%",
     backgroundColor: BG,
     borderRadius: RADIUS_MD,
-    overflow: "hidden",
   },
   keyboardInner: {
     width: "100%",
@@ -258,12 +260,6 @@ const styles = StyleSheet.create({
   },
   title: {
     ...sheetHeaderTitleText,
-  },
-  subtitle: {
-    fontFamily: fonts.book,
-    fontSize: TYPE_BODY,
-    color: MUTED2,
-    marginBottom: 12,
   },
   searchBar: {
     flexDirection: "row",
@@ -325,9 +321,10 @@ const styles = StyleSheet.create({
     backgroundColor: ACCENT,
     alignItems: "center",
     justifyContent: "center",
+    overflow: "hidden",
   },
   ctaDisabled: {
-    opacity: 0.45,
+    backgroundColor: DISABLED_ACCENT,
   },
   ctaText: {
     fontFamily: fonts.medium,

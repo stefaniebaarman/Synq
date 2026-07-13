@@ -14,8 +14,6 @@ import {
   OVERLAY_DIM,
   OVERLAY_ZERO,
   RADIUS_MD,
-  SHEET_OVERLAY,
-  SHEET_SURFACE,
   SPACE_3,
   SPACE_4,
   SPACE_5,
@@ -38,7 +36,9 @@ import AddMembersToGroupSheet from "@/src/components/friends/AddMembersToGroupSh
 import CreateGroupModal from "@/src/components/friends/CreateGroupModal";
 import HeaderIconButton from "@/src/components/HeaderIconButton";
 import { PageLoadSkeleton } from "@/src/components/loading/BrandSkeletons";
+import SpringBottomSheet from "@/src/components/sheets/SpringBottomSheet";
 import StackScreenHeader from "@/src/components/StackScreenHeader";
+import { sheetStyles } from "@/constants/sheetStyles";
 import { auth } from "@/src/lib/firebase";
 import {
   addMembersToFriendGroup,
@@ -62,7 +62,6 @@ import {
   Alert,
   FlatList,
   Modal,
-  Pressable,
   SafeAreaView,
   StatusBar,
   StyleSheet,
@@ -119,6 +118,7 @@ export default function FriendGroupDetailScreen() {
   const [successVisible, setSuccessVisible] = useState(false);
   const [successMessage, setSuccessMessage] = useState("");
   const pendingMemberIdsRef = useRef<string[] | null>(null);
+  const optionsPendingRef = useRef<(() => void) | null>(null);
   const [optionsVisible, setOptionsVisible] = useState(false);
   const [renameVisible, setRenameVisible] = useState(false);
   const [renameBusy, setRenameBusy] = useState(false);
@@ -261,7 +261,7 @@ export default function FriendGroupDetailScreen() {
       setDeleteVisible(false);
       goBack();
     } catch {
-      Alert.alert("Error", "Could not delete group.");
+      Alert.alert("Error", "Could not delete circle.");
     }
   };
 
@@ -389,50 +389,61 @@ export default function FriendGroupDetailScreen() {
         onAdd={handleAddMembers}
       />
 
-      <Modal visible={optionsVisible} transparent animationType="fade">
-        <View style={styles.optionsOverlay}>
-          <Pressable style={StyleSheet.absoluteFill} onPress={() => setOptionsVisible(false)} />
-          <View style={styles.optionsSheetGroup}>
-            <View style={styles.optionsSheet}>
-              <TouchableOpacity
-                style={styles.optionsRow}
-                onPress={() => {
-                  setOptionsVisible(false);
-                  setRenameVisible(true);
-                }}
-                activeOpacity={0.75}
-                accessibilityRole="button"
-                accessibilityLabel="Rename group"
-              >
-                <Ionicons name="create-outline" size={22} color={TEXT} />
-                <Text style={styles.optionsRowText}>Rename group</Text>
-              </TouchableOpacity>
-              <View style={styles.optionsDivider} />
-              <TouchableOpacity
-                style={styles.optionsRow}
-                onPress={() => {
-                  setOptionsVisible(false);
-                  setDeleteVisible(true);
-                }}
-                activeOpacity={0.75}
-                accessibilityRole="button"
-                accessibilityLabel="Delete group"
-              >
-                <Ionicons name="trash-outline" size={22} color={DESTRUCTIVE} />
-                <Text style={[styles.optionsRowText, styles.optionsDestructive]}>Delete group</Text>
-              </TouchableOpacity>
-            </View>
-            <TouchableOpacity style={styles.optionsCancel} onPress={() => setOptionsVisible(false)}>
-              <Text style={styles.optionsCancelText}>Cancel</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-      </Modal>
+      <SpringBottomSheet
+        visible={optionsVisible}
+        onClose={() => setOptionsVisible(false)}
+        onClosed={() => {
+          const action = optionsPendingRef.current;
+          optionsPendingRef.current = null;
+          action?.();
+        }}
+        contentStyle={styles.optionsSheetGroup}
+        cardStyle={sheetStyles.sheetCard}
+        footer={
+          <TouchableOpacity
+            style={styles.optionsCancel}
+            onPress={() => setOptionsVisible(false)}
+            activeOpacity={0.85}
+            accessibilityRole="button"
+            accessibilityLabel="Cancel"
+          >
+            <Text style={styles.optionsCancelText}>Cancel</Text>
+          </TouchableOpacity>
+        }
+      >
+        <TouchableOpacity
+          style={styles.optionsRow}
+          onPress={() => {
+            optionsPendingRef.current = () => setRenameVisible(true);
+            setOptionsVisible(false);
+          }}
+          activeOpacity={0.75}
+          accessibilityRole="button"
+          accessibilityLabel="Rename circle"
+        >
+          <Ionicons name="create-outline" size={22} color={TEXT} />
+          <Text style={styles.optionsRowText}>Rename circle</Text>
+        </TouchableOpacity>
+        <View style={styles.optionsDivider} />
+        <TouchableOpacity
+          style={styles.optionsRow}
+          onPress={() => {
+            optionsPendingRef.current = () => setDeleteVisible(true);
+            setOptionsVisible(false);
+          }}
+          activeOpacity={0.75}
+          accessibilityRole="button"
+          accessibilityLabel="Delete circle"
+        >
+          <Ionicons name="trash-outline" size={22} color={DESTRUCTIVE} />
+          <Text style={[styles.optionsRowText, styles.optionsDestructive]}>Delete circle</Text>
+        </TouchableOpacity>
+      </SpringBottomSheet>
 
       <CreateGroupModal
         visible={renameVisible}
         busy={renameBusy}
-        title="Rename group"
+        title="Rename circle"
         hint=""
         submitLabel="Save"
         initialName={group?.name ?? ""}
@@ -451,8 +462,8 @@ export default function FriendGroupDetailScreen() {
 
       <ConfirmModal
         visible={deleteVisible}
-        title="Delete group?"
-        message={`Delete "${group?.name || "this group"}"? This cannot be undone.`}
+        title="Delete circle?"
+        message={`Delete "${group?.name || "this circle"}"? This cannot be undone.`}
         confirmText="Delete"
         destructive
         onCancel={() => setDeleteVisible(false)}
@@ -621,21 +632,9 @@ const styles = StyleSheet.create({
     color: TEXT,
     textAlign: "center",
   },
-  optionsOverlay: {
-    flex: 1,
-    backgroundColor: SHEET_OVERLAY,
-    justifyContent: "flex-end",
-  },
   optionsSheetGroup: {
     paddingHorizontal: 12,
     paddingBottom: 34,
-  },
-  optionsSheet: {
-    backgroundColor: SHEET_SURFACE,
-    borderRadius: BUTTON_RADIUS + 4,
-    borderWidth: 1,
-    borderColor: BORDER,
-    overflow: "hidden",
   },
   optionsRow: {
     flexDirection: "row",
@@ -663,7 +662,7 @@ const styles = StyleSheet.create({
     paddingVertical: 16,
     alignItems: "center",
     backgroundColor: BG,
-    borderRadius: BUTTON_RADIUS + 4,
+    borderRadius: RADIUS_MD,
     borderWidth: 1,
     borderColor: BORDER,
   },

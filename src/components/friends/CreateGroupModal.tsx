@@ -3,19 +3,19 @@ import {
   BG,
   BORDER_SOFT,
   BUTTON_RADIUS,
+  fonts,
   MUTED2,
   MUTED3,
   ON_ACCENT_TEXT,
   OVERLAY_DARK,
+  RADIUS_MD,
   SURFACE_SUBTLE,
   TEXT,
   TYPE_BODY,
   TYPE_CTA,
-  fonts,
-  RADIUS_MD,
 } from "@/constants/Variables";
 import CloseButton from "@/src/components/CloseButton";
-import React, { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import {
   Dimensions,
   Keyboard,
@@ -77,12 +77,21 @@ export default function CreateGroupModal({
     await onCreate(trimmed);
   };
 
+  const handleClose = () => {
+    Keyboard.dismiss();
+    onClose();
+  };
+
   const compact = !hint;
 
   return (
-    <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
+    <Modal visible={visible} transparent animationType="fade" onRequestClose={handleClose}>
       <View style={styles.overlay}>
-        <Pressable style={StyleSheet.absoluteFill} onPress={onClose} accessibilityLabel="Dismiss" />
+        <Pressable
+          style={StyleSheet.absoluteFill}
+          onPress={handleClose}
+          accessibilityLabel="Dismiss"
+        />
         <KeyboardAvoidingView
           style={[
             styles.sheetAnchor,
@@ -97,7 +106,7 @@ export default function CreateGroupModal({
           >
             <View style={styles.header}>
               <Text style={styles.title}>{title}</Text>
-              <CloseButton onPress={onClose} />
+              <CloseButton onPress={handleClose} />
             </View>
             {hint ? <Text style={styles.hint}>{hint}</Text> : null}
             <TextInput

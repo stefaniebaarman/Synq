@@ -857,6 +857,7 @@ export default function FriendsScreen() {
           onClose={closeAddFriendsModal}
           onOpenProfile={openFriendProfileFromAddFriends}
           currentFriends={friends.map((f) => f.id)}
+          knownFriends={friends}
         />
         <FriendsPlansSheet
           visible={plansSheetVisible}
@@ -1009,12 +1010,14 @@ function SearchModal({
   onClose,
   onOpenProfile,
   currentFriends,
+  knownFriends,
 }: {
   visible: boolean;
   hardwareBackEnabled: boolean;
   onClose: () => void;
   onOpenProfile: (friendId: string) => void;
   currentFriends: string[];
+  knownFriends: Friend[];
 }) {
   const insets = useSafeAreaInsets();
   const reducedMotion = useReducedMotion();
@@ -1496,15 +1499,38 @@ function SearchModal({
       }
 
       setIsSearching(true);
+      const q = val.trim().toLowerCase();
+      const localMatches = knownFriends
+        .filter((f) => (f.displayName || "").toLowerCase().includes(q))
+        .map((f) => ({
+          id: f.id,
+          displayName: f.displayName || "Friend",
+          imageurl: f.imageurl,
+          isFriend: true,
+        }));
 
       try {
         const filtered = await searchUsersForFriend(val);
-        setResults(filtered);
-        hydratePendingForUsers(filtered.map((u) => u.id));
-        hydrateIncomingForUsers(filtered.map((u) => u.id));
+        const byId = new Map<string, any>();
+        for (const user of localMatches) byId.set(user.id, user);
+        for (const user of filtered) {
+          const prev = byId.get(user.id);
+          byId.set(user.id, {
+            ...prev,
+            ...user,
+            isFriend: Boolean(prev?.isFriend || user.isFriend || currentFriends.includes(user.id)),
+          });
+        }
+        const merged = [...byId.values()].sort((a, b) => {
+          if (Boolean(a.isFriend) !== Boolean(b.isFriend)) return a.isFriend ? -1 : 1;
+          return String(a.displayName || "").localeCompare(String(b.displayName || ""));
+        });
+        setResults(merged);
+        hydratePendingForUsers(merged.map((u) => u.id));
+        hydrateIncomingForUsers(merged.map((u) => u.id));
       } catch (e) {
         console.error("[SearchModal] Search failed", e);
-        setResults([]);
+        setResults(localMatches);
       } finally {
         setIsSearching(false);
       }
@@ -1808,7 +1834,7 @@ function SearchModal({
   };
 
   const renderSearchResultActions = (item: any) => {
-    if (currentFriends.includes(item.id) || acceptedIds[item.id]) {
+    if (item.isFriend || currentFriends.includes(item.id) || acceptedIds[item.id]) {
       return renderAddActionButton(item, "Friends", { disabled: true });
     }
     if (incomingRequestIds[item.id]) {

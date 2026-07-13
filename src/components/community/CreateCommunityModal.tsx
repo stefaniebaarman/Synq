@@ -8,24 +8,24 @@ import {
   BORDER_HAIRLINE,
   BORDER_SOFT,
   BUTTON_RADIUS,
-  DIVIDER,
+  DISABLED_ACCENT,
+  fonts,
+  heroTitleText,
   MUTED2,
   ON_ACCENT_TEXT,
-  OVERLAY_DARK,
   OVERLAY_MID,
   RADIUS_LG,
+  RADIUS_XL,
   SHEET_OVERLAY,
   TEXT,
   TYPE_BODY,
   TYPE_CAPTION,
   TYPE_MODAL_TITLE,
-  heroTitleText,
-  fonts,
-  RADIUS_XL,
 } from "@/constants/Variables";
 import CloseButton from "@/src/components/CloseButton";
-import { GROUP_BORDER, GROUP_SURFACE } from "@/src/components/friends/groupsListStyles";
 import { useCreateSheetLayout } from "@/src/components/friends/createSheetLayout";
+import { GROUP_BORDER, GROUP_SURFACE } from "@/src/components/friends/groupsListStyles";
+import SpringBottomSheet from "@/src/components/sheets/SpringBottomSheet";
 import {
   COMMUNITY_GROUP_CATEGORIES,
   type CommunityGroupCategory,
@@ -39,7 +39,6 @@ import { useCallback, useEffect, useState } from "react";
 import {
   Keyboard,
   KeyboardEvent,
-  Modal,
   Platform,
   Pressable,
   ScrollView,
@@ -49,7 +48,7 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import { KeyboardAvoidingView } from "react-native-keyboard-controller";
+import { KeyboardAwareScrollView } from "react-native-keyboard-controller";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 export type CreateCommunityInput = {
@@ -87,7 +86,8 @@ export default function CreateCommunityModal({
   onCreate,
 }: Props) {
   const insets = useSafeAreaInsets();
-  const { keyboardAvoidStyle, sheetStyle } = useCreateSheetLayout();
+  const { keyboardAvoidStyle, sheetStyle, sheetMaxHeight, paddingBottom } =
+    useCreateSheetLayout();
   const [name, setName] = useState("");
   const [category, setCategory] = useState<CommunityGroupCategory | "">("");
   const [location, setLocation] = useState("");
@@ -148,6 +148,10 @@ export default function CreateCommunityModal({
     handleClose();
   };
 
+  const dismissKeyboard = () => {
+    Keyboard.dismiss();
+  };
+
   const pickCoverPhoto = async () => {
     if (busy) return;
     const result = await launchProfilePhotoPicker();
@@ -185,187 +189,178 @@ export default function CreateCommunityModal({
 
   return (
     <>
-      <Modal
+      <SpringBottomSheet
         visible={visible}
-        transparent
-        animationType="slide"
-        onRequestClose={handleClose}
+        onClose={handleClose}
+        onBackdropPress={handleBackdropPress}
+        cardStyle={[
+          keyboardAvoidStyle,
+          styles.sheetCard,
+          sheetStyle,
+          { maxHeight: sheetMaxHeight, height: sheetMaxHeight * 0.92 },
+        ]}
       >
-        <View style={styles.overlay}>
-          <Pressable
-            style={StyleSheet.absoluteFill}
-            onPress={handleBackdropPress}
-            accessibilityLabel="Dismiss"
-          />
-          <KeyboardAvoidingView
-            style={keyboardAvoidStyle}
-            behavior="padding"
-            keyboardVerticalOffset={insets.bottom}
-          >
-            <View style={[styles.sheet, sheetStyle]}>
-              <View style={styles.grabHandle} />
+        <View style={[styles.sheet, { paddingBottom }]}>
+          <Pressable onPress={dismissKeyboard} accessible={false}>
+            <View style={styles.header}>
+              <Text style={styles.title}>New community</Text>
+              <CloseButton onPress={handleClose} accessibilityLabel="Close" />
+            </View>
+          </Pressable>
 
-              <View style={styles.header}>
-                <Text style={styles.title}>New community</Text>
-                <CloseButton onPress={handleClose} accessibilityLabel="Close" />
+          <KeyboardAwareScrollView
+            style={styles.scroll}
+            contentContainerStyle={styles.scrollContent}
+            keyboardShouldPersistTaps="handled"
+            keyboardDismissMode="on-drag"
+            onScrollBeginDrag={dismissKeyboard}
+            showsVerticalScrollIndicator={false}
+            bottomOffset={88}
+            extraKeyboardSpace={Math.max(insets.bottom, 12) + 24}
+          >
+            <Pressable onPress={dismissKeyboard} accessible={false}>
+              <TouchableOpacity
+                style={styles.coverCard}
+                onPress={() => void pickCoverPhoto()}
+                activeOpacity={0.9}
+                accessibilityRole="button"
+                accessibilityLabel={coverUri ? "Change cover photo" : "Add cover photo"}
+              >
+                {coverUri ? (
+                  <>
+                    <ExpoImage
+                      source={{ uri: coverUri }}
+                      style={styles.coverImage}
+                      contentFit="cover"
+                    />
+                    <LinearGradient
+                      colors={["transparent", OVERLAY_MID]}
+                      style={styles.coverImageFade}
+                    />
+                    <View style={styles.coverChangePill}>
+                      <Ionicons name="camera-outline" size={15} color={TEXT} />
+                      <Text style={styles.coverChangeText}>Change photo</Text>
+                    </View>
+                  </>
+                ) : (
+                  <View style={styles.coverEmpty}>
+                    <View style={styles.coverIconWrap}>
+                      <Ionicons name="image-outline" size={24} color={ACCENT} />
+                    </View>
+                    <Text style={styles.coverEmptyTitle}>Add cover photo</Text>
+                    <Text style={styles.coverEmptyHint}>Optional · tap to choose</Text>
+                  </View>
+                )}
+              </TouchableOpacity>
+            </Pressable>
+
+            <TextInput
+              style={styles.nameInput}
+              placeholder="Name your community"
+              placeholderTextColor={MUTED2}
+              value={name}
+              onChangeText={setName}
+              maxLength={40}
+              autoCapitalize="words"
+              returnKeyType="next"
+            />
+
+            <View style={styles.section}>
+              <Text style={styles.sectionTitle}>Category</Text>
+              <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                contentContainerStyle={styles.categoryRail}
+                keyboardShouldPersistTaps="handled"
+              >
+                {COMMUNITY_GROUP_CATEGORIES.map((item) => {
+                  const selected = category === item;
+                  return (
+                    <TouchableOpacity
+                      key={item}
+                      style={[styles.categoryChip, selected && styles.categoryChipOn]}
+                      onPress={() => {
+                        Keyboard.dismiss();
+                        setCategory(item);
+                      }}
+                      activeOpacity={0.85}
+                      accessibilityRole="button"
+                      accessibilityState={{ selected }}
+                      accessibilityLabel={item}
+                    >
+                      <Ionicons
+                        name={CATEGORY_ICONS[item]}
+                        size={16}
+                        color={selected ? ACCENT : MUTED2}
+                      />
+                      <Text
+                        style={[
+                          styles.categoryChipText,
+                          selected && styles.categoryChipTextOn,
+                        ]}
+                      >
+                        {item}
+                      </Text>
+                    </TouchableOpacity>
+                  );
+                })}
+              </ScrollView>
+            </View>
+
+            <View style={styles.detailsCard}>
+              <Text style={styles.detailsTitle}>More about your community</Text>
+              <Text style={styles.detailsSub}>Optional</Text>
+
+              <View style={styles.detailRow}>
+                <Ionicons
+                  name="location-outline"
+                  size={18}
+                  color={MUTED2}
+                  style={styles.detailIcon}
+                />
+                <TextInput
+                  style={styles.detailInput}
+                  placeholder="Location"
+                  placeholderTextColor={MUTED2}
+                  value={location}
+                  onChangeText={setLocation}
+                  maxLength={80}
+                  autoCapitalize="words"
+                />
               </View>
 
-              <ScrollView
-                style={styles.scroll}
-                contentContainerStyle={styles.scrollContent}
-                keyboardShouldPersistTaps="handled"
-                keyboardDismissMode="on-drag"
-                showsVerticalScrollIndicator={false}
-              >
-                <TouchableOpacity
-                  style={styles.coverCard}
-                  onPress={() => void pickCoverPhoto()}
-                  activeOpacity={0.9}
-                  accessibilityRole="button"
-                  accessibilityLabel={coverUri ? "Change cover photo" : "Add cover photo"}
-                >
-                  {coverUri ? (
-                    <>
-                      <ExpoImage
-                        source={{ uri: coverUri }}
-                        style={styles.coverImage}
-                        contentFit="cover"
-                      />
-                      <LinearGradient
-                        colors={["transparent", OVERLAY_MID]}
-                        style={styles.coverImageFade}
-                      />
-                      <View style={styles.coverChangePill}>
-                        <Ionicons name="camera-outline" size={15} color={TEXT} />
-                        <Text style={styles.coverChangeText}>Change photo</Text>
-                      </View>
-                    </>
-                  ) : (
-                    <View style={styles.coverEmpty}>
-                      <View style={styles.coverIconWrap}>
-                        <Ionicons name="image-outline" size={24} color={ACCENT} />
-                      </View>
-                      <Text style={styles.coverEmptyTitle}>Add cover photo</Text>
-                      <Text style={styles.coverEmptyHint}>Optional · tap to choose</Text>
-                    </View>
-                  )}
-                </TouchableOpacity>
+              <View style={styles.detailDivider} />
 
+              <View style={[styles.detailRow, styles.detailRowMultiline]}>
                 <TextInput
-                  style={styles.nameInput}
-                  placeholder="Name your community"
+                  style={[styles.detailInput, styles.aboutInput]}
+                  placeholder="What is this group about?"
                   placeholderTextColor={MUTED2}
-                  value={name}
-                  onChangeText={setName}
-                  maxLength={40}
-                  autoCapitalize="words"
-                  returnKeyType="next"
+                  value={about}
+                  onChangeText={setAbout}
+                  maxLength={500}
+                  multiline
+                  textAlignVertical="top"
                 />
-
-                <View style={styles.section}>
-                  <Text style={styles.sectionTitle}>Category</Text>
-                  <ScrollView
-                    horizontal
-                    showsHorizontalScrollIndicator={false}
-                    contentContainerStyle={styles.categoryRail}
-                    keyboardShouldPersistTaps="handled"
-                  >
-                    {COMMUNITY_GROUP_CATEGORIES.map((item) => {
-                      const selected = category === item;
-                      return (
-                        <TouchableOpacity
-                          key={item}
-                          style={[styles.categoryChip, selected && styles.categoryChipOn]}
-                          onPress={() => {
-                            Keyboard.dismiss();
-                            setCategory(item);
-                          }}
-                          activeOpacity={0.85}
-                          accessibilityRole="button"
-                          accessibilityState={{ selected }}
-                          accessibilityLabel={item}
-                        >
-                          <Ionicons
-                            name={CATEGORY_ICONS[item]}
-                            size={16}
-                            color={selected ? ACCENT : MUTED2}
-                          />
-                          <Text
-                            style={[
-                              styles.categoryChipText,
-                              selected && styles.categoryChipTextOn,
-                            ]}
-                          >
-                            {item}
-                          </Text>
-                        </TouchableOpacity>
-                      );
-                    })}
-                  </ScrollView>
-                </View>
-
-                <View style={styles.detailsCard}>
-                  <Text style={styles.detailsTitle}>More about your community</Text>
-                  <Text style={styles.detailsSub}>Optional</Text>
-
-                  <View style={styles.detailRow}>
-                    <Ionicons
-                      name="location-outline"
-                      size={18}
-                      color={MUTED2}
-                      style={styles.detailIcon}
-                    />
-                    <TextInput
-                      style={styles.detailInput}
-                      placeholder="Location"
-                      placeholderTextColor={MUTED2}
-                      value={location}
-                      onChangeText={setLocation}
-                      maxLength={80}
-                      autoCapitalize="words"
-                    />
-                  </View>
-
-                  <View style={styles.detailDivider} />
-
-                  <View style={[styles.detailRow, styles.detailRowMultiline]}>
-                    <Ionicons
-                      name="text-outline"
-                      size={18}
-                      color={MUTED2}
-                      style={styles.detailIconTop}
-                    />
-                    <TextInput
-                      style={[styles.detailInput, styles.aboutInput]}
-                      placeholder="What should people know before joining?"
-                      placeholderTextColor={MUTED2}
-                      value={about}
-                      onChangeText={setAbout}
-                      maxLength={500}
-                      multiline
-                      textAlignVertical="top"
-                    />
-                  </View>
-                </View>
-              </ScrollView>
-
-              <View style={styles.footer}>
-                <TouchableOpacity
-                  style={[styles.cta, !canSubmit && styles.ctaDisabled]}
-                  disabled={!canSubmit}
-                  onPress={() => void handleCreate()}
-                  accessibilityRole="button"
-                  accessibilityLabel="Create community"
-                >
-                  <Text style={[styles.ctaText, busy && { opacity: 0.5 }]}>
-                    Create community
-                  </Text>
-                </TouchableOpacity>
               </View>
             </View>
-          </KeyboardAvoidingView>
+          </KeyboardAwareScrollView>
+
+          <View style={styles.footer}>
+            <TouchableOpacity
+              style={[styles.cta, !canSubmit && styles.ctaDisabled]}
+              disabled={!canSubmit}
+              onPress={() => void handleCreate()}
+              accessibilityRole="button"
+              accessibilityLabel="Create community"
+            >
+              <Text style={[styles.ctaText, busy && { opacity: 0.5 }]}>
+                Create community
+              </Text>
+            </TouchableOpacity>
+          </View>
         </View>
-      </Modal>
+      </SpringBottomSheet>
 
       <AlertModal
         visible={alertVisible}
@@ -377,27 +372,17 @@ export default function CreateCommunityModal({
 }
 
 const styles = StyleSheet.create({
-  overlay: {
-    flex: 1,
-    justifyContent: "flex-end",
-    backgroundColor: OVERLAY_DARK,
-  },
-  sheet: {
+  sheetCard: {
     backgroundColor: BG,
-    borderTopLeftRadius: 22,
-    borderTopRightRadius: 22,
-    paddingHorizontal: 20,
-    paddingTop: 10,
+    borderRadius: 22,
+    overflow: "hidden",
     borderWidth: StyleSheet.hairlineWidth,
     borderColor: BORDER_SOFT,
   },
-  grabHandle: {
-    alignSelf: "center",
-    width: 36,
-    height: 4,
-    borderRadius: 2,
-    backgroundColor: DIVIDER,
-    marginBottom: 12,
+  sheet: {
+    flex: 1,
+    paddingHorizontal: 20,
+    paddingTop: 8,
   },
   header: {
     flexDirection: "row",
@@ -409,10 +394,10 @@ const styles = StyleSheet.create({
     ...heroTitleText,
   },
   scroll: {
-    flexShrink: 1,
+    flex: 1,
   },
   scrollContent: {
-    paddingBottom: 8,
+    paddingBottom: 28,
     gap: 20,
   },
   coverCard: {
@@ -561,10 +546,6 @@ const styles = StyleSheet.create({
   detailIcon: {
     marginRight: 12,
   },
-  detailIconTop: {
-    marginRight: 12,
-    marginTop: 3,
-  },
   detailInput: {
     flex: 1,
     color: TEXT,
@@ -584,9 +565,11 @@ const styles = StyleSheet.create({
   },
   footer: {
     paddingTop: 14,
+    alignItems: "center",
   },
   cta: {
-    width: "100%",
+    alignSelf: "center",
+    width: "62%",
     minHeight: 52,
     borderRadius: BUTTON_RADIUS,
     backgroundColor: ACCENT,
@@ -594,7 +577,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   ctaDisabled: {
-    opacity: 0.45,
+    backgroundColor: DISABLED_ACCENT,
   },
   ctaText: {
     fontFamily: fonts.heavy,

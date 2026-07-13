@@ -20,8 +20,6 @@ import {
   PROFILE_HEADER_FADE_GRADIENT,
   PROFILE_HEADER_FADE_LOCATIONS,
   RADIUS_MD,
-  SHEET_OVERLAY,
-  SHEET_SURFACE,
   SPACE_2,
   SPACE_3,
   SPACE_4,
@@ -55,7 +53,9 @@ import type { CommunityPlanMemberProfile } from "@/src/lib/communityPlanMembers"
 import type { CommunityGroupPlan } from "@/src/lib/communityGroupPlans";
 import HeaderIconButton from "@/src/components/HeaderIconButton";
 import { PageLoadSkeleton } from "@/src/components/loading/BrandSkeletons";
+import SpringBottomSheet from "@/src/components/sheets/SpringBottomSheet";
 import StackScreenHeader from "@/src/components/StackScreenHeader";
+import { sheetStyles } from "@/constants/sheetStyles";
 import { auth } from "@/src/lib/firebase";
 import {
   communityGroupRef,
@@ -85,7 +85,6 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import {
   Alert,
   Modal,
-  Pressable,
   ScrollView,
   StatusBar,
   StyleSheet,
@@ -156,6 +155,7 @@ export default function CommunityGroupDetailScreen() {
   const [successVisible, setSuccessVisible] = useState(false);
   const [successMessage, setSuccessMessage] = useState("");
   const pendingMemberIdsRef = useRef<string[] | null>(null);
+  const optionsPendingRef = useRef<(() => void) | null>(null);
   const [optionsVisible, setOptionsVisible] = useState(false);
   const [deleteVisible, setDeleteVisible] = useState(false);
   const [leaveVisible, setLeaveVisible] = useState(false);
@@ -797,78 +797,92 @@ export default function CommunityGroupDetailScreen() {
         onAdd={handleInviteFriends}
       />
 
-      <Modal visible={optionsVisible} transparent animationType="fade">
-        <View style={styles.optionsOverlay}>
-          <Pressable style={StyleSheet.absoluteFill} onPress={() => setOptionsVisible(false)} />
-          <View style={styles.optionsSheetGroup}>
-            <View style={styles.optionsSheet}>
-              {isMember ? (
-                <>
-                  <TouchableOpacity
-                    style={styles.optionsRow}
-                    onPress={() => {
-                      setOptionsVisible(false);
-                      setAddSheetVisible(true);
-                    }}
-                    activeOpacity={0.75}
-                  >
-                    <Ionicons name="person-add-outline" size={22} color={TEXT} />
-                    <Text style={styles.optionsRowText}>Invite friends</Text>
-                  </TouchableOpacity>
-                  <View style={styles.optionsDivider} />
-                </>
-              ) : null}
-              {isCreator ? (
-                <>
-                  <TouchableOpacity
-                    style={styles.optionsRow}
-                    onPress={() => {
-                      setOptionsVisible(false);
-                      router.push({
-                        pathname: "/community-group/edit",
-                        params: { id: group.id },
-                      });
-                    }}
-                    activeOpacity={0.75}
-                  >
-                    <Ionicons name="create-outline" size={22} color={TEXT} />
-                    <Text style={styles.optionsRowText}>Edit community</Text>
-                  </TouchableOpacity>
-                  <View style={styles.optionsDivider} />
-                  <TouchableOpacity
-                    style={styles.optionsRow}
-                    onPress={() => {
-                      setOptionsVisible(false);
-                      setDeleteVisible(true);
-                    }}
-                    activeOpacity={0.75}
-                  >
-                    <Ionicons name="trash-outline" size={22} color={DESTRUCTIVE} />
-                    <Text style={[styles.optionsRowText, styles.optionsDestructive]}>
-                      Delete group
-                    </Text>
-                  </TouchableOpacity>
-                </>
-              ) : (
-                <TouchableOpacity
-                  style={styles.optionsRow}
-                  onPress={() => {
-                    setOptionsVisible(false);
-                    setLeaveVisible(true);
-                  }}
-                  activeOpacity={0.75}
-                >
-                  <Ionicons name="exit-outline" size={22} color={DESTRUCTIVE} />
-                  <Text style={[styles.optionsRowText, styles.optionsDestructive]}>Leave group</Text>
-                </TouchableOpacity>
-              )}
-            </View>
-            <TouchableOpacity style={styles.optionsCancel} onPress={() => setOptionsVisible(false)}>
-              <Text style={styles.optionsCancelText}>Cancel</Text>
+      <SpringBottomSheet
+        visible={optionsVisible}
+        onClose={() => setOptionsVisible(false)}
+        onClosed={() => {
+          const action = optionsPendingRef.current;
+          optionsPendingRef.current = null;
+          action?.();
+        }}
+        contentStyle={styles.optionsSheetGroup}
+        cardStyle={sheetStyles.sheetCard}
+        footer={
+          <TouchableOpacity
+            style={styles.optionsCancel}
+            onPress={() => setOptionsVisible(false)}
+            activeOpacity={0.85}
+            accessibilityRole="button"
+            accessibilityLabel="Cancel"
+          >
+            <Text style={styles.optionsCancelText}>Cancel</Text>
+          </TouchableOpacity>
+        }
+      >
+        {isMember ? (
+          <>
+            <TouchableOpacity
+              style={styles.optionsRow}
+              onPress={() => {
+                optionsPendingRef.current = () => setAddSheetVisible(true);
+                setOptionsVisible(false);
+              }}
+              activeOpacity={0.75}
+            >
+              <Ionicons name="person-add-outline" size={22} color={TEXT} />
+              <Text style={styles.optionsRowText}>Invite friends</Text>
             </TouchableOpacity>
-          </View>
-        </View>
-      </Modal>
+            <View style={styles.optionsDivider} />
+          </>
+        ) : null}
+        {isCreator ? (
+          <>
+            <TouchableOpacity
+              style={styles.optionsRow}
+              onPress={() => {
+                optionsPendingRef.current = () => {
+                  if (!group) return;
+                  router.push({
+                    pathname: "/community-group/edit",
+                    params: { id: group.id },
+                  });
+                };
+                setOptionsVisible(false);
+              }}
+              activeOpacity={0.75}
+            >
+              <Ionicons name="create-outline" size={22} color={TEXT} />
+              <Text style={styles.optionsRowText}>Edit community</Text>
+            </TouchableOpacity>
+            <View style={styles.optionsDivider} />
+            <TouchableOpacity
+              style={styles.optionsRow}
+              onPress={() => {
+                optionsPendingRef.current = () => setDeleteVisible(true);
+                setOptionsVisible(false);
+              }}
+              activeOpacity={0.75}
+            >
+              <Ionicons name="trash-outline" size={22} color={DESTRUCTIVE} />
+              <Text style={[styles.optionsRowText, styles.optionsDestructive]}>
+                Delete group
+              </Text>
+            </TouchableOpacity>
+          </>
+        ) : (
+          <TouchableOpacity
+            style={styles.optionsRow}
+            onPress={() => {
+              optionsPendingRef.current = () => setLeaveVisible(true);
+              setOptionsVisible(false);
+            }}
+            activeOpacity={0.75}
+          >
+            <Ionicons name="exit-outline" size={22} color={DESTRUCTIVE} />
+            <Text style={[styles.optionsRowText, styles.optionsDestructive]}>Leave group</Text>
+          </TouchableOpacity>
+        )}
+      </SpringBottomSheet>
 
       <Modal visible={successVisible} transparent animationType="fade">
         <View style={styles.successOverlay}>
@@ -1273,21 +1287,9 @@ const styles = StyleSheet.create({
     color: TEXT,
     textAlign: "center",
   },
-  optionsOverlay: {
-    flex: 1,
-    backgroundColor: SHEET_OVERLAY,
-    justifyContent: "flex-end",
-  },
   optionsSheetGroup: {
     paddingHorizontal: 12,
     paddingBottom: 34,
-  },
-  optionsSheet: {
-    backgroundColor: SHEET_SURFACE,
-    borderRadius: BUTTON_RADIUS + 4,
-    borderWidth: 1,
-    borderColor: BORDER,
-    overflow: "hidden",
   },
   optionsRow: {
     flexDirection: "row",
@@ -1315,7 +1317,7 @@ const styles = StyleSheet.create({
     paddingVertical: 16,
     alignItems: "center",
     backgroundColor: BG,
-    borderRadius: BUTTON_RADIUS + 4,
+    borderRadius: RADIUS_MD,
     borderWidth: 1,
     borderColor: BORDER,
   },

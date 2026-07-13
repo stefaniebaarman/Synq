@@ -7,7 +7,6 @@ import {
   MUTED2,
   MUTED3,
   ON_ACCENT_TEXT,
-  OVERLAY_DARK,
   SURFACE,
   TEXT,
   TYPE_BODY,
@@ -18,6 +17,7 @@ import {
 } from "@/constants/Variables";
 import CloseButton from "@/src/components/CloseButton";
 import { useCreateSheetLayout } from "@/src/components/friends/createSheetLayout";
+import SpringBottomSheet from "@/src/components/sheets/SpringBottomSheet";
 import { resolveAvatar } from "@/src/lib/helpers";
 import { Ionicons } from "@expo/vector-icons";
 import { Image as ExpoImage } from "expo-image";
@@ -26,7 +26,6 @@ import {
   FlatList,
   Keyboard,
   KeyboardEvent,
-  Modal,
   Platform,
   Pressable,
   StyleSheet,
@@ -133,19 +132,19 @@ export default function CreateCircleModal({
   const selectedCount = selected.size;
 
   return (
-    <Modal visible={visible} transparent animationType="slide" onRequestClose={handleClose}>
-      <View style={styles.overlay}>
-        <Pressable
-          style={StyleSheet.absoluteFill}
-          onPress={handleBackdropPress}
-          accessibilityLabel="Dismiss"
-        />
-        <KeyboardAvoidingView
-          style={keyboardAvoidStyle}
-          behavior="padding"
-          keyboardVerticalOffset={insets.bottom}
-        >
-          <View style={[styles.sheet, matchedSheetStyle]}>
+    <SpringBottomSheet
+      visible={visible}
+      onClose={handleClose}
+      onBackdropPress={handleBackdropPress}
+      cardStyle={[keyboardAvoidStyle, styles.sheetCard]}
+    >
+      <KeyboardAvoidingView
+        style={styles.keyboardInner}
+        behavior="padding"
+        keyboardVerticalOffset={insets.bottom}
+      >
+        <View style={[styles.sheet, matchedSheetStyle]}>
+          <Pressable onPress={dismissKeyboard} accessible={false}>
             <View style={styles.header}>
               <Text style={styles.title}>New circle</Text>
               <CloseButton onPress={handleClose} />
@@ -168,107 +167,112 @@ export default function CreateCircleModal({
               </View>
             </View>
 
-            <View style={[styles.fieldBlock, styles.friendsFieldBlock]}>
-              <FieldLabel>Add friends</FieldLabel>
-              {friends.length > 0 ? (
-                <>
-                  <View style={styles.searchBar}>
-                    <Ionicons name="search-outline" size={17} color={MUTED2} />
-                    <TextInput
-                      style={styles.searchInput}
-                      placeholder="Search friends"
-                      placeholderTextColor={MUTED2}
-                      value={query}
-                      onChangeText={setQuery}
-                      returnKeyType="search"
-                      blurOnSubmit
-                      onSubmitEditing={dismissKeyboard}
-                    />
-                  </View>
-                  <FlatList
-                    data={candidates}
-                    keyExtractor={(item) => item.id}
-                    style={styles.friendList}
-                    keyboardShouldPersistTaps="handled"
-                    keyboardDismissMode="on-drag"
-                    ListEmptyComponent={
+            <FieldLabel>Add friends</FieldLabel>
+          </Pressable>
+          <View style={[styles.fieldBlock, styles.friendsFieldBlock, { marginTop: 8 }]}>
+            {friends.length > 0 ? (
+              <>
+                <View style={styles.searchBar}>
+                  <Ionicons name="search-outline" size={17} color={MUTED2} />
+                  <TextInput
+                    style={styles.searchInput}
+                    placeholder="Search friends"
+                    placeholderTextColor={MUTED2}
+                    value={query}
+                    onChangeText={setQuery}
+                    returnKeyType="search"
+                    blurOnSubmit
+                    onSubmitEditing={dismissKeyboard}
+                  />
+                </View>
+                <FlatList
+                  data={candidates}
+                  keyExtractor={(item) => item.id}
+                  style={styles.friendList}
+                  keyboardShouldPersistTaps="handled"
+                  keyboardDismissMode="on-drag"
+                  onScrollBeginDrag={dismissKeyboard}
+                  ListEmptyComponent={
+                    <Pressable onPress={dismissKeyboard} accessible={false}>
                       <View style={styles.empty}>
                         <Text style={styles.emptyText}>No friends match your search.</Text>
                       </View>
-                    }
-                    renderItem={({ item }) => {
-                      const checked = selected.has(item.id);
-                      return (
-                        <TouchableOpacity
-                          style={styles.row}
-                          onPress={() => {
-                            dismissKeyboard();
-                            toggle(item.id);
-                          }}
-                          accessibilityRole="checkbox"
-                          accessibilityState={{ checked }}
-                        >
-                          <View style={styles.avatarRing}>
-                            <ExpoImage
-                              source={{ uri: resolveAvatar(item.imageurl) }}
-                              style={styles.avatar}
-                              cachePolicy="memory-disk"
-                            />
-                          </View>
-                          <Text style={styles.rowName} numberOfLines={1}>
-                            {item.displayName || "Friend"}
-                          </Text>
-                          <Ionicons
-                            name={checked ? "checkbox" : "square-outline"}
-                            size={22}
-                            color={checked ? ACCENT : MUTED2}
+                    </Pressable>
+                  }
+                  renderItem={({ item }) => {
+                    const checked = selected.has(item.id);
+                    return (
+                      <TouchableOpacity
+                        style={styles.row}
+                        onPress={() => {
+                          dismissKeyboard();
+                          toggle(item.id);
+                        }}
+                        accessibilityRole="checkbox"
+                        accessibilityState={{ checked }}
+                      >
+                        <View style={styles.avatarRing}>
+                          <ExpoImage
+                            source={{ uri: resolveAvatar(item.imageurl) }}
+                            style={styles.avatar}
+                            cachePolicy="memory-disk"
                           />
-                        </TouchableOpacity>
-                      );
-                    }}
-                  />
-                </>
-              ) : (
+                        </View>
+                        <Text style={styles.rowName} numberOfLines={1}>
+                          {item.displayName || "Friend"}
+                        </Text>
+                        <Ionicons
+                          name={checked ? "checkbox" : "square-outline"}
+                          size={22}
+                          color={checked ? ACCENT : MUTED2}
+                        />
+                      </TouchableOpacity>
+                    );
+                  }}
+                />
+              </>
+            ) : (
+              <Pressable onPress={dismissKeyboard} accessible={false}>
                 <Text style={styles.emptyFriends}>
                   You don&apos;t have any friends to add yet.
                 </Text>
-              )}
-            </View>
-
-            <TouchableOpacity
-              style={[styles.cta, !canSubmit && styles.ctaDisabled]}
-              disabled={!canSubmit}
-              onPress={() => void handleCreate()}
-              accessibilityRole="button"
-              accessibilityLabel="Create circle"
-            >
-              <Text style={[styles.ctaText, busy && { opacity: 0.5 }]}>
-                {selectedCount > 0
-                  ? `Create · ${selectedCount} friend${selectedCount === 1 ? "" : "s"}`
-                  : "Create"}
-              </Text>
-            </TouchableOpacity>
+              </Pressable>
+            )}
           </View>
-        </KeyboardAvoidingView>
-      </View>
-    </Modal>
+
+          <TouchableOpacity
+            style={[styles.cta, !canSubmit && styles.ctaDisabled]}
+            disabled={!canSubmit}
+            onPress={() => void handleCreate()}
+            accessibilityRole="button"
+            accessibilityLabel="Create circle"
+          >
+            <Text style={[styles.ctaText, busy && { opacity: 0.5 }]}>
+              {selectedCount > 0
+                ? `Create · ${selectedCount} friend${selectedCount === 1 ? "" : "s"}`
+                : "Create"}
+            </Text>
+          </TouchableOpacity>
+        </View>
+      </KeyboardAvoidingView>
+    </SpringBottomSheet>
   );
 }
 
 const styles = StyleSheet.create({
-  overlay: {
-    flex: 1,
-    justifyContent: "flex-end",
-    backgroundColor: OVERLAY_DARK,
+  keyboardInner: {
+    width: "100%",
   },
-  sheet: {
+  sheetCard: {
     backgroundColor: BG,
-    borderTopLeftRadius: 16,
-    borderTopRightRadius: 16,
-    paddingHorizontal: 20,
-    paddingTop: 16,
+    borderRadius: 16,
+    overflow: "hidden",
     borderWidth: StyleSheet.hairlineWidth,
     borderColor: BORDER_SOFT,
+  },
+  sheet: {
+    paddingHorizontal: 20,
+    paddingTop: 8,
   },
   header: {
     flexDirection: "row",

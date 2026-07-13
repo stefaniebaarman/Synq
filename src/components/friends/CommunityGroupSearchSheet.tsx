@@ -51,6 +51,7 @@ import {
   TextInput,
   TouchableOpacity,
   TouchableWithoutFeedback,
+  useWindowDimensions,
   View,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -99,6 +100,8 @@ export default function CommunityGroupSearchSheet({
   onOpenGroup,
 }: Props) {
   const insets = useSafeAreaInsets();
+  const { height: windowHeight } = useWindowDimensions();
+  const sheetHeight = Math.round(windowHeight * 0.94);
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<CommunityGroup[]>([]);
   const [searching, setSearching] = useState(false);
@@ -386,7 +389,10 @@ export default function CommunityGroupSearchSheet({
       visible={visible}
       onClose={onClose}
       onBackdropPress={handleBackdropPress}
-      cardStyle={[styles.sheet, { paddingBottom: insets.bottom }]}
+      cardStyle={[
+        styles.sheet,
+        { height: sheetHeight, paddingBottom: Math.max(insets.bottom, 16) },
+      ]}
     >
       <TouchableWithoutFeedback onPress={dismissKeyboard} accessible={false}>
         <View style={styles.sheetHeader}>
@@ -428,8 +434,6 @@ export default function CommunityGroupSearchSheet({
 
 const styles = StyleSheet.create({
   sheet: {
-    flex: 1,
-    maxHeight: "94%",
     backgroundColor: BG,
     borderRadius: RADIUS_2XL,
     paddingHorizontal: CONTENT_PAD_X,

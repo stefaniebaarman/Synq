@@ -8,10 +8,8 @@ import {
   DESTRUCTIVE_BORDER_STRONG,
   FRIENDS_BORDER,
   GROUP_BORDER,
-  MODAL_RADIUS,
   MUTED2,
   MUTED3,
-  OVERLAY_HEAVY,
   OVERLAY_SCRIM,
   RADIUS_MD,
   SURFACE,
@@ -36,6 +34,8 @@ import BackButton from "@/src/components/BackButton";
 import AddFriendToGroupSheet from "@/src/components/friends/AddFriendToGroupSheet";
 import FriendPlanCard from "@/src/components/friends/FriendPlanCard";
 import { ProfileSkeleton } from "@/src/components/loading/BrandSkeletons";
+import SpringBottomSheet from "@/src/components/sheets/SpringBottomSheet";
+import { sheetStyles } from "@/constants/sheetStyles";
 import {
   appendOptimisticJoinedViewerEvent,
   removeJoinedViewerEvent,
@@ -297,6 +297,7 @@ export default function FriendProfile({
   const [showReportModal, setShowReportModal] = useState(false);
   const [showBlockModal, setShowBlockModal] = useState(false);
   const [showOptionsSheet, setShowOptionsSheet] = useState(false);
+  const optionsPendingRef = useRef<(() => void) | null>(null);
   const [viewerSynqActive, setViewerSynqActive] = useState(false);
   const [nudgeLoading, setNudgeLoading] = useState(false);
   const [nudgeSent, setNudgeSent] = useState(false);
@@ -1492,89 +1493,98 @@ export default function FriendProfile({
         ) : null}
       </ScrollView>
       {renderStickyNav()}
-      <Modal visible={showOptionsSheet} transparent animationType="fade">
-        <View style={styles.optionsOverlay}>
-          <Pressable
-            style={StyleSheet.absoluteFill}
+      <SpringBottomSheet
+        visible={showOptionsSheet}
+        onClose={() => setShowOptionsSheet(false)}
+        onClosed={() => {
+          const action = optionsPendingRef.current;
+          optionsPendingRef.current = null;
+          action?.();
+        }}
+        contentStyle={styles.optionsSheetGroup}
+        cardStyle={sheetStyles.sheetCard}
+        footer={
+          <TouchableOpacity
+            style={styles.optionsCancel}
             onPress={() => setShowOptionsSheet(false)}
-          />
-          <View style={styles.optionsSheetGroup}>
-            <View style={styles.optionsSheet}>
-              {userIsBlocked ? (
+            activeOpacity={0.85}
+            accessibilityRole="button"
+            accessibilityLabel="Cancel"
+          >
+            <Text style={styles.optionsCancelText}>Cancel</Text>
+          </TouchableOpacity>
+        }
+      >
+        {userIsBlocked ? (
+          <TouchableOpacity
+            style={styles.optionsRow}
+            onPress={() => {
+              optionsPendingRef.current = () => {
+                if (!friendKey) return;
+                void (async () => {
+                  try {
+                    await unblockUser(friendKey);
+                    setAlertTitle("Unblocked");
+                    setAlertMessage("You can connect with this person again.");
+                    setAlertVisible(true);
+                  } catch {
+                    setAlertTitle("Error");
+                    setAlertMessage("Could not unblock user.");
+                    setAlertVisible(true);
+                  }
+                })();
+              };
+              setShowOptionsSheet(false);
+            }}
+          >
+            <Ionicons name="person-add-outline" size={22} color={TEXT} />
+            <Text style={styles.optionsRowText}>Unblock user</Text>
+          </TouchableOpacity>
+        ) : (
+          <>
+            {isFriend ? (
+              <>
                 <TouchableOpacity
                   style={styles.optionsRow}
-                  onPress={async () => {
+                  onPress={() => {
+                    optionsPendingRef.current = () => setAddToGroupSheetVisible(true);
                     setShowOptionsSheet(false);
-                    if (!friendKey) return;
-                    try {
-                      await unblockUser(friendKey);
-                      setAlertTitle("Unblocked");
-                      setAlertMessage("You can connect with this person again.");
-                      setAlertVisible(true);
-                    } catch {
-                      setAlertTitle("Error");
-                      setAlertMessage("Could not unblock user.");
-                      setAlertVisible(true);
-                    }
                   }}
+                  accessibilityRole="button"
+                  accessibilityLabel="Add friend to circle"
                 >
-                  <Ionicons name="person-add-outline" size={22} color={TEXT} />
-                  <Text style={styles.optionsRowText}>Unblock user</Text>
+                  <Ionicons name="people-outline" size={22} color={TEXT} />
+                  <Text style={styles.optionsRowText}>Add friend to circle</Text>
                 </TouchableOpacity>
-              ) : (
-                <>
-                  {isFriend ? (
-                    <>
-                      <TouchableOpacity
-                        style={styles.optionsRow}
-                        onPress={() => {
-                          setShowOptionsSheet(false);
-                          setAddToGroupSheetVisible(true);
-                        }}
-                        accessibilityRole="button"
-                        accessibilityLabel="Add friend to group"
-                      >
-                        <Ionicons name="people-outline" size={22} color={TEXT} />
-                        <Text style={styles.optionsRowText}>Add friend to group</Text>
-                      </TouchableOpacity>
-                      <View style={styles.optionsDivider} />
-                    </>
-                  ) : null}
-                  <TouchableOpacity
-                    style={styles.optionsRow}
-                    onPress={() => {
-                      setShowOptionsSheet(false);
-                      setShowReportModal(true);
-                    }}
-                  >
-                    <Ionicons name="flag-outline" size={22} color={TEXT} />
-                    <Text style={styles.optionsRowText}>Report user</Text>
-                  </TouchableOpacity>
-                  <View style={styles.optionsDivider} />
-                  <TouchableOpacity
-                    style={styles.optionsRow}
-                    onPress={() => {
-                      setShowOptionsSheet(false);
-                      setShowBlockModal(true);
-                    }}
-                  >
-                    <Ionicons name="ban-outline" size={22} color={DESTRUCTIVE} />
-                    <Text style={[styles.optionsRowText, styles.optionsDestructive]}>
-                      Block user
-                    </Text>
-                  </TouchableOpacity>
-                </>
-              )}
-            </View>
+                <View style={styles.optionsDivider} />
+              </>
+            ) : null}
             <TouchableOpacity
-              style={styles.optionsCancel}
-              onPress={() => setShowOptionsSheet(false)}
+              style={styles.optionsRow}
+              onPress={() => {
+                optionsPendingRef.current = () => setShowReportModal(true);
+                setShowOptionsSheet(false);
+              }}
             >
-              <Text style={styles.optionsCancelText}>Cancel</Text>
+              <Ionicons name="flag-outline" size={22} color={TEXT} />
+              <Text style={styles.optionsRowText}>Report user</Text>
             </TouchableOpacity>
-          </View>
-        </View>
-      </Modal>
+            <View style={styles.optionsDivider} />
+            <TouchableOpacity
+              style={styles.optionsRow}
+              onPress={() => {
+                optionsPendingRef.current = () => setShowBlockModal(true);
+                setShowOptionsSheet(false);
+              }}
+            >
+              <Ionicons name="ban-outline" size={22} color={DESTRUCTIVE} />
+              <Text style={[styles.optionsRowText, styles.optionsDestructive]}>
+                Block user
+              </Text>
+            </TouchableOpacity>
+          </>
+        )}
+      </SpringBottomSheet>
       <ReportModal
         visible={showReportModal}
         reportedUserId={friendKey}
@@ -1935,21 +1945,9 @@ const styles = StyleSheet.create({
     textAlign: "center",
   },
 
-  optionsOverlay: {
-    flex: 1,
-    justifyContent: "flex-end",
-    backgroundColor: OVERLAY_HEAVY,
-  },
   optionsSheetGroup: {
+    paddingHorizontal: 12,
     paddingBottom: 34,
-  },
-  optionsSheet: {
-    backgroundColor: BG,
-    borderTopLeftRadius: MODAL_RADIUS,
-    borderTopRightRadius: MODAL_RADIUS,
-    borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: GROUP_BORDER,
-    overflow: "hidden",
   },
   optionsRow: {
     flexDirection: "row",
@@ -1968,16 +1966,15 @@ const styles = StyleSheet.create({
   },
   optionsDivider: {
     height: StyleSheet.hairlineWidth,
-    backgroundColor: SURFACE,
+    backgroundColor: BORDER,
     marginLeft: 54,
   },
   optionsCancel: {
     marginTop: 10,
-    marginHorizontal: 12,
-    backgroundColor: PROFILE_SURFACE,
+    backgroundColor: BG,
     borderRadius: RADIUS_MD,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: PROFILE_BORDER,
+    borderWidth: 1,
+    borderColor: BORDER,
     paddingVertical: 16,
     alignItems: "center",
   },

@@ -2,11 +2,9 @@ import AlertModal from "@/app/alert-modal";
 import {
   ACCENT,
   BG,
-  BORDER,
   GROUP_BORDER,
   MUTED2,
   MUTED3,
-  OVERLAY_DARK,
   OVERLAY_FADE,
   RADIUS_MD,
   SPACE_3,
@@ -23,6 +21,8 @@ import {
 } from "@/constants/Variables";
 import StackScreenHeader from "@/src/components/StackScreenHeader";
 import { PageLoadSkeleton } from "@/src/components/loading/BrandSkeletons";
+import SpringBottomSheet from "@/src/components/sheets/SpringBottomSheet";
+import { sheetStyles } from "@/constants/sheetStyles";
 import { auth } from "@/src/lib/firebase";
 import {
   COMMUNITY_GROUP_CATEGORIES,
@@ -43,8 +43,6 @@ import { useLocalSearchParams, useRouter } from "expo-router";
 import React, { useCallback, useEffect, useState } from "react";
 import {
   Keyboard,
-  Modal,
-  Pressable,
   StatusBar,
   StyleSheet,
   Text,
@@ -301,40 +299,36 @@ export default function EditCommunityScreen() {
         </KeyboardAwareScrollView>
       )}
 
-      <Modal
+      <SpringBottomSheet
         visible={categoryVisible}
-        transparent
-        animationType="fade"
-        onRequestClose={() => setCategoryVisible(false)}
+        onClose={() => setCategoryVisible(false)}
+        contentStyle={styles.categorySheetGroup}
+        cardStyle={[sheetStyles.sheetCard, styles.categoryCard]}
       >
-        <Pressable style={styles.modalOverlay} onPress={() => setCategoryVisible(false)}>
-          <Pressable style={styles.categorySheet} onPress={(e) => e.stopPropagation()}>
-            <Text style={styles.categorySheetTitle}>Category</Text>
-            {COMMUNITY_GROUP_CATEGORIES.map((item) => (
-              <TouchableOpacity
-                key={item}
-                style={styles.categoryRow}
-                onPress={() => {
-                  setCategory(item);
-                  setCategoryVisible(false);
-                }}
-                activeOpacity={0.75}
-                accessibilityRole="button"
-                accessibilityState={{ selected: category === item }}
-              >
-                <Text
-                  style={[styles.categoryRowText, category === item && styles.categoryRowTextActive]}
-                >
-                  {item}
-                </Text>
-                {category === item ? (
-                  <Ionicons name="checkmark" size={18} color={ACCENT} />
-                ) : null}
-              </TouchableOpacity>
-            ))}
-          </Pressable>
-        </Pressable>
-      </Modal>
+        <Text style={styles.categorySheetTitle}>Category</Text>
+        {COMMUNITY_GROUP_CATEGORIES.map((item) => (
+          <TouchableOpacity
+            key={item}
+            style={styles.categoryRow}
+            onPress={() => {
+              setCategory(item);
+              setCategoryVisible(false);
+            }}
+            activeOpacity={0.75}
+            accessibilityRole="button"
+            accessibilityState={{ selected: category === item }}
+          >
+            <Text
+              style={[styles.categoryRowText, category === item && styles.categoryRowTextActive]}
+            >
+              {item}
+            </Text>
+            {category === item ? (
+              <Ionicons name="checkmark" size={18} color={ACCENT} />
+            ) : null}
+          </TouchableOpacity>
+        ))}
+      </SpringBottomSheet>
 
       <AlertModal
         visible={alertVisible}
@@ -472,26 +466,20 @@ const styles = StyleSheet.create({
     fontSize: TYPE_BODY,
     color: TEXT,
   },
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: OVERLAY_DARK,
-    justifyContent: "flex-end",
+  categorySheetGroup: {
+    paddingHorizontal: 12,
+    paddingBottom: 34,
   },
-  categorySheet: {
-    backgroundColor: BG,
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
-    paddingHorizontal: 20,
-    paddingTop: 20,
-    paddingBottom: 32,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: BORDER,
+  categoryCard: {
+    paddingHorizontal: 12,
+    paddingBottom: 12,
   },
   categorySheetTitle: {
     fontFamily: fonts.heavy,
     fontSize: TYPE_CTA,
     color: TEXT,
-    marginBottom: 12,
+    marginBottom: 8,
+    paddingTop: 4,
   },
   categoryRow: {
     flexDirection: "row",

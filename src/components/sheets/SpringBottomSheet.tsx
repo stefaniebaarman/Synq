@@ -74,13 +74,16 @@ export default function SpringBottomSheet({
   const reducedMotion = useReducedMotion();
   const translateY = useSharedValue(9999);
   const overlayOpacity = useSharedValue(0);
-  const sheetHeightRef = useRef(0);
+  /** Shared so pan worklets can read height without capturing a React ref. */
+  const sheetHeightSV = useSharedValue(0);
   const closingRef = useRef(false);
   const wasMountedRef = useRef(visible);
   const onClosedRef = useRef(onClosed);
+  const onCloseRef = useRef(onClose);
   const [mounted, setMounted] = useState(visible);
   const handleBackdrop = onBackdropPress ?? onClose;
   onClosedRef.current = onClosed;
+  onCloseRef.current = onClose;
 
   const openSheet = useCallback(() => {
     closingRef.current = false;
@@ -100,6 +103,16 @@ export default function SpringBottomSheet({
     setMounted(false);
   }, []);
 
+  /** If close animation is cancelled but parent still wants closed, unmount anyway. */
+  const finishCloseIfStillClosing = useCallback(() => {
+    if (!closingRef.current) return;
+    finishClose();
+  }, [finishClose]);
+
+  const notifyParentClose = useCallback(() => {
+    onCloseRef.current();
+  }, []);
+
   // After the RN Modal unmounts, run onClosed so follow-up Modals can present.
   useEffect(() => {
     if (mounted) {
@@ -115,14 +128,14 @@ export default function SpringBottomSheet({
     (notifyParent: boolean) => {
       if (closingRef.current) return;
       closingRef.current = true;
-      const h = Math.max(sheetHeightRef.current, 1);
+      const h = Math.max(sheetHeightSV.value, 1);
       cancelAnimation(translateY);
       cancelAnimation(overlayOpacity);
       if (reducedMotion) {
         translateY.value = h;
         overlayOpacity.value = 0;
         finishClose();
-        if (notifyParent) onClose();
+        if (notifyParent) notifyParentClose();
         return;
       }
       overlayOpacity.value = withTiming(0, { duration: SHEET_CLOSE_MS });
@@ -132,19 +145,33 @@ export default function SpringBottomSheet({
         (finished) => {
           if (finished) {
             runOnJS(finishClose)();
-            if (notifyParent) runOnJS(onClose)();
+            if (notifyParent) runOnJS(notifyParentClose)();
+            return;
           }
+          // Layout/keyboard can cancel the timing; don't leave a stuck Modal.
+          runOnJS(finishCloseIfStillClosing)();
         }
       );
     },
-    [finishClose, onClose, overlayOpacity, reducedMotion, translateY]
+    [
+      finishClose,
+      finishCloseIfStillClosing,
+      notifyParentClose,
+      overlayOpacity,
+      reducedMotion,
+      sheetHeightSV,
+      translateY,
+    ]
   );
 
   const onSheetLayout = useCallback(
     (height: number) => {
       if (height <= 0) return;
-      const prev = sheetHeightRef.current;
-      sheetHeightRef.current = height;
+      const prev = sheetHeightSV.value;
+      sheetHeightSV.value = height;
+      // Never write translateY while closing — that cancels withTiming and
+      // leaves the Modal mounted (frozen dim). Keyboard dismiss often relayouts.
+      if (closingRef.current) return;
       if (!visible) {
         translateY.value = height;
         return;
@@ -154,18 +181,18 @@ export default function SpringBottomSheet({
         openSheet();
       }
     },
-    [openSheet, translateY, visible]
+    [openSheet, sheetHeightSV, translateY, visible]
   );
 
   useEffect(() => {
     if (visible) {
       setMounted(true);
-      if (sheetHeightRef.current > 0) openSheet();
+      if (sheetHeightSV.value > 0) openSheet();
       return;
     }
     if (!mounted) return;
     closeSheet(false);
-  }, [visible, mounted, openSheet, closeSheet]);
+  }, [visible, mounted, openSheet, closeSheet, sheetHeightSV]);
 
   const sheetStyle = useAnimatedStyle(() => ({
     transform: [{ translateY: translateY.value }],
@@ -180,12 +207,14 @@ export default function SpringBottomSheet({
     .activeOffsetY(8)
     .failOffsetX([-24, 24])
     .onUpdate((e) => {
+      "worklet";
       const y = Math.max(0, e.translationY);
       translateY.value = y;
-      const h = Math.max(sheetHeightRef.current, 1);
+      const h = Math.max(sheetHeightSV.value, 1);
       overlayOpacity.value = Math.max(0.2, 1 - y / h);
     })
     .onEnd((e) => {
+      "worklet";
       const shouldDismiss =
         e.translationY > DISMISS_DISTANCE || e.velocityY > DISMISS_VELOCITY;
       if (shouldDismiss) {
@@ -257,7 +286,7 @@ export default function SpringBottomSheet({
       visible={mounted}
       transparent
       animationType="none"
-      onRequestClose={onClose}
+      onRequestClose={notifyParentClose}
       statusBarTranslucent
     >
       {body}
