@@ -78,7 +78,8 @@ import {
 import Reanimated, {
   FadeOut,
 } from 'react-native-reanimated';
-import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
+import { KeyboardProvider } from "react-native-keyboard-controller";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 type MessagesPane = "inbox" | "chat" | "profile";
 import {
@@ -1730,6 +1731,7 @@ export default function SynqScreen() {
   }, [navigateMessagesPane]);
 
   const closeMessagesModal = useCallback(() => {
+    Keyboard.dismiss();
     resetMergeSelect();
     setInboxActionChat(null);
     setSelectedFriends([]);
@@ -2160,8 +2162,12 @@ export default function SynqScreen() {
           }}
           onDismiss={closeMessagesModal}
         >
+          {/* Nested provider: RN Modal is a separate window; root keyboard tracking desyncs after leave/return. */}
+          <KeyboardProvider preload={false}>
           <View style={styles.messagesModalRoot}>
-          <SafeAreaView style={styles.modalBg} edges={["bottom"]}>
+          {/* No bottom safe-area here — it flickers 0↔inset on Modal remount and jumps the composer.
+              Chat/inbox apply a stable bottom inset themselves. */}
+          <View style={styles.modalBg}>
           <MessagesModalStack
             visible={messagesModalVisible}
             pane={messagesPane}
@@ -2329,7 +2335,7 @@ export default function SynqScreen() {
             message={contentAlertMessage}
             onClose={() => setContentAlertVisible(false)}
           />
-          </SafeAreaView>
+          </View>
           {messagesPane === "chat" && isExploreVisible ? (
             <ExploreModal
               visible={isExploreVisible}
@@ -2361,6 +2367,7 @@ export default function SynqScreen() {
             />
           ) : null}
           </View>
+          </KeyboardProvider>
         </Modal>
 
         <EditSynqModal

@@ -19,7 +19,6 @@ import {
   SPACE_5,
   SPACE_6,
   SURFACE,
-  SURFACE_MUTED,
   TEXT,
   TYPE_BODY,
   TYPE_CAPTION,
@@ -587,7 +586,7 @@ const styles = StyleSheet.create({
   },
   separator: {
     height: StyleSheet.hairlineWidth,
-    backgroundColor: SURFACE_MUTED,
+    backgroundColor: BORDER,
     marginLeft: 48 + 12 + SPACE_5,
   },
   addMembersFooter: {

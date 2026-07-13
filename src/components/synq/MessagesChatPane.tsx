@@ -58,13 +58,11 @@ import {
 import { useReanimatedKeyboardAnimation } from "react-native-keyboard-controller";
 import Animated, {
   Easing,
-  Extrapolation,
-  interpolate,
   useAnimatedStyle,
   useSharedValue,
   withTiming,
 } from "react-native-reanimated";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { initialWindowMetrics, useSafeAreaInsets } from "react-native-safe-area-context";
 import {
   formatTime,
   getOtherChatParticipants,
@@ -252,10 +250,20 @@ export default function MessagesChatPane({
   const scrollRafRef = useRef<number | null>(null);
   const [listScrollable, setListScrollable] = useState(false);
   const [headerOverlayHeight, setHeaderOverlayHeight] = useState(0);
-  const { height: keyboardHeight, progress: keyboardProgress } =
-    useReanimatedKeyboardAnimation();
-  const bottomInset = insets.bottom;
-  const closedComposerPad = bottomInset + COMPOSER_KEYBOARD_GAP;
+  const { height: keyboardHeight } = useReanimatedKeyboardAnimation();
+  /**
+   * Modal often reports bottom=0 on the first frame after remount.
+   * Prefer the larger of live insets vs boot-time window metrics so padding
+   * never flips 0 ↔ home-indicator between navigations.
+   */
+  const bottomInset = Math.max(
+    insets.bottom,
+    initialWindowMetrics?.insets.bottom ?? 0
+  );
+  const bottomInsetSV = useSharedValue(bottomInset);
+  useEffect(() => {
+    bottomInsetSV.value = bottomInset;
+  }, [bottomInset, bottomInsetSV]);
   const activeChatRef = useRef(activeChat);
   activeChatRef.current = activeChat;
   const liveImagesRef = useRef(liveParticipantImages);
@@ -293,34 +301,46 @@ export default function MessagesChatPane({
     opacity: threadOpacity.value,
   }));
 
-  /** Reserves space under the list while the composer sticks to the keyboard. */
+  /**
+   * List spacer tracks keyboard height only (UI thread).
+   */
   const keyboardSpacerStyle = useAnimatedStyle(() => {
-    const clearance = COMPOSER_KEYBOARD_CLEARANCE * keyboardProgress.value;
+    // Ignore sub-pixel residue after dismiss / remount.
+    const lift = keyboardHeight.value > -2 ? 0 : keyboardHeight.value;
+    const absLift = -lift;
+    const inset = bottomInsetSV.value;
+    // Reclaim safe-area padding as the keyboard covers the home indicator.
+    const reclaim = absLift <= 0 ? 0 : Math.min(inset, absLift);
+    const clearance =
+      absLift <= 0
+        ? 0
+        : COMPOSER_KEYBOARD_CLEARANCE * Math.min(1, absLift / 48);
     return {
-      height: Math.max(0, -(keyboardHeight.value - clearance)),
+      height: Math.max(0, absLift - reclaim + clearance),
     };
   });
 
   /**
-   * Stick composer to keyboard on the UI thread.
-   * Negative margin cancels Modal SafeAreaView pad so travel is from screen bottom.
-   * Padding stays at COMPOSER_KEYBOARD_GAP until the keyboard is nearly gone
-   * (avoids the empty band during interactive dismiss). Clearance lifts the dock
-   * a few px above the keyboard so the input isn’t covered.
+   * Stick to keyboard via translateY only.
+   * paddingBottom stays fixed (safe area + gap) — animating it caused the remount jump.
+   * As the keyboard rises, reclaim the safe-area part of that padding so the field
+   * sits just above the keyboard.
    */
   const composerDockAnimStyle = useAnimatedStyle(() => {
-    const clearance = COMPOSER_KEYBOARD_CLEARANCE * keyboardProgress.value;
+    const lift = keyboardHeight.value > -2 ? 0 : keyboardHeight.value;
+    const absLift = -lift;
+    const inset = bottomInsetSV.value;
+    const reclaim = absLift <= 0 ? 0 : Math.min(inset, absLift);
+    const clearance =
+      absLift <= 0
+        ? 0
+        : COMPOSER_KEYBOARD_CLEARANCE * Math.min(1, absLift / 48);
     return {
-      marginBottom: -bottomInset,
-      paddingBottom: interpolate(
-        keyboardProgress.value,
-        [0, 0.03, 1],
-        [closedComposerPad, COMPOSER_KEYBOARD_GAP, COMPOSER_KEYBOARD_GAP],
-        Extrapolation.CLAMP
-      ),
-      transform: [{ translateY: keyboardHeight.value - clearance }],
+      transform: [{ translateY: lift + reclaim - clearance }],
     };
   });
+
+  const composerClosedPad = bottomInset + COMPOSER_KEYBOARD_GAP;
 
   const scheduleOpenAnchor = useCallback((messageCount: number) => {
     if (messageCount <= 0) {
@@ -1226,7 +1246,11 @@ export default function MessagesChatPane({
       <Animated.View
         style={[
           styles.composerDock,
-          { backgroundColor: BG },
+          {
+            backgroundColor: BG,
+            // Static safe-area + gap — never driven by keyboard height.
+            paddingBottom: composerClosedPad,
+          },
           composerDockAnimStyle,
         ]}
       >

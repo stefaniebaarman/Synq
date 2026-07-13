@@ -12,7 +12,7 @@ import * as Haptics from "expo-haptics";
 import React from "react";
 import { FlatList, Text, TouchableOpacity, View } from "react-native";
 import { Swipeable } from "react-native-gesture-handler";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { initialWindowMetrics, useSafeAreaInsets } from "react-native-safe-area-context";
 
 type Props = {
   styles: any;
@@ -83,6 +83,11 @@ export default function MessagesInboxPane({
   const insets = useSafeAreaInsets();
   const inboxHeaderPaddingTop = Math.max(insets.top, 20) + 6;
   const inboxMergeHeaderPaddingTop = Math.max(insets.top, 16) + 6;
+  const inboxBottomInset = Math.max(
+    insets.bottom,
+    initialWindowMetrics?.insets.bottom ?? 0
+  );
+  const inboxBottomPad = inboxBottomInset + 8;
   const canCombine = allChats.length >= 2;
 
   const mergeSubtitle =
@@ -306,13 +311,14 @@ export default function MessagesInboxPane({
         )}
         contentContainerStyle={[
           styles.inboxListContent,
+          { paddingBottom: inboxBottomPad },
           mergeSelectMode && styles.inboxListContentMerge,
         ]}
         renderItem={({ item, index }) => renderChatRow(item, index)}
       />
 
       {mergeSelectMode ? (
-        <View style={styles.inboxMergeFooterCard}>
+        <View style={[styles.inboxMergeFooterCard, { marginBottom: Math.max(inboxBottomInset, 12) }]}>
           <Text style={styles.inboxMergeFooterLabel}>New group chat</Text>
           {mergeReady ? (
             <Text style={styles.inboxMergeFooterTitle} numberOfLines={2}>
