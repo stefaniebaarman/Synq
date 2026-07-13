@@ -1,8 +1,11 @@
 import {
   ACCENT,
   BG,
+  BG_FADE_MID,
+  BG_TRANSPARENT,
   BORDER_SOFT,
   BUTTON_RADIUS,
+  DISABLED_ACCENT,
   Friend,
   MUTED2,
   MUTED3,
@@ -21,6 +24,7 @@ import SpringBottomSheet from "@/src/components/sheets/SpringBottomSheet";
 import { resolveAvatar } from "@/src/lib/helpers";
 import { Ionicons } from "@expo/vector-icons";
 import { Image as ExpoImage } from "expo-image";
+import { LinearGradient } from "expo-linear-gradient";
 import React, { useEffect, useMemo, useState } from "react";
 import {
   FlatList,
@@ -34,8 +38,8 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import { KeyboardAvoidingView } from "react-native-keyboard-controller";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
+
+const CTA_FADE_HEIGHT = 40;
 
 type Props = {
   visible: boolean;
@@ -56,27 +60,27 @@ export default function CreateCircleModal({
   onClose,
   onCreate,
 }: Props) {
-  const insets = useSafeAreaInsets();
-  const { keyboardAvoidStyle, matchedSheetStyle } = useCreateSheetLayout();
+  const { keyboardAvoidStyle, matchedSheetHeight, paddingBottom } =
+    useCreateSheetLayout();
   const [name, setName] = useState("");
   const [query, setQuery] = useState("");
   const [selected, setSelected] = useState<Set<string>>(new Set());
-  const [keyboardInset, setKeyboardInset] = useState(0);
+  const [keyboardVisible, setKeyboardVisible] = useState(false);
 
   useEffect(() => {
     if (!visible) {
       setName("");
       setQuery("");
       setSelected(new Set());
-      setKeyboardInset(0);
+      setKeyboardVisible(false);
     }
   }, [visible]);
 
   useEffect(() => {
     if (!visible) return;
 
-    const onShow = (e: KeyboardEvent) => setKeyboardInset(e.endCoordinates.height);
-    const onHide = () => setKeyboardInset(0);
+    const onShow = () => setKeyboardVisible(true);
+    const onHide = () => setKeyboardVisible(false);
     const showEvt = Platform.OS === "ios" ? "keyboardWillShow" : "keyboardDidShow";
     const hideEvt = Platform.OS === "ios" ? "keyboardWillHide" : "keyboardDidHide";
     const showSub = Keyboard.addListener(showEvt, onShow);
@@ -112,7 +116,7 @@ export default function CreateCircleModal({
   };
 
   const handleBackdropPress = () => {
-    if (keyboardInset > 0) {
+    if (keyboardVisible) {
       Keyboard.dismiss();
       return;
     }
@@ -138,131 +142,139 @@ export default function CreateCircleModal({
       onBackdropPress={handleBackdropPress}
       cardStyle={[keyboardAvoidStyle, styles.sheetCard]}
     >
-      <KeyboardAvoidingView
-        style={styles.keyboardInner}
-        behavior="padding"
-        keyboardVerticalOffset={insets.bottom}
+      <View
+        style={[
+          styles.sheet,
+          { height: matchedSheetHeight, paddingBottom },
+        ]}
       >
-        <View style={[styles.sheet, matchedSheetStyle]}>
-          <Pressable onPress={dismissKeyboard} accessible={false}>
-            <View style={styles.header}>
-              <Text style={styles.title}>New circle</Text>
-              <CloseButton onPress={handleClose} />
-            </View>
+        <Pressable onPress={dismissKeyboard} accessible={false}>
+          <View style={styles.header}>
+            <Text style={styles.title}>New circle</Text>
+            <CloseButton onPress={handleClose} />
+          </View>
 
-            <View style={styles.fieldBlock}>
-              <FieldLabel>Circle name</FieldLabel>
+          <View style={styles.fieldBlock}>
+            <FieldLabel>Circle name</FieldLabel>
+            <View style={styles.searchBar}>
+              <TextInput
+                style={styles.searchInput}
+                placeholder="e.g. Close friends"
+                placeholderTextColor={MUTED2}
+                value={name}
+                onChangeText={setName}
+                maxLength={40}
+                returnKeyType="done"
+                blurOnSubmit
+                onSubmitEditing={dismissKeyboard}
+              />
+            </View>
+          </View>
+
+          <FieldLabel>Add friends</FieldLabel>
+        </Pressable>
+
+        <View style={styles.friendsSection}>
+          {friends.length > 0 ? (
+            <>
               <View style={styles.searchBar}>
+                <Ionicons name="search-outline" size={17} color={MUTED2} />
                 <TextInput
                   style={styles.searchInput}
-                  placeholder="e.g. Close friends"
+                  placeholder="Search friends"
                   placeholderTextColor={MUTED2}
-                  value={name}
-                  onChangeText={setName}
-                  maxLength={40}
-                  returnKeyType="done"
+                  value={query}
+                  onChangeText={setQuery}
+                  returnKeyType="search"
                   blurOnSubmit
                   onSubmitEditing={dismissKeyboard}
                 />
               </View>
-            </View>
-
-            <FieldLabel>Add friends</FieldLabel>
-          </Pressable>
-          <View style={[styles.fieldBlock, styles.friendsFieldBlock, { marginTop: 8 }]}>
-            {friends.length > 0 ? (
-              <>
-                <View style={styles.searchBar}>
-                  <Ionicons name="search-outline" size={17} color={MUTED2} />
-                  <TextInput
-                    style={styles.searchInput}
-                    placeholder="Search friends"
-                    placeholderTextColor={MUTED2}
-                    value={query}
-                    onChangeText={setQuery}
-                    returnKeyType="search"
-                    blurOnSubmit
-                    onSubmitEditing={dismissKeyboard}
-                  />
-                </View>
-                <FlatList
-                  data={candidates}
-                  keyExtractor={(item) => item.id}
-                  style={styles.friendList}
-                  keyboardShouldPersistTaps="handled"
-                  keyboardDismissMode="on-drag"
-                  onScrollBeginDrag={dismissKeyboard}
-                  ListEmptyComponent={
-                    <Pressable onPress={dismissKeyboard} accessible={false}>
-                      <View style={styles.empty}>
-                        <Text style={styles.emptyText}>No friends match your search.</Text>
-                      </View>
-                    </Pressable>
-                  }
-                  renderItem={({ item }) => {
-                    const checked = selected.has(item.id);
-                    return (
-                      <TouchableOpacity
-                        style={styles.row}
-                        onPress={() => {
-                          dismissKeyboard();
-                          toggle(item.id);
-                        }}
-                        accessibilityRole="checkbox"
-                        accessibilityState={{ checked }}
-                      >
-                        <View style={styles.avatarRing}>
-                          <ExpoImage
-                            source={{ uri: resolveAvatar(item.imageurl) }}
-                            style={styles.avatar}
-                            cachePolicy="memory-disk"
-                          />
-                        </View>
-                        <Text style={styles.rowName} numberOfLines={1}>
-                          {item.displayName || "Friend"}
-                        </Text>
-                        <Ionicons
-                          name={checked ? "checkbox" : "square-outline"}
-                          size={22}
-                          color={checked ? ACCENT : MUTED2}
+              <FlatList
+                data={candidates}
+                keyExtractor={(item) => item.id}
+                style={styles.friendList}
+                keyboardShouldPersistTaps="handled"
+                keyboardDismissMode="on-drag"
+                onScrollBeginDrag={dismissKeyboard}
+                ListEmptyComponent={
+                  <Pressable onPress={dismissKeyboard} accessible={false}>
+                    <View style={styles.empty}>
+                      <Text style={styles.emptyText}>No friends match your search.</Text>
+                    </View>
+                  </Pressable>
+                }
+                renderItem={({ item }) => {
+                  const checked = selected.has(item.id);
+                  return (
+                    <TouchableOpacity
+                      style={styles.row}
+                      onPress={() => {
+                        dismissKeyboard();
+                        toggle(item.id);
+                      }}
+                      accessibilityRole="checkbox"
+                      accessibilityState={{ checked }}
+                    >
+                      <View style={styles.avatarRing}>
+                        <ExpoImage
+                          source={{ uri: resolveAvatar(item.imageurl) }}
+                          style={styles.avatar}
+                          cachePolicy="memory-disk"
                         />
-                      </TouchableOpacity>
-                    );
-                  }}
-                />
-              </>
-            ) : (
-              <Pressable onPress={dismissKeyboard} accessible={false}>
-                <Text style={styles.emptyFriends}>
-                  You don&apos;t have any friends to add yet.
-                </Text>
-              </Pressable>
-            )}
-          </View>
+                      </View>
+                      <Text style={styles.rowName} numberOfLines={1}>
+                        {item.displayName || "Friend"}
+                      </Text>
+                      <Ionicons
+                        name={checked ? "checkbox" : "square-outline"}
+                        size={22}
+                        color={checked ? ACCENT : MUTED2}
+                      />
+                    </TouchableOpacity>
+                  );
+                }}
+              />
+            </>
+          ) : (
+            <Pressable onPress={dismissKeyboard} accessible={false}>
+              <Text style={styles.emptyFriends}>
+                You don&apos;t have any friends to add yet.
+              </Text>
+            </Pressable>
+          )}
+        </View>
 
+        <View style={styles.ctaFooter}>
+          <LinearGradient
+            pointerEvents="none"
+            colors={[BG_TRANSPARENT, BG_FADE_MID, BG]}
+            locations={[0, 0.55, 1]}
+            start={{ x: 0.5, y: 0 }}
+            end={{ x: 0.5, y: 1 }}
+            style={styles.ctaFade}
+          />
           <TouchableOpacity
             style={[styles.cta, !canSubmit && styles.ctaDisabled]}
             disabled={!canSubmit}
             onPress={() => void handleCreate()}
+            activeOpacity={0.85}
             accessibilityRole="button"
             accessibilityLabel="Create circle"
           >
-            <Text style={[styles.ctaText, busy && { opacity: 0.5 }]}>
+            <Text style={styles.ctaText}>
               {selectedCount > 0
                 ? `Create · ${selectedCount} friend${selectedCount === 1 ? "" : "s"}`
                 : "Create"}
             </Text>
           </TouchableOpacity>
         </View>
-      </KeyboardAvoidingView>
+      </View>
     </SpringBottomSheet>
   );
 }
 
 const styles = StyleSheet.create({
-  keyboardInner: {
-    width: "100%",
-  },
   sheetCard: {
     backgroundColor: BG,
     borderRadius: 16,
@@ -287,9 +299,14 @@ const styles = StyleSheet.create({
     gap: 8,
     marginBottom: 16,
   },
-  friendsFieldBlock: {
+  friendsSection: {
     flex: 1,
     minHeight: 0,
+    marginTop: 8,
+    gap: 8,
+  },
+  friendList: {
+    flex: 1,
   },
   fieldLabel: {
     fontFamily: fonts.medium,
@@ -305,17 +322,19 @@ const styles = StyleSheet.create({
     borderWidth: StyleSheet.hairlineWidth,
     borderColor: MUTED3,
     paddingHorizontal: 12,
-    minHeight: 44,
+    height: 48,
   },
   searchInput: {
     flex: 1,
+    alignSelf: "stretch",
     color: TEXT,
     fontFamily: fonts.book,
     fontSize: TYPE_BODY,
-    paddingVertical: 12,
-  },
-  friendList: {
-    flex: 1,
+    lineHeight: 22,
+    paddingTop: 13,
+    paddingBottom: 13,
+    paddingHorizontal: 0,
+    margin: 0,
   },
   row: {
     flexDirection: "row",
@@ -357,10 +376,21 @@ const styles = StyleSheet.create({
     lineHeight: 18,
     paddingVertical: 8,
   },
+  ctaFooter: {
+    position: "relative",
+    backgroundColor: BG,
+    paddingTop: 12,
+  },
+  ctaFade: {
+    position: "absolute",
+    left: -20,
+    right: -20,
+    top: -CTA_FADE_HEIGHT,
+    height: CTA_FADE_HEIGHT,
+  },
   cta: {
     alignSelf: "center",
     width: "62%",
-    marginTop: 4,
     minHeight: 48,
     borderRadius: BUTTON_RADIUS,
     backgroundColor: ACCENT,
@@ -368,7 +398,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   ctaDisabled: {
-    opacity: 0.45,
+    backgroundColor: DISABLED_ACCENT,
   },
   ctaText: {
     fontFamily: fonts.medium,

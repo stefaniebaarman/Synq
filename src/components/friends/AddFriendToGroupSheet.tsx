@@ -2,6 +2,7 @@ import {
   ACCENT,
   BG,
   BUTTON_RADIUS,
+  DISABLED_ACCENT,
   MUTED2,
   ON_ACCENT_TEXT,
   RADIUS_MD,
@@ -164,7 +165,7 @@ export default function AddFriendToGroupSheet({
         disabled={changeCount === 0 || busy}
         onPress={handleSave}
       >
-        <Text style={[styles.ctaText, busy && { opacity: 0.5 }]}>
+        <Text style={styles.ctaText}>
           {saveCtaLabel(changeCount)}
         </Text>
       </TouchableOpacity>
@@ -225,7 +226,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   ctaDisabled: {
-    opacity: 0.45,
+    backgroundColor: DISABLED_ACCENT,
   },
   ctaText: {
     fontFamily: fonts.medium,

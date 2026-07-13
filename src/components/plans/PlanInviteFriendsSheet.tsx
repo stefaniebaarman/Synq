@@ -6,6 +6,7 @@ import {
   BORDER_SUBTLE_HEX,
   BUTTON_RADIUS,
   DEFAULT_AVATAR,
+  DISABLED_ACCENT,
   MUTED2,
   ON_ACCENT_TEXT,
   PRIMARY_CTA_WIDTH,
@@ -268,7 +269,7 @@ export default function PlanInviteFriendsSheet({
           <FlatList
             data={sortedFriends}
             keyExtractor={(item) => item.id}
-            style={[styles.list, { maxHeight: listMaxHeight }]}
+            style={[styles.list, { height: listMaxHeight }]}
             keyboardShouldPersistTaps="handled"
             nestedScrollEnabled
             showsVerticalScrollIndicator={false}
@@ -360,7 +361,7 @@ export default function PlanInviteFriendsSheet({
             accessibilityRole="button"
             accessibilityLabel={inviteCtaLabel(selected.size)}
           >
-            <Text style={[styles.inviteBtnText, inviting && { opacity: 0.5 }]}>
+            <Text style={styles.inviteBtnText}>
               {inviteCtaLabel(selected.size)}
             </Text>
           </TouchableOpacity>
@@ -442,7 +443,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   inviteBtnDisabled: {
-    opacity: 0.45,
+    backgroundColor: DISABLED_ACCENT,
   },
   inviteBtnText: {
     color: ON_ACCENT_TEXT,

@@ -1,6 +1,8 @@
 import {
   ACCENT,
   BG,
+  BG_FADE_MID,
+  BG_TRANSPARENT,
   BUTTON_RADIUS,
   DISABLED_ACCENT,
   Friend,
@@ -21,6 +23,7 @@ import SpringBottomSheet from "@/src/components/sheets/SpringBottomSheet";
 import { resolveAvatar } from "@/src/lib/helpers";
 import { Ionicons } from "@expo/vector-icons";
 import { Image as ExpoImage } from "expo-image";
+import { LinearGradient } from "expo-linear-gradient";
 import { useEffect, useMemo, useState } from "react";
 import {
   Dimensions,
@@ -34,8 +37,9 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import { KeyboardAvoidingView } from "react-native-keyboard-controller";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+
+const CTA_FADE_HEIGHT = 40;
 
 type Props = {
   visible: boolean;
@@ -98,6 +102,7 @@ export default function AddMembersToGroupSheet({
     };
   }, [visible]);
 
+  // Shrink the list for the keyboard only — no KeyboardAvoidingView (avoids double-counting).
   const listHeight = useMemo(() => {
     const sheetCap = WINDOW_HEIGHT * 0.88;
     const keyboardPad = keyboardInset > 0 ? Math.min(keyboardInset, WINDOW_HEIGHT * 0.45) : 0;
@@ -157,83 +162,88 @@ export default function AddMembersToGroupSheet({
       onBackdropPress={handleBackdropPress}
       cardStyle={styles.card}
     >
-      <KeyboardAvoidingView
-        style={styles.keyboardInner}
-        behavior="padding"
-        keyboardVerticalOffset={insets.bottom}
-      >
-        <View style={[styles.sheet, { paddingBottom }]}>
-          <View style={styles.header}>
-            <Text style={styles.title}>{mode === "invite" ? "Invite friends" : "Add members"}</Text>
-            <CloseButton onPress={handleClose} />
-          </View>
-          <View style={styles.searchBar}>
-            <Ionicons name="search-outline" size={17} color={MUTED2} />
-            <TextInput
-              style={styles.searchInput}
-              placeholder="Search friends"
-              placeholderTextColor={MUTED2}
-              value={query}
-              onChangeText={setQuery}
-              returnKeyType="search"
-            />
-          </View>
-          <FlatList
-            data={candidates}
-            keyExtractor={(item) => item.id}
-            style={{ height: listHeight }}
-            keyboardShouldPersistTaps="handled"
-            keyboardDismissMode="on-drag"
-            ListEmptyComponent={
-              <View style={styles.empty}>
-                <Text style={styles.emptyText}>
-                  {friends.length === existingMemberIds.length + pendingInviteIds.length
-                    ? mode === "invite"
-                      ? "All friends are already in this group or have a pending invite."
-                      : "All friends are already in this group."
-                    : "No friends match your search."}
-                </Text>
-              </View>
-            }
-            renderItem={({ item }) => {
-              const checked = selected.has(item.id);
-              return (
-                <TouchableOpacity
-                  style={styles.row}
-                  onPress={() => toggle(item.id)}
-                  accessibilityRole="checkbox"
-                  accessibilityState={{ checked }}
-                >
-                  <View style={styles.avatarRing}>
-                    <ExpoImage
-                      source={{ uri: resolveAvatar((item as { imageurl?: string }).imageurl) }}
-                      style={styles.avatar}
-                      cachePolicy="memory-disk"
-                    />
-                  </View>
-                  <Text style={styles.rowName} numberOfLines={1}>
-                    {item.displayName || "Friend"}
-                  </Text>
-                  <Ionicons
-                    name={checked ? "checkbox" : "square-outline"}
-                    size={22}
-                    color={checked ? ACCENT : MUTED2}
+      <View style={[styles.sheet, { paddingBottom }]}>
+        <View style={styles.header}>
+          <Text style={styles.title}>{mode === "invite" ? "Invite friends" : "Add members"}</Text>
+          <CloseButton onPress={handleClose} />
+        </View>
+        <View style={styles.searchBar}>
+          <Ionicons name="search-outline" size={17} color={MUTED2} />
+          <TextInput
+            style={styles.searchInput}
+            placeholder="Search friends"
+            placeholderTextColor={MUTED2}
+            value={query}
+            onChangeText={setQuery}
+            returnKeyType="search"
+          />
+        </View>
+        <FlatList
+          data={candidates}
+          keyExtractor={(item) => item.id}
+          style={{ height: listHeight }}
+          keyboardShouldPersistTaps="handled"
+          keyboardDismissMode="on-drag"
+          ListEmptyComponent={
+            <View style={styles.empty}>
+              <Text style={styles.emptyText}>
+                {friends.length === existingMemberIds.length + pendingInviteIds.length
+                  ? mode === "invite"
+                    ? "All friends are already in this group or have a pending invite."
+                    : "All friends are already in this group."
+                  : "No friends match your search."}
+              </Text>
+            </View>
+          }
+          renderItem={({ item }) => {
+            const checked = selected.has(item.id);
+            return (
+              <TouchableOpacity
+                style={styles.row}
+                onPress={() => toggle(item.id)}
+                accessibilityRole="checkbox"
+                accessibilityState={{ checked }}
+              >
+                <View style={styles.avatarRing}>
+                  <ExpoImage
+                    source={{ uri: resolveAvatar((item as { imageurl?: string }).imageurl) }}
+                    style={styles.avatar}
+                    cachePolicy="memory-disk"
                   />
-                </TouchableOpacity>
-              );
-            }}
+                </View>
+                <Text style={styles.rowName} numberOfLines={1}>
+                  {item.displayName || "Friend"}
+                </Text>
+                <Ionicons
+                  name={checked ? "checkbox" : "square-outline"}
+                  size={22}
+                  color={checked ? ACCENT : MUTED2}
+                />
+              </TouchableOpacity>
+            );
+          }}
+        />
+        <View style={styles.ctaFooter}>
+          <LinearGradient
+            pointerEvents="none"
+            colors={[BG_TRANSPARENT, BG_FADE_MID, BG]}
+            locations={[0, 0.55, 1]}
+            start={{ x: 0.5, y: 0 }}
+            end={{ x: 0.5, y: 1 }}
+            style={styles.ctaFade}
           />
           <TouchableOpacity
             style={[styles.cta, (selected.size === 0 || busy) && styles.ctaDisabled]}
             disabled={selected.size === 0 || busy}
             onPress={() => void handleAdd()}
+            activeOpacity={0.85}
           >
             <Text style={styles.ctaText}>
               {actionCtaLabel(mode, selected.size)}
             </Text>
           </TouchableOpacity>
         </View>
-      </KeyboardAvoidingView>
+      </View>
     </SpringBottomSheet>
   );
 }
@@ -244,9 +254,6 @@ const styles = StyleSheet.create({
     maxHeight: "88%",
     backgroundColor: BG,
     borderRadius: RADIUS_MD,
-  },
-  keyboardInner: {
-    width: "100%",
   },
   sheet: {
     paddingHorizontal: 20,
@@ -312,16 +319,26 @@ const styles = StyleSheet.create({
     color: MUTED2,
     textAlign: "center",
   },
+  ctaFooter: {
+    position: "relative",
+    backgroundColor: BG,
+    paddingTop: 12,
+  },
+  ctaFade: {
+    position: "absolute",
+    left: -20,
+    right: -20,
+    top: -CTA_FADE_HEIGHT,
+    height: CTA_FADE_HEIGHT,
+  },
   cta: {
     alignSelf: "center",
     width: "62%",
-    marginTop: 12,
     minHeight: 48,
     borderRadius: BUTTON_RADIUS,
     backgroundColor: ACCENT,
     alignItems: "center",
     justifyContent: "center",
-    overflow: "hidden",
   },
   ctaDisabled: {
     backgroundColor: DISABLED_ACCENT,
@@ -330,5 +347,8 @@ const styles = StyleSheet.create({
     fontFamily: fonts.medium,
     fontSize: TYPE_BODY,
     color: ON_ACCENT_TEXT,
+    lineHeight: 22,
+    includeFontPadding: false,
+    textAlignVertical: "center",
   },
 });

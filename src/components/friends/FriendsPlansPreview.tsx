@@ -1,6 +1,8 @@
 import {
+  MUTED,
+  TYPE_CAPTION,
+  fonts,
   listSectionTitle,
-  sectionLinkText,
   SPACE_4,
 } from "@/constants/Variables";
 import FriendPlanCard from "@/src/components/friends/FriendPlanCard";
@@ -98,6 +100,9 @@ const styles = StyleSheet.create({
     ...listSectionTitle,
   },
   sectionLink: {
-    ...sectionLinkText,
+    color: MUTED,
+    fontSize: TYPE_CAPTION,
+    fontFamily: fonts.medium,
+    letterSpacing: 0.22,
   },
 });

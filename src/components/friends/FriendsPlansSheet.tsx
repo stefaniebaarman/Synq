@@ -19,6 +19,7 @@ import {
   FlatList,
   StyleSheet,
   Text,
+  useWindowDimensions,
   View,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -41,6 +42,8 @@ export default function FriendsPlansSheet({
   onOpenFriendProfile,
 }: Props) {
   const insets = useSafeAreaInsets();
+  const { height: windowHeight } = useWindowDimensions();
+  const sheetHeight = Math.round(windowHeight * 0.88);
   const {
     aggregatedPlans,
     hostDisplayNameByUid,
@@ -90,7 +93,10 @@ export default function FriendsPlansSheet({
     <SpringBottomSheet
       visible={visible}
       onClose={onClose}
-      cardStyle={[styles.sheet, { paddingBottom: Math.max(24, insets.bottom) }]}
+      cardStyle={[
+        styles.sheet,
+        { height: sheetHeight, paddingBottom: Math.max(24, insets.bottom) },
+      ]}
       overlay={confirmOverlay}
     >
       <View style={styles.header}>
@@ -101,6 +107,7 @@ export default function FriendsPlansSheet({
       <FlatList
         data={aggregatedPlans}
         keyExtractor={(item) => `${item.sourceFriendId}|${item.event.id}`}
+        style={styles.list}
         showsVerticalScrollIndicator={false}
         contentContainerStyle={[
           styles.listContent,
@@ -136,7 +143,6 @@ export default function FriendsPlansSheet({
 
 const styles = StyleSheet.create({
   sheet: {
-    maxHeight: "88%",
     backgroundColor: BG,
     borderRadius: RADIUS_2XL,
     borderWidth: 1,
@@ -157,6 +163,9 @@ const styles = StyleSheet.create({
     fontSize: TYPE_SECTION,
     lineHeight: 26,
     letterSpacing: 0.04,
+  },
+  list: {
+    flex: 1,
   },
   listContent: {
     paddingHorizontal: 20,

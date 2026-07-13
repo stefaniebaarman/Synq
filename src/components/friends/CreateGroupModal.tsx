@@ -3,6 +3,7 @@ import {
   BG,
   BORDER_SOFT,
   BUTTON_RADIUS,
+  DISABLED_ACCENT,
   fonts,
   MUTED2,
   MUTED3,
@@ -128,7 +129,7 @@ export default function CreateGroupModal({
                 accessibilityRole="button"
                 accessibilityLabel={submitLabel}
               >
-                <Text style={[styles.ctaText, busy && { opacity: 0.5 }]}>
+                <Text style={styles.ctaText}>
                   {submitLabel}
                 </Text>
               </TouchableOpacity>
@@ -217,7 +218,7 @@ const styles = StyleSheet.create({
     alignSelf: "center",
   },
   ctaDisabled: {
-    opacity: 0.45,
+    backgroundColor: DISABLED_ACCENT,
   },
   ctaText: {
     fontFamily: fonts.medium,

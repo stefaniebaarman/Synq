@@ -19,6 +19,7 @@ import {
   Pressable,
   StyleSheet,
   Text,
+  useWindowDimensions,
   View,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -45,13 +46,18 @@ export default function PlanGoingPeopleSheet({
   onPressPerson,
 }: Props) {
   const insets = useSafeAreaInsets();
+  const { height: windowHeight } = useWindowDimensions();
+  const sheetHeight = Math.round(windowHeight * 0.7);
   const title = String(planTitle || "").trim() || "this plan";
 
   return (
     <SpringBottomSheet
       visible={visible}
       onClose={onClose}
-      cardStyle={[styles.sheet, { paddingBottom: Math.max(28, insets.bottom + 12) }]}
+      cardStyle={[
+        styles.sheet,
+        { height: sheetHeight, paddingBottom: Math.max(28, insets.bottom + 12) },
+      ]}
     >
       <View style={styles.header}>
         <Text style={styles.title}>Going to {title}</Text>
@@ -99,7 +105,6 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: BORDER,
     paddingTop: 8,
-    maxHeight: "70%",
     overflow: "hidden",
   },
   header: {
@@ -117,6 +122,7 @@ const styles = StyleSheet.create({
     marginRight: 12,
   },
   list: {
+    flex: 1,
     paddingHorizontal: 12,
   },
   rowPressable: {

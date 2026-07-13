@@ -372,6 +372,7 @@ export default function FriendsScreen() {
 
   useEffect(() => {
     const subscription = DeviceEventEmitter.addListener(FRIENDS_TAB_PRESS, () => {
+      setFriendsTabMode("friends");
       scrollFriendsListToTop(true);
       closeAddFriendsModal();
       closePlansSheet();
@@ -1023,13 +1024,25 @@ function SearchModal({
   const reducedMotion = useReducedMotion();
   const translateY = useSharedValue(9999);
   const sheetHeightRef = useRef(0);
+  const closingRef = useRef(false);
   const [mounted, setMounted] = useState(visible);
   const sheetAnimatedStyle = useAnimatedStyle(() => ({
     transform: [{ translateY: translateY.value }],
   }));
   const listBottomInset = 84 + (Platform.OS === "android" ? insets.bottom : 0);
 
+  const finishClose = useCallback(() => {
+    closingRef.current = false;
+    setMounted(false);
+  }, []);
+
+  const finishCloseIfStillClosing = useCallback(() => {
+    if (!closingRef.current) return;
+    finishClose();
+  }, [finishClose]);
+
   const openSheet = useCallback(() => {
+    closingRef.current = false;
     cancelAnimation(translateY);
     if (reducedMotion) {
       translateY.value = 0;
@@ -1044,6 +1057,9 @@ function SearchModal({
       if (h <= 0) return;
       const prev = sheetHeightRef.current;
       sheetHeightRef.current = h;
+      // Never write translateY while closing — that cancels withTiming and
+      // leaves the Modal mounted (frozen dim). Keyboard dismiss often relayouts.
+      if (closingRef.current) return;
       if (!visible) {
         translateY.value = h;
         return;
@@ -1065,23 +1081,37 @@ function SearchModal({
     if (!mounted) return;
     const h = sheetHeightRef.current;
     if (h <= 0) {
-      setMounted(false);
+      finishClose();
       return;
     }
+    if (closingRef.current) return;
+    closingRef.current = true;
     cancelAnimation(translateY);
     if (reducedMotion) {
       translateY.value = h;
-      setMounted(false);
+      finishClose();
       return;
     }
     translateY.value = withTiming(
       h,
       { duration: ADD_FRIENDS_SHEET_CLOSE_MS, easing: Easing.inOut(Easing.cubic) },
       (finished) => {
-        if (finished) runOnJS(setMounted)(false);
+        if (finished) {
+          runOnJS(finishClose)();
+          return;
+        }
+        runOnJS(finishCloseIfStillClosing)();
       }
     );
-  }, [visible, mounted, reducedMotion, openSheet, translateY]);
+  }, [
+    visible,
+    mounted,
+    reducedMotion,
+    openSheet,
+    translateY,
+    finishClose,
+    finishCloseIfStillClosing,
+  ]);
   const [queryText, setQueryText] = useState("");
   const [results, setResults] = useState<any[]>([]);
   const [suggested, setSuggested] = useState<any[]>([]);
@@ -1101,6 +1131,12 @@ function SearchModal({
   const [mutualCountsByUserId, setMutualCountsByUserId] = useState<
     Record<string, number>
   >({});
+  const debounceRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
+  const searchRequestIdRef = React.useRef(0);
+  const knownFriendsRef = React.useRef(knownFriends);
+  const currentFriendsRef = React.useRef(currentFriends);
+  knownFriendsRef.current = knownFriends;
+  currentFriendsRef.current = currentFriends;
 
   const formatMutualFriendsSubtitle = (user: any) => {
     const myId = auth.currentUser?.uid ?? "";
@@ -1121,11 +1157,13 @@ function SearchModal({
 
   useEffect(() => {
     if (!visible) {
+      searchRequestIdRef.current += 1;
       setPendingCancelTarget(null);
       setMutualCountsByUserId({});
       setQrScannerVisible(false);
       return;
     }
+    searchRequestIdRef.current += 1;
     setQueryText("");
     setResults([]);
     setIsSearching(false);
@@ -1309,7 +1347,6 @@ function SearchModal({
     return () => unsubscribe();
   }, [visible]);
 
-  const debounceRef = React.useRef<any>(null);
   const pendingCheckCacheRef = React.useRef<Record<string, boolean>>({});
   const pendingCheckInFlightRef = React.useRef<Record<string, Promise<boolean>>>({});
   const incomingCheckCacheRef = React.useRef<Record<string, boolean>>({});
@@ -1494,13 +1531,18 @@ function SearchModal({
 
     debounceRef.current = setTimeout(async () => {
       if (val.length < 1) {
+        searchRequestIdRef.current += 1;
         setResults([]);
+        setIsSearching(false);
         return;
       }
 
+      const requestId = ++searchRequestIdRef.current;
       setIsSearching(true);
       const q = val.trim().toLowerCase();
-      const localMatches = knownFriends
+      const friendsSnapshot = knownFriendsRef.current;
+      const friendIdsSnapshot = currentFriendsRef.current;
+      const localMatches = friendsSnapshot
         .filter((f) => (f.displayName || "").toLowerCase().includes(q))
         .map((f) => ({
           id: f.id,
@@ -1511,6 +1553,7 @@ function SearchModal({
 
       try {
         const filtered = await searchUsersForFriend(val);
+        if (requestId !== searchRequestIdRef.current) return;
         const byId = new Map<string, any>();
         for (const user of localMatches) byId.set(user.id, user);
         for (const user of filtered) {
@@ -1518,7 +1561,9 @@ function SearchModal({
           byId.set(user.id, {
             ...prev,
             ...user,
-            isFriend: Boolean(prev?.isFriend || user.isFriend || currentFriends.includes(user.id)),
+            isFriend: Boolean(
+              prev?.isFriend || user.isFriend || friendIdsSnapshot.includes(user.id)
+            ),
           });
         }
         const merged = [...byId.values()].sort((a, b) => {
@@ -1529,10 +1574,13 @@ function SearchModal({
         hydratePendingForUsers(merged.map((u) => u.id));
         hydrateIncomingForUsers(merged.map((u) => u.id));
       } catch (e) {
+        if (requestId !== searchRequestIdRef.current) return;
         console.error("[SearchModal] Search failed", e);
         setResults(localMatches);
       } finally {
-        setIsSearching(false);
+        if (requestId === searchRequestIdRef.current) {
+          setIsSearching(false);
+        }
       }
     }, 300); // debounce delay (can tweak 250–400)
   };
