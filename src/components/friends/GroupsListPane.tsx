@@ -1,3 +1,4 @@
+import AlertModal from "@/app/alert-modal";
 import ConfirmModal from "@/app/confirm-modal";
 import {
   Friend,
@@ -16,9 +17,8 @@ import { friendGroupsCacheByUser } from "@/src/lib/socialCache";
 import { Ionicons } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
 import { useRouter } from "expo-router";
-import React, { useEffect, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import {
-  Alert,
   ScrollView,
   StyleSheet,
   Text,
@@ -56,6 +56,15 @@ export default function GroupsListPane({
   const [pendingDeleteGroup, setPendingDeleteGroup] = useState<FriendGroup | null>(null);
   const [deleteBusy, setDeleteBusy] = useState(false);
   const [circlesInfoVisible, setCirclesInfoVisible] = useState(false);
+  const [alertVisible, setAlertVisible] = useState(false);
+  const [alertTitle, setAlertTitle] = useState<string | undefined>();
+  const [alertMessage, setAlertMessage] = useState("");
+
+  const showAlert = useCallback((title: string, message: string) => {
+    setAlertTitle(title);
+    setAlertMessage(message);
+    setAlertVisible(true);
+  }, []);
 
   useEffect(() => {
     if (!userId) return;
@@ -83,7 +92,7 @@ export default function GroupsListPane({
       const permissionDenied =
         typeof message === "string" &&
         (message.includes("permission") || message.includes("PERMISSION_DENIED"));
-      Alert.alert(
+      showAlert(
         "Could not create circle",
         permissionDenied
           ? "Firestore may be missing the new groups rules. Deploy firestore rules, then try again."
@@ -118,7 +127,7 @@ export default function GroupsListPane({
       setPendingDeleteGroup(null);
       void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     } catch (err: unknown) {
-      Alert.alert(
+      showAlert(
         "Could not delete circle",
         err instanceof Error ? err.message : "Try again."
       );
@@ -215,6 +224,13 @@ export default function GroupsListPane({
         visible={circlesInfoVisible}
         variant="circles"
         onClose={() => setCirclesInfoVisible(false)}
+      />
+
+      <AlertModal
+        visible={alertVisible}
+        title={alertTitle}
+        message={alertMessage}
+        onClose={() => setAlertVisible(false)}
       />
     </>
   );

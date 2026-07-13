@@ -10,6 +10,7 @@ import {
   synqOutlineAddBtn,
   synqOutlineAddBtnText,
 } from "@/constants/Variables";
+import AlertModal from "@/app/alert-modal";
 import SynqNudgeCard from "@/src/components/synq/SynqNudgeCard";
 import { fetchOrCreateInviteCode } from "@/src/lib/inviteCode";
 import { buildProfileShareWebUrl } from "@/src/lib/profileShareUrl";
@@ -25,7 +26,7 @@ import {
 } from "@/src/lib/synqNudge";
 import { Ionicons } from "@expo/vector-icons";
 import React, { useCallback, useEffect, useState } from "react";
-import { Alert, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
 
 type NudgeRowState = { loading: boolean; sent: boolean };
 
@@ -37,6 +38,15 @@ type Props = {
 export default function ActiveSynqEmptyState({ viewerId, candidates }: Props) {
   const [nudgeByFriendId, setNudgeByFriendId] = useState<Record<string, NudgeRowState>>({});
   const [sharingProfile, setSharingProfile] = useState(false);
+  const [alertVisible, setAlertVisible] = useState(false);
+  const [alertTitle, setAlertTitle] = useState<string | undefined>();
+  const [alertMessage, setAlertMessage] = useState("");
+
+  const showAlert = useCallback((title: string, message: string) => {
+    setAlertTitle(title);
+    setAlertMessage(message);
+    setAlertVisible(true);
+  }, []);
 
   useEffect(() => {
     if (!viewerId || candidates.length === 0) return;
@@ -103,7 +113,7 @@ export default function ActiveSynqEmptyState({ viewerId, candidates }: Props) {
           ...prev,
           [friendId]: { loading: false, sent: true },
         }));
-        Alert.alert("Nudge sent", "They'll get a notification asking if they're free.");
+        showAlert("Nudge sent", "They'll get a notification asking if they're free.");
       } catch (err) {
         const msg = synqNudgeErrorMessage(err);
         if (msg.includes("again in a few hours")) {
@@ -117,11 +127,11 @@ export default function ActiveSynqEmptyState({ viewerId, candidates }: Props) {
             ...prev,
             [friendId]: { loading: false, sent: prev[friendId]?.sent ?? false },
           }));
-          Alert.alert("Couldn't nudge", msg);
+          showAlert("Couldn't nudge", msg);
         }
       }
     },
-    [viewerId]
+    [viewerId, showAlert]
   );
 
   const handleShareProfile = useCallback(async () => {
@@ -131,7 +141,7 @@ export default function ActiveSynqEmptyState({ viewerId, candidates }: Props) {
       const code = await fetchOrCreateInviteCode();
       const shareUrl = buildProfileShareWebUrl(code);
       if (!shareUrl) {
-        Alert.alert(
+        showAlert(
           "Share unavailable",
           "We couldn't generate your profile link yet. Please try again in a moment."
         );
@@ -139,11 +149,11 @@ export default function ActiveSynqEmptyState({ viewerId, candidates }: Props) {
       }
       await shareProfileLink(shareUrl);
     } catch {
-      Alert.alert("Share unavailable", "Please try again in a moment.");
+      showAlert("Share unavailable", "Please try again in a moment.");
     } finally {
       setSharingProfile(false);
     }
-  }, [sharingProfile]);
+  }, [sharingProfile, showAlert]);
 
   const hasCandidates = candidates.length > 0;
 
@@ -191,6 +201,13 @@ export default function ActiveSynqEmptyState({ viewerId, candidates }: Props) {
           </TouchableOpacity>
         </View>
       )}
+
+      <AlertModal
+        visible={alertVisible}
+        title={alertTitle}
+        message={alertMessage}
+        onClose={() => setAlertVisible(false)}
+      />
     </View>
   );
 }

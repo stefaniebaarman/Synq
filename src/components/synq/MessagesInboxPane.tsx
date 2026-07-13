@@ -1,8 +1,12 @@
 import BackButton from "@/src/components/BackButton";
 import CloseButton from "@/src/components/CloseButton";
+import { ListRowsSkeleton } from "@/src/components/loading/BrandSkeletons";
 import ChatInboxActionSheet from "@/src/components/synq/ChatInboxActionSheet";
 import { MUTED2 } from "@/constants/Variables";
-import { getCommunityChatInboxSubtitle } from "@/src/lib/helpers";
+import {
+  formatLastSynq,
+  getCommunityChatInboxSubtitle,
+} from "@/src/lib/helpers";
 import { Ionicons } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
 import React from "react";
@@ -13,6 +17,8 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 type Props = {
   styles: any;
   allChats: any[];
+  /** True after the first chats snapshot (avoids empty-state flash). */
+  chatsHydrated?: boolean;
   currentUserId?: string;
   getChatTitle: (chat: any) => string;
   renderAvatarStack: (images: any, participants?: string[]) => React.ReactNode;
@@ -38,9 +44,18 @@ type Props = {
   onDeleteFromAction?: (chatId: string) => void;
 };
 
+function inboxTimestamp(item: any): string {
+  const ts = item.updatedAt ?? item.createdAt;
+  if (!ts) return "";
+  const date = ts.toDate ? ts.toDate() : new Date(ts);
+  if (Number.isNaN(date.getTime())) return "";
+  return formatLastSynq(date);
+}
+
 export default function MessagesInboxPane({
   styles,
   allChats,
+  chatsHydrated = true,
   currentUserId,
   getChatTitle,
   renderAvatarStack,
@@ -89,6 +104,7 @@ export default function MessagesInboxPane({
       lastSender !== currentUserId &&
       updatedAtMs > lastReadMs;
     const isSelected = selectedMergeChatIds.includes(item.id);
+    const timeLabel = inboxTimestamp(item);
 
     const rowContent = (
       <TouchableOpacity
@@ -120,7 +136,9 @@ export default function MessagesInboxPane({
         accessibilityLabel={
           mergeSelectMode
             ? `${getChatTitle(item)}${isSelected ? ", selected" : ""}`
-            : getChatTitle(item)
+            : `${getChatTitle(item)}${isUnreadThread ? ", unread" : ""}${
+                timeLabel ? `, ${timeLabel}` : ""
+              }`
         }
       >
         <View style={styles.inboxItemRow}>
@@ -141,6 +159,9 @@ export default function MessagesInboxPane({
           </View>
           <View style={styles.inboxTextCol}>
             <View style={styles.inboxTitleRow}>
+              {isUnreadThread && !mergeSelectMode ? (
+                <View style={styles.inboxUnreadDot} accessibilityElementsHidden />
+              ) : null}
               <Text
                 style={[
                   styles.whiteBold,
@@ -152,6 +173,17 @@ export default function MessagesInboxPane({
               >
                 {getChatTitle(item)}
               </Text>
+              {timeLabel ? (
+                <Text
+                  style={[
+                    styles.inboxTime,
+                    isUnreadThread && styles.inboxTimeUnread,
+                  ]}
+                  numberOfLines={1}
+                >
+                  {timeLabel}
+                </Text>
+              ) : null}
             </View>
             {(() => {
               const subtitle = getCommunityChatInboxSubtitle(item);
@@ -169,7 +201,13 @@ export default function MessagesInboxPane({
                   : "";
               if (!lm || lm === "Synq established!") return null;
               return (
-                <Text style={styles.grayText} numberOfLines={1}>
+                <Text
+                  style={[
+                    styles.grayText,
+                    isUnreadThread && styles.inboxPreviewUnread,
+                  ]}
+                  numberOfLines={1}
+                >
                   {lm}
                 </Text>
               );
@@ -245,15 +283,21 @@ export default function MessagesInboxPane({
         data={allChats}
         keyExtractor={(item) => item.id}
         ListEmptyComponent={
-          <View style={styles.inboxEmptyWrap}>
-            <View style={styles.inboxEmptyIconWrap}>
-              <Ionicons name="chatbubbles-outline" size={28} color={MUTED2} />
+          !chatsHydrated ? (
+            <View style={styles.inboxLoadingWrap}>
+              <ListRowsSkeleton count={5} />
             </View>
-            <Text style={styles.inboxEmptyTitle}>No messages yet</Text>
-            <Text style={styles.inboxEmptySub}>
-              Start a plan with a friend and your conversations will show up here.
-            </Text>
-          </View>
+          ) : (
+            <View style={styles.inboxEmptyWrap}>
+              <View style={styles.inboxEmptyIconWrap}>
+                <Ionicons name="chatbubbles-outline" size={28} color={MUTED2} />
+              </View>
+              <Text style={styles.inboxEmptyTitle}>No messages yet</Text>
+              <Text style={styles.inboxEmptySub}>
+                Start a plan with a friend and your conversations will show up here.
+              </Text>
+            </View>
+          )
         }
         ItemSeparatorComponent={() => (
           <View style={styles.inboxSeparatorBetween}>

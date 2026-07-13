@@ -660,16 +660,6 @@ export default function FriendsScreen() {
 
   const renderFriendRowSeparator = () => <View style={styles.friendRowSeparator} />;
 
-  const renderSkeletonRow = (key: string) => (
-    <View key={key} style={styles.friendRow}>
-      <View style={[styles.avatarRing, styles.skeletonBlock]} />
-      <View style={{ flex: 1 }}>
-        <View style={[styles.skeletonBlock, { height: 14, width: "55%", marginBottom: 8 }]} />
-        <View style={[styles.skeletonBlock, { height: 12, width: "38%" }]} />
-      </View>
-    </View>
-  );
-
   const renderFriendRow = ({ item }: { item: Friend }) => {
     const locationLine = friendLocationLine(item);
     const fallbackLoc =
@@ -799,13 +789,8 @@ export default function FriendsScreen() {
           />
         </View>
       ) : isFriendsInitialLoading ? (
-        <View style={styles.friendsList}>
-          {["1", "2", "3"].map((k, i) => (
-            <View key={k}>
-              {i > 0 ? renderFriendRowSeparator() : null}
-              {renderSkeletonRow(k)}
-            </View>
-          ))}
+        <View style={[styles.friendsList, styles.screenPadding]}>
+          <ListRowsSkeleton count={5} />
         </View>
       ) : (
         <FlatList
@@ -2212,10 +2197,6 @@ const styles = StyleSheet.create({
     fontSize: TYPE_BODY,
     paddingVertical: 0,
     minHeight: 22,
-  },
-  skeletonBlock: {
-    backgroundColor: SURFACE_RAISED,
-    borderRadius: 8,
   },
   friendsSection: {
     marginTop: SPACE_3,

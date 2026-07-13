@@ -391,6 +391,7 @@ export default function SynqScreen() {
   const flatListRef = useRef<FlatList>(null);
   const chatOpenGraceRef = useRef<Map<string, number>>(new Map());
   const chatsHydratedRef = useRef(false);
+  const [chatsHydrated, setChatsHydrated] = useState(false);
   const [pendingScrollToMessageId, setPendingScrollToMessageId] = useState<string | null>(null);
   const lastTapRef = useRef<{ [key: string]: number }>({});
   const [hasUnread, setHasUnread] = useState(false);
@@ -1066,6 +1067,7 @@ export default function SynqScreen() {
     const effectUid = user?.uid;
     if (!effectUid) return;
     chatsHydratedRef.current = false;
+    setChatsHydrated(false);
     let cancelled = false;
 
     const cachedProfile = getCachedOwnProfile(effectUid);
@@ -1137,8 +1139,9 @@ export default function SynqScreen() {
     const unsubChats = onSnapshot(
       q,
       (snap) => {
-      chatsHydratedRef.current = true;
-      const chats = snap.docs.map((d) => ({ id: d.id, ...d.data() })) as any[];
+        chatsHydratedRef.current = true;
+        setChatsHydrated(true);
+        const chats = snap.docs.map((d) => ({ id: d.id, ...d.data() })) as any[];
 
       chats.sort((a, b) => {
         const aMs = a.updatedAt?.toMillis?.() ?? a.createdAt?.toMillis?.() ?? 0;
@@ -2167,6 +2170,7 @@ export default function SynqScreen() {
               <MessagesInboxPane
                 styles={styles}
                 allChats={inboxChats}
+                chatsHydrated={chatsHydrated}
                 currentUserId={auth.currentUser?.uid}
                 getChatTitle={getChatTitle}
                 renderAvatarStack={renderAvatarStack}
@@ -2777,10 +2781,40 @@ const styles = StyleSheet.create({
   inboxTitleRow: {
     flexDirection: 'row',
     alignItems: 'center',
+    gap: 8,
     minWidth: 0,
   },
   inboxTitleText: {
+    flex: 1,
     flexShrink: 1,
+    minWidth: 0,
+  },
+  inboxUnreadDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: ACCENT,
+    flexShrink: 0,
+  },
+  inboxTime: {
+    color: MUTED2,
+    fontFamily: fonts.book,
+    fontSize: TYPE_FINE,
+    letterSpacing: 0.1,
+    flexShrink: 0,
+    marginLeft: 4,
+  },
+  inboxTimeUnread: {
+    color: ACCENT,
+    fontFamily: fonts.medium,
+  },
+  inboxPreviewUnread: {
+    color: TEXT,
+    fontFamily: fonts.medium,
+  },
+  inboxLoadingWrap: {
+    paddingTop: 8,
+    paddingHorizontal: 4,
   },
   inboxMergeHeader: {
     flexDirection: 'row',
