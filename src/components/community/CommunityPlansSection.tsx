@@ -28,6 +28,7 @@ import AlertModal from "@/app/alert-modal";
 import ConfirmModal from "@/app/confirm-modal";
 import CommunityPlanDetailSheet from "@/src/components/community/CommunityPlanDetailSheet";
 import CommunityPlanGoerAvatars from "@/src/components/community/CommunityPlanGoerAvatars";
+import { PlanCardsSkeleton } from "@/src/components/loading/BrandSkeletons";
 import CreateCommunityPlanModal from "@/src/components/community/CreateCommunityPlanModal";
 import {
   addCommunityPlanToUserEvents,
@@ -52,7 +53,6 @@ import { doc, onSnapshot } from "firebase/firestore";
 import { db } from "@/src/lib/firebase";
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
-  ActivityIndicator,
   Pressable,
   StyleSheet,
   Text,
@@ -327,7 +327,9 @@ export default function CommunityPlansSection({
         </View>
 
         {loading ? (
-          <ActivityIndicator color={ACCENT} style={styles.loader} />
+          <View style={styles.loader}>
+            <PlanCardsSkeleton />
+          </View>
         ) : plansLoadError ? (
           <Text style={styles.empty}>Could not load plans. Pull to refresh the group.</Text>
         ) : displayedPlans.length === 0 ? (
@@ -407,13 +409,21 @@ export default function CommunityPlansSection({
                             : `Join ${plan.title}`
                         }
                       >
-                        {busy ? (
-                          <ActivityIndicator color={ACCENT} size="small" />
-                        ) : (
-                          <Text style={[styles.pillText, isGoing && styles.pillTextJoined]}>
-                            {isGoing ? "Joined" : "Join"}
-                          </Text>
-                        )}
+                        <Text
+                          style={[
+                            styles.pillText,
+                            isGoing && styles.pillTextJoined,
+                            busy && { opacity: 0.7 },
+                          ]}
+                        >
+                          {busy
+                            ? isGoing
+                              ? "Leaving…"
+                              : "Joining…"
+                            : isGoing
+                              ? "Joined"
+                              : "Join"}
+                        </Text>
                       </TouchableOpacity>
                     </View>
                   </View>

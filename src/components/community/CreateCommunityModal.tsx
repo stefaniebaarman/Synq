@@ -37,7 +37,6 @@ import { Image as ExpoImage } from "expo-image";
 import { LinearGradient } from "expo-linear-gradient";
 import { useCallback, useEffect, useState } from "react";
 import {
-  ActivityIndicator,
   Keyboard,
   KeyboardEvent,
   Modal,
@@ -358,11 +357,9 @@ export default function CreateCommunityModal({
                   accessibilityRole="button"
                   accessibilityLabel="Create community"
                 >
-                  {busy ? (
-                    <ActivityIndicator color={ON_ACCENT_TEXT} />
-                  ) : (
-                    <Text style={styles.ctaText}>Create community</Text>
-                  )}
+                  <Text style={[styles.ctaText, busy && { opacity: 0.7 }]}>
+                    {busy ? "Creating…" : "Create community"}
+                  </Text>
                 </TouchableOpacity>
               </View>
             </View>

@@ -27,6 +27,7 @@ import {
 } from "@/constants/Variables";
 import CloseButton from "@/src/components/CloseButton";
 import CloseIcon from "@/src/components/CloseIcon";
+import { ListRowsSkeleton } from "@/src/components/loading/BrandSkeletons";
 import { Ionicons } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
 import { Image as ExpoImage } from "expo-image";
@@ -41,7 +42,6 @@ import React, {
   useState,
 } from "react";
 import {
-  ActivityIndicator,
   Dimensions,
   FlatList,
   Keyboard,
@@ -1274,7 +1274,9 @@ export default function MessagesChatPane({
                   accessibilityLabel="Load earlier messages"
                 >
                   {loadingEarlier ? (
-                    <ActivityIndicator size="small" color={ACCENT} />
+                    <Text style={[chatHeaderOverlayStyles.loadEarlierText, { opacity: 0.7 }]}>
+                      Loading…
+                    </Text>
                   ) : (
                     <Text style={chatHeaderOverlayStyles.loadEarlierText}>Load earlier messages</Text>
                   )}
@@ -1294,7 +1296,7 @@ export default function MessagesChatPane({
                 </View>
               ) : (
                 <View style={styles.chatLoadingWrap} accessibilityLabel="Loading messages">
-                  <ActivityIndicator size="small" color={ACCENT} />
+                  <ListRowsSkeleton count={4} withAvatar={false} />
                 </View>
               )
             }

@@ -3,7 +3,6 @@ import { useLocalSearchParams, useRouter } from "expo-router";
 import { doc, getDoc, setDoc } from "firebase/firestore";
 import React, { useEffect, useMemo, useState } from "react";
 import {
-  ActivityIndicator,
   Keyboard,
   Platform,
   ScrollView,
@@ -319,11 +318,12 @@ export default function LocationDetails() {
               ]}
             >
               <View style={styles.locationIconWrap}>
-                {locating ? (
-                  <ActivityIndicator size="small" color={ACCENT} />
-                ) : (
-                  <Ionicons name="location-outline" size={18} color={ACCENT} />
-                )}
+                <Ionicons
+                  name="location-outline"
+                  size={18}
+                  color={ACCENT}
+                  style={locating ? { opacity: 0.7 } : undefined}
+                />
               </View>
               <View style={styles.locationCopy}>
                 <Text style={styles.locationPrimary}>
@@ -352,7 +352,7 @@ export default function LocationDetails() {
           ]}
         >
           {loading ? (
-            <ActivityIndicator color="black" />
+            <Text style={[ctaButtonText, { opacity: 0.7 }]}>Continuing…</Text>
           ) : (
             <Text style={ctaButtonText}>Continue</Text>
           )}

@@ -41,7 +41,6 @@ import { router, useLocalSearchParams } from "expo-router";
 import { signInWithPhoneNumber } from "firebase/auth";
 import React, { useEffect, useRef, useState } from "react";
 import {
-  ActivityIndicator,
   Dimensions,
   Keyboard,
   KeyboardAvoidingView,
@@ -282,11 +281,9 @@ export default function Phone() {
                 disabled={loading || phoneNumber.length < 10}
                 activeOpacity={0.85}
               >
-                {loading ? (
-                  <ActivityIndicator color={ON_ACCENT_TEXT} />
-                ) : (
-                  <Text style={styles.primaryButtonText}>Send Code</Text>
-                )}
+                <Text style={[styles.primaryButtonText, loading && { opacity: 0.7 }]}>
+                  {loading ? "Sending…" : "Send Code"}
+                </Text>
               </TouchableOpacity>
 
               <TouchableOpacity
@@ -362,11 +359,9 @@ export default function Phone() {
                 disabled={loading || code.join("").length < 6}
                 activeOpacity={0.85}
               >
-                {loading ? (
-                  <ActivityIndicator color={ON_ACCENT_TEXT} />
-                ) : (
-                  <Text style={styles.primaryButtonText}>Continue</Text>
-                )}
+                <Text style={[styles.primaryButtonText, loading && { opacity: 0.7 }]}>
+                  {loading ? "Verifying…" : "Continue"}
+                </Text>
               </TouchableOpacity>
             </View>
           )}

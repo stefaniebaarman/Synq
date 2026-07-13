@@ -35,6 +35,7 @@ import {
 import BackButton from "@/src/components/BackButton";
 import AddFriendToGroupSheet from "@/src/components/friends/AddFriendToGroupSheet";
 import FriendPlanCard from "@/src/components/friends/FriendPlanCard";
+import { ProfileSkeleton } from "@/src/components/loading/BrandSkeletons";
 import {
   appendOptimisticJoinedViewerEvent,
   removeJoinedViewerEvent,
@@ -96,7 +97,6 @@ import React, {
   useState,
 } from "react";
 import {
-  ActivityIndicator,
   Modal,
   Pressable,
   ScrollView,
@@ -760,7 +760,7 @@ export default function FriendProfile({
     return (
       <ProfileShell embedded={false}>
         <View style={styles.center}>
-          <ActivityIndicator color={ACCENT} />
+          <ProfileSkeleton />
         </View>
       </ProfileShell>
     );
@@ -772,7 +772,7 @@ export default function FriendProfile({
         <View style={styles.screen}>
           {renderStickyNav(false)}
           <View style={[styles.center, { paddingTop: headerLayout.contentPaddingTop }]}>
-            <ActivityIndicator color={ACCENT} />
+            <ProfileSkeleton />
           </View>
         </View>
       </ProfileShell>
@@ -1675,7 +1675,6 @@ export default function FriendProfile({
       />
       {removingFriend ? (
         <View style={styles.removingOverlay} pointerEvents="auto">
-          <ActivityIndicator color={ACCENT} size="large" />
           <Text style={styles.removingText}>Removing friend…</Text>
         </View>
       ) : null}

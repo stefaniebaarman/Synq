@@ -1,10 +1,10 @@
 import StackScreenHeader from '@/src/components/StackScreenHeader';
+import { PageLoadSkeleton } from '@/src/components/loading/BrandSkeletons';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import { deleteField, doc, getDoc, updateDoc } from "firebase/firestore";
 import React, { useEffect, useState } from 'react';
 import {
-  ActivityIndicator,
   Keyboard,
   LayoutAnimation,
   Platform,
@@ -420,7 +420,7 @@ export default function EditProfileScreen() {
   if (loading) {
     return (
       <View style={styles.darkFill}>
-        <ActivityIndicator color={ACCENT} />
+        <PageLoadSkeleton />
       </View>
     );
   }
@@ -520,12 +520,17 @@ export default function EditProfileScreen() {
                     locationAutofill === "success" && styles.actionIconSuccess,
                   ]}
                 >
-                  {locating || locationPermissionRequesting ? (
-                    <ActivityIndicator size="small" color={ACCENT} />
-                  ) : locationAutofill === "success" ? (
+                  {locationAutofill === "success" ? (
                     <Ionicons name="checkmark" size={20} color={ACCENT} />
                   ) : (
-                    <Ionicons name="location-outline" size={20} color={ACCENT} />
+                    <Ionicons
+                      name="location-outline"
+                      size={20}
+                      color={ACCENT}
+                      style={
+                        locating || locationPermissionRequesting ? { opacity: 0.7 } : undefined
+                      }
+                    />
                   )}
                 </View>
                 <View style={styles.actionCopy}>
@@ -577,7 +582,7 @@ export default function EditProfileScreen() {
             accessibilityState={{ disabled: !isDirty || saving || removingLocation }}
           >
             {saving ? (
-              <ActivityIndicator size="small" color="black" />
+              <Text style={[styles.saveButtonText, { opacity: 0.7 }]}>Saving…</Text>
             ) : (
               <Text style={styles.saveButtonText}>Save</Text>
             )}
@@ -650,8 +655,6 @@ const styles = StyleSheet.create({
   darkFill: {
     flex: 1,
     backgroundColor: BG,
-    justifyContent: "center",
-    alignItems: "center",
   },
 
   scrollContent: {

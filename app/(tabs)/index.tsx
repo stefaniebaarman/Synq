@@ -58,7 +58,6 @@ import {
 } from 'firebase/firestore';
 import React, { useCallback, useEffect, useMemo, useRef, useState, type Dispatch, type SetStateAction } from 'react';
 import {
-  ActivityIndicator,
   BackHandler,
   DeviceEventEmitter,
   FlatList,

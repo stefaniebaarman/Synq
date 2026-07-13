@@ -23,7 +23,6 @@ import { Ionicons } from "@expo/vector-icons";
 import { Image as ExpoImage } from "expo-image";
 import React, { useEffect, useMemo, useState } from "react";
 import {
-  ActivityIndicator,
   FlatList,
   Keyboard,
   KeyboardEvent,
@@ -243,13 +242,13 @@ export default function CreateCircleModal({
               accessibilityRole="button"
               accessibilityLabel="Create circle"
             >
-              {busy ? (
-                <ActivityIndicator color={ON_ACCENT_TEXT} />
-              ) : (
-                <Text style={styles.ctaText}>
-                  {selectedCount > 0 ? `Create · ${selectedCount} friend${selectedCount === 1 ? "" : "s"}` : "Create"}
-                </Text>
-              )}
+              <Text style={[styles.ctaText, busy && { opacity: 0.7 }]}>
+                {busy
+                  ? "Creating…"
+                  : selectedCount > 0
+                    ? `Create · ${selectedCount} friend${selectedCount === 1 ? "" : "s"}`
+                    : "Create"}
+              </Text>
             </TouchableOpacity>
           </View>
         </KeyboardAvoidingView>

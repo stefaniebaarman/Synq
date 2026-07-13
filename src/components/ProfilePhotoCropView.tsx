@@ -10,10 +10,10 @@ import {
   fonts,
 } from "@/constants/Variables";
 import { cropProfilePhoto } from "@/src/lib/cropProfilePhoto";
+import { SkeletonBlock } from "@/src/components/loading/BrandSkeletons";
 import { Image as ExpoImage } from "expo-image";
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import {
-  ActivityIndicator,
   Dimensions,
   Pressable,
   StyleSheet,
@@ -324,7 +324,7 @@ export default function ProfilePhotoCropView({
                   />
                 </Animated.View>
               ) : (
-                <ActivityIndicator color={ACCENT} style={styles.loader} />
+                <SkeletonBlock style={styles.imageSkeleton} />
               )}
             </View>
           </GestureDetector>
@@ -358,7 +358,7 @@ export default function ProfilePhotoCropView({
             accessibilityLabel="Choose"
           >
             {busy ? (
-              <ActivityIndicator color={ON_ACCENT_TEXT} />
+              <Text style={[styles.footerChoose, { opacity: 0.7 }]}>Saving…</Text>
             ) : (
               <Text style={styles.footerChoose}>Choose</Text>
             )}
@@ -403,9 +403,10 @@ const styles = StyleSheet.create({
     width: "100%",
     height: "100%",
   },
-  loader: {
-    flex: 1,
-    alignSelf: "center",
+  imageSkeleton: {
+    width: PROFILE_PHOTO_CROP_SIZE,
+    height: PROFILE_PHOTO_CROP_SIZE,
+    borderRadius: PROFILE_PHOTO_CROP_SIZE / 2,
   },
   footer: {
     flexDirection: "row",

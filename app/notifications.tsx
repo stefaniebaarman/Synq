@@ -1,4 +1,5 @@
 import CloseIcon from "@/src/components/CloseIcon";
+import { ListRowsSkeleton } from "@/src/components/loading/BrandSkeletons";
 import StackScreenHeader from "@/src/components/StackScreenHeader";
 import { Ionicons } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
@@ -19,7 +20,6 @@ import {
 } from "firebase/firestore";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
-  ActivityIndicator,
   FlatList,
   RefreshControl,
   SafeAreaView,
@@ -1014,7 +1014,7 @@ export default function NotificationsScreen() {
             accessibilityLabel="Accept group invite"
           >
             {isDismissing ? (
-              <ActivityIndicator size="small" color="black" />
+              <Text style={styles.acceptBtnBusyText}>Accepting…</Text>
             ) : (
               <Ionicons name="checkmark" size={18} color="black" />
             )}
@@ -1070,7 +1070,7 @@ export default function NotificationsScreen() {
             accessibilityLabel="Accept plan invite"
           >
             {isDismissing ? (
-              <ActivityIndicator size="small" color="black" />
+              <Text style={styles.acceptBtnBusyText}>Accepting…</Text>
             ) : (
               <Ionicons name="checkmark" size={18} color="black" />
             )}
@@ -1135,7 +1135,7 @@ export default function NotificationsScreen() {
           hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
         >
           {isDismissing ? (
-            <ActivityIndicator size="small" color={MUTED2} />
+            <Text style={styles.dismissBtnBusyText}>Removing…</Text>
           ) : (
             <CloseIcon size={20} />
           )}
@@ -1177,7 +1177,7 @@ export default function NotificationsScreen() {
               accessibilityLabel="Clear all notifications"
             >
               {clearingAll ? (
-                <ActivityIndicator size="small" color={ACCENT} />
+                <Text style={[styles.clearAllText, { opacity: 0.7 }]}>Clearing…</Text>
               ) : (
                 <Text style={styles.clearAllText}>Clear all</Text>
               )}
@@ -1188,7 +1188,7 @@ export default function NotificationsScreen() {
 
       {loading ? (
         <View style={styles.center}>
-          <ActivityIndicator color={ACCENT} />
+          <ListRowsSkeleton />
         </View>
       ) : loadError ? (
         <ScrollView
@@ -1306,13 +1306,19 @@ const styles = StyleSheet.create({
   },
   dismissBtn: {
     backgroundColor: BORDER_STRONG,
-    width: 40,
+    minWidth: 40,
     height: 40,
     borderRadius: RADIUS_LG,
     justifyContent: "center",
     alignItems: "center",
     borderWidth: 1,
     borderColor: BORDER_MUTED,
+    paddingHorizontal: 4,
+  },
+  dismissBtnBusyText: {
+    color: MUTED2,
+    fontSize: 8,
+    fontFamily: fonts.medium,
   },
   rowLeft: {
     flexDirection: "row",
@@ -1357,12 +1363,18 @@ const styles = StyleSheet.create({
   },
   acceptBtn: {
     backgroundColor: ACCENT,
-    width: 36,
+    minWidth: 36,
     height: 36,
     borderRadius: 18,
     justifyContent: "center",
     alignItems: "center",
     marginRight: SPACE_3,
+    paddingHorizontal: 6,
+  },
+  acceptBtnBusyText: {
+    color: "black",
+    fontSize: 9,
+    fontFamily: fonts.heavy,
   },
   emptyIconRing: {
     width: 80,

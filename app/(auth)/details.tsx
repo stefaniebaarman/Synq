@@ -10,7 +10,6 @@ import { updateProfile } from "firebase/auth";
 import { doc, setDoc } from "firebase/firestore";
 import React, { useCallback, useState } from "react";
 import {
-  ActivityIndicator,
   Keyboard,
   Platform,
   ScrollView,
@@ -249,11 +248,12 @@ export default function Details() {
               </View>
 
               <View style={styles.plusBadge}>
-                {isUploading ? (
-                  <ActivityIndicator color="black" />
-                ) : (
-                  <Icon name="add" size={16} color="black" style={styles.plusIcon} />
-                )}
+                <Icon
+                  name="add"
+                  size={16}
+                  color="black"
+                  style={[styles.plusIcon, isUploading && { opacity: 0.7 }]}
+                />
               </View>
             </TouchableOpacity>
 
@@ -288,7 +288,7 @@ export default function Details() {
             style={[styles.button, !canContinue && { opacity: 0.5 }]}
           >
             {loading ? (
-              <ActivityIndicator color="black" />
+              <Text style={[ctaButtonText, { opacity: 0.7 }]}>Continuing…</Text>
             ) : (
               <Text style={ctaButtonText}>Continue</Text>
             )}

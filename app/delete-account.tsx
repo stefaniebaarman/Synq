@@ -18,7 +18,6 @@ import { signOut } from "firebase/auth";
 import { getFunctions, httpsCallable } from "firebase/functions";
 import React, { useState } from "react";
 import {
-  ActivityIndicator,
   SafeAreaView,
   ScrollView,
   StatusBar,
@@ -113,7 +112,7 @@ export default function DeleteAccountScreen() {
           accessibilityLabel="Delete my account"
         >
           {busy ? (
-            <ActivityIndicator color={DESTRUCTIVE} />
+            <Text style={[styles.deleteBtnText, { opacity: 0.7 }]}>Deleting…</Text>
           ) : (
             <>
               <Ionicons name="trash-outline" size={18} color={DESTRUCTIVE} />

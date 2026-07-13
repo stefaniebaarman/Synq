@@ -35,7 +35,6 @@ import { Ionicons } from "@expo/vector-icons";
 import { Image as ExpoImage } from "expo-image";
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
-  ActivityIndicator,
   FlatList,
   StyleSheet,
   Text,
@@ -334,11 +333,9 @@ export default function PlanInviteFriendsSheet({
                       accessibilityRole="button"
                       accessibilityLabel={`Unsend invite to ${firstName}`}
                     >
-                      {isRevoking ? (
-                        <ActivityIndicator size="small" color={ACCENT} />
-                      ) : (
-                        <Text style={styles.unsendBtnText}>Unsend</Text>
-                      )}
+                      <Text style={[styles.unsendBtnText, isRevoking && { opacity: 0.7 }]}>
+                        {isRevoking ? "Removing…" : "Unsend"}
+                      </Text>
                     </TouchableOpacity>
                   ) : (
                     <Ionicons
@@ -363,11 +360,9 @@ export default function PlanInviteFriendsSheet({
             accessibilityRole="button"
             accessibilityLabel={inviteCtaLabel(selected.size)}
           >
-            {inviting ? (
-              <ActivityIndicator color={ON_ACCENT_TEXT} />
-            ) : (
-              <Text style={styles.inviteBtnText}>{inviteCtaLabel(selected.size)}</Text>
-            )}
+            <Text style={[styles.inviteBtnText, inviting && { opacity: 0.7 }]}>
+              {inviting ? "Inviting…" : inviteCtaLabel(selected.size)}
+            </Text>
           </TouchableOpacity>
         </>
       )}

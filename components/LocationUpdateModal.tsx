@@ -19,7 +19,6 @@ import * as Location from "expo-location";
 import { doc, updateDoc } from "firebase/firestore";
 import React, { useEffect, useState } from "react";
 import {
-  ActivityIndicator,
   Modal,
   StyleSheet,
   Text,
@@ -198,11 +197,9 @@ export default function LocationUpdateModal({ visible, onClose, onSaved }: Props
             style={[styles.saveBtn, (isUpdating || locating) && { opacity: 0.7 }]}
             activeOpacity={0.85}
           >
-            {isUpdating || locating ? (
-              <ActivityIndicator size="small" color={ON_ACCENT_TEXT} />
-            ) : (
-              <Text style={styles.saveBtnText}>Use current location</Text>
-            )}
+            <Text style={[styles.saveBtnText, (isUpdating || locating) && { opacity: 0.7 }]}>
+              {isUpdating || locating ? "Updating…" : "Use current location"}
+            </Text>
           </TouchableOpacity>
 
           <TouchableOpacity onPress={onClose} style={styles.cancelBtn} activeOpacity={0.8}>

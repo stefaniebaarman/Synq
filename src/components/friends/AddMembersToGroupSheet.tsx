@@ -22,7 +22,6 @@ import { Ionicons } from "@expo/vector-icons";
 import { Image as ExpoImage } from "expo-image";
 import { useEffect, useMemo, useState } from "react";
 import {
-  ActivityIndicator,
   Dimensions,
   FlatList,
   Keyboard,
@@ -57,6 +56,10 @@ function actionCtaLabel(mode: "add" | "invite", selectedCount: number): string {
   if (selectedCount === 0) return "Add members";
   if (selectedCount === 1) return "Add member";
   return `Add members (${selectedCount})`;
+}
+
+function actionBusyLabel(mode: "add" | "invite"): string {
+  return mode === "invite" ? "Sending…" : "Adding…";
 }
 
 const WINDOW_HEIGHT = Dimensions.get("window").height;
@@ -226,11 +229,9 @@ export default function AddMembersToGroupSheet({
             disabled={selected.size === 0 || busy}
             onPress={() => void handleAdd()}
           >
-            {busy ? (
-              <ActivityIndicator color={ON_ACCENT_TEXT} />
-            ) : (
-              <Text style={styles.ctaText}>{actionCtaLabel(mode, selected.size)}</Text>
-            )}
+            <Text style={[styles.ctaText, busy && { opacity: 0.7 }]}>
+              {busy ? actionBusyLabel(mode) : actionCtaLabel(mode, selected.size)}
+            </Text>
           </TouchableOpacity>
         </View>
       </KeyboardAvoidingView>

@@ -1,15 +1,18 @@
-import ProfilePhotoCropView from "@/src/components/ProfilePhotoCropView";
+import ProfilePhotoCropView, {
+  PROFILE_PHOTO_CROP_SIZE,
+} from "@/src/components/ProfilePhotoCropView";
+import { SkeletonBlock } from "@/src/components/loading/BrandSkeletons";
 import { prepareProfilePhotoForCrop } from "@/src/lib/cropProfilePhoto";
 import {
   consumePendingProfilePhotoSource,
   setPendingProfilePhoto,
 } from "@/src/lib/pendingProfilePhoto";
 import { uploadProfilePhoto } from "@/src/lib/uploadProfilePhoto";
-import { ACCENT, BG } from "@/constants/Variables";
+import { BG } from "@/constants/Variables";
 import { StatusBar } from "expo-status-bar";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import React, { useCallback, useEffect, useState } from "react";
-import { ActivityIndicator, StyleSheet, View } from "react-native";
+import { StyleSheet, View } from "react-native";
 import AlertModal from "./alert-modal";
 
 export default function ProfilePhotoCropScreen() {
@@ -99,9 +102,9 @@ export default function ProfilePhotoCropScreen() {
 
   if (preparing || !preparedUri || !preparedSize) {
     return (
-      <View style={styles.empty}>
+      <View style={styles.empty} accessibilityLabel="Loading">
         <StatusBar style="light" />
-        <ActivityIndicator color={ACCENT} size="large" />
+        <SkeletonBlock style={styles.imageSkeleton} />
       </View>
     );
   }
@@ -132,5 +135,10 @@ const styles = StyleSheet.create({
     backgroundColor: BG,
     alignItems: "center",
     justifyContent: "center",
+  },
+  imageSkeleton: {
+    width: PROFILE_PHOTO_CROP_SIZE,
+    height: PROFILE_PHOTO_CROP_SIZE,
+    borderRadius: PROFILE_PHOTO_CROP_SIZE / 2,
   },
 });

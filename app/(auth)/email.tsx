@@ -36,7 +36,6 @@ import { router } from "expo-router";
 import { createUserWithEmailAndPassword } from "firebase/auth";
 import React, { useState } from "react";
 import {
-  ActivityIndicator,
   Keyboard,
   KeyboardAvoidingView,
   Platform,
@@ -144,11 +143,9 @@ export default function EmailSignup() {
               activeOpacity={0.85}
               style={[styles.primaryButton, !canContinue && styles.disabledButton]}
             >
-              {loading ? (
-                <ActivityIndicator color={ON_ACCENT_TEXT} />
-              ) : (
-                <Text style={styles.primaryButtonText}>Continue</Text>
-              )}
+              <Text style={[styles.primaryButtonText, loading && { opacity: 0.7 }]}>
+                {loading ? "Continuing…" : "Continue"}
+              </Text>
             </TouchableOpacity>
 
             <Text style={styles.small}>

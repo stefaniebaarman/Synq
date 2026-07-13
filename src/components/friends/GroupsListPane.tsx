@@ -1,6 +1,5 @@
 import ConfirmModal from "@/app/confirm-modal";
 import {
-  ACCENT,
   Friend,
   MUTED3,
   SPACE_6,
@@ -19,7 +18,6 @@ import * as Haptics from "expo-haptics";
 import { useRouter } from "expo-router";
 import React, { useEffect, useState } from "react";
 import {
-  ActivityIndicator,
   Alert,
   ScrollView,
   StyleSheet,
@@ -27,6 +25,7 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
+import { ListRowsSkeleton } from "@/src/components/loading/BrandSkeletons";
 import CreateCircleModal from "./CreateCircleModal";
 import GroupListAvatar from "./GroupListAvatar";
 import GroupsSectionHeader from "./GroupsSectionHeader";
@@ -131,7 +130,7 @@ export default function GroupsListPane({
   if (loading) {
     return (
       <View style={styles.loading}>
-        <ActivityIndicator color={ACCENT} />
+        <ListRowsSkeleton />
       </View>
     );
   }
@@ -227,8 +226,6 @@ const styles = StyleSheet.create({
   },
   loading: {
     flex: 1,
-    alignItems: "center",
-    justifyContent: "center",
     paddingVertical: SPACE_6,
   },
 });

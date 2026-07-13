@@ -14,7 +14,6 @@ import { Ionicons } from "@expo/vector-icons";
 import { Image as ExpoImage } from "expo-image";
 import React, { useEffect, useState } from "react";
 import {
-  ActivityIndicator,
   ScrollView,
   StyleSheet,
   Text,
@@ -199,11 +198,9 @@ export default function CommunityPlanDetailSheet({
                 disabled={busy}
                 activeOpacity={0.85}
               >
-                {busy ? (
-                  <ActivityIndicator color={DESTRUCTIVE} size="small" />
-                ) : (
-                  <Text style={styles.leaveBtnText}>Leave</Text>
-                )}
+                <Text style={[styles.leaveBtnText, busy && { opacity: 0.7 }]}>
+                  {busy ? "Leaving…" : "Leave"}
+                </Text>
               </TouchableOpacity>
             ) : (
               <TouchableOpacity
@@ -212,11 +209,9 @@ export default function CommunityPlanDetailSheet({
                 disabled={busy}
                 activeOpacity={0.85}
               >
-                {busy ? (
-                  <ActivityIndicator color={BG} size="small" />
-                ) : (
-                  <Text style={styles.primaryBtnText}>Join</Text>
-                )}
+                <Text style={[styles.primaryBtnText, busy && { opacity: 0.7 }]}>
+                  {busy ? "Joining…" : "Join"}
+                </Text>
               </TouchableOpacity>
             )
           ) : (

@@ -42,7 +42,6 @@ import { router } from "expo-router";
 import { sendPasswordResetEmail, signInWithEmailAndPassword } from "firebase/auth";
 import React, { useState } from "react";
 import {
-  ActivityIndicator,
   Keyboard,
   Modal,
   Platform,
@@ -191,11 +190,9 @@ export default function Login() {
               disabled={loading || !email || !password}
               activeOpacity={0.85}
             >
-              {loading ? (
-                <ActivityIndicator color={ON_ACCENT_TEXT} />
-              ) : (
-                <Text style={styles.primaryButtonText}>Sign In</Text>
-              )}
+              <Text style={[styles.primaryButtonText, loading && { opacity: 0.7 }]}>
+                {loading ? "Signing in…" : "Sign In"}
+              </Text>
             </TouchableOpacity>
           </View>
           </ScrollView>

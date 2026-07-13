@@ -4,7 +4,6 @@ import { router, useLocalSearchParams } from "expo-router";
 import { PhoneAuthProvider, signInWithCredential } from "firebase/auth";
 import React, { useEffect, useMemo, useState } from "react";
 import {
-  ActivityIndicator,
   Keyboard,
   KeyboardAvoidingView,
   Platform,
@@ -128,11 +127,9 @@ export default function Verify() {
               activeOpacity={0.85}
               style={[styles.primaryButton, !canVerify && styles.primaryButtonDisabled]}
             >
-              {loading ? (
-                <ActivityIndicator color={ON_ACCENT_TEXT} />
-              ) : (
-                <Text style={styles.primaryButtonText}>Verify</Text>
-              )}
+              <Text style={[styles.primaryButtonText, loading && { opacity: 0.7 }]}>
+                {loading ? "Verifying…" : "Verify"}
+              </Text>
             </TouchableOpacity>
           </View>
         </ScrollView>

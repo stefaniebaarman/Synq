@@ -17,12 +17,12 @@ import {
   RADIUS_LG,
 } from "@/constants/Variables";
 import CloseButton from "@/src/components/CloseButton";
+import { SkeletonBlock } from "@/src/components/loading/BrandSkeletons";
 import { resolveFriendIdFromScannedProfileQr } from "@/src/lib/profileShareUrl";
 import { Ionicons } from "@expo/vector-icons";
 import { CameraView, useCameraPermissions } from "expo-camera";
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
-  ActivityIndicator,
   Modal,
   StyleSheet,
   Text,
@@ -114,15 +114,17 @@ export default function ProfileQrScannerModal({
                 <View style={styles.scanFrame} />
               </View>
               {resolving ? (
-                <View style={styles.resolvingOverlay}>
-                  <ActivityIndicator color={ACCENT} size="large" />
+                <View style={styles.resolvingOverlay} accessibilityLabel="Loading">
+                  <SkeletonBlock style={styles.resolvingSkeleton} />
                 </View>
               ) : null}
             </>
           ) : (
             <View style={styles.permissionState}>
               {permission == null ? (
-                <ActivityIndicator color={ACCENT} />
+                <View accessibilityLabel="Loading">
+                  <SkeletonBlock style={styles.permissionSkeleton} />
+                </View>
               ) : (
                 <>
                   <Ionicons name="camera-outline" size={36} color={MUTED2} />
@@ -206,12 +208,22 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     backgroundColor: OVERLAY_DIM,
   },
+  resolvingSkeleton: {
+    width: FRAME_SIZE,
+    height: FRAME_SIZE,
+    borderRadius: RADIUS_LG,
+  },
   permissionState: {
     flex: 1,
     alignItems: "center",
     justifyContent: "center",
     paddingHorizontal: 28,
     gap: 10,
+  },
+  permissionSkeleton: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
   },
   permissionTitle: {
     fontFamily: fonts.medium,

@@ -17,7 +17,6 @@ import { FriendGroup } from "@/src/lib/friendGroups";
 import { Ionicons } from "@expo/vector-icons";
 import { useEffect, useMemo, useState } from "react";
 import {
-  ActivityIndicator,
   FlatList,
   StyleSheet,
   Text,
@@ -149,11 +148,9 @@ export default function AddFriendToGroupSheet({
         disabled={changeCount === 0 || busy}
         onPress={handleSave}
       >
-        {busy ? (
-          <ActivityIndicator color={ON_ACCENT_TEXT} />
-        ) : (
-          <Text style={styles.ctaText}>{saveCtaLabel(changeCount)}</Text>
-        )}
+        <Text style={[styles.ctaText, busy && { opacity: 0.7 }]}>
+          {busy ? "Saving…" : saveCtaLabel(changeCount)}
+        </Text>
       </TouchableOpacity>
     </SpringBottomSheet>
   );

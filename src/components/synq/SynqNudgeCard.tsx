@@ -19,7 +19,6 @@ import {
 import { Image as ExpoImage } from "expo-image";
 import React from "react";
 import {
-  ActivityIndicator,
   StyleSheet,
   Text,
   TouchableOpacity,
@@ -93,13 +92,9 @@ export default function SynqNudgeCard({
             : `Nudge${friend ? ` ${friend.displayName}` : ""}`
         }
       >
-        {loading ? (
-          <ActivityIndicator size="small" color={sent ? MUTED2 : ACCENT} />
-        ) : (
-          <Text style={[styles.ctaText, sent && styles.ctaTextSent]}>
-            {sent ? "Nudged" : "Nudge"}
-          </Text>
-        )}
+        <Text style={[styles.ctaText, sent && styles.ctaTextSent, loading && { opacity: 0.7 }]}>
+          {loading ? "Sending…" : sent ? "Nudged" : "Nudge"}
+        </Text>
       </TouchableOpacity>
     </View>
   );

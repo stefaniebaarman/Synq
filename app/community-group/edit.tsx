@@ -22,6 +22,7 @@ import {
   fonts,
 } from "@/constants/Variables";
 import StackScreenHeader from "@/src/components/StackScreenHeader";
+import { PageLoadSkeleton } from "@/src/components/loading/BrandSkeletons";
 import { auth } from "@/src/lib/firebase";
 import {
   COMMUNITY_GROUP_CATEGORIES,
@@ -41,7 +42,6 @@ import * as Haptics from "expo-haptics";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import React, { useCallback, useEffect, useState } from "react";
 import {
-  ActivityIndicator,
   Keyboard,
   Modal,
   Pressable,
@@ -199,7 +199,9 @@ export default function EditCommunityScreen() {
             accessibilityState={{ disabled: !canSave }}
           >
             {busy ? (
-              <ActivityIndicator color={ACCENT} size="small" />
+              <Text style={[styles.saveBtn, !canSave && styles.saveBtnDisabled, { opacity: 0.7 }]}>
+                Saving…
+              </Text>
             ) : (
               <Text style={[styles.saveBtn, !canSave && styles.saveBtnDisabled]}>Save</Text>
             )}
@@ -209,7 +211,7 @@ export default function EditCommunityScreen() {
 
       {loading ? (
         <View style={styles.loading}>
-          <ActivityIndicator color={ACCENT} />
+          <PageLoadSkeleton />
         </View>
       ) : (
         <KeyboardAwareScrollView
@@ -365,8 +367,6 @@ const styles = StyleSheet.create({
   },
   loading: {
     flex: 1,
-    alignItems: "center",
-    justifyContent: "center",
   },
   errorText: {
     fontFamily: fonts.book,

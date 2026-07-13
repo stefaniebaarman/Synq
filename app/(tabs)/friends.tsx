@@ -106,7 +106,6 @@ import {
 } from "firebase/firestore";
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
-  ActivityIndicator,
   BackHandler,
   DeviceEventEmitter,
   Dimensions,
@@ -161,6 +160,7 @@ import {
 import { useAuthRefresh } from "../_layout";
 import AlertModal from "../alert-modal";
 import CheckmarkToast from "@/src/components/CheckmarkToast";
+import { ListRowsSkeleton } from "@/src/components/loading/BrandSkeletons";
 import ConfirmModal from "../confirm-modal";
 
 const { width } = Dimensions.get("window");
@@ -1996,7 +1996,7 @@ function SearchModal({
               ListEmptyComponent={
                 isSearching ? (
                   <View style={styles.addFriendsEmpty}>
-                    <ActivityIndicator color={ACCENT} />
+                    <ListRowsSkeleton count={3} />
                   </View>
                 ) : (
                   <View style={styles.addFriendsEmpty}>

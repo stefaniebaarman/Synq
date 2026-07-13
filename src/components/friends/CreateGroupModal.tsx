@@ -17,7 +17,6 @@ import {
 import CloseButton from "@/src/components/CloseButton";
 import React, { useEffect, useState } from "react";
 import {
-  ActivityIndicator,
   Dimensions,
   Keyboard,
   KeyboardAvoidingView,
@@ -120,11 +119,9 @@ export default function CreateGroupModal({
                 accessibilityRole="button"
                 accessibilityLabel={submitLabel}
               >
-                {busy ? (
-                  <ActivityIndicator color={ON_ACCENT_TEXT} />
-                ) : (
-                  <Text style={styles.ctaText}>{submitLabel}</Text>
-                )}
+                <Text style={[styles.ctaText, busy && { opacity: 0.7 }]}>
+                  {busy ? "Creating…" : submitLabel}
+                </Text>
               </TouchableOpacity>
             </View>
           </Pressable>

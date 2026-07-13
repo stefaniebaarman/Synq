@@ -30,7 +30,6 @@ import { formatPlanTimeForStorage } from "@/src/lib/planEvents";
 import { Ionicons } from "@expo/vector-icons";
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import {
-  ActivityIndicator,
   Dimensions,
   Keyboard,
   Modal,
@@ -348,11 +347,9 @@ export default function CreateCommunityPlanModal({ visible, busy, onClose, onCre
                       onPress={handleSubmit}
                       activeOpacity={0.88}
                     >
-                      {busy ? (
-                        <ActivityIndicator color={ON_ACCENT_TEXT} size="small" />
-                      ) : (
-                        <Text style={styles.popupPostBtnText}>Share</Text>
-                      )}
+                      <Text style={[styles.popupPostBtnText, busy && { opacity: 0.7 }]}>
+                        {busy ? "Sharing…" : "Share"}
+                      </Text>
                     </TouchableOpacity>
                   </View>
                 </TouchableWithoutFeedback>

@@ -54,6 +54,7 @@ import CommunityPlansSection from "@/src/components/community/CommunityPlansSect
 import type { CommunityPlanMemberProfile } from "@/src/lib/communityPlanMembers";
 import type { CommunityGroupPlan } from "@/src/lib/communityGroupPlans";
 import HeaderIconButton from "@/src/components/HeaderIconButton";
+import { PageLoadSkeleton } from "@/src/components/loading/BrandSkeletons";
 import StackScreenHeader from "@/src/components/StackScreenHeader";
 import { auth } from "@/src/lib/firebase";
 import {
@@ -82,7 +83,6 @@ import { doc, getDoc, onSnapshot } from "firebase/firestore";
 import { db } from "@/src/lib/firebase";
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
-  ActivityIndicator,
   Alert,
   Modal,
   Pressable,
@@ -501,7 +501,7 @@ export default function CommunityGroupDetailScreen() {
       accessibilityLabel={`Join ${group?.name || "community"}`}
     >
       {joinBusy ? (
-        <ActivityIndicator color={ACCENT} size="small" />
+        <Text style={[styles.joinCommunityBtnText, { opacity: 0.7 }]}>Joining…</Text>
       ) : (
         <>
           <Ionicons name="person-add-outline" size={16} color={ACCENT} />
@@ -539,7 +539,7 @@ export default function CommunityGroupDetailScreen() {
 
         {loading ? (
           <View style={styles.loading}>
-            <ActivityIndicator color={ACCENT} />
+            <PageLoadSkeleton />
           </View>
         ) : !group ? (
           <View style={styles.loading}>
@@ -924,8 +924,6 @@ const styles = StyleSheet.create({
   },
   loading: {
     flex: 1,
-    alignItems: "center",
-    justifyContent: "center",
   },
   errorText: {
     fontFamily: fonts.book,

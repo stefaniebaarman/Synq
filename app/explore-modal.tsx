@@ -41,11 +41,11 @@ import {
     GROUP_SURFACE,
 } from "@/src/components/friends/groupsListStyles";
 import { vibeCategoryImageUrl } from "@/src/data/vibeCategoryImages";
+import { ListRowsSkeleton } from "@/src/components/loading/BrandSkeletons";
 import { Ionicons } from "@expo/vector-icons";
 import { Image as ExpoImage } from "expo-image";
 import React from "react";
 import {
-    ActivityIndicator,
     FlatList,
     Keyboard,
     Pressable,
@@ -243,8 +243,7 @@ export default function ExploreModal({
 
                             {isAILoading ? (
                                 <View style={styles.loadingRow}>
-                                    <ActivityIndicator size="small" color={ACCENT} />
-                                    <Text style={styles.loadingText}>Finding spots…</Text>
+                                    <ListRowsSkeleton count={2} />
                                 </View>
                             ) : null}
                         </ScrollView>

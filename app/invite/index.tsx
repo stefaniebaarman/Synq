@@ -1,8 +1,9 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Redirect, useLocalSearchParams } from "expo-router";
 import React, { useEffect, useState } from "react";
-import { ActivityIndicator, StyleSheet, View } from "react-native";
-import { ACCENT, BG } from "../../constants/Variables";
+import { StyleSheet, View } from "react-native";
+import { BG } from "../../constants/Variables";
+import { PageLoadSkeleton } from "@/src/components/loading/BrandSkeletons";
 import { auth } from "../../src/lib/firebase";
 
 const PENDING_INVITE_FROM_UID_KEY = "synq:pendingInviteFromUid";
@@ -54,7 +55,7 @@ export default function InviteRoute() {
   if (!persistReady) {
     return (
       <View style={styles.container}>
-        <ActivityIndicator color={ACCENT} />
+        <PageLoadSkeleton />
       </View>
     );
   }
@@ -67,7 +68,7 @@ export default function InviteRoute() {
     <>
       <Redirect href="/(auth)/welcome" />
       <View style={styles.container}>
-        <ActivityIndicator color={ACCENT} />
+        <PageLoadSkeleton />
       </View>
     </>
   );

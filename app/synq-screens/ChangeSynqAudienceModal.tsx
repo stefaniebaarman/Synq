@@ -13,7 +13,6 @@ import type { FriendGroup } from "@/src/lib/friendGroups";
 import type { SynqAudienceSelection } from "@/src/lib/synqBroadcast";
 import React, { useEffect, useMemo, useState } from "react";
 import {
-  ActivityIndicator,
   Dimensions,
   ScrollView,
   StyleSheet,
@@ -95,18 +94,15 @@ export default function ChangeSynqAudienceModal({
           accessibilityState={{ disabled: !selectionDirty || saving }}
           hitSlop={8}
         >
-          {saving ? (
-            <ActivityIndicator color={ACCENT} size="small" />
-          ) : (
-            <Text
-              style={[
-                styles.saveBtnText,
-                !selectionDirty && styles.saveBtnTextDisabled,
-              ]}
-            >
-              Save
-            </Text>
-          )}
+          <Text
+            style={[
+              styles.saveBtnText,
+              !selectionDirty && styles.saveBtnTextDisabled,
+              saving && { opacity: 0.7 },
+            ]}
+          >
+            {saving ? "Saving…" : "Save"}
+          </Text>
         </TouchableOpacity>
       </View>
       <ScrollView

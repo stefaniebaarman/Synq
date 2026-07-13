@@ -20,7 +20,6 @@ import {
 import { ReportReason, submitReport, type ReportContentType } from "@/src/lib/moderation";
 import { useState } from "react";
 import {
-  ActivityIndicator,
   Modal,
   Pressable,
   StyleSheet,
@@ -122,11 +121,9 @@ export default function ReportModal({
             disabled={!reason || submitting}
             onPress={handleSubmit}
           >
-            {submitting ? (
-              <ActivityIndicator color={ON_ACCENT_TEXT} />
-            ) : (
-              <Text style={primaryButtonText}>Submit report</Text>
-            )}
+            <Text style={[primaryButtonText, submitting && { opacity: 0.7 }]}>
+              {submitting ? "Reporting…" : "Submit report"}
+            </Text>
           </TouchableOpacity>
 
           <TouchableOpacity onPress={onClose} style={styles.cancelBtn}>

@@ -2,7 +2,6 @@ import { useRouter } from "expo-router";
 import { doc, setDoc } from "firebase/firestore";
 import React, { useState } from "react";
 import {
-    ActivityIndicator,
     ScrollView,
     StyleSheet,
     Text,
@@ -150,7 +149,7 @@ export default function InterestsOnboarding() {
                 style={[styles.button, !canContinue && { opacity: 0.5 }]}
             >
                 {loading ? (
-                    <ActivityIndicator color="black" />
+                    <Text style={[ctaButtonText, { opacity: 0.7 }]}>Continuing…</Text>
                 ) : (
                     <Text style={ctaButtonText}>
                         Continue{selected.length ? ` (${selected.length})` : ""}

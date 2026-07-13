@@ -2,7 +2,6 @@ import AlertModal from "@/app/alert-modal";
 import CheckmarkToast from "@/src/components/CheckmarkToast";
 import ConfirmModal from "@/app/confirm-modal";
 import {
-  ACCENT,
   MUTED2,
   TAB_BAR_SCROLL_INSET,
   TYPE_LEAD,
@@ -11,10 +10,10 @@ import {
   listSectionTitle,
 } from "@/constants/Variables";
 import FriendPlanCard from "@/src/components/friends/FriendPlanCard";
+import { PlanCardsSkeleton } from "@/src/components/loading/BrandSkeletons";
 import type { AggregatedFriendPlan, useFriendPlansFeed } from "@/src/lib/useFriendPlansFeed";
 import { forwardRef, useImperativeHandle, useRef } from "react";
 import {
-  ActivityIndicator,
   FlatList,
   StyleSheet,
   Text,
@@ -89,7 +88,7 @@ const FriendsPlansPane = forwardRef<FriendsPlansPaneHandle, Props>(function Frie
   if (!eventsHydrated && visibleFriends.length > 0) {
     return (
       <View style={styles.loadingWrap}>
-        <ActivityIndicator color={ACCENT} />
+        <PlanCardsSkeleton />
       </View>
     );
   }
@@ -184,8 +183,6 @@ const styles = StyleSheet.create({
   },
   loadingWrap: {
     flex: 1,
-    alignItems: "center",
-    justifyContent: "center",
     paddingTop: 48,
   },
   sectionTitle: {

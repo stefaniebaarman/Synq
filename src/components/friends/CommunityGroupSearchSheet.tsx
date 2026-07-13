@@ -22,6 +22,7 @@ import {
   profileNameText,
 } from "@/constants/Variables";
 import CloseButton from "@/src/components/CloseButton";
+import { ListRowsSkeleton } from "@/src/components/loading/BrandSkeletons";
 import CommunityGroupListAvatar from "@/src/components/friends/CommunityGroupListAvatar";
 import {
   GROUP_BORDER,
@@ -39,7 +40,6 @@ import {
 import { Ionicons } from "@expo/vector-icons";
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import {
-  ActivityIndicator,
   Alert,
   FlatList,
   Keyboard,
@@ -278,11 +278,9 @@ export default function CommunityGroupSearchSheet({
             accessibilityRole="button"
             accessibilityLabel={`Join ${item.name}`}
           >
-            {busy ? (
-              <ActivityIndicator color={ON_ACCENT_TEXT} size="small" />
-            ) : (
-              <Text style={groupsPageStyles.joinBtnText}>Join</Text>
-            )}
+            <Text style={[groupsPageStyles.joinBtnText, busy && { opacity: 0.7 }]}>
+              {busy ? "Joining…" : "Join"}
+            </Text>
           </TouchableOpacity>
         )}
       </TouchableOpacity>
@@ -348,7 +346,7 @@ export default function CommunityGroupSearchSheet({
   if (listLoading) {
     listContent = (
       <Pressable style={styles.centered} onPress={dismissKeyboard}>
-        <ActivityIndicator color={ACCENT} />
+        <ListRowsSkeleton />
       </Pressable>
     );
   } else if (displayGroups.length === 0) {

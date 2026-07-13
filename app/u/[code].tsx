@@ -1,8 +1,9 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Redirect, useLocalSearchParams } from "expo-router";
 import React, { useEffect, useState } from "react";
-import { ActivityIndicator, StyleSheet, View } from "react-native";
-import { ACCENT, BG } from "@/constants/Variables";
+import { StyleSheet, View } from "react-native";
+import { BG } from "@/constants/Variables";
+import { PageLoadSkeleton } from "@/src/components/loading/BrandSkeletons";
 import { auth } from "@/src/lib/firebase";
 
 const PENDING_PROFILE_SHARE_CODE_KEY = "synq:pendingProfileShareCode";
@@ -40,7 +41,7 @@ export default function ProfileShareCodeRoute() {
   if (!persistReady) {
     return (
       <View style={styles.container}>
-        <ActivityIndicator color={ACCENT} />
+        <PageLoadSkeleton />
       </View>
     );
   }
@@ -53,7 +54,7 @@ export default function ProfileShareCodeRoute() {
     <>
       <Redirect href="/(auth)/welcome" />
       <View style={styles.container}>
-        <ActivityIndicator color={ACCENT} />
+        <PageLoadSkeleton />
       </View>
     </>
   );

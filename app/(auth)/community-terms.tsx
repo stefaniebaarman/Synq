@@ -38,7 +38,6 @@ import { router, useLocalSearchParams } from "expo-router";
 import { doc, getDoc } from "firebase/firestore";
 import React, { useEffect, useState } from "react";
 import {
-  ActivityIndicator,
   Pressable,
   SafeAreaView,
   ScrollView,
@@ -191,13 +190,13 @@ export default function CommunityTermsScreen() {
           disabled={!checked || submitting}
           onPress={handleContinue}
         >
-          {submitting ? (
-            <ActivityIndicator color={ON_ACCENT_TEXT} />
-          ) : (
-            <Text style={styles.primaryText}>
-              {isPostAuth ? "Continue to Synq" : "Agree and continue"}
-            </Text>
-          )}
+          <Text style={[styles.primaryText, submitting && { opacity: 0.7 }]}>
+            {submitting
+              ? "Continuing…"
+              : isPostAuth
+                ? "Continue to Synq"
+                : "Agree and continue"}
+          </Text>
         </TouchableOpacity>
       </View>
 

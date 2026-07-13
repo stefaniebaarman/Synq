@@ -37,6 +37,7 @@ import {
 import AddMembersToGroupSheet from "@/src/components/friends/AddMembersToGroupSheet";
 import CreateGroupModal from "@/src/components/friends/CreateGroupModal";
 import HeaderIconButton from "@/src/components/HeaderIconButton";
+import { PageLoadSkeleton } from "@/src/components/loading/BrandSkeletons";
 import StackScreenHeader from "@/src/components/StackScreenHeader";
 import { auth } from "@/src/lib/firebase";
 import {
@@ -58,7 +59,6 @@ import { useLocalSearchParams, useRouter } from "expo-router";
 import { onSnapshot } from "firebase/firestore";
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
-  ActivityIndicator,
   Alert,
   FlatList,
   Modal,
@@ -298,7 +298,7 @@ export default function FriendGroupDetailScreen() {
 
       {loading ? (
         <View style={styles.loading}>
-          <ActivityIndicator color={ACCENT} />
+          <PageLoadSkeleton />
         </View>
       ) : !group ? (
         <View style={styles.loading}>
@@ -483,8 +483,6 @@ const styles = StyleSheet.create({
   },
   loading: {
     flex: 1,
-    alignItems: "center",
-    justifyContent: "center",
   },
   errorText: {
     fontFamily: fonts.book,
