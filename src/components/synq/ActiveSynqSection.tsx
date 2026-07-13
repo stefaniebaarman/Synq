@@ -1,19 +1,20 @@
-import HeaderIconButton from "@/src/components/HeaderIconButton";
-import NotificationBadge from "@/src/components/NotificationBadge";
-import TabHeaderIconRow from "@/src/components/TabHeaderIconRow";
-import { useTabHeaderLayout } from "@/src/components/ProfileTabHeaderOverlay";
-import { Ionicons } from "@expo/vector-icons";
-import * as Haptics from "expo-haptics";
-import { Image as ExpoImage } from "expo-image";
-import { LinearGradient } from "expo-linear-gradient";
-import SynqOptionsSheet from "../../../app/synq-screens/SynqOptionsSheet";
-import ActiveSynqEmptyState from "@/src/components/synq/ActiveSynqEmptyState";
 import type { Friend } from "@/constants/Variables";
 import {
   FriendsSortMenu,
   type FriendsSortMode,
 } from "@/src/components/friends/FriendsSortControls";
+import HeaderIconButton from "@/src/components/HeaderIconButton";
+import NotificationBadge from "@/src/components/NotificationBadge";
+import { useTabHeaderLayout } from "@/src/components/ProfileTabHeaderOverlay";
+import ActiveSynqEmptyState from "@/src/components/synq/ActiveSynqEmptyState";
+import TabHeaderIconRow from "@/src/components/TabHeaderIconRow";
+import { friendLocationLine, resolveAvatar } from "@/src/lib/helpers";
+import { SYNQ_TAB_LONG_PRESS } from "@/src/lib/synqTabEvents";
 import { useSortedFriendsList } from "@/src/lib/useSortedFriendsList";
+import { Ionicons } from "@expo/vector-icons";
+import * as Haptics from "expo-haptics";
+import { Image as ExpoImage } from "expo-image";
+import { LinearGradient } from "expo-linear-gradient";
 import React, { useEffect, useMemo, useState } from "react";
 import {
   DeviceEventEmitter,
@@ -32,8 +33,7 @@ import Animated, {
   withSequence,
   withTiming,
 } from "react-native-reanimated";
-import { SYNQ_TAB_LONG_PRESS } from "@/src/lib/synqTabEvents";
-import { friendLocationLine, resolveAvatar } from "@/src/lib/helpers";
+import SynqOptionsSheet from "../../../app/synq-screens/SynqOptionsSheet";
 import {
   ACCENT,
   BG,
