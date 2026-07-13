@@ -357,8 +357,8 @@ export default function CreateCommunityModal({
                   accessibilityRole="button"
                   accessibilityLabel="Create community"
                 >
-                  <Text style={[styles.ctaText, busy && { opacity: 0.7 }]}>
-                    {busy ? "Creating…" : "Create community"}
+                  <Text style={[styles.ctaText, busy && { opacity: 0.5 }]}>
+                    Create community
                   </Text>
                 </TouchableOpacity>
               </View>

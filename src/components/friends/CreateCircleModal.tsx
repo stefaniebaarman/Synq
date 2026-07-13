@@ -242,12 +242,10 @@ export default function CreateCircleModal({
               accessibilityRole="button"
               accessibilityLabel="Create circle"
             >
-              <Text style={[styles.ctaText, busy && { opacity: 0.7 }]}>
-                {busy
-                  ? "Creating…"
-                  : selectedCount > 0
-                    ? `Create · ${selectedCount} friend${selectedCount === 1 ? "" : "s"}`
-                    : "Create"}
+              <Text style={[styles.ctaText, busy && { opacity: 0.5 }]}>
+                {selectedCount > 0
+                  ? `Create · ${selectedCount} friend${selectedCount === 1 ? "" : "s"}`
+                  : "Create"}
               </Text>
             </TouchableOpacity>
           </View>

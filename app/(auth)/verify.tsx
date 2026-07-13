@@ -127,8 +127,8 @@ export default function Verify() {
               activeOpacity={0.85}
               style={[styles.primaryButton, !canVerify && styles.primaryButtonDisabled]}
             >
-              <Text style={[styles.primaryButtonText, loading && { opacity: 0.7 }]}>
-                {loading ? "Verifying…" : "Verify"}
+              <Text style={[styles.primaryButtonText, loading && { opacity: 0.5 }]}>
+                Verify
               </Text>
             </TouchableOpacity>
           </View>

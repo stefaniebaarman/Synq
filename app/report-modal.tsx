@@ -121,8 +121,8 @@ export default function ReportModal({
             disabled={!reason || submitting}
             onPress={handleSubmit}
           >
-            <Text style={[primaryButtonText, submitting && { opacity: 0.7 }]}>
-              {submitting ? "Reporting…" : "Submit report"}
+            <Text style={[primaryButtonText, submitting && { opacity: 0.5 }]}>
+              Submit report
             </Text>
           </TouchableOpacity>
 

@@ -413,16 +413,10 @@ export default function CommunityPlansSection({
                           style={[
                             styles.pillText,
                             isGoing && styles.pillTextJoined,
-                            busy && { opacity: 0.7 },
+                            busy && { opacity: 0.5 },
                           ]}
                         >
-                          {busy
-                            ? isGoing
-                              ? "Leaving…"
-                              : "Joining…"
-                            : isGoing
-                              ? "Joined"
-                              : "Join"}
+                          {isGoing ? "Joined" : "Join"}
                         </Text>
                       </TouchableOpacity>
                     </View>

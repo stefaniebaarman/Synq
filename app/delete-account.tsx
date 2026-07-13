@@ -111,14 +111,17 @@ export default function DeleteAccountScreen() {
           accessibilityRole="button"
           accessibilityLabel="Delete my account"
         >
-          {busy ? (
-            <Text style={[styles.deleteBtnText, { opacity: 0.7 }]}>Deleting…</Text>
-          ) : (
-            <>
-              <Ionicons name="trash-outline" size={18} color={DESTRUCTIVE} />
-              <Text style={styles.deleteBtnText}>Delete my account</Text>
-            </>
-          )}
+          <>
+            <Ionicons
+              name="trash-outline"
+              size={18}
+              color={DESTRUCTIVE}
+              style={busy ? { opacity: 0.5 } : undefined}
+            />
+            <Text style={[styles.deleteBtnText, busy && { opacity: 0.5 }]}>
+              Delete my account
+            </Text>
+          </>
         </TouchableOpacity>
       </ScrollView>
 

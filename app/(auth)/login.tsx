@@ -190,8 +190,8 @@ export default function Login() {
               disabled={loading || !email || !password}
               activeOpacity={0.85}
             >
-              <Text style={[styles.primaryButtonText, loading && { opacity: 0.7 }]}>
-                {loading ? "Signing in…" : "Sign In"}
+              <Text style={[styles.primaryButtonText, loading && { opacity: 0.5 }]}>
+                Sign In
               </Text>
             </TouchableOpacity>
           </View>

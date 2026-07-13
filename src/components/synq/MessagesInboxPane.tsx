@@ -296,9 +296,10 @@ export default function MessagesInboxPane({
               style={[
                 styles.inboxMergePrimaryBtnText,
                 (!mergeReady || mergeBusy) && styles.inboxMergePrimaryBtnTextDisabled,
+                mergeBusy && { opacity: 0.5 },
               ]}
             >
-              {mergeBusy ? "Creating…" : "Create group chat"}
+              Create group chat
             </Text>
           </TouchableOpacity>
         </View>

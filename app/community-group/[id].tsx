@@ -500,14 +500,17 @@ export default function CommunityGroupDetailScreen() {
       accessibilityRole="button"
       accessibilityLabel={`Join ${group?.name || "community"}`}
     >
-      {joinBusy ? (
-        <Text style={[styles.joinCommunityBtnText, { opacity: 0.7 }]}>Joining…</Text>
-      ) : (
-        <>
-          <Ionicons name="person-add-outline" size={16} color={ACCENT} />
-          <Text style={styles.joinCommunityBtnText}>Join</Text>
-        </>
-      )}
+      <>
+        <Ionicons
+          name="person-add-outline"
+          size={16}
+          color={ACCENT}
+          style={joinBusy ? { opacity: 0.5 } : undefined}
+        />
+        <Text style={[styles.joinCommunityBtnText, joinBusy && { opacity: 0.5 }]}>
+          Join
+        </Text>
+      </>
     </TouchableOpacity>
   );
 

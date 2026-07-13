@@ -148,13 +148,9 @@ export default function InterestsOnboarding() {
                 onPress={saveInterests}
                 style={[styles.button, !canContinue && { opacity: 0.5 }]}
             >
-                {loading ? (
-                    <Text style={[ctaButtonText, { opacity: 0.7 }]}>Continuing…</Text>
-                ) : (
-                    <Text style={ctaButtonText}>
-                        Continue{selected.length ? ` (${selected.length})` : ""}
-                    </Text>
-                )}
+                <Text style={[ctaButtonText, loading && { opacity: 0.5 }]}>
+                    Continue{selected.length ? ` (${selected.length})` : ""}
+                </Text>
             </TouchableOpacity>
 
             <TouchableOpacity onPress={handleSkip} style={styles.skipButton}>

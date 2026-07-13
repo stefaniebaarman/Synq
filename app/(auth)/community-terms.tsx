@@ -190,12 +190,8 @@ export default function CommunityTermsScreen() {
           disabled={!checked || submitting}
           onPress={handleContinue}
         >
-          <Text style={[styles.primaryText, submitting && { opacity: 0.7 }]}>
-            {submitting
-              ? "Continuing…"
-              : isPostAuth
-                ? "Continue to Synq"
-                : "Agree and continue"}
+          <Text style={[styles.primaryText, submitting && { opacity: 0.5 }]}>
+            {isPostAuth ? "Continue to Synq" : "Agree and continue"}
           </Text>
         </TouchableOpacity>
       </View>

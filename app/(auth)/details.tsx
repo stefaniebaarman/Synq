@@ -287,11 +287,7 @@ export default function Details() {
             onPress={saveDetails}
             style={[styles.button, !canContinue && { opacity: 0.5 }]}
           >
-            {loading ? (
-              <Text style={[ctaButtonText, { opacity: 0.7 }]}>Continuing…</Text>
-            ) : (
-              <Text style={ctaButtonText}>Continue</Text>
-            )}
+            <Text style={[ctaButtonText, loading && { opacity: 0.5 }]}>Continue</Text>
           </TouchableOpacity>
           <AlertModal
             visible={alertVisible}

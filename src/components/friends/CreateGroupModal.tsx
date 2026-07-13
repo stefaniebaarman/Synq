@@ -119,8 +119,8 @@ export default function CreateGroupModal({
                 accessibilityRole="button"
                 accessibilityLabel={submitLabel}
               >
-                <Text style={[styles.ctaText, busy && { opacity: 0.7 }]}>
-                  {busy ? "Creating…" : submitLabel}
+                <Text style={[styles.ctaText, busy && { opacity: 0.5 }]}>
+                  {submitLabel}
                 </Text>
               </TouchableOpacity>
             </View>

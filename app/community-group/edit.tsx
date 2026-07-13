@@ -198,13 +198,9 @@ export default function EditCommunityScreen() {
             accessibilityLabel="Save community"
             accessibilityState={{ disabled: !canSave }}
           >
-            {busy ? (
-              <Text style={[styles.saveBtn, !canSave && styles.saveBtnDisabled, { opacity: 0.7 }]}>
-                Saving…
-              </Text>
-            ) : (
-              <Text style={[styles.saveBtn, !canSave && styles.saveBtnDisabled]}>Save</Text>
-            )}
+            <Text style={[styles.saveBtn, !canSave && styles.saveBtnDisabled, busy && { opacity: 0.5 }]}>
+              Save
+            </Text>
           </TouchableOpacity>
         }
       />

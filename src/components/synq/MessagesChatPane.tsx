@@ -1273,13 +1273,14 @@ export default function MessagesChatPane({
                   accessibilityRole="button"
                   accessibilityLabel="Load earlier messages"
                 >
-                  {loadingEarlier ? (
-                    <Text style={[chatHeaderOverlayStyles.loadEarlierText, { opacity: 0.7 }]}>
-                      Loading…
-                    </Text>
-                  ) : (
-                    <Text style={chatHeaderOverlayStyles.loadEarlierText}>Load earlier messages</Text>
-                  )}
+                  <Text
+                    style={[
+                      chatHeaderOverlayStyles.loadEarlierText,
+                      loadingEarlier && { opacity: 0.5 },
+                    ]}
+                  >
+                    Load earlier messages
+                  </Text>
                 </Pressable>
               ) : null
             }

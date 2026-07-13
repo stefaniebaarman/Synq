@@ -1355,9 +1355,10 @@ export default function FriendProfile({
                 style={[
                   synqOutlineAddBtnText,
                   requestSent && synqOutlineAddBtnTextDisabled,
+                  actionLoading && { opacity: 0.5 },
                 ]}
               >
-                {requestSent ? "Pending" : actionLoading ? "Sending..." : "Add friend"}
+                {requestSent ? "Pending" : "Add friend"}
               </Text>
             </TouchableOpacity>
           </View>

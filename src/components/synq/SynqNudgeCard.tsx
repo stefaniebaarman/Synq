@@ -92,8 +92,8 @@ export default function SynqNudgeCard({
             : `Nudge${friend ? ` ${friend.displayName}` : ""}`
         }
       >
-        <Text style={[styles.ctaText, sent && styles.ctaTextSent, loading && { opacity: 0.7 }]}>
-          {loading ? "Sending…" : sent ? "Nudged" : "Nudge"}
+        <Text style={[styles.ctaText, sent && styles.ctaTextSent, loading && { opacity: 0.5 }]}>
+          {sent ? "Nudged" : "Nudge"}
         </Text>
       </TouchableOpacity>
     </View>

@@ -197,8 +197,8 @@ export default function LocationUpdateModal({ visible, onClose, onSaved }: Props
             style={[styles.saveBtn, (isUpdating || locating) && { opacity: 0.7 }]}
             activeOpacity={0.85}
           >
-            <Text style={[styles.saveBtnText, (isUpdating || locating) && { opacity: 0.7 }]}>
-              {isUpdating || locating ? "Updating…" : "Use current location"}
+            <Text style={[styles.saveBtnText, (isUpdating || locating) && { opacity: 0.5 }]}>
+              Use current location
             </Text>
           </TouchableOpacity>
 

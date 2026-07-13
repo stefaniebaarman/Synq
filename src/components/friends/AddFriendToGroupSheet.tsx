@@ -148,8 +148,8 @@ export default function AddFriendToGroupSheet({
         disabled={changeCount === 0 || busy}
         onPress={handleSave}
       >
-        <Text style={[styles.ctaText, busy && { opacity: 0.7 }]}>
-          {busy ? "Saving…" : saveCtaLabel(changeCount)}
+        <Text style={[styles.ctaText, busy && { opacity: 0.5 }]}>
+          {saveCtaLabel(changeCount)}
         </Text>
       </TouchableOpacity>
     </SpringBottomSheet>

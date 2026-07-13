@@ -94,15 +94,15 @@ export default function ChangeSynqAudienceModal({
           accessibilityState={{ disabled: !selectionDirty || saving }}
           hitSlop={8}
         >
-          <Text
-            style={[
-              styles.saveBtnText,
-              !selectionDirty && styles.saveBtnTextDisabled,
-              saving && { opacity: 0.7 },
-            ]}
-          >
-            {saving ? "Saving…" : "Save"}
-          </Text>
+            <Text
+              style={[
+                styles.saveBtnText,
+                !selectionDirty && styles.saveBtnTextDisabled,
+                saving && { opacity: 0.5 },
+              ]}
+            >
+              Save
+            </Text>
         </TouchableOpacity>
       </View>
       <ScrollView

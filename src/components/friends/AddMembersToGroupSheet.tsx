@@ -58,10 +58,6 @@ function actionCtaLabel(mode: "add" | "invite", selectedCount: number): string {
   return `Add members (${selectedCount})`;
 }
 
-function actionBusyLabel(mode: "add" | "invite"): string {
-  return mode === "invite" ? "Sending…" : "Adding…";
-}
-
 const WINDOW_HEIGHT = Dimensions.get("window").height;
 const LIST_MAX_HEIGHT_DEFAULT = 340;
 const SHEET_CHROME_HEIGHT = 200;
@@ -229,8 +225,8 @@ export default function AddMembersToGroupSheet({
             disabled={selected.size === 0 || busy}
             onPress={() => void handleAdd()}
           >
-            <Text style={[styles.ctaText, busy && { opacity: 0.7 }]}>
-              {busy ? actionBusyLabel(mode) : actionCtaLabel(mode, selected.size)}
+            <Text style={[styles.ctaText, busy && { opacity: 0.5 }]}>
+              {actionCtaLabel(mode, selected.size)}
             </Text>
           </TouchableOpacity>
         </View>

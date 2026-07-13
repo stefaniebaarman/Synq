@@ -198,8 +198,8 @@ export default function CommunityPlanDetailSheet({
                 disabled={busy}
                 activeOpacity={0.85}
               >
-                <Text style={[styles.leaveBtnText, busy && { opacity: 0.7 }]}>
-                  {busy ? "Leaving…" : "Leave"}
+                <Text style={[styles.leaveBtnText, busy && { opacity: 0.5 }]}>
+                  Leave
                 </Text>
               </TouchableOpacity>
             ) : (
@@ -209,8 +209,8 @@ export default function CommunityPlanDetailSheet({
                 disabled={busy}
                 activeOpacity={0.85}
               >
-                <Text style={[styles.primaryBtnText, busy && { opacity: 0.7 }]}>
-                  {busy ? "Joining…" : "Join"}
+                <Text style={[styles.primaryBtnText, busy && { opacity: 0.5 }]}>
+                  Join
                 </Text>
               </TouchableOpacity>
             )

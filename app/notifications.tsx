@@ -1014,7 +1014,7 @@ export default function NotificationsScreen() {
             accessibilityLabel="Accept group invite"
           >
             {isDismissing ? (
-              <Text style={styles.acceptBtnBusyText}>Accepting…</Text>
+              <Ionicons name="checkmark" size={18} color="black" style={{ opacity: 0.5 }} />
             ) : (
               <Ionicons name="checkmark" size={18} color="black" />
             )}
@@ -1070,7 +1070,7 @@ export default function NotificationsScreen() {
             accessibilityLabel="Accept plan invite"
           >
             {isDismissing ? (
-              <Text style={styles.acceptBtnBusyText}>Accepting…</Text>
+              <Ionicons name="checkmark" size={18} color="black" style={{ opacity: 0.5 }} />
             ) : (
               <Ionicons name="checkmark" size={18} color="black" />
             )}
@@ -1134,11 +1134,9 @@ export default function NotificationsScreen() {
           accessibilityLabel="Dismiss notification"
           hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
         >
-          {isDismissing ? (
-            <Text style={styles.dismissBtnBusyText}>Removing…</Text>
-          ) : (
+          <View style={isDismissing ? { opacity: 0.5 } : undefined}>
             <CloseIcon size={20} />
-          )}
+          </View>
         </TouchableOpacity>
       </View>
     );
@@ -1176,11 +1174,9 @@ export default function NotificationsScreen() {
               accessibilityRole="button"
               accessibilityLabel="Clear all notifications"
             >
-              {clearingAll ? (
-                <Text style={[styles.clearAllText, { opacity: 0.7 }]}>Clearing…</Text>
-              ) : (
-                <Text style={styles.clearAllText}>Clear all</Text>
-              )}
+              <Text style={[styles.clearAllText, clearingAll && { opacity: 0.5 }]}>
+                Clear all
+              </Text>
             </TouchableOpacity>
           ) : null
         }
@@ -1315,11 +1311,6 @@ const styles = StyleSheet.create({
     borderColor: BORDER_MUTED,
     paddingHorizontal: 4,
   },
-  dismissBtnBusyText: {
-    color: MUTED2,
-    fontSize: 8,
-    fontFamily: fonts.medium,
-  },
   rowLeft: {
     flexDirection: "row",
     alignItems: "center",
@@ -1370,11 +1361,6 @@ const styles = StyleSheet.create({
     alignItems: "center",
     marginRight: SPACE_3,
     paddingHorizontal: 6,
-  },
-  acceptBtnBusyText: {
-    color: "black",
-    fontSize: 9,
-    fontFamily: fonts.heavy,
   },
   emptyIconRing: {
     width: 80,

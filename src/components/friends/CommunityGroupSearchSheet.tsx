@@ -278,8 +278,8 @@ export default function CommunityGroupSearchSheet({
             accessibilityRole="button"
             accessibilityLabel={`Join ${item.name}`}
           >
-            <Text style={[groupsPageStyles.joinBtnText, busy && { opacity: 0.7 }]}>
-              {busy ? "Joining…" : "Join"}
+            <Text style={[groupsPageStyles.joinBtnText, busy && { opacity: 0.5 }]}>
+              Join
             </Text>
           </TouchableOpacity>
         )}

@@ -347,8 +347,8 @@ export default function CreateCommunityPlanModal({ visible, busy, onClose, onCre
                       onPress={handleSubmit}
                       activeOpacity={0.88}
                     >
-                      <Text style={[styles.popupPostBtnText, busy && { opacity: 0.7 }]}>
-                        {busy ? "Sharing…" : "Share"}
+                      <Text style={[styles.popupPostBtnText, busy && { opacity: 0.5 }]}>
+                        Share
                       </Text>
                     </TouchableOpacity>
                   </View>

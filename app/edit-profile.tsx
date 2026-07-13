@@ -581,11 +581,7 @@ export default function EditProfileScreen() {
             accessibilityLabel="Save profile"
             accessibilityState={{ disabled: !isDirty || saving || removingLocation }}
           >
-            {saving ? (
-              <Text style={[styles.saveButtonText, { opacity: 0.7 }]}>Saving…</Text>
-            ) : (
-              <Text style={styles.saveButtonText}>Save</Text>
-            )}
+            <Text style={[styles.saveButtonText, saving && { opacity: 0.5 }]}>Save</Text>
           </TouchableOpacity>
 
           <TouchableOpacity

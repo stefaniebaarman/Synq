@@ -143,8 +143,8 @@ export default function EmailSignup() {
               activeOpacity={0.85}
               style={[styles.primaryButton, !canContinue && styles.disabledButton]}
             >
-              <Text style={[styles.primaryButtonText, loading && { opacity: 0.7 }]}>
-                {loading ? "Continuing…" : "Continue"}
+              <Text style={[styles.primaryButtonText, loading && { opacity: 0.5 }]}>
+                Continue
               </Text>
             </TouchableOpacity>
 

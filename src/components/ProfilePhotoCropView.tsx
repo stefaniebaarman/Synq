@@ -357,11 +357,7 @@ export default function ProfilePhotoCropView({
             accessibilityRole="button"
             accessibilityLabel="Choose"
           >
-            {busy ? (
-              <Text style={[styles.footerChoose, { opacity: 0.7 }]}>Saving…</Text>
-            ) : (
-              <Text style={styles.footerChoose}>Choose</Text>
-            )}
+            <Text style={[styles.footerChoose, busy && { opacity: 0.5 }]}>Choose</Text>
           </Pressable>
         </View>
       </View>

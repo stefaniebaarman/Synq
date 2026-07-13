@@ -124,8 +124,8 @@ export default function EditSynqModal({
                 disabled={saving}
                 activeOpacity={0.85}
               >
-                <Text style={styles.saveBtnText}>
-                  {saving ? "Updating..." : "Update"}
+                <Text style={[styles.saveBtnText, saving && { opacity: 0.5 }]}>
+                  Update
                 </Text>
               </TouchableOpacity>
             </View>

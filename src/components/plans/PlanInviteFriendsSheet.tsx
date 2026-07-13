@@ -333,8 +333,8 @@ export default function PlanInviteFriendsSheet({
                       accessibilityRole="button"
                       accessibilityLabel={`Unsend invite to ${firstName}`}
                     >
-                      <Text style={[styles.unsendBtnText, isRevoking && { opacity: 0.7 }]}>
-                        {isRevoking ? "Removing…" : "Unsend"}
+                      <Text style={[styles.unsendBtnText, isRevoking && { opacity: 0.5 }]}>
+                        Unsend
                       </Text>
                     </TouchableOpacity>
                   ) : (
@@ -360,8 +360,8 @@ export default function PlanInviteFriendsSheet({
             accessibilityRole="button"
             accessibilityLabel={inviteCtaLabel(selected.size)}
           >
-            <Text style={[styles.inviteBtnText, inviting && { opacity: 0.7 }]}>
-              {inviting ? "Inviting…" : inviteCtaLabel(selected.size)}
+            <Text style={[styles.inviteBtnText, inviting && { opacity: 0.5 }]}>
+              {inviteCtaLabel(selected.size)}
             </Text>
           </TouchableOpacity>
         </>

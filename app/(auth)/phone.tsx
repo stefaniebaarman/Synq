@@ -281,8 +281,8 @@ export default function Phone() {
                 disabled={loading || phoneNumber.length < 10}
                 activeOpacity={0.85}
               >
-                <Text style={[styles.primaryButtonText, loading && { opacity: 0.7 }]}>
-                  {loading ? "Sending…" : "Send Code"}
+                <Text style={[styles.primaryButtonText, loading && { opacity: 0.5 }]}>
+                  Send Code
                 </Text>
               </TouchableOpacity>
 
@@ -343,8 +343,14 @@ export default function Phone() {
                   disabled={loading || resending}
                   style={styles.linkBtnInline}
                 >
-                  <Text style={[styles.linkText, (loading || resending) && styles.linkTextDisabled]}>
-                    {resending ? "Sending…" : "Resend code"}
+                  <Text
+                    style={[
+                      styles.linkText,
+                      (loading || resending) && styles.linkTextDisabled,
+                      resending && { opacity: 0.5 },
+                    ]}
+                  >
+                    Resend code
                   </Text>
                 </TouchableOpacity>
               </View>
@@ -359,8 +365,8 @@ export default function Phone() {
                 disabled={loading || code.join("").length < 6}
                 activeOpacity={0.85}
               >
-                <Text style={[styles.primaryButtonText, loading && { opacity: 0.7 }]}>
-                  {loading ? "Verifying…" : "Continue"}
+                <Text style={[styles.primaryButtonText, loading && { opacity: 0.5 }]}>
+                  Continue
                 </Text>
               </TouchableOpacity>
             </View>
