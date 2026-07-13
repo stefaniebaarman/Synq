@@ -1,6 +1,8 @@
 import {
   ACCENT,
   BG,
+  BG_FADE_MID,
+  BG_TRANSPARENT,
   BORDER,
   BORDER_STRONG,
   BORDER_SUBTLE_HEX,
@@ -34,6 +36,7 @@ import {
 import { resolveAvatar } from "@/src/lib/helpers";
 import { Ionicons } from "@expo/vector-icons";
 import { Image as ExpoImage } from "expo-image";
+import { LinearGradient } from "expo-linear-gradient";
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
   FlatList,
@@ -43,6 +46,8 @@ import {
   useWindowDimensions,
   View,
 } from "react-native";
+
+const CTA_FADE_HEIGHT = 40;
 
 const EMPTY_FRIEND_ID_LIST: string[] = [];
 
@@ -350,21 +355,32 @@ export default function PlanInviteFriendsSheet({
             }}
           />
 
-          <TouchableOpacity
-            style={[
-              styles.inviteBtn,
-              (selected.size === 0 || inviting || selectableFriends.length === 0) &&
-                styles.inviteBtnDisabled,
-            ]}
-            disabled={selected.size === 0 || inviting || selectableFriends.length === 0}
-            onPress={() => void inviteSelected()}
-            accessibilityRole="button"
-            accessibilityLabel={inviteCtaLabel(selected.size)}
-          >
-            <Text style={styles.inviteBtnText}>
-              {inviteCtaLabel(selected.size)}
-            </Text>
-          </TouchableOpacity>
+          <View style={styles.ctaFooter}>
+            <LinearGradient
+              pointerEvents="none"
+              colors={[BG_TRANSPARENT, BG_FADE_MID, BG]}
+              locations={[0, 0.55, 1]}
+              start={{ x: 0.5, y: 0 }}
+              end={{ x: 0.5, y: 1 }}
+              style={styles.ctaFade}
+            />
+            <TouchableOpacity
+              style={[
+                styles.inviteBtn,
+                (selected.size === 0 || inviting || selectableFriends.length === 0) &&
+                  styles.inviteBtnDisabled,
+              ]}
+              disabled={selected.size === 0 || inviting || selectableFriends.length === 0}
+              onPress={() => void inviteSelected()}
+              activeOpacity={0.85}
+              accessibilityRole="button"
+              accessibilityLabel={inviteCtaLabel(selected.size)}
+            >
+              <Text style={styles.inviteBtnText}>
+                {inviteCtaLabel(selected.size)}
+              </Text>
+            </TouchableOpacity>
+          </View>
         </>
       )}
     </SpringBottomSheet>
@@ -433,7 +449,6 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   inviteBtn: {
-    marginTop: 12,
     alignSelf: "center",
     width: PRIMARY_CTA_WIDTH,
     height: 50,
@@ -449,6 +464,18 @@ const styles = StyleSheet.create({
     color: ON_ACCENT_TEXT,
     fontFamily: fonts.heavy,
     fontSize: TYPE_BODY,
+  },
+  ctaFooter: {
+    position: "relative",
+    backgroundColor: BG,
+    paddingTop: 12,
+  },
+  ctaFade: {
+    position: "absolute",
+    left: 0,
+    right: 0,
+    top: -CTA_FADE_HEIGHT,
+    height: CTA_FADE_HEIGHT,
   },
   unsendBtn: {
     minWidth: 72,

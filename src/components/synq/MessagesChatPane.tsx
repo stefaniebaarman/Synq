@@ -55,11 +55,11 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import {
-  useReanimatedKeyboardAnimation,
-} from "react-native-keyboard-controller";
+import { useReanimatedKeyboardAnimation } from "react-native-keyboard-controller";
 import Animated, {
   Easing,
+  Extrapolation,
+  interpolate,
   useAnimatedStyle,
   useSharedValue,
   withTiming,
@@ -77,6 +77,8 @@ import AISuggestionBubble from "./AISuggestionBubble";
 import { MESSAGES_STACK_DURATION_MS } from "./MessagesModalStack";
 
 const COMPOSER_KEYBOARD_GAP = 10;
+/** Extra lift while the keyboard is open so the field isn’t covered. */
+const COMPOSER_KEYBOARD_CLEARANCE = 12;
 const LIST_SCROLL_OVERFLOW_SLACK = 4;
 
 /** Matches MessagesModalStack push/pop timing. */
@@ -252,6 +254,8 @@ export default function MessagesChatPane({
   const [headerOverlayHeight, setHeaderOverlayHeight] = useState(0);
   const { height: keyboardHeight, progress: keyboardProgress } =
     useReanimatedKeyboardAnimation();
+  const bottomInset = insets.bottom;
+  const closedComposerPad = bottomInset + COMPOSER_KEYBOARD_GAP;
   const activeChatRef = useRef(activeChat);
   activeChatRef.current = activeChat;
   const liveImagesRef = useRef(liveParticipantImages);
@@ -290,17 +294,31 @@ export default function MessagesChatPane({
   }));
 
   /** Reserves space under the list while the composer sticks to the keyboard. */
-  const keyboardSpacerStyle = useAnimatedStyle(() => ({
-    height: Math.max(0, -keyboardHeight.value),
-  }));
-
-  /** Stick the composer to the keyboard on the UI thread (same shared value as spacer). */
-  const composerDockAnimStyle = useAnimatedStyle(() => {
-    const closedPad = Math.max(insets.bottom, 10) + 6;
+  const keyboardSpacerStyle = useAnimatedStyle(() => {
+    const clearance = COMPOSER_KEYBOARD_CLEARANCE * keyboardProgress.value;
     return {
-      paddingBottom:
-        closedPad + (COMPOSER_KEYBOARD_GAP - closedPad) * keyboardProgress.value,
-      transform: [{ translateY: keyboardHeight.value }],
+      height: Math.max(0, -(keyboardHeight.value - clearance)),
+    };
+  });
+
+  /**
+   * Stick composer to keyboard on the UI thread.
+   * Negative margin cancels Modal SafeAreaView pad so travel is from screen bottom.
+   * Padding stays at COMPOSER_KEYBOARD_GAP until the keyboard is nearly gone
+   * (avoids the empty band during interactive dismiss). Clearance lifts the dock
+   * a few px above the keyboard so the input isn’t covered.
+   */
+  const composerDockAnimStyle = useAnimatedStyle(() => {
+    const clearance = COMPOSER_KEYBOARD_CLEARANCE * keyboardProgress.value;
+    return {
+      marginBottom: -bottomInset,
+      paddingBottom: interpolate(
+        keyboardProgress.value,
+        [0, 0.03, 1],
+        [closedComposerPad, COMPOSER_KEYBOARD_GAP, COMPOSER_KEYBOARD_GAP],
+        Extrapolation.CLAMP
+      ),
+      transform: [{ translateY: keyboardHeight.value - clearance }],
     };
   });
 
