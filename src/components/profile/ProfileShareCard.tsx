@@ -11,7 +11,7 @@ import {
   GROUP_BORDER,
   SHARE_GRADIENT_ACCENT,
   SHARE_GRADIENT_START,
-  SURFACE_WELL,
+  SURFACE_RAISED,
   TYPE_CTA,
   fonts,
   profileLocationText,
@@ -160,7 +160,7 @@ const styles = StyleSheet.create({
     borderWidth: 2,
     borderColor: ACCENT,
     overflow: "hidden",
-    backgroundColor: SURFACE_WELL,
+    backgroundColor: SURFACE_RAISED,
   },
   avatar: {
     width: "100%",

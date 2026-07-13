@@ -1,6 +1,7 @@
 import {
   RADIUS_MD,
   SURFACE_RAISED,
+  RADIUS_2XL,
 } from "@/constants/Variables";
 import React from "react";
 import { StyleSheet, View, type ViewStyle } from "react-native";
@@ -74,7 +75,7 @@ const styles = StyleSheet.create({
   topSynqAvatar: {
     width: 55,
     height: 55,
-    borderRadius: 28,
+    borderRadius: RADIUS_2XL,
     marginBottom: 8,
   },
   topSynqName: {

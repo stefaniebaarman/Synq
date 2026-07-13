@@ -14,6 +14,8 @@ import {
   cardMetaText,
   fonts,
   listRowTitleText,
+  RADIUS_LG,
+  RADIUS_SM,
 } from "@/constants/Variables";
 import {
   GROUP_BORDER,
@@ -37,7 +39,7 @@ import {
 const PLAN_PILL_LAYOUT = {
   minWidth: 88,
   minHeight: 32,
-  borderRadius: 12,
+  borderRadius: RADIUS_SM,
   borderWidth: 1,
   paddingHorizontal: 10,
   paddingVertical: 6,
@@ -233,7 +235,7 @@ const styles = StyleSheet.create({
   card: {
     width: "100%",
     backgroundColor: GROUP_SURFACE,
-    borderRadius: 20,
+    borderRadius: RADIUS_LG,
     borderWidth: StyleSheet.hairlineWidth,
     borderColor: GROUP_BORDER,
     padding: 14,

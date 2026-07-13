@@ -1,24 +1,17 @@
 import { sheetStyles } from "@/constants/sheetStyles";
+import SpringBottomSheet from "@/src/components/sheets/SpringBottomSheet";
 import {
   BG,
   BORDER,
-  BUTTON_RADIUS,
   DESTRUCTIVE,
-  SHEET_OVERLAY,
-  SHEET_SURFACE,
+  RADIUS_MD,
   TEXT,
   listRowTitleText,
   sheetTitleText,
   TYPE_SUBHEAD,
 } from "@/constants/Variables";
 import { Ionicons } from "@expo/vector-icons";
-import {
-  Pressable,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
-} from "react-native";
+import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 type Props = {
@@ -40,52 +33,22 @@ export default function ChatInboxActionSheet({
 }: Props) {
   const insets = useSafeAreaInsets();
 
-  if (!visible) return null;
-
   return (
-    <View style={styles.portal} pointerEvents="box-none">
-      <Pressable
-        style={styles.backdrop}
-        onPress={onClose}
-        accessibilityLabel="Close menu"
-      />
-      <View
-        style={[
-          styles.sheetGroup,
-          { paddingBottom: Math.max(insets.bottom, 12) + 8 },
-        ]}
-        pointerEvents="box-none"
-      >
+    <SpringBottomSheet
+      visible={visible}
+      onClose={onClose}
+      presentation="embedded"
+      contentStyle={[
+        styles.sheetGroup,
+        { paddingBottom: Math.max(insets.bottom, 12) + 8 },
+      ]}
+      header={
         <Text style={sheetStyles.sheetKicker} numberOfLines={1}>
           {chatTitle}
         </Text>
-        <View style={styles.sheet}>
-          {canCombine ? (
-            <TouchableOpacity
-              style={styles.option}
-              onPress={onCombine}
-              activeOpacity={0.75}
-              accessibilityRole="button"
-              accessibilityLabel="Combine with another chat"
-            >
-              <Ionicons name="people-outline" size={22} color={TEXT} />
-              <Text style={styles.optionText}>Combine with another chat</Text>
-            </TouchableOpacity>
-          ) : null}
-          {canCombine ? <View style={styles.divider} /> : null}
-          <TouchableOpacity
-            style={styles.option}
-            onPress={onDelete}
-            activeOpacity={0.75}
-            accessibilityRole="button"
-            accessibilityLabel="Delete conversation"
-          >
-            <Ionicons name="trash-outline" size={22} color={DESTRUCTIVE} />
-            <Text style={[styles.optionText, styles.destructiveText]}>
-              Delete chat
-            </Text>
-          </TouchableOpacity>
-        </View>
+      }
+      cardStyle={sheetStyles.sheetCard}
+      footer={
         <TouchableOpacity
           style={styles.cancelBtn}
           onPress={onClose}
@@ -95,32 +58,40 @@ export default function ChatInboxActionSheet({
         >
           <Text style={styles.cancelText}>Cancel</Text>
         </TouchableOpacity>
-      </View>
-    </View>
+      }
+    >
+      {canCombine ? (
+        <TouchableOpacity
+          style={styles.option}
+          onPress={onCombine}
+          activeOpacity={0.75}
+          accessibilityRole="button"
+          accessibilityLabel="Combine with another chat"
+        >
+          <Ionicons name="people-outline" size={22} color={TEXT} />
+          <Text style={styles.optionText}>Combine with another chat</Text>
+        </TouchableOpacity>
+      ) : null}
+      {canCombine ? <View style={styles.divider} /> : null}
+      <TouchableOpacity
+        style={styles.option}
+        onPress={onDelete}
+        activeOpacity={0.75}
+        accessibilityRole="button"
+        accessibilityLabel="Delete conversation"
+      >
+        <Ionicons name="trash-outline" size={22} color={DESTRUCTIVE} />
+        <Text style={[styles.optionText, styles.destructiveText]}>
+          Delete chat
+        </Text>
+      </TouchableOpacity>
+    </SpringBottomSheet>
   );
 }
 
 const styles = StyleSheet.create({
-  portal: {
-    ...StyleSheet.absoluteFillObject,
-    zIndex: 200,
-    justifyContent: "flex-end",
-    backgroundColor: SHEET_OVERLAY,
-  },
-  backdrop: {
-    ...StyleSheet.absoluteFillObject,
-    zIndex: 0,
-  },
   sheetGroup: {
     paddingHorizontal: 12,
-    zIndex: 1,
-  },
-  sheet: {
-    backgroundColor: SHEET_SURFACE,
-    borderRadius: BUTTON_RADIUS + 4,
-    borderWidth: 1,
-    borderColor: BORDER,
-    overflow: "hidden",
   },
   option: {
     flexDirection: "row",
@@ -144,7 +115,7 @@ const styles = StyleSheet.create({
   cancelBtn: {
     marginTop: 10,
     backgroundColor: BG,
-    borderRadius: BUTTON_RADIUS + 4,
+    borderRadius: RADIUS_MD,
     borderWidth: 1,
     borderColor: BORDER,
     paddingVertical: 16,

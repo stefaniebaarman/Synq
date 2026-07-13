@@ -14,6 +14,7 @@ import {
   TYPE_SUBHEAD,
   fonts,
   sheetHeaderTitleText,
+  RADIUS_LG,
 } from "@/constants/Variables";
 import CloseButton from "@/src/components/CloseButton";
 import { resolveFriendIdFromScannedProfileQr } from "@/src/lib/profileShareUrl";
@@ -194,7 +195,7 @@ const styles = StyleSheet.create({
   scanFrame: {
     width: FRAME_SIZE,
     height: FRAME_SIZE,
-    borderRadius: 20,
+    borderRadius: RADIUS_LG,
     borderWidth: 2,
     borderColor: TEXT_ON_BRIGHT,
     backgroundColor: "transparent",

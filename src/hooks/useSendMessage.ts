@@ -95,6 +95,8 @@ export function useSendMessage({
   const sendOrderRef = useRef(0);
   const sendOrderByServerIdRef = useRef<Map<string, number>>(new Map());
   const creatingChatRef = useRef<Promise<string> | null>(null);
+  const sendInFlightRef = useRef(false);
+  const [isSending, setIsSending] = useState(false);
 
   const ensureChatFromPending = useCallback(async (): Promise<string | null> => {
     if (!auth.currentUser) return null;
@@ -181,6 +183,10 @@ export function useSendMessage({
       if (!trimmed || !auth.currentUser) return false;
       if (!pendingNewChat && !activeChatId) return false;
       if (rejectIfObjectionable(trimmed)) return false;
+      if (sendInFlightRef.current) return false;
+
+      sendInFlightRef.current = true;
+      setIsSending(true);
 
       const myId = auth.currentUser.uid;
       const clientId = `pending-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
@@ -293,6 +299,9 @@ export function useSendMessage({
           onSendError("Message could not be sent. Please try again.");
         }
         return false;
+      } finally {
+        sendInFlightRef.current = false;
+        setIsSending(false);
       }
     },
     [
@@ -329,6 +338,7 @@ export function useSendMessage({
   return {
     pendingMessages,
     sendMessage,
+    isSending,
     retryFailedMessage,
     clearPendingMessages,
     ensureChatFromPending,

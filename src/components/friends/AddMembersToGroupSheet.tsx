@@ -3,19 +3,20 @@ import {
   BG,
   BUTTON_RADIUS,
   Friend,
+  MODAL_RADIUS,
   MUTED2,
   MUTED3,
   ON_ACCENT_TEXT,
-  SHEET_OVERLAY,
+  RADIUS_MD,
   SURFACE,
   TEXT,
   TYPE_BODY,
   TYPE_CAPTION,
-  TYPE_SECTION,
   fonts,
   sheetHeaderTitleText,
 } from "@/constants/Variables";
 import CloseButton from "@/src/components/CloseButton";
+import SpringBottomSheet from "@/src/components/sheets/SpringBottomSheet";
 import { resolveAvatar } from "@/src/lib/helpers";
 import { Ionicons } from "@expo/vector-icons";
 import { Image as ExpoImage } from "expo-image";
@@ -26,9 +27,7 @@ import {
   FlatList,
   Keyboard,
   KeyboardEvent,
-  Modal,
   Platform,
-  Pressable,
   StyleSheet,
   Text,
   TextInput,
@@ -150,36 +149,39 @@ export default function AddMembersToGroupSheet({
   };
 
   return (
-    <Modal visible={visible} transparent animationType="slide" onRequestClose={handleClose}>
-      <View style={styles.overlay}>
-        <Pressable style={StyleSheet.absoluteFill} onPress={handleBackdropPress} />
-        <KeyboardAvoidingView
-          style={styles.keyboardAvoid}
-          behavior="padding"
-          keyboardVerticalOffset={insets.bottom}
-        >
-          <View style={[styles.sheet, { paddingBottom: Math.max(24, insets.bottom) }]}>
-            <View style={styles.header}>
-              <Text style={styles.title}>{mode === "invite" ? "Invite friends" : "Add members"}</Text>
-              <CloseButton onPress={handleClose} />
-            </View>
-            <View style={styles.searchBar}>
-              <Ionicons name="search-outline" size={17} color={MUTED2} />
-              <TextInput
-                style={styles.searchInput}
-                placeholder="Search friends"
-                placeholderTextColor={MUTED2}
-                value={query}
-                onChangeText={setQuery}
-                returnKeyType="search"
-              />
-            </View>
-            <FlatList
-              data={candidates}
-              keyExtractor={(item) => item.id}
-              style={{ maxHeight: listMaxHeight }}
-              keyboardShouldPersistTaps="handled"
-              keyboardDismissMode="on-drag"
+    <SpringBottomSheet
+      visible={visible}
+      onClose={handleClose}
+      onBackdropPress={handleBackdropPress}
+      cardStyle={styles.keyboardAvoid}
+    >
+      <KeyboardAvoidingView
+        style={styles.keyboardInner}
+        behavior="padding"
+        keyboardVerticalOffset={insets.bottom}
+      >
+        <View style={[styles.sheet, { paddingBottom: Math.max(24, insets.bottom) }]}>
+          <View style={styles.header}>
+            <Text style={styles.title}>{mode === "invite" ? "Invite friends" : "Add members"}</Text>
+            <CloseButton onPress={handleClose} />
+          </View>
+          <View style={styles.searchBar}>
+            <Ionicons name="search-outline" size={17} color={MUTED2} />
+            <TextInput
+              style={styles.searchInput}
+              placeholder="Search friends"
+              placeholderTextColor={MUTED2}
+              value={query}
+              onChangeText={setQuery}
+              returnKeyType="search"
+            />
+          </View>
+          <FlatList
+            data={candidates}
+            keyExtractor={(item) => item.id}
+            style={{ maxHeight: listMaxHeight }}
+            keyboardShouldPersistTaps="handled"
+            keyboardDismissMode="on-drag"
             ListEmptyComponent={
               <View style={styles.empty}>
                 <Text style={styles.emptyText}>
@@ -218,41 +220,38 @@ export default function AddMembersToGroupSheet({
                 </TouchableOpacity>
               );
             }}
-            />
-            <TouchableOpacity
-              style={[styles.cta, (selected.size === 0 || busy) && styles.ctaDisabled]}
-              disabled={selected.size === 0 || busy}
-              onPress={() => void handleAdd()}
-            >
-              {busy ? (
-                <ActivityIndicator color={ON_ACCENT_TEXT} />
-              ) : (
-                <Text style={styles.ctaText}>{actionCtaLabel(mode, selected.size)}</Text>
-              )}
-            </TouchableOpacity>
-          </View>
-        </KeyboardAvoidingView>
-      </View>
-    </Modal>
+          />
+          <TouchableOpacity
+            style={[styles.cta, (selected.size === 0 || busy) && styles.ctaDisabled]}
+            disabled={selected.size === 0 || busy}
+            onPress={() => void handleAdd()}
+          >
+            {busy ? (
+              <ActivityIndicator color={ON_ACCENT_TEXT} />
+            ) : (
+              <Text style={styles.ctaText}>{actionCtaLabel(mode, selected.size)}</Text>
+            )}
+          </TouchableOpacity>
+        </View>
+      </KeyboardAvoidingView>
+    </SpringBottomSheet>
   );
 }
 
 const styles = StyleSheet.create({
-  overlay: {
-    flex: 1,
-    justifyContent: "flex-end",
-    backgroundColor: SHEET_OVERLAY,
-  },
   keyboardAvoid: {
     width: "100%",
     maxHeight: "88%",
+    backgroundColor: BG,
+    borderRadius: RADIUS_MD,
+    overflow: "hidden",
+  },
+  keyboardInner: {
+    width: "100%",
   },
   sheet: {
-    backgroundColor: BG,
-    borderTopLeftRadius: 16,
-    borderTopRightRadius: 16,
     paddingHorizontal: 20,
-    paddingTop: 16,
+    paddingTop: 8,
   },
   header: {
     flexDirection: "row",
@@ -296,7 +295,7 @@ const styles = StyleSheet.create({
   avatarRing: {
     width: 44,
     height: 44,
-    borderRadius: 22,
+    borderRadius: MODAL_RADIUS,
     overflow: "hidden",
     backgroundColor: SURFACE,
   },

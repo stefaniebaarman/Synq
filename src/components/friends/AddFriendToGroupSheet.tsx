@@ -4,23 +4,21 @@ import {
   BUTTON_RADIUS,
   MUTED2,
   ON_ACCENT_TEXT,
-  SHEET_OVERLAY,
+  RADIUS_MD,
   TEXT,
   TYPE_BODY,
   TYPE_CAPTION,
-  TYPE_SECTION,
   fonts,
   sheetHeaderTitleText,
 } from "@/constants/Variables";
 import CloseButton from "@/src/components/CloseButton";
+import SpringBottomSheet from "@/src/components/sheets/SpringBottomSheet";
 import { FriendGroup } from "@/src/lib/friendGroups";
 import { Ionicons } from "@expo/vector-icons";
 import { useEffect, useMemo, useState } from "react";
 import {
   ActivityIndicator,
   FlatList,
-  Modal,
-  Pressable,
   StyleSheet,
   Text,
   TouchableOpacity,
@@ -105,76 +103,72 @@ export default function AddFriendToGroupSheet({
   };
 
   return (
-    <Modal visible={visible} transparent animationType="slide" onRequestClose={handleClose}>
-      <View style={styles.overlay}>
-        <Pressable style={StyleSheet.absoluteFill} onPress={handleClose} />
-        <View style={[styles.sheet, { paddingBottom: Math.max(24, insets.bottom) }]}>
-          <View style={styles.header}>
-            <Text style={styles.title}>Add to group</Text>
-            <CloseButton onPress={handleClose} />
-          </View>
-          {sortedGroups.length === 0 ? (
-            <View style={styles.empty}>
-              <Text style={styles.emptyText}>Create a group from the Friends tab first.</Text>
-            </View>
-          ) : (
-            <FlatList
-              data={sortedGroups}
-              keyExtractor={(item) => item.id}
-              style={styles.list}
-              keyboardShouldPersistTaps="handled"
-              renderItem={({ item }) => {
-                const checked = selected.has(item.id);
-                return (
-                  <TouchableOpacity
-                    style={styles.row}
-                    onPress={() => toggle(item.id)}
-                    accessibilityRole="checkbox"
-                    accessibilityState={{ checked }}
-                  >
-                    <Text style={styles.rowName} numberOfLines={1}>
-                      {item.name}
-                    </Text>
-                    <Ionicons
-                      name={checked ? "checkbox" : "square-outline"}
-                      size={22}
-                      color={checked ? ACCENT : MUTED2}
-                    />
-                  </TouchableOpacity>
-                );
-              }}
-            />
-          )}
-          <TouchableOpacity
-            style={[styles.cta, (changeCount === 0 || busy) && styles.ctaDisabled]}
-            disabled={changeCount === 0 || busy}
-            onPress={handleSave}
-          >
-            {busy ? (
-              <ActivityIndicator color={ON_ACCENT_TEXT} />
-            ) : (
-              <Text style={styles.ctaText}>{saveCtaLabel(changeCount)}</Text>
-            )}
-          </TouchableOpacity>
-        </View>
+    <SpringBottomSheet
+      visible={visible}
+      onClose={handleClose}
+      cardStyle={[styles.sheet, { paddingBottom: Math.max(24, insets.bottom) }]}
+    >
+      <View style={styles.header}>
+        <Text style={styles.title}>Add to group</Text>
+        <CloseButton onPress={handleClose} />
       </View>
-    </Modal>
+      {sortedGroups.length === 0 ? (
+        <View style={styles.empty}>
+          <Text style={styles.emptyText}>Create a group from the Friends tab first.</Text>
+        </View>
+      ) : (
+        <FlatList
+          data={sortedGroups}
+          keyExtractor={(item) => item.id}
+          style={styles.list}
+          keyboardShouldPersistTaps="handled"
+          renderItem={({ item }) => {
+            const checked = selected.has(item.id);
+            return (
+              <TouchableOpacity
+                style={styles.row}
+                onPress={() => toggle(item.id)}
+                accessibilityRole="checkbox"
+                accessibilityState={{ checked }}
+              >
+                <Text style={styles.rowName} numberOfLines={1}>
+                  {item.name}
+                </Text>
+                <Ionicons
+                  name={checked ? "checkbox" : "square-outline"}
+                  size={22}
+                  color={checked ? ACCENT : MUTED2}
+                />
+              </TouchableOpacity>
+            );
+          }}
+        />
+      )}
+      <TouchableOpacity
+        style={[styles.cta, (changeCount === 0 || busy) && styles.ctaDisabled]}
+        disabled={changeCount === 0 || busy}
+        onPress={handleSave}
+      >
+        {busy ? (
+          <ActivityIndicator color={ON_ACCENT_TEXT} />
+        ) : (
+          <Text style={styles.ctaText}>{saveCtaLabel(changeCount)}</Text>
+        )}
+      </TouchableOpacity>
+    </SpringBottomSheet>
   );
 }
 
 const styles = StyleSheet.create({
-  overlay: {
-    flex: 1,
-    justifyContent: "flex-end",
-    backgroundColor: SHEET_OVERLAY,
-  },
   sheet: {
     maxHeight: "88%",
     backgroundColor: BG,
-    borderTopLeftRadius: 16,
-    borderTopRightRadius: 16,
+    borderTopLeftRadius: RADIUS_MD,
+    borderTopRightRadius: RADIUS_MD,
+    borderRadius: RADIUS_MD,
     paddingHorizontal: 20,
-    paddingTop: 16,
+    paddingTop: 8,
+    overflow: "hidden",
   },
   header: {
     flexDirection: "row",
@@ -184,12 +178,6 @@ const styles = StyleSheet.create({
   },
   title: {
     ...sheetHeaderTitleText,
-  },
-  subtitle: {
-    fontFamily: fonts.book,
-    fontSize: TYPE_BODY,
-    color: MUTED2,
-    marginBottom: 12,
   },
   list: {
     maxHeight: 340,

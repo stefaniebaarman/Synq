@@ -10,6 +10,8 @@ import {
   TYPE_BUTTON,
   TYPE_CAPTION,
   fonts,
+  RADIUS_LG,
+  RADIUS_XL,
 } from "@/constants/Variables";
 import { Image as ExpoImage } from "expo-image";
 import { useEffect, useState } from "react";
@@ -364,14 +366,14 @@ const styles = StyleSheet.create({
     position: "absolute",
     width: 48,
     height: 48,
-    borderRadius: 24,
+    borderRadius: RADIUS_XL,
     borderWidth: 1.5,
     borderColor: ACCENT,
   },
   freeAvatar: {
     width: 40,
     height: 40,
-    borderRadius: 20,
+    borderRadius: RADIUS_LG,
     backgroundColor: ACCENT,
     alignItems: "center",
     justifyContent: "center",

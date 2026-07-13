@@ -12,6 +12,7 @@ import {
   TYPE_BODY,
   TYPE_CTA,
   fonts,
+  RADIUS_MD,
 } from "@/constants/Variables";
 import CloseButton from "@/src/components/CloseButton";
 import React, { useEffect, useState } from "react";
@@ -146,7 +147,7 @@ const styles = StyleSheet.create({
   sheet: {
     flexDirection: "column",
     backgroundColor: BG,
-    borderRadius: 16,
+    borderRadius: RADIUS_MD,
     paddingHorizontal: 24,
     paddingTop: 24,
     paddingBottom: 24,

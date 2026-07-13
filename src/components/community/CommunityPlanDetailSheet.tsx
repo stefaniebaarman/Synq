@@ -1,14 +1,36 @@
+import CommunityPlanGoerAvatars from "@/src/components/community/CommunityPlanGoerAvatars";
+import SpringBottomSheet from "@/src/components/sheets/SpringBottomSheet";
+import { sheetStyles } from "@/constants/sheetStyles";
+import {
+  type CommunityPlanMemberProfile,
+} from "@/src/lib/communityPlanMembers";
+import {
+  formatCommunitySynqGoingCount,
+  getCommunitySynqCardMetaParts,
+  type CommunityGroupPlan,
+} from "@/src/lib/communityGroupPlans";
+import { resolveAvatar } from "@/src/lib/helpers";
+import { Ionicons } from "@expo/vector-icons";
+import { Image as ExpoImage } from "expo-image";
+import React, { useEffect, useState } from "react";
+import {
+  ActivityIndicator,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import {
   ACCENT,
   BG,
   BORDER,
   BUTTON_RADIUS,
   DESTRUCTIVE,
-  DIVIDER,
   MUTED2,
-  OVERLAY_TINT,
-  SHEET_OVERLAY,
-  SHEET_SURFACE,
+  RADIUS_LG,
+  RADIUS_MD,
   SPACE_3,
   SPACE_4,
   SPACE_5,
@@ -24,31 +46,8 @@ import {
   cardTitleText,
   fonts,
   formSectionLabel,
+  sheetTitleText,
 } from "@/constants/Variables";
-import CommunityPlanGoerAvatars from "@/src/components/community/CommunityPlanGoerAvatars";
-import {
-  type CommunityPlanMemberProfile,
-} from "@/src/lib/communityPlanMembers";
-import {
-  formatCommunitySynqGoingCount,
-  getCommunitySynqCardMetaParts,
-  type CommunityGroupPlan,
-} from "@/src/lib/communityGroupPlans";
-import { resolveAvatar } from "@/src/lib/helpers";
-import { Ionicons } from "@expo/vector-icons";
-import { Image as ExpoImage } from "expo-image";
-import React, { useEffect, useState } from "react";
-import {
-  ActivityIndicator,
-  Modal,
-  Pressable,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
-} from "react-native";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 type Props = {
   visible: boolean;
@@ -96,7 +95,7 @@ export default function CommunityPlanDetailSheet({
     if (!visible) setSelectedGoer(null);
   }, [visible]);
 
-  if (!visible || !plan) return null;
+  if (!plan) return null;
 
   const metaParts = getCommunitySynqCardMetaParts(plan.date, plan.time, plan.location);
   const handleGoerPress = (goer: CommunityPlanMemberProfile) => {
@@ -118,187 +117,165 @@ export default function CommunityPlanDetailSheet({
   };
 
   return (
-    <Modal visible transparent animationType="slide" onRequestClose={onClose}>
-      <View style={styles.portal}>
-        <Pressable style={styles.backdrop} onPress={onClose} accessibilityLabel="Close" />
-        <View
-          style={[
-            styles.sheet,
-            { paddingBottom: Math.max(insets.bottom, 16) + SPACE_4 },
-          ]}
-        >
-          <View style={styles.handle} />
+    <>
+      <SpringBottomSheet
+        visible={visible}
+        onClose={onClose}
+        cardStyle={[
+          styles.sheet,
+          { paddingBottom: Math.max(insets.bottom, 16) + SPACE_4 },
+        ]}
+      >
+        <Text style={styles.title} numberOfLines={2}>
+          {plan.title}
+        </Text>
+        <Text style={styles.meta}>{metaParts.join(" • ")}</Text>
+        <Text style={styles.groupLabel}>{groupName}</Text>
 
-          <Text style={styles.title} numberOfLines={2}>
-            {plan.title}
+        <View style={styles.goersSection}>
+          <Text style={styles.sectionLabel}>
+            {goers.length === 0
+              ? "No one going yet"
+              : formatCommunitySynqGoingCount(goers.length)}
           </Text>
-          <Text style={styles.meta}>{metaParts.join(" • ")}</Text>
-          <Text style={styles.groupLabel}>{groupName}</Text>
+          {goers.length > 0 ? (
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={styles.goerStrip}
+            >
+              {goers.map((goer) => {
+                const isSelf = goer.id === uid;
+                const isCreator = goer.id === plan.creatorId;
+                const canTap = isMember && !isSelf;
+                const TileWrapper = canTap ? TouchableOpacity : View;
 
-          <View style={styles.goersSection}>
-            <Text style={styles.sectionLabel}>
-              {goers.length === 0
-                ? "No one going yet"
-                : formatCommunitySynqGoingCount(goers.length)}
-            </Text>
-            {goers.length > 0 ? (
-              <ScrollView
-                horizontal
-                showsHorizontalScrollIndicator={false}
-                contentContainerStyle={styles.goerStrip}
-              >
-                {goers.map((goer) => {
-                  const isSelf = goer.id === uid;
-                  const isCreator = goer.id === plan.creatorId;
-                  const canTap = isMember && !isSelf;
-                  const TileWrapper = canTap ? TouchableOpacity : View;
-
-                  return (
-                    <TileWrapper
-                      key={goer.id}
-                      style={styles.goerTile}
-                      {...(canTap
-                        ? {
-                            onPress: () => handleGoerPress(goer),
-                            activeOpacity: 0.82,
-                            accessibilityRole: "button" as const,
-                            accessibilityLabel: isCreator
-                              ? `${firstName(goer.displayName)}, creator`
-                              : `${firstName(goer.displayName)}, tap for options`,
-                          }
-                        : {})}
-                    >
-                      <View style={styles.goerAvatarRing}>
-                        <ExpoImage
-                          source={{ uri: resolveAvatar(goer.imageurl) }}
-                          style={styles.goerAvatar}
-                          cachePolicy="memory-disk"
-                        />
+                return (
+                  <TileWrapper
+                    key={goer.id}
+                    style={styles.goerTile}
+                    {...(canTap
+                      ? {
+                          onPress: () => handleGoerPress(goer),
+                          activeOpacity: 0.82,
+                          accessibilityRole: "button" as const,
+                          accessibilityLabel: isCreator
+                            ? `${firstName(goer.displayName)}, creator`
+                            : `${firstName(goer.displayName)}, tap for options`,
+                        }
+                      : {})}
+                  >
+                    <View style={styles.goerAvatarRing}>
+                      <ExpoImage
+                        source={{ uri: resolveAvatar(goer.imageurl) }}
+                        style={styles.goerAvatar}
+                        cachePolicy="memory-disk"
+                      />
+                    </View>
+                    <Text style={styles.goerName} numberOfLines={1}>
+                      {isSelf ? "You" : firstName(goer.displayName)}
+                    </Text>
+                    {isCreator ? (
+                      <View style={styles.creatorBadge}>
+                        <Ionicons name="star" size={9} color={ACCENT} />
+                        <Text style={styles.creatorBadgeText}>Creator</Text>
                       </View>
-                      <Text style={styles.goerName} numberOfLines={1}>
-                        {isSelf ? "You" : firstName(goer.displayName)}
-                      </Text>
-                      {isCreator ? (
-                        <View style={styles.creatorBadge}>
-                          <Ionicons name="star" size={9} color={ACCENT} />
-                          <Text style={styles.creatorBadgeText}>Creator</Text>
-                        </View>
-                      ) : null}
-                    </TileWrapper>
-                  );
-                })}
-              </ScrollView>
-            ) : (
-              <CommunityPlanGoerAvatars goers={[]} />
-            )}
-          </View>
-
-          <View style={styles.actions}>
-            {isMember ? (
-              isGoing ? (
-                <TouchableOpacity
-                  style={styles.leaveBtn}
-                  onPress={onLeave}
-                  disabled={busy}
-                  activeOpacity={0.85}
-                >
-                  {busy ? (
-                    <ActivityIndicator color={DESTRUCTIVE} size="small" />
-                  ) : (
-                    <Text style={styles.leaveBtnText}>Leave</Text>
-                  )}
-                </TouchableOpacity>
-              ) : (
-                <TouchableOpacity
-                  style={styles.primaryBtn}
-                  onPress={onJoin}
-                  disabled={busy}
-                  activeOpacity={0.85}
-                >
-                  {busy ? (
-                    <ActivityIndicator color={BG} size="small" />
-                  ) : (
-                    <Text style={styles.primaryBtnText}>Join</Text>
-                  )}
-                </TouchableOpacity>
-              )
-            ) : (
-              <Text style={styles.lockedCopy}>
-                Join {groupName} to see who's going and coordinate.
-              </Text>
-            )}
-          </View>
+                    ) : null}
+                  </TileWrapper>
+                );
+              })}
+            </ScrollView>
+          ) : (
+            <CommunityPlanGoerAvatars goers={[]} />
+          )}
         </View>
 
-        {selectedGoer ? (
-          <View style={styles.goerActionPortal} pointerEvents="box-none">
-            <Pressable
-              style={styles.goerActionBackdrop}
-              onPress={closeGoerActions}
-              accessibilityLabel="Close menu"
-            />
-            <View
-              style={[
-                styles.goerActionGroup,
-                { paddingBottom: Math.max(insets.bottom, 12) + 8 },
-              ]}
-              pointerEvents="box-none"
-            >
-              <Text style={styles.goerActionTitle} numberOfLines={1}>
-                {firstName(selectedGoer.displayName)}
-              </Text>
-              <View style={styles.goerActionSheet}>
-                <TouchableOpacity
-                  style={styles.goerActionOption}
-                  onPress={handleAddGoer}
-                  activeOpacity={0.75}
-                >
-                  <Ionicons name="person-add-outline" size={22} color={TEXT} />
-                  <Text style={styles.goerActionOptionText}>Add friend</Text>
-                </TouchableOpacity>
-              </View>
+        <View style={styles.actions}>
+          {isMember ? (
+            isGoing ? (
               <TouchableOpacity
-                style={styles.goerActionCancel}
-                onPress={closeGoerActions}
+                style={styles.leaveBtn}
+                onPress={onLeave}
+                disabled={busy}
                 activeOpacity={0.85}
               >
-                <Text style={styles.goerActionCancelText}>Cancel</Text>
+                {busy ? (
+                  <ActivityIndicator color={DESTRUCTIVE} size="small" />
+                ) : (
+                  <Text style={styles.leaveBtnText}>Leave</Text>
+                )}
               </TouchableOpacity>
-            </View>
-          </View>
-        ) : null}
-      </View>
-    </Modal>
+            ) : (
+              <TouchableOpacity
+                style={styles.primaryBtn}
+                onPress={onJoin}
+                disabled={busy}
+                activeOpacity={0.85}
+              >
+                {busy ? (
+                  <ActivityIndicator color={BG} size="small" />
+                ) : (
+                  <Text style={styles.primaryBtnText}>Join</Text>
+                )}
+              </TouchableOpacity>
+            )
+          ) : (
+            <Text style={styles.lockedCopy}>
+              Join {groupName} to see who's going and coordinate.
+            </Text>
+          )}
+        </View>
+      </SpringBottomSheet>
+
+      <SpringBottomSheet
+        visible={!!selectedGoer}
+        onClose={closeGoerActions}
+        contentStyle={[
+          styles.goerActionGroup,
+          { paddingBottom: Math.max(insets.bottom, 12) + 8 },
+        ]}
+        header={
+          selectedGoer ? (
+            <Text style={styles.goerActionTitle} numberOfLines={1}>
+              {firstName(selectedGoer.displayName)}
+            </Text>
+          ) : null
+        }
+        cardStyle={sheetStyles.sheetCard}
+        footer={
+          <TouchableOpacity
+            style={styles.goerActionCancel}
+            onPress={closeGoerActions}
+            activeOpacity={0.85}
+          >
+            <Text style={styles.goerActionCancelText}>Cancel</Text>
+          </TouchableOpacity>
+        }
+      >
+        <TouchableOpacity
+          style={styles.goerActionOption}
+          onPress={handleAddGoer}
+          activeOpacity={0.75}
+        >
+          <Ionicons name="person-add-outline" size={22} color={TEXT} />
+          <Text style={styles.goerActionOptionText}>Add friend</Text>
+        </TouchableOpacity>
+      </SpringBottomSheet>
+    </>
   );
 }
 
 const styles = StyleSheet.create({
-  portal: {
-    flex: 1,
-    justifyContent: "flex-end",
-  },
-  backdrop: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: SHEET_OVERLAY,
-  },
   sheet: {
     backgroundColor: BG,
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
+    borderRadius: RADIUS_LG,
     borderWidth: StyleSheet.hairlineWidth,
     borderColor: BORDER,
     paddingTop: SPACE_3,
     paddingHorizontal: SPACE_5,
     gap: SPACE_3,
     maxHeight: "82%",
-  },
-  handle: {
-    alignSelf: "center",
-    width: 36,
-    height: 4,
-    borderRadius: 2,
-    backgroundColor: DIVIDER,
-    marginBottom: SPACE_3,
+    overflow: "hidden",
   },
   title: {
     ...cardTitleText,
@@ -393,15 +370,6 @@ const styles = StyleSheet.create({
     textAlign: "center",
     paddingVertical: SPACE_3,
   },
-  goerActionPortal: {
-    ...StyleSheet.absoluteFillObject,
-    zIndex: 20,
-    justifyContent: "flex-end",
-  },
-  goerActionBackdrop: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: OVERLAY_TINT,
-  },
   goerActionGroup: {
     paddingHorizontal: 12,
   },
@@ -412,13 +380,6 @@ const styles = StyleSheet.create({
     textAlign: "center",
     marginBottom: 10,
     paddingHorizontal: 24,
-  },
-  goerActionSheet: {
-    backgroundColor: SHEET_SURFACE,
-    borderRadius: BUTTON_RADIUS + 4,
-    borderWidth: 1,
-    borderColor: BORDER,
-    overflow: "hidden",
   },
   goerActionOption: {
     flexDirection: "row",
@@ -432,23 +393,14 @@ const styles = StyleSheet.create({
     fontSize: TYPE_SUBHEAD,
     fontFamily: fonts.medium,
   },
-  goerActionDivider: {
-    height: StyleSheet.hairlineWidth,
-    backgroundColor: BORDER,
-    marginLeft: 54,
-  },
   goerActionCancel: {
     marginTop: 10,
     backgroundColor: BG,
-    borderRadius: BUTTON_RADIUS + 4,
+    borderRadius: RADIUS_MD,
     borderWidth: 1,
     borderColor: BORDER,
     paddingVertical: 16,
     alignItems: "center",
   },
-  goerActionCancelText: {
-    color: TEXT,
-    fontSize: TYPE_SUBHEAD,
-    fontFamily: fonts.heavy,
-  },
+  goerActionCancelText: sheetTitleText,
 });

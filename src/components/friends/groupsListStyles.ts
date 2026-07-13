@@ -20,6 +20,8 @@ import {
   listRowTitleText,
   listSectionTitle,
   searchPlaceholderText,
+  RADIUS_MD,
+  RADIUS_SM,
 } from "@/constants/Variables";
 import { StyleSheet } from "react-native";
 
@@ -60,7 +62,7 @@ export const groupsPageStyles = StyleSheet.create({
   sectionAddBtn: {
     width: 24,
     height: 24,
-    borderRadius: 12,
+    borderRadius: RADIUS_SM,
     borderWidth: 1.5,
     borderColor: ACCENT,
     alignItems: "center",
@@ -114,7 +116,7 @@ export const groupsPageStyles = StyleSheet.create({
   browseRowIcon: {
     width: 44,
     height: 44,
-    borderRadius: 12,
+    borderRadius: RADIUS_SM,
     alignItems: "center",
     justifyContent: "center",
     backgroundColor: SURFACE_MUTED,
@@ -160,7 +162,7 @@ export const groupsPageStyles = StyleSheet.create({
   discoverCardIcon: {
     width: 44,
     height: 44,
-    borderRadius: 12,
+    borderRadius: RADIUS_SM,
     alignItems: "center",
     justifyContent: "center",
     backgroundColor: SURFACE_MUTED,
@@ -169,7 +171,7 @@ export const groupsPageStyles = StyleSheet.create({
   discoverCardCover: {
     width: 44,
     height: 44,
-    borderRadius: 12,
+    borderRadius: RADIUS_SM,
     marginBottom: 12,
     backgroundColor: SURFACE_ELEVATED,
   },
@@ -199,7 +201,7 @@ export const groupsPageStyles = StyleSheet.create({
     minWidth: 64,
     height: 32,
     paddingHorizontal: 14,
-    borderRadius: 16,
+    borderRadius: RADIUS_MD,
     backgroundColor: ACCENT,
     alignItems: "center",
     justifyContent: "center",

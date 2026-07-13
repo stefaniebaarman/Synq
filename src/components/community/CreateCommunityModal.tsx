@@ -21,6 +21,7 @@ import {
   TYPE_MODAL_TITLE,
   heroTitleText,
   fonts,
+  RADIUS_XL,
 } from "@/constants/Variables";
 import CloseButton from "@/src/components/CloseButton";
 import { GROUP_BORDER, GROUP_SURFACE } from "@/src/components/friends/groupsListStyles";
@@ -441,7 +442,7 @@ const styles = StyleSheet.create({
   coverIconWrap: {
     width: 48,
     height: 48,
-    borderRadius: 24,
+    borderRadius: RADIUS_XL,
     alignItems: "center",
     justifyContent: "center",
     backgroundColor: ACCENT_FILL,

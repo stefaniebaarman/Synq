@@ -11,7 +11,7 @@ import {
   SPACE_3,
   SPACE_4,
   SPACE_5,
-  SURFACE_INSET,
+  SURFACE_RAISED,
   TEXT,
   TYPE_BODY,
   TYPE_CAPTION,
@@ -22,6 +22,7 @@ import {
   fonts,
   listSectionTitle,
   sectionLinkText,
+  BUTTON_RADIUS,
 } from "@/constants/Variables";
 import AlertModal from "@/app/alert-modal";
 import ConfirmModal from "@/app/confirm-modal";
@@ -532,7 +533,7 @@ const styles = StyleSheet.create({
   startSynqIconWrap: {
     width: 28,
     height: 28,
-    borderRadius: 14,
+    borderRadius: BUTTON_RADIUS,
     borderWidth: 1.5,
     borderColor: ACCENT,
     alignItems: "center",
@@ -571,7 +572,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     borderRadius: RADIUS_LG,
     overflow: "hidden",
-    backgroundColor: SURFACE_INSET,
+    backgroundColor: SURFACE_RAISED,
     borderWidth: StyleSheet.hairlineWidth,
     borderColor: BORDER,
   },

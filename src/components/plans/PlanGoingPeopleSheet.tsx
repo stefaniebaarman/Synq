@@ -3,22 +3,25 @@ import {
   BORDER,
   BORDER_STRONG,
   DEFAULT_AVATAR,
-  SHEET_OVERLAY,
+  MODAL_RADIUS,
   TEXT,
   TYPE_BUTTON,
   TYPE_SUBHEAD,
   fonts,
+  RADIUS_LG,
+  RADIUS_SM,
 } from "@/constants/Variables";
 import CloseButton from "@/src/components/CloseButton";
+import SpringBottomSheet from "@/src/components/sheets/SpringBottomSheet";
 import { Image as ExpoImage } from "expo-image";
 import {
   FlatList,
-  Modal,
   Pressable,
   StyleSheet,
   Text,
   View,
 } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 export type PlanGoingPerson = {
   userId: string | null;
@@ -41,70 +44,63 @@ export default function PlanGoingPeopleSheet({
   onClose,
   onPressPerson,
 }: Props) {
+  const insets = useSafeAreaInsets();
   const title = String(planTitle || "").trim() || "this plan";
 
   return (
-    <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
-      <View style={styles.overlay}>
-        <Pressable style={StyleSheet.absoluteFill} onPress={onClose} />
-        <View style={styles.sheet}>
-          <View style={styles.header}>
-            <Text style={styles.title}>Going to {title}</Text>
-            <CloseButton onPress={onClose} />
-          </View>
-          <FlatList
-            data={people}
-            keyExtractor={(item, index) => item.userId || `person-${index}`}
-            style={styles.list}
-            renderItem={({ item }) => {
-              const avatarUri = item.imageUrl || DEFAULT_AVATAR;
-              const row = (
-                <View style={styles.row}>
-                  <View style={styles.avatar}>
-                    <ExpoImage
-                      source={{ uri: avatarUri }}
-                      style={styles.avatarImg}
-                      contentFit="cover"
-                      cachePolicy="memory-disk"
-                    />
-                  </View>
-                  <Text style={styles.rowName} numberOfLines={1}>
-                    {item.displayName}
-                  </Text>
-                </View>
-              );
-
-              if (!onPressPerson) return row;
-
-              return (
-                <Pressable onPress={() => onPressPerson(item)} style={styles.rowPressable}>
-                  {row}
-                </Pressable>
-              );
-            }}
-          />
-        </View>
+    <SpringBottomSheet
+      visible={visible}
+      onClose={onClose}
+      cardStyle={[styles.sheet, { paddingBottom: Math.max(28, insets.bottom + 12) }]}
+    >
+      <View style={styles.header}>
+        <Text style={styles.title}>Going to {title}</Text>
+        <CloseButton onPress={onClose} />
       </View>
-    </Modal>
+      <FlatList
+        data={people}
+        keyExtractor={(item, index) => item.userId || `person-${index}`}
+        style={styles.list}
+        renderItem={({ item }) => {
+          const avatarUri = item.imageUrl || DEFAULT_AVATAR;
+          const row = (
+            <View style={styles.row}>
+              <View style={styles.avatar}>
+                <ExpoImage
+                  source={{ uri: avatarUri }}
+                  style={styles.avatarImg}
+                  contentFit="cover"
+                  cachePolicy="memory-disk"
+                />
+              </View>
+              <Text style={styles.rowName} numberOfLines={1}>
+                {item.displayName}
+              </Text>
+            </View>
+          );
+
+          if (!onPressPerson) return row;
+
+          return (
+            <Pressable onPress={() => onPressPerson(item)} style={styles.rowPressable}>
+              {row}
+            </Pressable>
+          );
+        }}
+      />
+    </SpringBottomSheet>
   );
 }
 
 const styles = StyleSheet.create({
-  overlay: {
-    flex: 1,
-    justifyContent: "flex-end",
-    backgroundColor: SHEET_OVERLAY,
-  },
   sheet: {
     backgroundColor: BG,
-    borderTopLeftRadius: 18,
-    borderTopRightRadius: 18,
+    borderRadius: MODAL_RADIUS,
     borderWidth: 1,
     borderColor: BORDER,
-    borderBottomWidth: 0,
-    paddingTop: 16,
-    paddingBottom: 28,
+    paddingTop: 8,
     maxHeight: "70%",
+    overflow: "hidden",
   },
   header: {
     flexDirection: "row",
@@ -124,7 +120,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
   },
   rowPressable: {
-    borderRadius: 12,
+    borderRadius: RADIUS_SM,
   },
   row: {
     flexDirection: "row",
@@ -135,7 +131,7 @@ const styles = StyleSheet.create({
   avatar: {
     width: 40,
     height: 40,
-    borderRadius: 20,
+    borderRadius: RADIUS_LG,
     backgroundColor: BORDER_STRONG,
     overflow: "hidden",
     marginRight: 12,
@@ -143,7 +139,7 @@ const styles = StyleSheet.create({
   avatarImg: {
     width: 40,
     height: 40,
-    borderRadius: 20,
+    borderRadius: RADIUS_LG,
   },
   rowName: {
     flex: 1,

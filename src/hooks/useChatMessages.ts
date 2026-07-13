@@ -184,7 +184,7 @@ export function useChatMessages({
         return merged;
       });
     } catch {
-      setHasEarlierMessages(false);
+      // Keep hasEarlierMessages true so the user can retry.
     } finally {
       setLoadingEarlier(false);
     }

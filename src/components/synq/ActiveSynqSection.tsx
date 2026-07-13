@@ -16,7 +16,6 @@ import {
 import { useSortedFriendsList } from "@/src/lib/useSortedFriendsList";
 import React, { useEffect, useMemo, useState } from "react";
 import {
-  Animated,
   DeviceEventEmitter,
   FlatList,
   Pressable,
@@ -24,6 +23,15 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
+import Animated, {
+  cancelAnimation,
+  Easing,
+  useAnimatedStyle,
+  useSharedValue,
+  withRepeat,
+  withSequence,
+  withTiming,
+} from "react-native-reanimated";
 import { SYNQ_TAB_LONG_PRESS } from "@/src/lib/synqTabEvents";
 import { friendLocationLine, resolveAvatar } from "@/src/lib/helpers";
 import {
@@ -47,12 +55,11 @@ const ACTIVE_CTA_BOTTOM_NUDGE = 48;
 type Props = {
   styles: any;
   hasUnread: boolean;
-  activePulseOpacity: Animated.Value;
-  activePulseScale: Animated.Value;
   availableFriends: any[];
   selectedFriends: string[];
   setSelectedFriends: React.Dispatch<React.SetStateAction<string[]>>;
   handleConnect: () => void;
+  isConnecting?: boolean;
   endSynq: () => void;
   insetsBottom: number;
   openMessagesInbox: () => void;
@@ -67,12 +74,11 @@ type Props = {
 export default function ActiveSynqSection({
   styles,
   hasUnread,
-  activePulseOpacity,
-  activePulseScale,
   availableFriends,
   selectedFriends,
   setSelectedFriends,
   handleConnect,
+  isConnecting = false,
   endSynq,
   insetsBottom,
   openMessagesInbox,
@@ -87,6 +93,39 @@ export default function ActiveSynqSection({
   const [sortMode, setSortMode] = useState<FriendsSortMode>("distance");
   const [sortMenuVisible, setSortMenuVisible] = useState(false);
   const headerLayout = useTabHeaderLayout();
+  const pulseOpacity = useSharedValue(1);
+  const pulseScale = useSharedValue(1);
+
+  useEffect(() => {
+    const easing = Easing.inOut(Easing.ease);
+    pulseOpacity.value = withRepeat(
+      withSequence(
+        withTiming(0.62, { duration: 1200, easing }),
+        withTiming(1, { duration: 1200, easing })
+      ),
+      -1,
+      false
+    );
+    pulseScale.value = withRepeat(
+      withSequence(
+        withTiming(0.94, { duration: 1200, easing }),
+        withTiming(1, { duration: 1200, easing })
+      ),
+      -1,
+      false
+    );
+    return () => {
+      cancelAnimation(pulseOpacity);
+      cancelAnimation(pulseScale);
+      pulseOpacity.value = 1;
+      pulseScale.value = 1;
+    };
+  }, [pulseOpacity, pulseScale]);
+
+  const activeStatusDotStyle = useAnimatedStyle(() => ({
+    opacity: pulseOpacity.value,
+    transform: [{ scale: pulseScale.value }],
+  }));
 
   useEffect(() => {
     const subscription = DeviceEventEmitter.addListener(SYNQ_TAB_LONG_PRESS, () => {
@@ -128,13 +167,7 @@ export default function ActiveSynqSection({
         <View style={styles.synqHeaderTitleCenter}>
           <View style={styles.headerTitleWithIndicator}>
             <Animated.View
-              style={[
-                styles.activeStatusDot,
-                {
-                  opacity: activePulseOpacity,
-                  transform: [{ scale: activePulseScale }],
-                },
-              ]}
+              style={[styles.activeStatusDot, activeStatusDotStyle]}
               accessibilityLabel="Synq session live"
             />
             <Text style={styles.headerTitle} numberOfLines={1}>
@@ -291,12 +324,17 @@ export default function ActiveSynqSection({
               ]}
             >
               <TouchableOpacity
-                style={[styles.btn, !selectedFriends.length && { opacity: 0.5 }]}
+                style={[
+                  styles.btn,
+                  (!selectedFriends.length || isConnecting) && { opacity: 0.5 },
+                ]}
                 onPress={handleConnect}
-                disabled={!selectedFriends.length}
+                disabled={!selectedFriends.length || isConnecting}
                 accessibilityRole="button"
                 accessibilityLabel={
-                  selectedFriends.length === 0
+                  isConnecting
+                    ? "Starting chat"
+                    : selectedFriends.length === 0
                     ? "Select friends who are free to chat"
                     : `Start chat with ${selectedFriends.length} friend${
                         selectedFriends.length === 1 ? "" : "s"
@@ -304,7 +342,11 @@ export default function ActiveSynqSection({
                 }
               >
                 <Text style={styles.btnText}>
-                  {selectedFriends.length === 0 ? "Select friends" : "Start chat"}
+                  {isConnecting
+                    ? "Starting..."
+                    : selectedFriends.length === 0
+                    ? "Select friends"
+                    : "Start chat"}
                 </Text>
               </TouchableOpacity>
             </View>

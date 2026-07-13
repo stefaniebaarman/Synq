@@ -1,8 +1,9 @@
 import {
   BORDER,
-  SURFACE_DEEPER,
+  BG,
   TEXT_BRIGHT_HEX,
   fonts,
+  BUTTON_RADIUS,
 } from "@/constants/Variables";
 import DateTimePicker, {
   type DateTimePickerEvent,
@@ -10,7 +11,7 @@ import DateTimePicker, {
 import React, { useCallback } from "react";
 import { Platform, StyleSheet, View } from "react-native";
 
-const WHEEL_BG = SURFACE_DEEPER;
+const WHEEL_BG = BG;
 
 type Props = {
   value: Date;
@@ -69,7 +70,7 @@ const styles = StyleSheet.create({
     marginTop: 10,
   },
   frame: {
-    borderRadius: 14,
+    borderRadius: BUTTON_RADIUS,
     backgroundColor: WHEEL_BG,
     borderWidth: 1,
     borderColor: BORDER,

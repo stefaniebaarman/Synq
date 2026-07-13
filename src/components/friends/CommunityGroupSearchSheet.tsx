@@ -4,20 +4,17 @@ import {
   ACCENT_FILL,
   BG,
   BORDER,
-  BORDER_HAIRLINE,
   Friend,
-  MODAL_RADIUS,
   MUTED2,
   MUTED3,
   ON_ACCENT_TEXT,
-  OVERLAY_DARK,
+  RADIUS_2XL,
   RADIUS_LG,
   SURFACE,
   SURFACE_MUTED,
   TEXT,
   TYPE_BODY,
   TYPE_CAPTION,
-  TYPE_TITLE,
   cardMetaText,
   fonts,
   profileInterestPillText,
@@ -31,6 +28,7 @@ import {
   GROUP_SURFACE,
   groupsPageStyles,
 } from "@/src/components/friends/groupsListStyles";
+import SpringBottomSheet from "@/src/components/sheets/SpringBottomSheet";
 import { COMMUNITY_GROUP_CATEGORIES } from "@/src/lib/communityGroupCategories";
 import {
   CommunityGroup,
@@ -45,7 +43,6 @@ import {
   Alert,
   FlatList,
   Keyboard,
-  Modal,
   Platform,
   Pressable,
   ScrollView,
@@ -387,81 +384,60 @@ export default function CommunityGroupSearchSheet({
   }
 
   return (
-    <Modal visible={visible} transparent animationType="slide" onRequestClose={handleBackdropPress}>
-      <View style={styles.overlay}>
-        <Pressable style={StyleSheet.absoluteFill} onPress={handleBackdropPress} accessibilityLabel="Dismiss" />
-        <View style={[styles.sheet, { paddingBottom: insets.bottom }]}>
-          <View style={styles.handleWrap}>
-            <View style={styles.handle} />
-          </View>
-
-          <TouchableWithoutFeedback onPress={dismissKeyboard} accessible={false}>
-            <View style={styles.sheetHeader}>
-              <View style={styles.headerRow}>
-                <View style={styles.headerTitleWrap}>
-                  <Text style={styles.title}>Discover</Text>
-                </View>
-                <CloseButton onPress={onClose} style={styles.navIconBtnTrailing} />
-              </View>
+    <SpringBottomSheet
+      visible={visible}
+      onClose={onClose}
+      onBackdropPress={handleBackdropPress}
+      cardStyle={[styles.sheet, { paddingBottom: insets.bottom }]}
+    >
+      <TouchableWithoutFeedback onPress={dismissKeyboard} accessible={false}>
+        <View style={styles.sheetHeader}>
+          <View style={styles.headerRow}>
+            <View style={styles.headerTitleWrap}>
+              <Text style={styles.title}>Discover</Text>
             </View>
-          </TouchableWithoutFeedback>
-
-          <View style={styles.searchRow}>
-            <Ionicons name="search" size={17} color={MUTED3} />
-            <TextInput
-              style={styles.searchInput}
-              placeholder="Search by name"
-              placeholderTextColor={MUTED3}
-              value={query}
-              onChangeText={setQuery}
-              returnKeyType="search"
-              onSubmitEditing={() => Keyboard.dismiss()}
-            />
-            {query.length > 0 ? (
-              <TouchableOpacity onPress={() => setQuery("")} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
-                <Ionicons name="close-circle" size={18} color={MUTED2} />
-              </TouchableOpacity>
-            ) : null}
-          </View>
-
-          {renderCategoryChips()}
-
-          <View style={styles.listArea} {...listTouchProps}>
-            {listContent}
+            <CloseButton onPress={onClose} style={styles.navIconBtnTrailing} />
           </View>
         </View>
+      </TouchableWithoutFeedback>
+
+      <View style={styles.searchRow}>
+        <Ionicons name="search" size={17} color={MUTED3} />
+        <TextInput
+          style={styles.searchInput}
+          placeholder="Search by name"
+          placeholderTextColor={MUTED3}
+          value={query}
+          onChangeText={setQuery}
+          returnKeyType="search"
+          onSubmitEditing={() => Keyboard.dismiss()}
+        />
+        {query.length > 0 ? (
+          <TouchableOpacity onPress={() => setQuery("")} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+            <Ionicons name="close-circle" size={18} color={MUTED2} />
+          </TouchableOpacity>
+        ) : null}
       </View>
-    </Modal>
+
+      {renderCategoryChips()}
+
+      <View style={styles.listArea} {...listTouchProps}>
+        {listContent}
+      </View>
+    </SpringBottomSheet>
   );
 }
 
 const styles = StyleSheet.create({
-  overlay: {
-    flex: 1,
-    backgroundColor: OVERLAY_DARK,
-    justifyContent: "flex-end",
-  },
   sheet: {
     flex: 1,
     maxHeight: "94%",
     backgroundColor: BG,
-    borderTopLeftRadius: MODAL_RADIUS + 8,
-    borderTopRightRadius: MODAL_RADIUS + 8,
+    borderRadius: RADIUS_2XL,
     paddingHorizontal: CONTENT_PAD_X,
     borderWidth: StyleSheet.hairlineWidth,
-    borderBottomWidth: 0,
     borderColor: GROUP_BORDER,
-  },
-  handleWrap: {
-    alignItems: "center",
-    paddingTop: 12,
-    paddingBottom: 16,
-  },
-  handle: {
-    width: 36,
-    height: 4,
-    borderRadius: 2,
-    backgroundColor: BORDER_HAIRLINE,
+    overflow: "hidden",
   },
   sheetHeader: {
     paddingTop: 8,

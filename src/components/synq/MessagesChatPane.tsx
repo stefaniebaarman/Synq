@@ -23,6 +23,7 @@ import {
   TYPE_SECTION,
   fonts,
   heroTitleText,
+  RADIUS_XL,
 } from "@/constants/Variables";
 import CloseButton from "@/src/components/CloseButton";
 import CloseIcon from "@/src/components/CloseIcon";
@@ -162,6 +163,7 @@ type Props = {
   showAIUnavailableMessage?: boolean;
   onOpenAISuggestions: () => void;
   onOpenFriendProfile?: (friendId: string) => void;
+  isSending?: boolean;
   sendMessage: () => void;
   sendAISuggestionToChat: () => void;
   onMessageBubblePress: (item: {
@@ -231,6 +233,7 @@ export default function MessagesChatPane({
   showAIUnavailableMessage = false,
   onOpenAISuggestions,
   onOpenFriendProfile,
+  isSending = false,
   sendMessage,
   sendAISuggestionToChat,
   onMessageBubblePress,
@@ -244,7 +247,7 @@ export default function MessagesChatPane({
   chatOpenAnchorKey = 0,
 }: Props) {
   const insets = useSafeAreaInsets();
-  const canSend = inputText.trim().length > 0;
+  const canSend = inputText.trim().length > 0 && !isSending;
   const listHeightRef = useRef(0);
   const contentHeightRef = useRef(0);
   const scrollOffsetRef = useRef(0);
@@ -1467,7 +1470,7 @@ const chatHeaderOverlayStyles = RNStyleSheet.create({
   memberTileAvatarWrap: {
     width: 48,
     height: 48,
-    borderRadius: 24,
+    borderRadius: RADIUS_XL,
     backgroundColor: SURFACE_ELEVATED,
     overflow: "hidden",
   },

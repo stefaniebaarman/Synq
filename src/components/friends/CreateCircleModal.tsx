@@ -14,6 +14,7 @@ import {
   TYPE_CAPTION,
   heroTitleText,
   fonts,
+  MODAL_RADIUS,
 } from "@/constants/Variables";
 import CloseButton from "@/src/components/CloseButton";
 import { useCreateSheetLayout } from "@/src/components/friends/createSheetLayout";
@@ -324,7 +325,7 @@ const styles = StyleSheet.create({
   avatarRing: {
     width: 44,
     height: 44,
-    borderRadius: 22,
+    borderRadius: MODAL_RADIUS,
     overflow: "hidden",
     backgroundColor: SURFACE,
   },

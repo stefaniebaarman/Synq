@@ -2,6 +2,7 @@ import {
   BG,
   BORDER,
   MUTED2,
+  RADIUS_2XL,
   TEXT,
   TYPE_LEAD,
   TYPE_SECTION,
@@ -12,11 +13,10 @@ import {
 import ConfirmModal from "@/app/confirm-modal";
 import CloseButton from "@/src/components/CloseButton";
 import FriendPlanCard from "@/src/components/friends/FriendPlanCard";
+import SpringBottomSheet from "@/src/components/sheets/SpringBottomSheet";
 import type { useFriendPlansFeed } from "@/src/lib/useFriendPlansFeed";
 import {
   FlatList,
-  Modal,
-  Pressable,
   StyleSheet,
   Text,
   View,
@@ -56,49 +56,50 @@ export default function FriendsPlansSheet({
   } = feed;
 
   return (
-    <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
-      <View style={styles.overlay}>
-        <Pressable style={StyleSheet.absoluteFill} onPress={onClose} />
-        <View style={[styles.sheet, { paddingBottom: Math.max(24, insets.bottom) }]}>
-          <View style={styles.header}>
-            <Text style={styles.title}>Upcoming</Text>
-            <CloseButton onPress={onClose} accessibilityLabel="Close plans" />
-          </View>
-
-          <FlatList
-            data={aggregatedPlans}
-            keyExtractor={(item) => `${item.sourceFriendId}|${item.event.id}`}
-            showsVerticalScrollIndicator={false}
-            contentContainerStyle={[
-              styles.listContent,
-              aggregatedPlans.length === 0 && styles.listContentEmpty,
-            ]}
-            ListEmptyComponent={
-              <View style={styles.emptyWrap}>
-                <Text style={styles.emptyTitle}>Nothing planned right now</Text>
-                <Text style={styles.emptyText}>
-                  When friends add plans, they'll show up here.
-                </Text>
-              </View>
-            }
-            renderItem={({ item }) => (
-              <FriendPlanCard
-                item={item}
-                viewerId={userId}
-                hostDisplayNameByUid={hostDisplayNameByUid}
-                viewerEvents={viewerEvents}
-                friendImageByUid={friendImageByUid}
-                joined={planJoined(item)}
-                isHost={planIsHost(item)}
-                busy={isPlanBusy(item)}
-                onPressCard={() => onOpenFriendProfile(item.sourceFriendId)}
-                onPressAction={() => void handlePlanAction(item)}
-                onOpenPersonProfile={onOpenFriendProfile}
-              />
-            )}
-          />
+    <>
+      <SpringBottomSheet
+        visible={visible}
+        onClose={onClose}
+        cardStyle={[styles.sheet, { paddingBottom: Math.max(24, insets.bottom) }]}
+      >
+        <View style={styles.header}>
+          <Text style={styles.title}>Upcoming</Text>
+          <CloseButton onPress={onClose} accessibilityLabel="Close plans" />
         </View>
-      </View>
+
+        <FlatList
+          data={aggregatedPlans}
+          keyExtractor={(item) => `${item.sourceFriendId}|${item.event.id}`}
+          showsVerticalScrollIndicator={false}
+          contentContainerStyle={[
+            styles.listContent,
+            aggregatedPlans.length === 0 && styles.listContentEmpty,
+          ]}
+          ListEmptyComponent={
+            <View style={styles.emptyWrap}>
+              <Text style={styles.emptyTitle}>Nothing planned right now</Text>
+              <Text style={styles.emptyText}>
+                When friends add plans, they'll show up here.
+              </Text>
+            </View>
+          }
+          renderItem={({ item }) => (
+            <FriendPlanCard
+              item={item}
+              viewerId={userId}
+              hostDisplayNameByUid={hostDisplayNameByUid}
+              viewerEvents={viewerEvents}
+              friendImageByUid={friendImageByUid}
+              joined={planJoined(item)}
+              isHost={planIsHost(item)}
+              busy={isPlanBusy(item)}
+              onPressCard={() => onOpenFriendProfile(item.sourceFriendId)}
+              onPressAction={() => void handlePlanAction(item)}
+              onOpenPersonProfile={onOpenFriendProfile}
+            />
+          )}
+        />
+      </SpringBottomSheet>
 
       <ConfirmModal
         visible={pendingUnjoin != null}
@@ -111,25 +112,19 @@ export default function FriendsPlansSheet({
           void confirmUnjoin();
         }}
       />
-    </Modal>
+    </>
   );
 }
 
 const styles = StyleSheet.create({
-  overlay: {
-    flex: 1,
-    justifyContent: "flex-end",
-    backgroundColor: "rgba(0,0,0,0.55)",
-  },
   sheet: {
     maxHeight: "88%",
     backgroundColor: BG,
-    borderTopLeftRadius: 28,
-    borderTopRightRadius: 28,
+    borderRadius: RADIUS_2XL,
     borderWidth: 1,
     borderColor: BORDER,
-    borderBottomWidth: 0,
-    paddingTop: 16,
+    paddingTop: 8,
+    overflow: "hidden",
   },
   header: {
     flexDirection: "row",
@@ -151,23 +146,23 @@ const styles = StyleSheet.create({
   },
   listContentEmpty: {
     flexGrow: 1,
+    justifyContent: "center",
   },
   emptyWrap: {
     alignItems: "center",
-    paddingVertical: 32,
-    paddingHorizontal: 16,
+    paddingVertical: 40,
+    paddingHorizontal: 24,
+    gap: 8,
   },
   emptyTitle: {
     ...listRowTitleText,
-    fontFamily: fonts.heavy,
     textAlign: "center",
   },
   emptyText: {
     color: MUTED2,
-    fontSize: TYPE_LEAD,
     fontFamily: fonts.book,
+    fontSize: TYPE_LEAD,
     textAlign: "center",
-    marginTop: 10,
-    lineHeight: 22,
+    lineHeight: 20,
   },
 });
