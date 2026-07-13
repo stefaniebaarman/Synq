@@ -1,10 +1,10 @@
 import SynqAudiencePicker from "@/src/components/synq/SynqAudiencePicker";
-import { SHEET_ANIMATION, sheetStyles } from "@/constants/sheetStyles";
+import SpringBottomSheet from "@/src/components/sheets/SpringBottomSheet";
+import { sheetStyles } from "@/constants/sheetStyles";
 import {
   ACCENT,
   GROUP_BORDER,
   MUTED2,
-  SHEET_OVERLAY,
   SPACE_3,
   TYPE_BODY,
   fonts,
@@ -15,8 +15,6 @@ import React, { useEffect, useMemo, useState } from "react";
 import {
   ActivityIndicator,
   Dimensions,
-  Modal,
-  Pressable,
   ScrollView,
   StyleSheet,
   Text,
@@ -77,78 +75,59 @@ export default function ChangeSynqAudienceModal({
   };
 
   return (
-    <Modal
+    <SpringBottomSheet
       visible={visible}
-      transparent
-      animationType={SHEET_ANIMATION}
-      onRequestClose={onClose}
+      onClose={onClose}
+      contentStyle={[styles.sheetGroup, { paddingBottom: insets.bottom + SPACE_3 }]}
+      cardStyle={[sheetStyles.sheetCard, styles.sheetCard]}
     >
-      <View style={styles.overlay}>
-        <Pressable
-          style={sheetStyles.backdrop}
-          onPress={onClose}
-          accessibilityLabel="Close change audience"
-        />
-        <View style={[styles.sheetGroup, { paddingBottom: insets.bottom + SPACE_3 }]}>
-          <View style={[sheetStyles.sheetCard, styles.sheetCard]}>
-            <View style={sheetStyles.grabberWrap}>
-              <View style={sheetStyles.grabber} />
-            </View>
-            <View style={styles.headerRow}>
-              <Text style={[sheetStyles.sheetHeaderTitle, styles.sheetTitleFlex]}>
-                Change audience
-              </Text>
-              <TouchableOpacity
-                style={styles.saveBtn}
-                onPress={() => void handleSave()}
-                disabled={!selectionDirty || saving}
-                activeOpacity={selectionDirty && !saving ? 0.75 : 1}
-                accessibilityRole="button"
-                accessibilityLabel="Save audience"
-                accessibilityState={{ disabled: !selectionDirty || saving }}
-                hitSlop={8}
-              >
-                {saving ? (
-                  <ActivityIndicator color={ACCENT} size="small" />
-                ) : (
-                  <Text
-                    style={[
-                      styles.saveBtnText,
-                      !selectionDirty && styles.saveBtnTextDisabled,
-                    ]}
-                  >
-                    Save
-                  </Text>
-                )}
-              </TouchableOpacity>
-            </View>
-            <ScrollView
-              style={styles.scroll}
-              contentContainerStyle={styles.scrollContent}
-              bounces={false}
-              keyboardShouldPersistTaps="handled"
-              showsVerticalScrollIndicator={false}
+      <View style={styles.headerRow}>
+        <Text style={[sheetStyles.sheetHeaderTitle, styles.sheetTitleFlex]}>
+          Change audience
+        </Text>
+        <TouchableOpacity
+          style={styles.saveBtn}
+          onPress={() => void handleSave()}
+          disabled={!selectionDirty || saving}
+          activeOpacity={selectionDirty && !saving ? 0.75 : 1}
+          accessibilityRole="button"
+          accessibilityLabel="Save audience"
+          accessibilityState={{ disabled: !selectionDirty || saving }}
+          hitSlop={8}
+        >
+          {saving ? (
+            <ActivityIndicator color={ACCENT} size="small" />
+          ) : (
+            <Text
+              style={[
+                styles.saveBtnText,
+                !selectionDirty && styles.saveBtnTextDisabled,
+              ]}
             >
-              <SynqAudiencePicker
-                groups={groups}
-                selection={selection}
-                onChangeSelection={setSelection}
-                compact
-              />
-            </ScrollView>
-          </View>
-        </View>
+              Save
+            </Text>
+          )}
+        </TouchableOpacity>
       </View>
-    </Modal>
+      <ScrollView
+        style={styles.scroll}
+        contentContainerStyle={styles.scrollContent}
+        bounces={false}
+        keyboardShouldPersistTaps="handled"
+        showsVerticalScrollIndicator={false}
+      >
+        <SynqAudiencePicker
+          groups={groups}
+          selection={selection}
+          onChangeSelection={setSelection}
+          compact
+        />
+      </ScrollView>
+    </SpringBottomSheet>
   );
 }
 
 const styles = StyleSheet.create({
-  overlay: {
-    flex: 1,
-    justifyContent: "flex-end",
-    backgroundColor: SHEET_OVERLAY,
-  },
   sheetGroup: {
     paddingHorizontal: 12,
   },

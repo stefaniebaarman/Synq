@@ -1,10 +1,10 @@
 import SynqAudiencePicker from "@/src/components/synq/SynqAudiencePicker";
-import { SHEET_ANIMATION, sheetStyles } from "@/constants/sheetStyles";
+import SpringBottomSheet from "@/src/components/sheets/SpringBottomSheet";
+import { sheetStyles } from "@/constants/sheetStyles";
 import {
   ACCENT,
   BUTTON_RADIUS,
   GROUP_BORDER,
-  SHEET_OVERLAY,
   SHEET_SURFACE,
   SPACE_3,
   SPACE_4,
@@ -15,14 +15,7 @@ import {
 import type { FriendGroup } from "@/src/lib/friendGroups";
 import type { SynqAudienceSelection } from "@/src/lib/synqBroadcast";
 import React from "react";
-import {
-  Modal,
-  Pressable,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
-} from "react-native";
+import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 type Props = {
@@ -43,57 +36,38 @@ export default function SynqAudienceSheet({
   const insets = useSafeAreaInsets();
 
   return (
-    <Modal
+    <SpringBottomSheet
       visible={visible}
-      transparent
-      animationType={SHEET_ANIMATION}
-      onRequestClose={onClose}
+      onClose={onClose}
+      contentStyle={[styles.sheetGroup, { paddingBottom: insets.bottom + SPACE_4 }]}
+      cardStyle={sheetStyles.sheetCard}
     >
-      <View style={styles.overlay}>
-        <Pressable
-          style={sheetStyles.backdrop}
-          onPress={onClose}
-          accessibilityLabel="Close"
+      <Text style={[sheetStyles.sheetTitle, styles.sheetTitlePad]}>
+        Share with
+      </Text>
+      <View style={styles.pickerSection}>
+        <SynqAudiencePicker
+          groups={groups}
+          selection={selection}
+          onChangeSelection={onChangeSelection}
         />
-        <View style={[styles.sheetGroup, { paddingBottom: insets.bottom + SPACE_4 }]}>
-          <View style={sheetStyles.sheetCard}>
-            <View style={sheetStyles.grabberWrap}>
-              <View style={sheetStyles.grabber} />
-            </View>
-            <Text style={[sheetStyles.sheetTitle, styles.sheetTitlePad]}>
-              Share with
-            </Text>
-            <View style={styles.pickerSection}>
-              <SynqAudiencePicker
-                groups={groups}
-                selection={selection}
-                onChangeSelection={onChangeSelection}
-              />
-            </View>
-            <View style={styles.footer}>
-              <TouchableOpacity
-                style={styles.doneBtn}
-                onPress={onClose}
-                activeOpacity={0.88}
-                accessibilityRole="button"
-                accessibilityLabel="Done"
-              >
-                <Text style={styles.doneText}>Done</Text>
-              </TouchableOpacity>
-            </View>
-          </View>
-        </View>
       </View>
-    </Modal>
+      <View style={styles.footer}>
+        <TouchableOpacity
+          style={styles.doneBtn}
+          onPress={onClose}
+          activeOpacity={0.88}
+          accessibilityRole="button"
+          accessibilityLabel="Done"
+        >
+          <Text style={styles.doneText}>Done</Text>
+        </TouchableOpacity>
+      </View>
+    </SpringBottomSheet>
   );
 }
 
 const styles = StyleSheet.create({
-  overlay: {
-    flex: 1,
-    justifyContent: "flex-end",
-    backgroundColor: SHEET_OVERLAY,
-  },
   sheetGroup: {
     paddingHorizontal: SPACE_5,
   },

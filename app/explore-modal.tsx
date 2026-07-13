@@ -31,6 +31,7 @@ import {
   primaryButtonText,
   profileNameText,
   sheetTitleText,
+  RADIUS_SM,
 } from "@/constants/Variables";
 import BackButton from "@/src/components/BackButton";
 import CloseButton from "@/src/components/CloseButton";
@@ -539,7 +540,7 @@ const styles = StyleSheet.create({
     placeIconWrap: {
         width: 44,
         height: 44,
-        borderRadius: 12,
+        borderRadius: RADIUS_SM,
         backgroundColor: SURFACE_SUBTLE,
         borderWidth: StyleSheet.hairlineWidth,
         borderColor: GROUP_BORDER,
@@ -617,7 +618,7 @@ const styles = StyleSheet.create({
         marginBottom: 4,
         paddingHorizontal: 14,
         paddingVertical: 12,
-        borderRadius: 14,
+        borderRadius: BUTTON_RADIUS,
         backgroundColor: DESTRUCTIVE_FILL,
         borderWidth: 1,
         borderColor: DESTRUCTIVE_BORDER,

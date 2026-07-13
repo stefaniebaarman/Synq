@@ -57,7 +57,9 @@ import {
   TYPE_BODY,
   TYPE_BUTTON,
   TYPE_CAPTION,
-  TYPE_MICRO
+  TYPE_MICRO,
+  RADIUS_2XL,
+  RADIUS_LG,
 } from "../constants/Variables";
 import {
   acceptCommunityGroupInvite,
@@ -1306,7 +1308,7 @@ const styles = StyleSheet.create({
     backgroundColor: BORDER_STRONG,
     width: 40,
     height: 40,
-    borderRadius: 20,
+    borderRadius: RADIUS_LG,
     justifyContent: "center",
     alignItems: "center",
     borderWidth: 1,
@@ -1321,7 +1323,7 @@ const styles = StyleSheet.create({
   avatar: {
     width: 56,
     height: 56,
-    borderRadius: 28,
+    borderRadius: RADIUS_2XL,
     backgroundColor: BORDER_STRONG,
     justifyContent: "center",
     alignItems: "center",
@@ -1331,7 +1333,7 @@ const styles = StyleSheet.create({
   avatarImg: {
     width: 56,
     height: 56,
-    borderRadius: 28,
+    borderRadius: RADIUS_2XL,
   },
   rowKicker: {
     color: MUTED2,

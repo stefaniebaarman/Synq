@@ -28,6 +28,8 @@ import {
   TYPE_CAPTION,
   fonts,
   primaryButtonText,
+  BUTTON_RADIUS,
+  RADIUS_SM,
 } from "../../constants/Variables";
 import { auth } from "../../src/lib/firebase";
 import { submitReport, type ReportReason } from "../../src/lib/moderation";
@@ -216,7 +218,7 @@ const styles = StyleSheet.create({
   details: { minHeight: 100, textAlignVertical: "top" },
   reasonRow: {
     padding: 14,
-    borderRadius: 12,
+    borderRadius: RADIUS_SM,
     marginBottom: 8,
     backgroundColor: SURFACE,
     borderWidth: 1,
@@ -227,7 +229,7 @@ const styles = StyleSheet.create({
   submit: {
     marginTop: 8,
     backgroundColor: ACCENT,
-    borderRadius: 14,
+    borderRadius: BUTTON_RADIUS,
     paddingVertical: 14,
     alignItems: "center",
   },

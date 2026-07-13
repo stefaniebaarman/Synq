@@ -45,6 +45,7 @@ import {
   sectionLinkText,
   sheetTitleText,
   stackNavigationBackBtn,
+  RADIUS_XL,
 } from "@/constants/Variables";
 import AddMembersToGroupSheet from "@/src/components/friends/AddMembersToGroupSheet";
 import { groupsPageStyles, GROUP_BORDER } from "@/src/components/friends/groupsListStyles";
@@ -1212,7 +1213,7 @@ const styles = StyleSheet.create({
   avatarRing: {
     width: 48,
     height: 48,
-    borderRadius: 24,
+    borderRadius: RADIUS_XL,
     marginRight: 12,
     overflow: "hidden",
     backgroundColor: SURFACE,

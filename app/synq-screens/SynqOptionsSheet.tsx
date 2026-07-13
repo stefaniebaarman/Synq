@@ -1,20 +1,13 @@
 import { Ionicons } from "@expo/vector-icons";
-import { SHEET_ANIMATION, sheetStyles } from "@/constants/sheetStyles";
+import { sheetStyles } from "@/constants/sheetStyles";
+import SpringBottomSheet from "@/src/components/sheets/SpringBottomSheet";
 import React from "react";
-import {
-  Modal,
-  Pressable,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
-} from "react-native";
+import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import {
   BG,
   BORDER,
-  BUTTON_RADIUS,
   DESTRUCTIVE,
-  SHEET_OVERLAY,
+  RADIUS_MD,
   TEXT,
   TYPE_SUBHEAD,
   fonts,
@@ -39,105 +32,93 @@ export default function SynqOptionsSheet({
   onEndSynq,
 }: Props) {
   return (
-    <Modal visible={visible} transparent animationType={SHEET_ANIMATION}>
-      <View style={styles.overlay}>
-        <Pressable
-          style={sheetStyles.backdrop}
+    <SpringBottomSheet
+      visible={visible}
+      onClose={onClose}
+      contentStyle={styles.sheetGroup}
+      cardStyle={sheetStyles.sheetCard}
+      footer={
+        <TouchableOpacity
+          style={styles.cancelBtn}
           onPress={onClose}
-          accessibilityLabel="Close menu"
-        />
-        <View style={styles.sheetGroup}>
-          <View style={sheetStyles.sheetCard}>
-            <View style={sheetStyles.grabberWrap}>
-              <View style={sheetStyles.grabber} />
-            </View>
-            <TouchableOpacity
-              style={styles.option}
-              onPress={() => {
-                onClose();
-                onEditMemo();
-              }}
-              activeOpacity={0.75}
-              accessibilityRole="button"
-              accessibilityLabel="Edit status"
-            >
-              <Ionicons name="create-outline" size={22} color={TEXT} />
-              <Text style={styles.optionText}>Edit status</Text>
-            </TouchableOpacity>
-            {onChangeAudience ? (
-              <>
-                <View style={styles.divider} />
-                <TouchableOpacity
-                  style={styles.option}
-                  onPress={() => {
-                    onClose();
-                    onChangeAudience();
-                  }}
-                  activeOpacity={0.75}
-                  accessibilityRole="button"
-                  accessibilityLabel="Change audience"
-                >
-                  <Ionicons name="people-outline" size={22} color={TEXT} />
-                  <Text style={styles.optionText}>Change audience</Text>
-                </TouchableOpacity>
-              </>
-            ) : null}
-            {onSortFriends ? (
-              <>
-                <View style={styles.divider} />
-                <TouchableOpacity
-                  style={styles.option}
-                  onPress={() => {
-                    onClose();
-                    onSortFriends();
-                  }}
-                  activeOpacity={0.75}
-                  accessibilityRole="button"
-                  accessibilityLabel="Sort friends"
-                >
-                  <Ionicons name="swap-vertical-outline" size={22} color={TEXT} />
-                  <Text style={styles.optionText}>Sort friends</Text>
-                </TouchableOpacity>
-              </>
-            ) : null}
-            <View style={styles.divider} />
-            <TouchableOpacity
-              style={styles.option}
-              onPress={() => {
-                onClose();
-                onEndSynq();
-              }}
-              activeOpacity={0.75}
-              accessibilityRole="button"
-              accessibilityLabel="End Synq"
-            >
-              <Ionicons name="stop-circle-outline" size={22} color={DESTRUCTIVE} />
-              <Text style={[styles.optionText, styles.destructiveText]}>
-                End Synq
-              </Text>
-            </TouchableOpacity>
-          </View>
+          activeOpacity={0.85}
+          accessibilityRole="button"
+          accessibilityLabel="Cancel"
+        >
+          <Text style={styles.cancelText}>Cancel</Text>
+        </TouchableOpacity>
+      }
+    >
+      <TouchableOpacity
+        style={styles.option}
+        onPress={() => {
+          onClose();
+          onEditMemo();
+        }}
+        activeOpacity={0.75}
+        accessibilityRole="button"
+        accessibilityLabel="Edit status"
+      >
+        <Ionicons name="create-outline" size={22} color={TEXT} />
+        <Text style={styles.optionText}>Edit status</Text>
+      </TouchableOpacity>
+      {onChangeAudience ? (
+        <>
+          <View style={styles.divider} />
           <TouchableOpacity
-            style={styles.cancelBtn}
-            onPress={onClose}
-            activeOpacity={0.85}
+            style={styles.option}
+            onPress={() => {
+              onClose();
+              onChangeAudience();
+            }}
+            activeOpacity={0.75}
             accessibilityRole="button"
-            accessibilityLabel="Cancel"
+            accessibilityLabel="Change audience"
           >
-            <Text style={styles.cancelText}>Cancel</Text>
+            <Ionicons name="people-outline" size={22} color={TEXT} />
+            <Text style={styles.optionText}>Change audience</Text>
           </TouchableOpacity>
-        </View>
-      </View>
-    </Modal>
+        </>
+      ) : null}
+      {onSortFriends ? (
+        <>
+          <View style={styles.divider} />
+          <TouchableOpacity
+            style={styles.option}
+            onPress={() => {
+              onClose();
+              onSortFriends();
+            }}
+            activeOpacity={0.75}
+            accessibilityRole="button"
+            accessibilityLabel="Sort friends"
+          >
+            <Ionicons name="swap-vertical-outline" size={22} color={TEXT} />
+            <Text style={styles.optionText}>Sort friends</Text>
+          </TouchableOpacity>
+        </>
+      ) : null}
+      <View style={styles.divider} />
+      <TouchableOpacity
+        style={styles.option}
+        onPress={() => {
+          onClose();
+          onEndSynq();
+        }}
+        activeOpacity={0.75}
+        accessibilityRole="button"
+        accessibilityLabel="End Synq"
+      >
+        <Ionicons name="stop-circle-outline" size={22} color={DESTRUCTIVE} />
+        <Text style={[styles.optionText, styles.destructiveText]}>
+          End Synq
+        </Text>
+      </TouchableOpacity>
+    </SpringBottomSheet>
   );
 }
 
 const styles = StyleSheet.create({
-  overlay: {
-    flex: 1,
-    justifyContent: "flex-end",
-    backgroundColor: SHEET_OVERLAY,
-  },
   sheetGroup: {
     paddingHorizontal: 12,
     paddingBottom: 34,
@@ -165,7 +146,7 @@ const styles = StyleSheet.create({
   cancelBtn: {
     marginTop: 10,
     backgroundColor: BG,
-    borderRadius: BUTTON_RADIUS + 4,
+    borderRadius: RADIUS_MD,
     borderWidth: 1,
     borderColor: BORDER,
     paddingVertical: 16,

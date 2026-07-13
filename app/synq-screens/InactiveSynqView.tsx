@@ -65,8 +65,6 @@ type Props = {
   friendGroups: FriendGroup[];
   audienceSelection: SynqAudienceSelection;
   onAudienceSelectionChange: (next: SynqAudienceSelection) => void;
-  /** Compact embed for onboarding slide 3 (real Synq home UI). */
-  embedInOnboarding?: boolean;
 };
 
 const PULSE_SIZE = 238;
@@ -275,7 +273,6 @@ export default function InactiveSynqView({
   friendGroups,
   audienceSelection,
   onAudienceSelectionChange,
-  embedInOnboarding = false,
 }: Props) {
   const insets = useSafeAreaInsets();
   const reduced = useReducedMotion();
@@ -288,9 +285,8 @@ export default function InactiveSynqView({
   const memoEmpty = memo.trim().length === 0;
   const showMoodHints = memoEmpty && !memoFocused;
 
-  const bottomPad = embedInOnboarding
-    ? SPACE_3
-    : TAB_BAR_SCROLL_INSET + SPACE_6 + (Platform.OS === "android" ? insets.bottom : 0);
+  const bottomPad =
+    TAB_BAR_SCROLL_INSET + SPACE_6 + (Platform.OS === "android" ? insets.bottom : 0);
 
   const pressStyle = useAnimatedStyle(() => ({
     transform: [{ scale: pressScale.value }],
@@ -324,11 +320,10 @@ export default function InactiveSynqView({
   const handlePress = () => {
     if (isStartingSynq) return;
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium).catch(() => {});
-    if (!embedInOnboarding) onStartSynq();
+    onStartSynq();
   };
 
   const openAudienceSheet = () => {
-    if (embedInOnboarding) return;
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
     setAudienceSheetOpen(true);
   };
@@ -337,18 +332,12 @@ export default function InactiveSynqView({
     reduced ? FadeIn.duration(1) : FadeIn.delay(delay).duration(320);
 
   const stack = (
-    <Animated.View
-      entering={embedInOnboarding ? undefined : enter(0)}
-      style={[styles.stack, embedInOnboarding && styles.stackEmbed]}
-    >
-      <Text style={[styles.title, embedInOnboarding && styles.titleEmbed]}>
+    <Animated.View entering={enter(0)} style={styles.stack}>
+      <Text style={styles.title}>
         Let&apos;s <Text style={styles.titleAccent}>Synq.</Text>
       </Text>
 
-      <Animated.View
-        entering={embedInOnboarding ? undefined : enter(60)}
-        style={styles.footer}
-      >
+      <Animated.View entering={enter(60)} style={styles.footer}>
         <View style={styles.moodPill}>
           <View style={styles.moodField}>
             <SlowMoodPlaceholder active={showMoodHints} />
@@ -361,7 +350,6 @@ export default function InactiveSynqView({
               placeholder=""
               blurOnSubmit
               returnKeyType="done"
-              editable={!embedInOnboarding}
               accessibilityLabel="Mood or intention"
               accessibilityHint="Optional. Friends see this while you're active."
             />
@@ -372,7 +360,7 @@ export default function InactiveSynqView({
           onPress={openAudienceSheet}
           style={({ pressed }) => [
             styles.audiencePill,
-            pressed && !embedInOnboarding && styles.audiencePillPressed,
+            pressed && styles.audiencePillPressed,
           ]}
           accessibilityRole="button"
           accessibilityLabel={`Sharing with ${audienceLabel}`}
@@ -383,9 +371,7 @@ export default function InactiveSynqView({
             <Text style={styles.sharingValue} numberOfLines={1}>
               {audienceLabel}
             </Text>
-            {!embedInOnboarding ? (
-              <Ionicons name="chevron-down" size={15} color={MUTED2} />
-            ) : null}
+            <Ionicons name="chevron-down" size={15} color={MUTED2} />
           </View>
         </Pressable>
       </Animated.View>
@@ -415,14 +401,6 @@ export default function InactiveSynqView({
       </Pressable>
     </Animated.View>
   );
-
-  if (embedInOnboarding) {
-    return (
-      <View style={styles.embedRoot} pointerEvents="box-none">
-        <View style={styles.composeEmbed}>{stack}</View>
-      </View>
-    );
-  }
 
   return (
     <View style={styles.root}>
@@ -673,23 +651,5 @@ const styles = StyleSheet.create({
   },
   orbStarting: {
     opacity: 0.9,
-  },
-  embedRoot: {
-    width: "100%",
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  composeEmbed: {
-    width: "100%",
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  stackEmbed: {
-    width: "100%",
-    maxWidth: 340,
-    transform: [{ scale: 0.72 }],
-  },
-  titleEmbed: {
-    marginBottom: SPACE_4,
   },
 });

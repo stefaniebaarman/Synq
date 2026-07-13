@@ -44,6 +44,7 @@ import {
   TYPE_LEAD,
   ctaButtonText,
   fonts,
+  RADIUS_MD,
 } from "../../constants/Variables";
 import { auth, db } from "../../src/lib/firebase";
 import { getCachedOwnProfile } from "../../src/lib/ownProfileCache";
@@ -448,7 +449,7 @@ const styles = StyleSheet.create({
   locationIconWrap: {
     width: 32,
     height: 32,
-    borderRadius: 16,
+    borderRadius: RADIUS_MD,
     backgroundColor: ACCENT_FILL,
     borderWidth: 1,
     borderColor: ACCENT_BORDER_SUBTLE,
@@ -479,7 +480,7 @@ const styles = StyleSheet.create({
     width: PRIMARY_CTA_WIDTH,
     backgroundColor: ACCENT,
     height: PRIMARY_CTA_HEIGHT,
-    borderRadius: 14,
+    borderRadius: BUTTON_RADIUS,
     alignItems: "center",
     justifyContent: "center",
   },

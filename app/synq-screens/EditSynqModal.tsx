@@ -22,7 +22,8 @@ type Props = {
   onClose: () => void;
   memo: string;
   setMemo: (t: string) => void;
-  onSaveMemo: () => void;
+  onSaveMemo: () => void | Promise<void>;
+  saving?: boolean;
   styles: any;
 };
 
@@ -47,6 +48,7 @@ export default function EditSynqModal({
   memo,
   setMemo,
   onSaveMemo,
+  saving = false,
   styles,
 }: Props) {
   const [visibleSuggestions, setVisibleSuggestions] = useState<string[]>([]);
@@ -117,11 +119,14 @@ export default function EditSynqModal({
               </View>
 
               <TouchableOpacity
-                style={styles.saveBtn}
+                style={[styles.saveBtn, saving && { opacity: 0.6 }]}
                 onPress={onSaveMemo}
+                disabled={saving}
                 activeOpacity={0.85}
               >
-                <Text style={styles.saveBtnText}>Update</Text>
+                <Text style={styles.saveBtnText}>
+                  {saving ? "Updating..." : "Update"}
+                </Text>
               </TouchableOpacity>
             </View>
           </TouchableWithoutFeedback>

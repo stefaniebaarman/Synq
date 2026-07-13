@@ -2,8 +2,8 @@ import { StyleSheet } from "react-native";
 import {
   BG,
   BORDER,
-  BUTTON_RADIUS,
   MODAL_RADIUS,
+  RADIUS_MD,
   MUTED3,
   SHEET_OVERLAY,
   SHEET_SURFACE,
@@ -11,7 +11,6 @@ import {
   SPACE_3,
   SPACE_4,
   SPACE_5,
-  SURFACE_SHEET_ALT,
   modalBodyText,
   modalTitleText,
   primaryButtonText,
@@ -56,7 +55,7 @@ export const sheetStyles = StyleSheet.create({
     borderColor: BORDER,
   },
   sheetAlt: {
-    backgroundColor: SURFACE_SHEET_ALT,
+    backgroundColor: SHEET_SURFACE,
     borderTopLeftRadius: MODAL_RADIUS,
     borderTopRightRadius: MODAL_RADIUS,
     padding: SPACE_5,
@@ -67,7 +66,7 @@ export const sheetStyles = StyleSheet.create({
   /** Rounded floating sheet card (Synq options / audience). */
   sheetCard: {
     backgroundColor: SHEET_SURFACE,
-    borderRadius: BUTTON_RADIUS + 4,
+    borderRadius: RADIUS_MD,
     borderWidth: 1,
     borderColor: BORDER,
     overflow: "hidden",

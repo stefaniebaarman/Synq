@@ -10,6 +10,7 @@ import {
   modalBodyText,
   profileNameText,
   primaryButtonText,
+  BUTTON_RADIUS,
 } from "../constants/Variables";
 import { captureClientError } from "../src/lib/sentryInit";
 
@@ -37,7 +38,7 @@ export class ErrorBoundary extends Component<Props, State> {
 
   render() {
     if (this.state.hasError) {
-      const msg = this.state.error?.message ?? "Something went wrong.";
+      const msg = this.state.error?.message ?? "Please try again in a moment.";
       return (
         <View style={styles.wrap} accessibilityRole="alert">
           <Text style={styles.title}>Synq hit a snag</Text>
@@ -80,6 +81,6 @@ const styles = StyleSheet.create({
     backgroundColor: ACCENT,
     paddingVertical: 14,
     paddingHorizontal: 28,
-    borderRadius: 14,
+    borderRadius: BUTTON_RADIUS,
   },
 });

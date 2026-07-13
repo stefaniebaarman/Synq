@@ -28,6 +28,17 @@ export const synqSvg = `
 `;
 
 export const BG = "#090A0B";
+/**
+ * Canonical solid surface scale — prefer for new UI.
+ * Translucent overlays (SURFACE_FAINT / SUBTLE / MUTED / SOFT) stay separate.
+ */
+export const SURFACES = {
+  page: BG,
+  card: "#0E1012",
+  inset: "#0A0B0D",
+  sheet: "#141414",
+  elevated: "#1C1C1E",
+} as const;
 /** Charcoal behind tab icons and labels (slightly lifted off pure black). */
 export const TAB_BAR_BG = "#050607";
 /** Tab bar fade: transparent (content) → charcoal (icons). */
@@ -80,6 +91,8 @@ export const MODAL_RADIUS = 22;
 export const RADIUS_SM = 12;
 export const RADIUS_MD = 16;
 export const RADIUS_LG = 20;
+export const RADIUS_XL = 24;
+export const RADIUS_2XL = 28;
 export const SPACE_1 = 4;
 export const SPACE_2 = 8;
 export const SPACE_3 = 12;
@@ -140,28 +153,28 @@ export const TYPE_FINE = 12;
 export const TYPE_MICRO = 11;
 export const TYPE_NANO = 9;
 
-/** Raised cards and group list surfaces. */
-export const SURFACE_RAISED = "#0E1012";
-/** Elevated chips, avatars, and input wells. */
-export const SURFACE_ELEVATED = "#1C1C1E";
-/** Memo and input field backgrounds. */
-export const SURFACE_INPUT = "#0A0B0D";
-/** Deep wells in community/memo modals. */
-export const SURFACE_DEEP = "#0c0c0c";
-/** Deepest inset wells (memo footer, modal footers). */
-export const SURFACE_DEEPER = "#050505";
-/** Bottom sheet and action sheet backgrounds. */
-export const SHEET_SURFACE = "#141414";
-/** Alternate sheet surface (report modal, explore panels). */
-export const SURFACE_SHEET_ALT = "#161616";
-/** Inset card backgrounds (community plans, explore). */
-export const SURFACE_INSET = "#101214";
-/** Avatar wells and icon circles. */
-export const SURFACE_WELL = "#111";
-/** Slightly lifted dark surface. */
-export const SURFACE_LIFTED = "#1a1a1a";
-/** Near-black panel backgrounds. */
-export const SURFACE_PANEL = "#0E0F11";
+/** Raised cards and group list surfaces → {@link SURFACES.card}. */
+export const SURFACE_RAISED = SURFACES.card;
+/** Elevated chips, avatars, and input wells → {@link SURFACES.elevated}. */
+export const SURFACE_ELEVATED = SURFACES.elevated;
+/** Memo and input field backgrounds → {@link SURFACES.inset}. */
+export const SURFACE_INPUT = SURFACES.inset;
+/** Deep wells in community/memo modals → {@link SURFACES.inset}. */
+export const SURFACE_DEEP = SURFACES.inset;
+/** Deepest inset wells (memo/picker footers) → {@link SURFACES.page}. */
+export const SURFACE_DEEPER = SURFACES.page;
+/** Bottom sheet and action sheet backgrounds → {@link SURFACES.sheet}. */
+export const SHEET_SURFACE = SURFACES.sheet;
+/** Alternate sheet surface → {@link SURFACES.sheet}. */
+export const SURFACE_SHEET_ALT = SURFACES.sheet;
+/** Inset card backgrounds → {@link SURFACES.card}. */
+export const SURFACE_INSET = SURFACES.card;
+/** Avatar wells and icon circles → {@link SURFACES.card}. */
+export const SURFACE_WELL = SURFACES.card;
+/** Slightly lifted dark surface → {@link SURFACES.elevated}. */
+export const SURFACE_LIFTED = SURFACES.elevated;
+/** Near-black panel backgrounds → {@link SURFACES.card}. */
+export const SURFACE_PANEL = SURFACES.card;
 export const BORDER_STRONG = "#222";
 export const BORDER_MUTED = "#333";
 export const TEXT_MUTED_HEX = "#A8A8A8";
@@ -483,7 +496,7 @@ export const destructiveActionBtn: ViewStyle = {
   alignSelf: "center",
   paddingVertical: 14,
   paddingHorizontal: 60,
-  borderRadius: BUTTON_RADIUS + 8,
+  borderRadius: MODAL_RADIUS,
   borderWidth: 1.5,
   borderColor: BORDER_STRONG,
   backgroundColor: SURFACE_INPUT,

@@ -8,6 +8,7 @@ import {
   modalBodyText,
   primaryButtonText,
   profileNameText,
+  BUTTON_RADIUS,
 } from "../constants/Variables";
 
 export default function NotFoundScreen() {
@@ -48,7 +49,7 @@ const styles = StyleSheet.create({
   link: {
     paddingVertical: 14,
     paddingHorizontal: 24,
-    borderRadius: 14,
+    borderRadius: BUTTON_RADIUS,
     backgroundColor: ACCENT,
   },
   linkText: primaryButtonText,

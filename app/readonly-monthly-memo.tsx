@@ -14,7 +14,9 @@ import {
   TYPE_LEAD,
   cardMetaText,
   fonts,
-  listRowTitleText
+  listRowTitleText,
+  RADIUS_LG,
+  RADIUS_SM,
 } from "@/constants/Variables";
 import {
   GROUP_BORDER,
@@ -28,7 +30,7 @@ import { StyleSheet, Text, TouchableOpacity, View, type ViewStyle } from "react-
 const PLAN_PILL_LAYOUT: ViewStyle = {
   minWidth: 88,
   minHeight: 32,
-  borderRadius: 12,
+  borderRadius: RADIUS_SM,
   borderWidth: 1,
   paddingHorizontal: 10,
   paddingVertical: 6,
@@ -227,7 +229,7 @@ const styles = StyleSheet.create({
     width: "100%",
     maxWidth: 340,
     backgroundColor: GROUP_SURFACE,
-    borderRadius: 20,
+    borderRadius: RADIUS_LG,
     borderWidth: StyleSheet.hairlineWidth,
     borderColor: GROUP_BORDER,
     padding: 14,

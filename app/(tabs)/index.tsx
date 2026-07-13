@@ -57,11 +57,9 @@ import {
 } from 'firebase/firestore';
 import React, { useCallback, useEffect, useMemo, useRef, useState, type Dispatch, type SetStateAction } from 'react';
 import {
-  Animated,
   ActivityIndicator,
   BackHandler,
   DeviceEventEmitter,
-  Easing,
   FlatList,
   InteractionManager,
   Keyboard,
@@ -125,12 +123,9 @@ import {
   SURFACE,
   SURFACE_ELEVATED,
   SURFACE_INPUT,
-  SURFACE_LIFTED,
-  SURFACE_PANEL,
-  SURFACE_SHEET_ALT,
+  SURFACE_RAISED,
   SURFACE_SOFT,
   SURFACE_SUBTLE,
-  SURFACE_WELL,
   TEXT,
   TEXT_MUTED_HEX,
   TYPE_BODY,
@@ -153,7 +148,12 @@ import {
   modalTitleText,
   primaryButtonText,
   tabScreenMainHeaderTitle,
-} from '../../constants/Variables';
+  RADIUS_2XL,
+  RADIUS_LG,
+  RADIUS_MD,
+  RADIUS_SM,
+  RADIUS_XL,
+} from "../../constants/Variables";
 import ActiveSynqSection from '../../src/components/synq/ActiveSynqSection';
 import { SynqBootSkeleton } from '@/src/components/loading/BrandSkeletons';
 import MessagesChatPane from '../../src/components/synq/MessagesChatPane';
@@ -395,6 +395,9 @@ export default function SynqScreen() {
   const lastTapRef = useRef<{ [key: string]: number }>({});
   const [hasUnread, setHasUnread] = useState(false);
   const [showEndSynqModal, setShowEndSynqModal] = useState(false);
+  const [endingSynq, setEndingSynq] = useState(false);
+  const [savingMemo, setSavingMemo] = useState(false);
+  const [isConnecting, setIsConnecting] = useState(false);
   const [friendGroups, setFriendGroups] = useState<FriendGroup[]>([]);
   const [audienceSelection, setAudienceSelection] = useState<SynqAudienceSelection>({
     mode: "all",
@@ -427,8 +430,6 @@ export default function SynqScreen() {
     chatId: string;
   } | null>(null);
   const { isBlocked } = useBlockedUsers();
-  const activePulseOpacity = useRef(new Animated.Value(1)).current;
-  const activePulseScale = useRef(new Animated.Value(1)).current;
 
   useEffect(() => {
     messagesPaneRef.current = messagesPane;
@@ -496,7 +497,7 @@ export default function SynqScreen() {
     return false;
   };
 
-  const showActionError = useCallback((message: string, title = "Something went wrong") => {
+  const showActionError = useCallback((message: string, title = "Couldn't complete that") => {
     setContentAlertTitle(title);
     setContentAlertMessage(message);
     setContentAlertVisible(true);
@@ -530,6 +531,7 @@ export default function SynqScreen() {
   const {
     pendingMessages,
     sendMessage: sendMessageCore,
+    isSending,
     retryFailedMessage,
     clearPendingMessages,
     ensureChatFromPending,
@@ -737,45 +739,6 @@ export default function SynqScreen() {
 
     return () => clearInterval(interval);
   }, []);
-
-  useEffect(() => {
-    if (status !== 'active') return;
-    const pulseDown = Animated.parallel([
-      Animated.timing(activePulseOpacity, {
-        toValue: 0.62,
-        duration: 1200,
-        easing: Easing.inOut(Easing.ease),
-        useNativeDriver: true,
-      }),
-      Animated.timing(activePulseScale, {
-        toValue: 0.94,
-        duration: 1200,
-        easing: Easing.inOut(Easing.ease),
-        useNativeDriver: true,
-      }),
-    ]);
-    const pulseUp = Animated.parallel([
-      Animated.timing(activePulseOpacity, {
-        toValue: 1,
-        duration: 1200,
-        easing: Easing.inOut(Easing.ease),
-        useNativeDriver: true,
-      }),
-      Animated.timing(activePulseScale, {
-        toValue: 1,
-        duration: 1200,
-        easing: Easing.inOut(Easing.ease),
-        useNativeDriver: true,
-      }),
-    ]);
-    const loop = Animated.loop(Animated.sequence([pulseDown, pulseUp]));
-    loop.start();
-    return () => {
-      loop.stop();
-      activePulseOpacity.setValue(1);
-      activePulseScale.setValue(1);
-    };
-  }, [status, activePulseOpacity, activePulseScale]);
 
   const openPendingChatFromNotification = useCallback(() => {
     const pending = peekPendingChatOpen();
@@ -1622,10 +1585,15 @@ export default function SynqScreen() {
   };
 
   const handleConnect = async () => {
-    if (selectedFriends.length === 0 || !auth.currentUser) return;
+    if (selectedFriends.length === 0 || !auth.currentUser || isConnecting) return;
+    setIsConnecting(true);
     void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-    const participants = [auth.currentUser.uid, ...selectedFriends].sort();
-    await executeConnection(participants);
+    try {
+      const participants = [auth.currentUser.uid, ...selectedFriends].sort();
+      await executeConnection(participants);
+    } finally {
+      setIsConnecting(false);
+    }
   };
 
   const executeConnection = async (participants: string[]) => {
@@ -2080,12 +2048,11 @@ export default function SynqScreen() {
             <ActiveSynqSection
               styles={styles}
               hasUnread={hasUnread}
-              activePulseOpacity={activePulseOpacity}
-              activePulseScale={activePulseScale}
               availableFriends={visibleAvailableFriends}
               selectedFriends={selectedFriends}
               setSelectedFriends={setSelectedFriends}
               handleConnect={handleConnect}
+              isConnecting={isConnecting}
               endSynq={endSynq}
               insetsBottom={insets.bottom}
               audienceLabel={synqAudienceLabel}
@@ -2271,6 +2238,7 @@ export default function SynqScreen() {
                   showAIUnavailableMessage={showAIUnavailableMessage}
                   onOpenAISuggestions={openAISuggestions}
                   onOpenFriendProfile={openFriendProfileFromChat}
+                  isSending={isSending}
                   sendMessage={sendMessage}
                   sendAISuggestionToChat={sendAISuggestionToChat}
                   setPendingScrollToMessageId={setPendingScrollToMessageId}
@@ -2358,10 +2326,19 @@ export default function SynqScreen() {
           memo={memo}
           setMemo={setMemo}
           styles={styles}
+          saving={savingMemo}
           onSaveMemo={async () => {
+            if (!auth.currentUser || savingMemo) return;
             if (memo.trim() && rejectIfObjectionable(memo)) return;
-            await updateDoc(doc(db, "users", auth.currentUser!.uid), { memo });
-            setIsEditModalVisible(false);
+            setSavingMemo(true);
+            try {
+              await updateDoc(doc(db, "users", auth.currentUser.uid), { memo });
+              setIsEditModalVisible(false);
+            } catch {
+              showActionError("Could not update status. Please try again.");
+            } finally {
+              setSavingMemo(false);
+            }
           }}
         />
         <ReportModal
@@ -2387,23 +2364,29 @@ export default function SynqScreen() {
           message="You will no longer be visible as available."
           confirmText="End Synq"
           destructive
+          confirmDisabled={endingSynq}
           onCancel={() => setShowEndSynqModal(false)}
           onConfirm={async () => {
-            setShowEndSynqModal(false);
+            if (!auth.currentUser || endingSynq) return;
+            setEndingSynq(true);
+            try {
+              await updateDoc(doc(db, "users", auth.currentUser.uid), {
+                status: "inactive",
+                memo: "",
+                ...clearSynqBroadcastFields,
+              });
+              writeCachedSynqActive(auth.currentUser.uid, false);
 
-            if (!auth.currentUser) return;
-
-            await updateDoc(doc(db, "users", auth.currentUser.uid), {
-              status: "inactive",
-              memo: "",
-              ...clearSynqBroadcastFields,
-            });
-            writeCachedSynqActive(auth.currentUser.uid, false);
-
-            setMemo("");
-            setSynqStatus(setSynq, "idle");
-            setIsEditModalVisible(false);
-            setAudienceSelection({ mode: "all", groupIds: [] });
+              setMemo("");
+              setSynqStatus(setSynq, "idle");
+              setIsEditModalVisible(false);
+              setAudienceSelection({ mode: "all", groupIds: [] });
+              setShowEndSynqModal(false);
+            } catch {
+              showActionError("Could not end Synq. Please try again.");
+            } finally {
+              setEndingSynq(false);
+            }
           }}
         />
         <ChangeSynqAudienceModal
@@ -2700,10 +2683,10 @@ const styles = StyleSheet.create({
   memoCard: {
     width: "100%",
     marginTop: 32,
-    backgroundColor: SURFACE_PANEL,
+    backgroundColor: SURFACE_RAISED,
     borderWidth: 1,
     borderColor: BORDER_PANEL,
-    borderRadius: 16,
+    borderRadius: RADIUS_MD,
     paddingHorizontal: 14,
     paddingTop: 12,
     paddingBottom: 10,
@@ -2741,7 +2724,7 @@ const styles = StyleSheet.create({
     backgroundColor: BG,
   },
   messagesPaneFill: { flex: 1 },
-  modalHeader: { flexDirection: 'row', justifyContent: 'space-between', padding: 20, alignItems: 'center', borderBottomWidth: 1, borderBottomColor: SURFACE_WELL },
+  modalHeader: { flexDirection: 'row', justifyContent: 'space-between', padding: 20, alignItems: 'center', borderBottomWidth: 1, borderBottomColor: SURFACE_RAISED },
   inboxHeaderBlock: {
     paddingHorizontal: 20,
     paddingBottom: 12,
@@ -2907,8 +2890,8 @@ const styles = StyleSheet.create({
   unreadChatTitle: {
     color: ACCENT,
   },
-  inboxCircle: { width: 50, height: 50, borderRadius: 25, backgroundColor: SURFACE_WELL, justifyContent: 'center', alignItems: 'center' },
-  stackedPhoto: { width: 40, height: 40, borderRadius: 20, position: 'absolute', borderWidth: 2, borderColor: 'black' },
+  inboxCircle: { width: 50, height: 50, borderRadius: 25, backgroundColor: SURFACE_RAISED, justifyContent: 'center', alignItems: 'center' },
+  stackedPhoto: { width: 40, height: 40, borderRadius: RADIUS_LG, position: 'absolute', borderWidth: 2, borderColor: 'black' },
   msgContainer: { marginBottom: 12 },
   chatAvatar: {
     width: 34,
@@ -2981,7 +2964,7 @@ const styles = StyleSheet.create({
   chatHeaderAvatar: {
     width: 44,
     height: 44,
-    borderRadius: 22,
+    borderRadius: MODAL_RADIUS,
     backgroundColor: SURFACE_ELEVATED,
     marginRight: 12,
     alignItems: 'center',
@@ -3107,7 +3090,7 @@ const styles = StyleSheet.create({
   venueCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: SURFACE_WELL,
+    backgroundColor: SURFACE_RAISED,
     padding: 12,
     borderRadius: 18,
     marginBottom: 12,
@@ -3116,12 +3099,12 @@ const styles = StyleSheet.create({
   },
   selectedCard: {
     borderColor: ACCENT,
-    backgroundColor: SURFACE_LIFTED,
+    backgroundColor: SURFACE_ELEVATED,
   },
   venueImage: {
     width: 80,
     height: 80,
-    borderRadius: 12,
+    borderRadius: RADIUS_SM,
     backgroundColor: BORDER_MUTED,
   },
   venueName: {
@@ -3137,13 +3120,13 @@ const styles = StyleSheet.create({
     fontSize: TYPE_CAPTION,
     lineHeight: 18,
   },
-  sendIdeaBtn: { backgroundColor: DISABLED_CTA, margin: 20, padding: 18, borderRadius: 12, alignItems: 'center' },
-  sendIdeaBtnEnabled: { backgroundColor: ACCENT, margin: 20, padding: 18, borderRadius: 12, alignItems: 'center' },
+  sendIdeaBtn: { backgroundColor: DISABLED_CTA, margin: 20, padding: 18, borderRadius: RADIUS_SM, alignItems: 'center' },
+  sendIdeaBtnEnabled: { backgroundColor: ACCENT, margin: 20, padding: 18, borderRadius: RADIUS_SM, alignItems: 'center' },
   sendIdeaText: primaryButtonText,
   inChatAICardContainer: { paddingHorizontal: 20, marginVertical: 10 },
   inChatAICard: {
     backgroundColor: SHEET_SURFACE,
-    borderRadius: 20,
+    borderRadius: RADIUS_LG,
     padding: 18,
     borderWidth: 1,
     borderColor: ACCENT_BORDER_SUBTLE,
@@ -3151,12 +3134,12 @@ const styles = StyleSheet.create({
   aiCardHeader: { flexDirection: 'row', alignItems: 'center', marginBottom: 12 },
   aiCardTitleSmall: { color: ACCENT, fontSize: TYPE_LEAD, fontFamily: fonts.heavy, letterSpacing: 0.5 },
   aiCardBodySmall: { ...cardMetaText, color: TEXT, fontSize: TYPE_BODY, lineHeight: 22, marginBottom: 15 },
-  aiShareBtnSmall: { backgroundColor: ACCENT, paddingVertical: 10, borderRadius: 12, alignItems: 'center' },
+  aiShareBtnSmall: { backgroundColor: ACCENT, paddingVertical: 10, borderRadius: RADIUS_SM, alignItems: 'center' },
   aiShareBtnText: { color: ON_ACCENT_TEXT, fontSize: TYPE_LEAD, fontFamily: fonts.heavy },
   editPanel: {
     width: '100%',
-    backgroundColor: SURFACE_SHEET_ALT,
-    borderRadius: 28,
+    backgroundColor: SHEET_SURFACE,
+    borderRadius: RADIUS_2XL,
     paddingHorizontal: 24,
     paddingTop: 24,
     paddingBottom: 28,
@@ -3168,7 +3151,7 @@ const styles = StyleSheet.create({
     backgroundColor: SURFACE_INPUT,
     color: TEXT,
     padding: 16,
-    borderRadius: 16,
+    borderRadius: RADIUS_MD,
     marginTop: 8,
     marginBottom: 12,
     fontSize: TYPE_BUTTON,
@@ -3258,7 +3241,7 @@ const styles = StyleSheet.create({
   inboxSinglePhoto: {
     width: 48,
     height: 48,
-    borderRadius: 24,
+    borderRadius: RADIUS_XL,
     backgroundColor: SURFACE_ELEVATED,
   },
   inboxStackWrap: {
@@ -3299,7 +3282,7 @@ const styles = StyleSheet.create({
     overflow: "hidden",
     borderWidth: 2,
     borderColor: MUTED,
-    backgroundColor: SURFACE_WELL,
+    backgroundColor: SURFACE_RAISED,
   },
   circleImage: {
     width: "100%",
@@ -3313,8 +3296,8 @@ const styles = StyleSheet.create({
     marginTop: 6,
     paddingHorizontal: 10,
     paddingVertical: 6,
-    borderRadius: 14,
-    backgroundColor: SURFACE_WELL,
+    borderRadius: BUTTON_RADIUS,
+    backgroundColor: SURFACE_RAISED,
   },
   aiChipPremium: {
     flexDirection: "row",

@@ -15,6 +15,7 @@ import {
   TYPE_CAPTION,
   fonts,
   primaryButtonText,
+  RADIUS_SM,
 } from "@/constants/Variables";
 import { ReportReason, submitReport, type ReportContentType } from "@/src/lib/moderation";
 import { useState } from "react";
@@ -141,7 +142,7 @@ const styles = StyleSheet.create({
   reasonRow: {
     paddingVertical: 12,
     paddingHorizontal: 14,
-    borderRadius: 12,
+    borderRadius: RADIUS_SM,
     marginBottom: 8,
     backgroundColor: BG,
     borderWidth: 1,
@@ -159,7 +160,7 @@ const styles = StyleSheet.create({
   input: {
     marginTop: 8,
     minHeight: 72,
-    borderRadius: 12,
+    borderRadius: RADIUS_SM,
     padding: 12,
     backgroundColor: BG,
     color: TEXT,

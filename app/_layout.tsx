@@ -46,6 +46,7 @@ import { KeyboardProvider } from "react-native-keyboard-controller";
 import { ErrorBoundary } from "../components/ErrorBoundary";
 import LocationUpdateModal from "../components/LocationUpdateModal";
 import RequiredUpdateBlocker from "../components/RequiredUpdateBlocker";
+import AlertModal from "./alert-modal";
 import { ACCENT, BG } from "../constants/Variables";
 import { BlockedUsersProvider } from "../src/lib/blockedUsers";
 import {
@@ -195,6 +196,20 @@ function snoozedUntilMsFromField(raw: unknown): number {
   return Number.NaN;
 }
 
+function navigateToFriendProfile(
+  router: ReturnType<typeof useRouter>,
+  friendId: string,
+  onFriendProfileScreen: boolean
+) {
+  requestDismissNavigationOverlays();
+  const nav = onFriendProfileScreen ? router.replace : router.push;
+  nav({
+    pathname: "/friend-profile",
+    params: { friendId },
+  });
+  requestAnimationFrame(() => requestDismissNavigationOverlays());
+}
+
 export default function RootLayout() {
   const segments = useSegments();
   const router = useRouter();
@@ -226,6 +241,8 @@ export default function RootLayout() {
   } | null>(null);
   const inviteProcessingRef = useRef(false);
   const inviteAttemptsRef = useRef<Set<string>>(new Set());
+  const [suspendedNoticeVisible, setSuspendedNoticeVisible] = useState(false);
+  const [inviteLinkAlert, setInviteLinkAlert] = useState<string | null>(null);
 
   const [pendingNotificationTap, setPendingNotificationTap] = useState<
     | { kind: "chat"; chatId: string; messageId?: string }
@@ -584,6 +601,7 @@ export default function RootLayout() {
         }
 
         if (data?.suspended === true) {
+          if (!cancelled) setSuspendedNoticeVisible(true);
           await signOut(auth);
           if (!cancelled) {
             setCommunityTermsGate(null);
@@ -761,6 +779,9 @@ export default function RootLayout() {
           ]);
         } else {
           inviteAttemptsRef.current.delete(attemptKey);
+          setInviteLinkAlert(
+            "Couldn't accept that invite. Open the link again to retry."
+          );
         }
       } finally {
         inviteProcessingRef.current = false;
@@ -788,14 +809,12 @@ export default function RootLayout() {
         await AsyncStorage.removeItem(PENDING_FRIEND_PROFILE_ID_KEY);
         return;
       }
-      if (segments[0] === "friend-profile") return;
-      requestDismissNavigationOverlays();
-      router.push({
-        pathname: "/friend-profile",
-        params: { friendId },
-      });
+      navigateToFriendProfile(
+        router,
+        friendId,
+        segments[0] === "friend-profile"
+      );
       await AsyncStorage.removeItem(PENDING_FRIEND_PROFILE_ID_KEY);
-      requestAnimationFrame(() => requestDismissNavigationOverlays());
     };
 
     void processPendingFriendProfile();
@@ -834,14 +853,12 @@ export default function RootLayout() {
         await AsyncStorage.removeItem(PENDING_PROFILE_SHARE_CODE_KEY);
         return;
       }
-      if (segments[0] === "friend-profile") return;
-      requestDismissNavigationOverlays();
-      router.push({
-        pathname: "/friend-profile",
-        params: { friendId },
-      });
+      navigateToFriendProfile(
+        router,
+        friendId,
+        segments[0] === "friend-profile"
+      );
       await AsyncStorage.removeItem(PENDING_PROFILE_SHARE_CODE_KEY);
-      requestAnimationFrame(() => requestDismissNavigationOverlays());
     };
 
     void processPendingProfileShareCode();
@@ -867,10 +884,11 @@ export default function RootLayout() {
     if (!pendingNotificationTap) return;
 
     const pending = pendingNotificationTap;
-    setPendingNotificationTap(null);
+    const clearPendingTap = () => setPendingNotificationTap(null);
 
     if (pending.kind === "notifications") {
       router.push("/notifications");
+      clearPendingTap();
       return;
     }
 
@@ -882,6 +900,7 @@ export default function RootLayout() {
           ...(pending.planId ? { planId: pending.planId } : {}),
         },
       });
+      clearPendingTap();
       return;
     }
 
@@ -891,12 +910,13 @@ export default function RootLayout() {
           user.uid,
           `${pending.friendId}_accepted_${user.uid}`
         ).catch(() => {});
-        requestDismissNavigationOverlays();
-        router.push({
-          pathname: "/friend-profile",
-          params: { friendId: pending.friendId },
-        });
+        navigateToFriendProfile(
+          router,
+          pending.friendId,
+          segments[0] === "friend-profile"
+        );
       }
+      clearPendingTap();
       return;
     }
 
@@ -910,6 +930,7 @@ export default function RootLayout() {
         ).catch(() => {});
       }
       router.push("/(tabs)");
+      clearPendingTap();
       return;
     }
 
@@ -926,6 +947,7 @@ export default function RootLayout() {
       } else {
         router.push("/(tabs)/me");
       }
+      clearPendingTap();
       return;
     }
 
@@ -933,6 +955,7 @@ export default function RootLayout() {
       requestDismissNavigationOverlays();
       setPendingChatOpen(pending.chatId, pending.messageId);
       router.replace("/(tabs)");
+      clearPendingTap();
       return;
     }
   }, [
@@ -943,6 +966,7 @@ export default function RootLayout() {
     synqBoot,
     pendingNotificationTap,
     router,
+    segments,
   ]);
 
   const synqBootReady = user == null || synqBoot !== null;
@@ -1088,6 +1112,18 @@ export default function RootLayout() {
               ) : null}
             </View>
             {locationModals}
+            <AlertModal
+              visible={suspendedNoticeVisible}
+              title="Account unavailable"
+              message="This account has been suspended. Contact support if you think this is a mistake."
+              onClose={() => setSuspendedNoticeVisible(false)}
+            />
+            <AlertModal
+              visible={!!inviteLinkAlert}
+              title="Invite link"
+              message={inviteLinkAlert ?? ""}
+              onClose={() => setInviteLinkAlert(null)}
+            />
             </BlockedUsersProvider>
           </SynqBootProvider>
         </AuthContext.Provider>
