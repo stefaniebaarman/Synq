@@ -866,17 +866,29 @@ export default function FriendsScreen() {
           onOpenFriendProfile={openFriendProfileFromFriendsTab}
         />
         {!plansSheetVisible ? (
-          <ConfirmModal
-            visible={friendPlansFeed.pendingUnjoin != null}
-            title="Remove this plan?"
-            message=""
-            confirmText="Remove"
-            destructive
-            onCancel={friendPlansFeed.cancelUnjoin}
-            onConfirm={() => {
-              void friendPlansFeed.confirmUnjoin();
-            }}
-          />
+          <>
+            <ConfirmModal
+              visible={friendPlansFeed.pendingJoin != null}
+              title="Join this plan?"
+              message=""
+              confirmText="Join"
+              onCancel={friendPlansFeed.cancelJoin}
+              onConfirm={() => {
+                void friendPlansFeed.confirmJoin();
+              }}
+            />
+            <ConfirmModal
+              visible={friendPlansFeed.pendingUnjoin != null}
+              title="Remove this plan?"
+              message=""
+              confirmText="Remove"
+              destructive
+              onCancel={friendPlansFeed.cancelUnjoin}
+              onConfirm={() => {
+                void friendPlansFeed.confirmUnjoin();
+              }}
+            />
+          </>
         ) : null}
         <CheckmarkToast
           visible={!!friendPlansFeed.successToast}

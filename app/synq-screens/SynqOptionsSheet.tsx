@@ -1,7 +1,7 @@
 import { Ionicons } from "@expo/vector-icons";
 import { sheetStyles } from "@/constants/sheetStyles";
 import SpringBottomSheet from "@/src/components/sheets/SpringBottomSheet";
-import React from "react";
+import React, { useRef } from "react";
 import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import {
   BG,
@@ -31,10 +31,24 @@ export default function SynqOptionsSheet({
   onSortFriends,
   onEndSynq,
 }: Props) {
+  const pendingActionRef = useRef<(() => void) | null>(null);
+
+  const runAfterClose = (action: () => void) => {
+    pendingActionRef.current = action;
+    onClose();
+  };
+
+  const handleClosed = () => {
+    const action = pendingActionRef.current;
+    pendingActionRef.current = null;
+    action?.();
+  };
+
   return (
     <SpringBottomSheet
       visible={visible}
       onClose={onClose}
+      onClosed={handleClosed}
       contentStyle={styles.sheetGroup}
       cardStyle={sheetStyles.sheetCard}
       footer={
@@ -51,10 +65,7 @@ export default function SynqOptionsSheet({
     >
       <TouchableOpacity
         style={styles.option}
-        onPress={() => {
-          onClose();
-          onEditMemo();
-        }}
+        onPress={() => runAfterClose(onEditMemo)}
         activeOpacity={0.75}
         accessibilityRole="button"
         accessibilityLabel="Edit status"
@@ -67,10 +78,7 @@ export default function SynqOptionsSheet({
           <View style={styles.divider} />
           <TouchableOpacity
             style={styles.option}
-            onPress={() => {
-              onClose();
-              onChangeAudience();
-            }}
+            onPress={() => runAfterClose(onChangeAudience)}
             activeOpacity={0.75}
             accessibilityRole="button"
             accessibilityLabel="Change audience"
@@ -85,10 +93,7 @@ export default function SynqOptionsSheet({
           <View style={styles.divider} />
           <TouchableOpacity
             style={styles.option}
-            onPress={() => {
-              onClose();
-              onSortFriends();
-            }}
+            onPress={() => runAfterClose(onSortFriends)}
             activeOpacity={0.75}
             accessibilityRole="button"
             accessibilityLabel="Sort friends"
@@ -101,10 +106,7 @@ export default function SynqOptionsSheet({
       <View style={styles.divider} />
       <TouchableOpacity
         style={styles.option}
-        onPress={() => {
-          onClose();
-          onEndSynq();
-        }}
+        onPress={() => runAfterClose(onEndSynq)}
         activeOpacity={0.75}
         accessibilityRole="button"
         accessibilityLabel="End Synq"

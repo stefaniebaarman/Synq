@@ -45,8 +45,12 @@ type Props = {
    * `embedded` — absolute overlay for sheets already inside another modal.
    */
   presentation?: "modal" | "embedded";
+  /** Optional layer above the sheet (e.g. embedded ConfirmModal). */
+  overlay?: React.ReactNode;
   /** Backdrop press handler. Defaults to onClose. */
   onBackdropPress?: () => void;
+  /** Fires after the sheet has fully unmounted (safe to open another Modal). */
+  onClosed?: () => void;
 };
 
 /**
@@ -64,14 +68,19 @@ export default function SpringBottomSheet({
   grabber = true,
   presentation = "modal",
   onBackdropPress,
+  onClosed,
+  overlay,
 }: Props) {
   const reducedMotion = useReducedMotion();
   const translateY = useSharedValue(9999);
   const overlayOpacity = useSharedValue(0);
   const sheetHeightRef = useRef(0);
   const closingRef = useRef(false);
+  const wasMountedRef = useRef(visible);
+  const onClosedRef = useRef(onClosed);
   const [mounted, setMounted] = useState(visible);
   const handleBackdrop = onBackdropPress ?? onClose;
+  onClosedRef.current = onClosed;
 
   const openSheet = useCallback(() => {
     closingRef.current = false;
@@ -90,6 +99,17 @@ export default function SpringBottomSheet({
     closingRef.current = false;
     setMounted(false);
   }, []);
+
+  // After the RN Modal unmounts, run onClosed so follow-up Modals can present.
+  useEffect(() => {
+    if (mounted) {
+      wasMountedRef.current = true;
+      return;
+    }
+    if (!wasMountedRef.current) return;
+    wasMountedRef.current = false;
+    onClosedRef.current?.();
+  }, [mounted]);
 
   const closeSheet = useCallback(
     (notifyParent: boolean) => {
@@ -224,6 +244,7 @@ export default function SpringBottomSheet({
         )}
         {footer}
       </Animated.View>
+      {overlay}
     </View>
   );
 

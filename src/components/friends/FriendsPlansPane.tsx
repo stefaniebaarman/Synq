@@ -67,6 +67,9 @@ const FriendsPlansPane = forwardRef<FriendsPlansPaneHandle, Props>(function Frie
     planIsHost,
     handlePlanAction,
     isPlanBusy,
+    pendingJoin,
+    confirmJoin,
+    cancelJoin,
     pendingUnjoin,
     confirmUnjoin,
     cancelUnjoin,
@@ -129,6 +132,16 @@ const FriendsPlansPane = forwardRef<FriendsPlansPaneHandle, Props>(function Frie
         ListEmptyComponent={<FriendsPlansEmpty hasFriends={visibleFriends.length > 0} />}
       />
 
+      <ConfirmModal
+        visible={pendingJoin != null}
+        title="Join this plan?"
+        message=""
+        confirmText="Join"
+        onCancel={cancelJoin}
+        onConfirm={() => {
+          void confirmJoin();
+        }}
+      />
       <ConfirmModal
         visible={pendingUnjoin != null}
         title="Remove this plan?"

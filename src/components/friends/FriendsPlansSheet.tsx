@@ -50,58 +50,29 @@ export default function FriendsPlansSheet({
     planIsHost,
     handlePlanAction,
     isPlanBusy,
+    pendingJoin,
+    confirmJoin,
+    cancelJoin,
     pendingUnjoin,
     confirmUnjoin,
     cancelUnjoin,
   } = feed;
 
-  return (
+  const confirmOverlay = (
     <>
-      <SpringBottomSheet
-        visible={visible}
-        onClose={onClose}
-        cardStyle={[styles.sheet, { paddingBottom: Math.max(24, insets.bottom) }]}
-      >
-        <View style={styles.header}>
-          <Text style={styles.title}>Upcoming</Text>
-          <CloseButton onPress={onClose} accessibilityLabel="Close plans" />
-        </View>
-
-        <FlatList
-          data={aggregatedPlans}
-          keyExtractor={(item) => `${item.sourceFriendId}|${item.event.id}`}
-          showsVerticalScrollIndicator={false}
-          contentContainerStyle={[
-            styles.listContent,
-            aggregatedPlans.length === 0 && styles.listContentEmpty,
-          ]}
-          ListEmptyComponent={
-            <View style={styles.emptyWrap}>
-              <Text style={styles.emptyTitle}>Nothing planned right now</Text>
-              <Text style={styles.emptyText}>
-                When friends add plans, they'll show up here.
-              </Text>
-            </View>
-          }
-          renderItem={({ item }) => (
-            <FriendPlanCard
-              item={item}
-              viewerId={userId}
-              hostDisplayNameByUid={hostDisplayNameByUid}
-              viewerEvents={viewerEvents}
-              friendImageByUid={friendImageByUid}
-              joined={planJoined(item)}
-              isHost={planIsHost(item)}
-              busy={isPlanBusy(item)}
-              onPressCard={() => onOpenFriendProfile(item.sourceFriendId)}
-              onPressAction={() => void handlePlanAction(item)}
-              onOpenPersonProfile={onOpenFriendProfile}
-            />
-          )}
-        />
-      </SpringBottomSheet>
-
       <ConfirmModal
+        embedded
+        visible={pendingJoin != null}
+        title="Join this plan?"
+        message=""
+        confirmText="Join"
+        onCancel={cancelJoin}
+        onConfirm={() => {
+          void confirmJoin();
+        }}
+      />
+      <ConfirmModal
+        embedded
         visible={pendingUnjoin != null}
         title="Remove this plan?"
         message=""
@@ -113,6 +84,53 @@ export default function FriendsPlansSheet({
         }}
       />
     </>
+  );
+
+  return (
+    <SpringBottomSheet
+      visible={visible}
+      onClose={onClose}
+      cardStyle={[styles.sheet, { paddingBottom: Math.max(24, insets.bottom) }]}
+      overlay={confirmOverlay}
+    >
+      <View style={styles.header}>
+        <Text style={styles.title}>Upcoming</Text>
+        <CloseButton onPress={onClose} accessibilityLabel="Close plans" />
+      </View>
+
+      <FlatList
+        data={aggregatedPlans}
+        keyExtractor={(item) => `${item.sourceFriendId}|${item.event.id}`}
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={[
+          styles.listContent,
+          aggregatedPlans.length === 0 && styles.listContentEmpty,
+        ]}
+        ListEmptyComponent={
+          <View style={styles.emptyWrap}>
+            <Text style={styles.emptyTitle}>Nothing planned right now</Text>
+            <Text style={styles.emptyText}>
+              When friends add plans, they'll show up here.
+            </Text>
+          </View>
+        }
+        renderItem={({ item }) => (
+          <FriendPlanCard
+            item={item}
+            viewerId={userId}
+            hostDisplayNameByUid={hostDisplayNameByUid}
+            viewerEvents={viewerEvents}
+            friendImageByUid={friendImageByUid}
+            joined={planJoined(item)}
+            isHost={planIsHost(item)}
+            busy={isPlanBusy(item)}
+            onPressCard={() => onOpenFriendProfile(item.sourceFriendId)}
+            onPressAction={() => void handlePlanAction(item)}
+            onOpenPersonProfile={onOpenFriendProfile}
+          />
+        )}
+      />
+    </SpringBottomSheet>
   );
 }
 

@@ -72,6 +72,7 @@ import {
   computeSynqActiveFromUserData,
   getCachedSynqActiveSync,
   hydrateSynqStatusFromDisk,
+  isSynqAvailablePendingStart,
   readCachedSynqActive,
   writeCachedSynqActive,
 } from "../src/lib/synqSession";
@@ -399,9 +400,18 @@ export default function RootLayout() {
       let cachedSynqActive = getCachedSynqActiveSync(user.uid);
       try {
         const userSnap = await getDoc(doc(db, "users", user.uid));
-        cachedSynqActive = userSnap.exists()
-          ? computeSynqActiveFromUserData(userSnap.data())
-          : cachedSynqActive;
+        if (userSnap.exists()) {
+          const data = userSnap.data();
+          if (computeSynqActiveFromUserData(data)) {
+            cachedSynqActive = true;
+          } else if (isSynqAvailablePendingStart(data)) {
+            // Keep prior cache / memory while serverTimestamp resolves.
+            cachedSynqActive =
+              cachedSynqActive || (await readCachedSynqActive(user.uid));
+          } else {
+            cachedSynqActive = false;
+          }
+        }
         writeCachedSynqActive(user.uid, cachedSynqActive);
       } catch {
         try {

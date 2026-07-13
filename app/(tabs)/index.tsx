@@ -52,6 +52,7 @@ import {
   query,
   limit,
   serverTimestamp,
+  Timestamp,
   updateDoc,
   where
 } from 'firebase/firestore';
@@ -76,7 +77,6 @@ import {
   View
 } from 'react-native';
 import Reanimated, {
-  FadeIn,
   FadeOut,
 } from 'react-native-reanimated';
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
@@ -175,6 +175,7 @@ import type { SynqSuggestion } from "../../src/lib/synqSuggestions";
 import {
   computeSynqActiveFromUserData,
   getCachedSynqActiveSync,
+  isSynqAvailablePendingStart,
   millisUntilSynqExpires,
   synqStartedAtMillis,
   writeCachedSynqActive,
@@ -420,6 +421,8 @@ export default function SynqScreen() {
   const activeParticipantIdsRef = useRef<string[]>([]);
   const [isStartingSynq, setIsStartingSynq] = useState(false);
   const [launchOverlay, setLaunchOverlay] = useState(false);
+  const launchWriteDoneRef = useRef(false);
+  const launchAnimDoneRef = useRef(false);
   const [contentAlertVisible, setContentAlertVisible] = useState(false);
   const [contentAlertTitle, setContentAlertTitle] = useState("Content not allowed");
   const [contentAlertMessage, setContentAlertMessage] = useState("");
@@ -912,6 +915,17 @@ export default function SynqScreen() {
         return;
       }
 
+      // available + unresolved synqStartedAt: wait — do not tear down the session
+      if (isSynqAvailablePendingStart(data)) {
+        setAudienceSelection(selectionFromUserBroadcastFields(data));
+        setSynq((s) => {
+          if (s.status === "activating" || s.status === "active") return s;
+          writeCachedSynqActive(uid, true);
+          return { ...s, status: "active", hydrated: true };
+        });
+        return;
+      }
+
       setSynq((s) => {
         if (s.status === "activating" || s.status === "idle") return s;
         writeCachedSynqActive(uid, false);
@@ -936,6 +950,12 @@ export default function SynqScreen() {
   useEffect(() => {
     const effectUid = user?.uid;
     if (!effectUid || status !== "active") return;
+    // Wait for profile + start time before scheduling expiry (avoids wiping
+    // an active session on refresh while userProfile is still hydrating).
+    if (!userProfile || userProfile.status !== "available") return;
+
+    const delay = millisUntilSynqExpires(userProfile);
+    if (delay == null) return;
 
     const expireLocally = () => {
       setSynq((s) => {
@@ -954,7 +974,6 @@ export default function SynqScreen() {
       }
     };
 
-    const delay = millisUntilSynqExpires(userProfile);
     if (delay <= 0) {
       expireLocally();
       return;
@@ -1072,6 +1091,12 @@ export default function SynqScreen() {
           if (computeSynqActiveFromUserData(data)) {
             nextStatus = "active";
             writeCachedSynqActive(effectUid, true);
+          } else if (isSynqAvailablePendingStart(data)) {
+            // Keep disk/memory cache; do not write inactive while start time is pending.
+            nextStatus = getCachedSynqActiveSync(effectUid) ? "active" : "idle";
+            if (nextStatus === "active") {
+              writeCachedSynqActive(effectUid, true);
+            }
           } else {
             if (
               data.status === "available" &&
@@ -1292,11 +1317,17 @@ export default function SynqScreen() {
     [liveParticipantImages, userProfile?.imageurl]
   );
 
-  const completeSynqLaunch = useCallback(() => {
+  const finishLaunchIfReady = useCallback(() => {
+    if (!launchWriteDoneRef.current || !launchAnimDoneRef.current) return;
     Vibration.vibrate(400);
     setSynqStatus(setSynq, "active");
     setLaunchOverlay(false);
   }, [setSynq]);
+
+  const completeSynqLaunch = useCallback(() => {
+    launchAnimDoneRef.current = true;
+    finishLaunchIfReady();
+  }, [finishLaunchIfReady]);
 
   const [chatAiLocationStatus, setChatAiLocationStatus] =
     useState<ChatAiLocationStatus>("loading");
@@ -1545,6 +1576,11 @@ export default function SynqScreen() {
     if (memo.trim() && rejectIfObjectionable(memo)) return;
     Vibration.vibrate(200);
     setIsStartingSynq(true);
+    launchWriteDoneRef.current = false;
+    launchAnimDoneRef.current = false;
+    // Cover immediately so Firestore latency doesn't flash idle/"ACTIVATING…".
+    setLaunchOverlay(true);
+    setSynqStatus(setSynq, "activating");
     try {
       const uid = auth.currentUser.uid;
       const broadcast = buildSynqBroadcastFirestorePayload(
@@ -1560,20 +1596,27 @@ export default function SynqScreen() {
       });
       await saveSynqAudiencePreference(uid, audienceSelection);
       writeCachedSynqActive(uid, true);
+      const startedAtLocal = Timestamp.now();
       setUserProfile((prev: Record<string, unknown> | null) =>
         prev
           ? {
               ...prev,
               memo,
               status: "available",
+              synqStartedAt: startedAtLocal,
               ...broadcast,
             }
           : prev
       );
-      setLaunchOverlay(true);
-      setSynqStatus(setSynq, "activating");
       trackEvent("synq_started");
+      launchWriteDoneRef.current = true;
+      finishLaunchIfReady();
     } catch {
+      launchWriteDoneRef.current = false;
+      launchAnimDoneRef.current = false;
+      setLaunchOverlay(false);
+      setSynqStatus(setSynq, "idle");
+      writeCachedSynqActive(auth.currentUser.uid, false);
       showActionError("Could not start Synq. Check your connection and try again.");
     } finally {
       setIsStartingSynq(false);
@@ -2067,32 +2110,29 @@ export default function SynqScreen() {
             />
           </View>
         )}
-        {status === "idle" && hydrated && (
-          <View style={styles.synqHomeLayer}>
-            <Reanimated.View
-              exiting={FadeOut.duration(520)}
-              style={StyleSheet.absoluteFill}
-            >
-              <InactiveSynqView
-                memo={memo}
-                setMemo={setMemo}
-                onStartSynq={startSynq}
-                isStartingSynq={isStartingSynq}
-                friendGroups={friendGroups}
-                audienceSelection={audienceSelection}
-                onAudienceSelectionChange={(next) => {
-                  setAudienceSelection(next);
-                  if (auth.currentUser?.uid) {
-                    void saveSynqAudiencePreference(auth.currentUser.uid, next);
-                  }
-                }}
-              />
-            </Reanimated.View>
+        {(status === "idle" || status === "activating") && hydrated && (
+          <View
+            style={styles.synqHomeLayer}
+            pointerEvents={launchOverlay ? "none" : "auto"}
+          >
+            <InactiveSynqView
+              memo={memo}
+              setMemo={setMemo}
+              onStartSynq={startSynq}
+              isStartingSynq={isStartingSynq || status === "activating"}
+              friendGroups={friendGroups}
+              audienceSelection={audienceSelection}
+              onAudienceSelectionChange={(next) => {
+                setAudienceSelection(next);
+                if (auth.currentUser?.uid) {
+                  void saveSynqAudiencePreference(auth.currentUser.uid, next);
+                }
+              }}
+            />
           </View>
         )}
         {launchOverlay && (
           <Reanimated.View
-            entering={FadeIn.duration(360)}
             exiting={FadeOut.duration(680)}
             style={styles.launchOverlay}
             pointerEvents={status === "active" ? "none" : "auto"}
@@ -3167,6 +3207,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     marginTop: 20,
   },
+  saveBtnText: primaryButtonText,
   centeredIdeaContainer: {
     alignItems: 'center',
     marginVertical: 15,

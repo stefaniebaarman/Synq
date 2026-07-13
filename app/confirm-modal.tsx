@@ -26,6 +26,11 @@ type Props = {
   onCancel: () => void;
   destructive?: boolean;
   confirmDisabled?: boolean;
+  /**
+   * Render inside an existing Modal (e.g. SpringBottomSheet) instead of
+   * stacking a second RN Modal — which often fails to present on device.
+   */
+  embedded?: boolean;
 };
 
 export default function ConfirmModal({
@@ -38,54 +43,69 @@ export default function ConfirmModal({
   onCancel,
   destructive = false,
   confirmDisabled = false,
+  embedded = false,
 }: Props) {
-  return (
-    <Modal visible={visible} transparent animationType="fade">
-      <View style={modalStyles.overlay}>
-        <View style={modalStyles.cardCompact}>
-          {title ? <Text style={modalStyles.title}>{title}</Text> : null}
+  if (!visible) return null;
 
-          {message.trim().length > 0 ? (
-            <Text style={modalStyles.body}>{message}</Text>
-          ) : null}
+  const card = (
+    <View style={modalStyles.overlay}>
+      <View style={modalStyles.cardCompact}>
+        {title ? <Text style={modalStyles.title}>{title}</Text> : null}
 
-          <View style={styles.actions}>
-            <TouchableOpacity
-              onPress={onCancel}
-              style={styles.cancelBtn}
-              activeOpacity={0.8}
-            >
-              <Text style={modalStyles.secondaryBtnText}>{cancelText}</Text>
-            </TouchableOpacity>
+        {message.trim().length > 0 ? (
+          <Text style={modalStyles.body}>{message}</Text>
+        ) : null}
 
-            <TouchableOpacity
-              onPress={onConfirm}
-              disabled={confirmDisabled}
+        <View style={styles.actions}>
+          <TouchableOpacity
+            onPress={onCancel}
+            style={styles.cancelBtn}
+            activeOpacity={0.8}
+          >
+            <Text style={modalStyles.secondaryBtnText}>{cancelText}</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            onPress={onConfirm}
+            disabled={confirmDisabled}
+            style={[
+              styles.confirmBtn,
+              destructive && styles.destructiveBtn,
+              confirmDisabled && styles.confirmBtnDisabled,
+            ]}
+            activeOpacity={0.8}
+          >
+            <Text
               style={[
-                styles.confirmBtn,
-                destructive && styles.destructiveBtn,
-                confirmDisabled && styles.confirmBtnDisabled,
+                primaryButtonText,
+                styles.confirmTextSize,
+                destructive && styles.destructiveText,
               ]}
-              activeOpacity={0.8}
             >
-              <Text
-                style={[
-                  primaryButtonText,
-                  styles.confirmTextSize,
-                  destructive && styles.destructiveText,
-                ]}
-              >
-                {confirmText}
-              </Text>
-            </TouchableOpacity>
-          </View>
+              {confirmText}
+            </Text>
+          </TouchableOpacity>
         </View>
       </View>
+    </View>
+  );
+
+  if (embedded) {
+    return <View style={styles.embeddedRoot}>{card}</View>;
+  }
+
+  return (
+    <Modal visible transparent animationType="fade">
+      {card}
     </Modal>
   );
 }
 
 const styles = StyleSheet.create({
+  embeddedRoot: {
+    ...StyleSheet.absoluteFillObject,
+    zIndex: 40,
+  },
   actions: {
     flexDirection: "row",
     justifyContent: "flex-end",
