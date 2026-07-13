@@ -52,16 +52,16 @@ export default function MessagesModalStack({
   const [chatMounted, setChatMounted] = useState(false);
   const [profileMounted, setProfileMounted] = useState(false);
 
+  const notifyInteractivePop = () => {
+    onInteractivePop?.();
+  };
+
   const animateToDepth = (depth: number) => {
     "worklet";
     stackDepth.value = withTiming(depth, {
       duration: MESSAGES_STACK_DURATION_MS,
       easing: IOS_STACK_EASING,
     });
-  };
-
-  const finishInteractivePop = () => {
-    onInteractivePop?.();
   };
 
   const edgePopGesture = Gesture.Pan()
@@ -89,7 +89,20 @@ export default function MessagesModalStack({
         (event.velocityX > 850 && event.translationX > 24);
 
       if (shouldPop) {
-        runOnJS(finishInteractivePop)();
+        const nextDepth = Math.max(0, Math.floor(target) - 1);
+        // Finish the slide on the UI thread, then update React pane state.
+        stackDepth.value = withTiming(
+          nextDepth,
+          {
+            duration: MESSAGES_STACK_DURATION_MS,
+            easing: IOS_STACK_EASING,
+          },
+          (finished) => {
+            if (finished) {
+              runOnJS(notifyInteractivePop)();
+            }
+          }
+        );
         return;
       }
 
