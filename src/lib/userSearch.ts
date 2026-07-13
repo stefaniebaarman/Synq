@@ -8,6 +8,7 @@ export type SearchUserResult = {
   displayName: string;
   imageurl?: string;
   email?: string | null;
+  isFriend?: boolean;
 };
 
 export async function searchUsersForFriend(query: string): Promise<SearchUserResult[]> {

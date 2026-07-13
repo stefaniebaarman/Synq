@@ -83,8 +83,27 @@ exports.onUserPushTokenWrite = onDocumentWritten(
   },
   async (event) => {
     const userId = event.params.userId;
-    const after = event.data.after?.exists ? event.data.after.data() : null;
-    const token = after?.pushToken;
+    const afterSnap = event.data.after;
+    const after = afterSnap?.exists ? afterSnap.data() : null;
+    if (!after) return;
+
+    // Keep friend-discovery search fields in sync (legacy accounts often lack them).
+    try {
+      const searchFields = buildUserSearchFields(after);
+      const needsSearchSync =
+        after.displayNameLower !== searchFields.displayNameLower ||
+        after.searchNameLower !== searchFields.searchNameLower ||
+        (searchFields.emailLower
+          ? after.emailLower !== searchFields.emailLower
+          : false);
+      if (needsSearchSync && (searchFields.displayNameLower || searchFields.emailLower)) {
+        await afterSnap.ref.update(searchFields);
+      }
+    } catch (e) {
+      logError("onUserSearchFieldsSync", e, { userId });
+    }
+
+    const token = after.pushToken;
     if (!token || typeof token !== "string") return;
 
     try {
@@ -578,9 +597,18 @@ exports.profileSharePageHttp = onRequest(
         "https://apps.apple.com/us/app/synq-see-whos-free/id6757319173";
       const androidStore =
         "https://play.google.com/store/search?q=Synq&c=apps";
-      const ogImageTag = ogImage
-        ? `<meta property="og:image" content="${escapeHtml(ogImage)}" />`
-        : "";
+      const protocol = String(req.headers["x-forwarded-proto"] || "https")
+        .split(",")[0]
+        .trim();
+      const host = String(req.headers.host || "new-synq-main.web.app").trim();
+      const shareUrl = `${protocol}://${host}/u/${encodeURIComponent(code)}`;
+      const ogImageTags = ogImage
+        ? `<meta property="og:image" content="${escapeHtml(ogImage)}" />
+    <meta property="og:image:width" content="320" />
+    <meta property="og:image:height" content="380" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:image" content="${escapeHtml(ogImage)}" />`
+        : `<meta name="twitter:card" content="summary" />`;
 
       res.set("Cache-Control", "public, max-age=60");
       res.status(200).send(`<!DOCTYPE html>
@@ -592,7 +620,8 @@ exports.profileSharePageHttp = onRequest(
     <meta property="og:title" content="Join me on Synq!" />
     <meta property="og:description" content="Connect with me on Synq." />
     <meta property="og:type" content="website" />
-    ${ogImageTag}
+    <meta property="og:url" content="${escapeHtml(shareUrl)}" />
+    ${ogImageTags}
     <style>
       body {
         margin: 0;
@@ -678,7 +707,7 @@ function buildUserSearchFields(data) {
   };
 }
 
-function pushSearchUser(users, seen, exclude, userDoc) {
+function pushSearchUser(users, seen, exclude, userDoc, extra = {}) {
   if (seen.has(userDoc.id) || exclude.has(userDoc.id)) return;
   const fields = publicUserFields(userDoc);
   seen.add(userDoc.id);
@@ -687,7 +716,26 @@ function pushSearchUser(users, seen, exclude, userDoc) {
     displayName: fields.displayName,
     imageurl: fields.imageurl,
     email: fields.email,
+    ...extra,
   });
+}
+
+function userMatchesSearchQuery(data, query) {
+  if (!query) return false;
+  const displayName = normalizeSearchText(data.displayName || "");
+  const firstName = normalizeSearchText(data.firstName || "");
+  const lastName = normalizeSearchText(data.lastName || "");
+  const fullName = normalizeSearchText(`${firstName} ${lastName}`);
+  const displayNameLower = normalizeSearchText(data.displayNameLower || displayName);
+  const searchNameLower = normalizeSearchText(data.searchNameLower || fullName || displayName);
+  return (
+    displayName.includes(query) ||
+    fullName.includes(query) ||
+    firstName.includes(query) ||
+    lastName.includes(query) ||
+    displayNameLower.includes(query) ||
+    searchNameLower.includes(query)
+  );
 }
 
 async function assertCallableRateLimit(db, uid, key, windowMs, maxCalls) {
@@ -731,11 +779,32 @@ exports.searchUsersForFriend = onCall(
       .doc(myId)
       .collection("friends")
       .get();
-    const exclude = new Set(myFriendsSnap.docs.map((d) => d.id));
-    exclude.add(myId);
+    const friendIds = myFriendsSnap.docs.map((d) => d.id);
+    const friendSet = new Set(friendIds);
+    // Only exclude self — existing friends stay in results with isFriend.
+    const exclude = new Set([myId]);
 
     const users = [];
     const seen = new Set();
+
+    const pushDoc = (userDoc) => {
+      pushSearchUser(users, seen, exclude, userDoc, {
+        isFriend: friendSet.has(userDoc.id),
+      });
+    };
+
+    // Always include matching friends (substring), even if denormalized
+    // search fields are missing on older accounts.
+    for (let i = 0; i < friendIds.length && users.length < 30; i += 10) {
+      const chunk = friendIds.slice(i, i + 10);
+      const snaps = await db.getAll(...chunk.map((id) => db.collection("users").doc(id)));
+      for (const userDoc of snaps) {
+        if (!userDoc.exists) continue;
+        if (!userMatchesSearchQuery(userDoc.data() || {}, query)) continue;
+        pushDoc(userDoc);
+        if (users.length >= 30) break;
+      }
+    }
 
     const prefixSnap = await db
       .collection("users")
@@ -746,7 +815,7 @@ exports.searchUsersForFriend = onCall(
 
     for (const userDoc of prefixSnap.docs) {
       if (users.length >= 30) break;
-      pushSearchUser(users, seen, exclude, userDoc);
+      pushDoc(userDoc);
     }
 
     if (query.includes("@") && users.length < 30) {
@@ -757,7 +826,7 @@ exports.searchUsersForFriend = onCall(
         .get();
       for (const userDoc of emailSnap.docs) {
         if (users.length >= 30) break;
-        pushSearchUser(users, seen, exclude, userDoc);
+        pushDoc(userDoc);
       }
     }
 
@@ -770,9 +839,65 @@ exports.searchUsersForFriend = onCall(
         .get();
       for (const userDoc of searchSnap.docs) {
         if (users.length >= 30) break;
-        pushSearchUser(users, seen, exclude, userDoc);
+        pushDoc(userDoc);
       }
     }
+
+    // Legacy fallback: many older accounts never got displayNameLower /
+    // searchNameLower, so prefix queries miss them. Page through users,
+    // match in memory, and backfill fields when we find a hit.
+    if (users.length < 30 && query.length >= 2) {
+      const backfillBatch = db.batch();
+      let backfillCount = 0;
+      let lastDoc = null;
+      let pages = 0;
+      const maxPages = 15; // up to ~4500 accounts
+
+      while (users.length < 30 && pages < maxPages) {
+        let legacyQuery = db
+          .collection("users")
+          .orderBy(admin.firestore.FieldPath.documentId())
+          .limit(300);
+        if (lastDoc) legacyQuery = legacyQuery.startAfter(lastDoc);
+        const legacySnap = await legacyQuery.get();
+        if (legacySnap.empty) break;
+        pages += 1;
+        lastDoc = legacySnap.docs[legacySnap.docs.length - 1];
+
+        for (const userDoc of legacySnap.docs) {
+          if (users.length >= 30) break;
+          if (seen.has(userDoc.id) || exclude.has(userDoc.id)) continue;
+          const data = userDoc.data() || {};
+          if (!userMatchesSearchQuery(data, query)) continue;
+          pushDoc(userDoc);
+          const fields = buildUserSearchFields(data);
+          if (
+            fields.displayNameLower &&
+            (data.displayNameLower !== fields.displayNameLower ||
+              data.searchNameLower !== fields.searchNameLower ||
+              (fields.emailLower && data.emailLower !== fields.emailLower))
+          ) {
+            backfillBatch.update(userDoc.ref, fields);
+            backfillCount += 1;
+          }
+        }
+        if (legacySnap.size < 300) break;
+      }
+
+      if (backfillCount > 0) {
+        try {
+          await backfillBatch.commit();
+          logInfo("searchUsersForFriend_backfill", { count: backfillCount });
+        } catch (e) {
+          logError("searchUsersForFriend_backfill", e, {});
+        }
+      }
+    }
+
+    users.sort((a, b) => {
+      if (a.isFriend !== b.isFriend) return a.isFriend ? -1 : 1;
+      return String(a.displayName || "").localeCompare(String(b.displayName || ""));
+    });
 
     return { users };
   }
@@ -1179,6 +1304,33 @@ function isSynqActive(userData) {
   return Date.now() - ms <= SYNQ_EXPIRATION_MS;
 }
 
+/** True when Firestore still says available but the 12h window (or startedAt) has lapsed. */
+function isAvailableButExpired(userData) {
+  if (!userData || typeof userData !== "object") return false;
+  if (String(userData.status || "").trim().toLowerCase() !== "available") return false;
+  return !isSynqActive(userData);
+}
+
+/**
+ * Expire-on-read: clear stale `available` rows so raw status queries stay honest
+ * between scheduled expireStaleSynq runs.
+ */
+async function expireSynqOnRead(db, uid, userData) {
+  if (!uid || !isAvailableButExpired(userData)) return false;
+  try {
+    await db.collection("users").doc(uid).update({
+      status: "inactive",
+      memo: "",
+      ...synqBroadcastClearFields,
+    });
+    logInfo("expireSynqOnRead", { uid });
+    return true;
+  } catch (e) {
+    logError("expireSynqOnRead", e, { uid });
+    return false;
+  }
+}
+
 const { isRecipientInSynqVisibleTo } = require("./synqBroadcastCore");
 
 const synqBroadcastClearFields = {
@@ -1193,7 +1345,7 @@ const synqBroadcastClearFields = {
  */
 exports.expireStaleSynq = onSchedule(
   {
-    schedule: "every 60 minutes",
+    schedule: "every 15 minutes",
     region: "us-central1",
     timeZone: "Etc/UTC",
   },
@@ -1675,12 +1827,14 @@ exports.sendSynqNudge = onCall({ region: "us-central1" }, async (request) => {
   const recipientData = recipientDoc.data() || {};
 
   if (!isSynqActive(callerData)) {
+    await expireSynqOnRead(db, callerUid, callerData);
     throw new HttpsError("failed-precondition", "Activate Synq first to ask if a friend is free.");
   }
 
   if (isSynqActive(recipientData)) {
     throw new HttpsError("failed-precondition", "This friend is already active.");
   }
+  await expireSynqOnRead(db, toUserId, recipientData);
 
   const lockId = `synq_nudge_${callerUid}_${toUserId}`.slice(0, 1400);
   const lockRef = db.collection("users").doc(toUserId).collection("notificationLocks").doc(lockId);
@@ -2197,7 +2351,13 @@ exports.onFriendSynqActivated = onDocumentUpdated(
 
     const wasActive = isSynqActive(before);
     const isActive = isSynqActive(after);
-    if (wasActive === isActive) return;
+    if (wasActive === isActive) {
+      // Status still "available" but past window — heal on this write path.
+      if (isAvailableButExpired(after)) {
+        await expireSynqOnRead(admin.firestore(), activatedUserId, after);
+      }
+      return;
+    }
 
     try {
       const friendsSnap = await admin
@@ -2230,7 +2390,10 @@ exports.onFriendSynqActivated = onDocumentUpdated(
         const recipientId = friendDoc.id;
         const recipientToken = friendData?.pushToken;
         if (!recipientToken) continue;
-        if (!isSynqActive(friendData)) continue;
+        if (!isSynqActive(friendData)) {
+          await expireSynqOnRead(admin.firestore(), recipientId, friendData);
+          continue;
+        }
         if (!isRecipientInSynqVisibleTo(recipientId, after)) continue;
 
         if (activatedPushToken && recipientToken === activatedPushToken) {

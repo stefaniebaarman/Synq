@@ -26,10 +26,14 @@ export function normalizeForFilter(input: string): string {
   return s.replace(/(.)\1{2,}/g, "$1$1");
 }
 
+const NORMALIZED_BLOCKED_TERMS = BLOCKED_TERMS.map((term) =>
+  normalizeForFilter(term)
+);
+
 export function containsObjectionableContent(text: string): boolean {
   const normalized = normalizeForFilter(text);
   if (!normalized) return false;
-  return BLOCKED_TERMS.some((term) => normalized.includes(term));
+  return NORMALIZED_BLOCKED_TERMS.some((term) => normalized.includes(term));
 }
 
 export function filterOrReject(text: string): { ok: true } | { ok: false; reason: string } {

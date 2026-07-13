@@ -491,6 +491,47 @@ describe("aggregateFriendPlans", () => {
     expect(plans[0].sourceFriendId).toBe("elliott");
   });
 
+  test("keeps a friend-hosted plan after join sync adds the viewer on the host row", () => {
+    const friends = [
+      {
+        id: "elliott",
+        displayName: "Elliott",
+        events: [
+          {
+            id: "host-row",
+            title: "House party",
+            date: "2099-07-01",
+            planHostUid: "elliott",
+            joinedFromId: "elliott",
+            joinedFromIds: ["elliott", "viewer"],
+            joinedFromNames: ["Alex"],
+          },
+        ],
+      },
+    ];
+
+    const viewerEvents = [
+      {
+        id: "viewer-row",
+        title: "House party",
+        date: "2099-07-01",
+        planHostUid: "elliott",
+        joinedFromFriendUid: "elliott",
+        joinedFromId: "elliott",
+        joinedFromIds: ["elliott", "viewer"],
+        joinedFromNames: ["Elliott"],
+      },
+    ];
+
+    const plans = aggregateFriendPlans(friends, {
+      viewerId: "viewer",
+      viewerEvents,
+    });
+    expect(plans).toHaveLength(1);
+    expect(plans[0].sourceFriendId).toBe("elliott");
+    expect(plans[0].event.id).toBe("host-row");
+  });
+
   test("skips blocked friends", () => {
     const friends = [
       {
