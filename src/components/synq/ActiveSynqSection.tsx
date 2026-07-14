@@ -24,15 +24,6 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import Animated, {
-  cancelAnimation,
-  Easing,
-  useAnimatedStyle,
-  useSharedValue,
-  withRepeat,
-  withSequence,
-  withTiming,
-} from "react-native-reanimated";
 import SynqOptionsSheet from "../../../app/synq-screens/SynqOptionsSheet";
 import {
   ACCENT,
@@ -93,39 +84,6 @@ export default function ActiveSynqSection({
   const [sortMode, setSortMode] = useState<FriendsSortMode>("distance");
   const [sortMenuVisible, setSortMenuVisible] = useState(false);
   const headerLayout = useTabHeaderLayout();
-  const pulseOpacity = useSharedValue(1);
-  const pulseScale = useSharedValue(1);
-
-  useEffect(() => {
-    const easing = Easing.inOut(Easing.ease);
-    pulseOpacity.value = withRepeat(
-      withSequence(
-        withTiming(0.62, { duration: 1200, easing }),
-        withTiming(1, { duration: 1200, easing })
-      ),
-      -1,
-      false
-    );
-    pulseScale.value = withRepeat(
-      withSequence(
-        withTiming(0.94, { duration: 1200, easing }),
-        withTiming(1, { duration: 1200, easing })
-      ),
-      -1,
-      false
-    );
-    return () => {
-      cancelAnimation(pulseOpacity);
-      cancelAnimation(pulseScale);
-      pulseOpacity.value = 1;
-      pulseScale.value = 1;
-    };
-  }, [pulseOpacity, pulseScale]);
-
-  const activeStatusDotStyle = useAnimatedStyle(() => ({
-    opacity: pulseOpacity.value,
-    transform: [{ scale: pulseScale.value }],
-  }));
 
   useEffect(() => {
     const subscription = DeviceEventEmitter.addListener(SYNQ_TAB_LONG_PRESS, () => {
@@ -173,15 +131,9 @@ export default function ActiveSynqSection({
           />
         </View>
         <View style={styles.synqHeaderTitleCenter}>
-          <View style={styles.headerTitleWithIndicator}>
-            <Animated.View
-              style={[styles.activeStatusDot, activeStatusDotStyle]}
-              accessibilityLabel="Synq session live"
-            />
-            <Text style={styles.headerTitle} numberOfLines={1}>
-              Synq is active
-            </Text>
-          </View>
+          <Text style={styles.headerTitle} numberOfLines={1}>
+            Synq is active
+          </Text>
         </View>
         <View style={styles.synqHeaderSide}>
           <HeaderIconButton
