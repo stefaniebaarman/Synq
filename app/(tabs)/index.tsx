@@ -2708,15 +2708,15 @@ const styles = StyleSheet.create({
   activeFriendTile: {
     flexDirection: "row",
     alignItems: "center",
-    paddingVertical: 16,
-    paddingHorizontal: 14,
+    padding: 14,
     borderRadius: RADIUS_LG,
-    borderWidth: 1.5,
+    borderWidth: StyleSheet.hairlineWidth,
     borderColor: GROUP_BORDER,
-    marginBottom: 12,
+    marginBottom: 14,
     backgroundColor: GROUP_SURFACE,
   },
   activeFriendTileSelected: {
+    borderWidth: 1.5,
     borderColor: ACCENT,
   },
   activeFriendAvatarRing: {
