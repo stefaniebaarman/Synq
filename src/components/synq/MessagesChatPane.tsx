@@ -5,21 +5,16 @@ import {
   BORDER_LIGHT,
   BG_TRANSPARENT,
   DESTRUCTIVE_IOS_FILL,
-  HEADER_BLACK,
   MUTED2,
   MUTED3,
   ON_ACCENT_TEXT,
-  OVERLAY_CHAT_TOP,
-  OVERLAY_DARK,
-  OVERLAY_FADE,
-  OVERLAY_WHISPER,
-  OVERLAY_ZERO,
   PROFILE_HEADER_TOP_OFFSET,
   SURFACE_ELEVATED,
   TEXT,
   TYPE_CAPTION,
   TYPE_FINE,
   TYPE_LEAD,
+  TYPE_MICRO,
   TYPE_SECTION,
   fonts,
   heroTitleText,
@@ -55,9 +50,13 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
+import { Gesture, GestureDetector } from "react-native-gesture-handler";
 import { useReanimatedKeyboardAnimation } from "react-native-keyboard-controller";
 import Animated, {
   Easing,
+  Extrapolation,
+  interpolate,
+  type SharedValue,
   useAnimatedStyle,
   useSharedValue,
   withTiming,
@@ -97,6 +96,127 @@ const CHAT_MEMBER_TILE_WIDTH = 68;
 const INVERT_FLIP = { transform: [{ scaleY: -1 }] } as const;
 const THREAD_REVEAL_EASING = Easing.bezier(0.22, 1, 0.36, 1);
 
+/** Instagram-like: only surface a time divider after this idle gap. */
+const CHAT_TIMESTAMP_GAP_MS = 60 * 60 * 1000;
+/** Same-sender bursts within this window share one trailing avatar. */
+const CHAT_AVATAR_CLUSTER_MS = 60 * 1000;
+/** Breathing room above/below place cards (each side; inverted list). */
+const CHAT_IDEA_EDGE_GAP = 22;
+
+function messageCreatedAtMs(createdAt: unknown): number {
+  if (!createdAt) return 0;
+  const anyTs = createdAt as { toDate?: () => Date; seconds?: number };
+  if (typeof anyTs.toDate === "function") {
+    const d = anyTs.toDate();
+    return Number.isNaN(d.getTime()) ? 0 : d.getTime();
+  }
+  if (typeof anyTs.seconds === "number") return anyTs.seconds * 1000;
+  const d = new Date(createdAt as string | number | Date);
+  return Number.isNaN(d.getTime()) ? 0 : d.getTime();
+}
+
+function isChatBurstNeighbor(
+  a: { type?: string; senderId?: string; createdAt?: unknown } | null,
+  b: { type?: string; senderId?: string; createdAt?: unknown },
+  bMs: number
+): boolean {
+  if (!a || a.type === "system" || isAiSuggestionMessage(a)) return false;
+  if (a.senderId !== b.senderId) return false;
+  const aMs = messageCreatedAtMs(a.createdAt);
+  if (aMs <= 0 || bMs <= 0) return false;
+  return Math.abs(aMs - bMs) < CHAT_AVATAR_CLUSTER_MS;
+}
+
+function formatMessageDividerTime(createdAt: unknown): string {
+  if (!createdAt) return "";
+  const anyTs = createdAt as { toDate?: () => Date };
+  const date =
+    typeof anyTs.toDate === "function"
+      ? anyTs.toDate()
+      : new Date(createdAt as string | number | Date);
+  if (Number.isNaN(date.getTime())) return "";
+
+  const time = date.toLocaleTimeString([], {
+    hour: "numeric",
+    minute: "2-digit",
+  });
+  const now = new Date();
+  const startToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const startMsg = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+  const dayDiff = Math.round(
+    (startToday.getTime() - startMsg.getTime()) / 86_400_000
+  );
+  if (dayDiff <= 0) return time;
+  if (dayDiff === 1) return `Yesterday ${time}`;
+  if (dayDiff < 7) {
+    return `${date.toLocaleDateString(undefined, { weekday: "long" })} ${time}`;
+  }
+  return `${date.getMonth() + 1}/${date.getDate()}/${String(
+    date.getFullYear()
+  ).slice(-2)} ${time}`;
+}
+
+/** Max iMessage-style swipe reveal for per-message times. */
+const CHAT_SWIPE_REVEAL_MAX = 64;
+/** Matches `chatAvatar` width + marginRight in tab styles. */
+const CHAT_AVATAR_SLOT = 41;
+
+function ChatSwipeRevealRow({
+  revealX,
+  timeLabel,
+  children,
+}: {
+  revealX: SharedValue<number>;
+  timeLabel: string;
+  children: React.ReactNode;
+}) {
+  const rowStyle = useAnimatedStyle(() => ({
+    transform: [{ translateX: revealX.value }],
+  }));
+  const timeStyle = useAnimatedStyle(() => ({
+    opacity: interpolate(
+      revealX.value,
+      [-CHAT_SWIPE_REVEAL_MAX, -16, 0],
+      [1, 0.4, 0],
+      Extrapolation.CLAMP
+    ),
+  }));
+
+  return (
+    <View style={{ width: "100%", position: "relative" }}>
+      <Animated.View
+        pointerEvents="none"
+        style={[
+          {
+            position: "absolute",
+            right: 6,
+            top: 0,
+            bottom: 0,
+            width: CHAT_SWIPE_REVEAL_MAX - 6,
+            justifyContent: "center",
+            alignItems: "flex-end",
+          },
+          timeStyle,
+        ]}
+      >
+        <Text
+          style={{
+            color: MUTED3,
+            fontSize: TYPE_MICRO,
+            fontFamily: fonts.medium,
+            letterSpacing: 0.15,
+            fontVariant: ["tabular-nums"],
+          }}
+          numberOfLines={1}
+        >
+          {timeLabel}
+        </Text>
+      </Animated.View>
+      <Animated.View style={rowStyle}>{children}</Animated.View>
+    </View>
+  );
+}
+
 function participantFirstName(fullName: string) {
   return (fullName || "").trim().split(/\s+/)[0];
 }
@@ -104,12 +224,13 @@ function participantFirstName(fullName: string) {
 const CHAT_LIST_HEADER_FADE_CLEARANCE = 10;
 /** Keep first paint small — uncapped initialNumToRender was forcing 50 rows on chat open. */
 const CHAT_LIST_INITIAL_RENDER_MIN = 10;
+/** Fade matches convo `BG` (#090A0B), not pure black. */
 const CHAT_HEADER_FADE_GRADIENT = [
-  HEADER_BLACK,
-  OVERLAY_CHAT_TOP,
-  OVERLAY_DARK,
-  OVERLAY_FADE,
-  OVERLAY_WHISPER,
+  BG,
+  "rgba(9,10,11,0.94)",
+  "rgba(9,10,11,0.72)",
+  "rgba(9,10,11,0.42)",
+  "rgba(9,10,11,0.16)",
   BG_TRANSPARENT,
 ] as const;
 const CHAT_HEADER_FADE_LOCATIONS = [0, 0.1, 0.3, 0.52, 0.76, 1] as const;
@@ -280,6 +401,8 @@ export default function MessagesChatPane({
   const openSettleTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const revealTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const threadOpacity = useSharedValue(0);
+  const swipeRevealX = useSharedValue(0);
+  const swipeRevealStartX = useSharedValue(0);
   const threadVisibleRef = useRef(false);
   /** Newest-first for inverted FlatList (latest stays at offset 0 — no open jump). */
   const listData = useMemo(
@@ -303,6 +426,32 @@ export default function MessagesChatPane({
   const threadRevealStyle = useAnimatedStyle(() => ({
     opacity: threadOpacity.value,
   }));
+
+  const swipeRevealGesture = useMemo(
+    () =>
+      Gesture.Pan()
+        .activeOffsetX([-14, 14])
+        .failOffsetY([-12, 12])
+        .onBegin(() => {
+          swipeRevealStartX.value = swipeRevealX.value;
+        })
+        .onUpdate((e) => {
+          const next = swipeRevealStartX.value + e.translationX;
+          swipeRevealX.value = Math.min(
+            0,
+            Math.max(-CHAT_SWIPE_REVEAL_MAX, next)
+          );
+        })
+        .onEnd(() => {
+          // iMessage-style peek: snap closed when the finger lifts.
+          swipeRevealX.value = withTiming(0, { duration: 200 });
+        }),
+    [swipeRevealStartX, swipeRevealX]
+  );
+
+  useEffect(() => {
+    swipeRevealX.value = 0;
+  }, [activeChat?.id, swipeRevealX]);
 
   /**
    * List spacer tracks keyboard height only (UI thread).
@@ -671,15 +820,13 @@ export default function MessagesChatPane({
   const handleChatScroll = useCallback(
     (event: NativeSyntheticEvent<NativeScrollEvent>) => {
       if (!listScrollableRef.current) return;
-      let y = event.nativeEvent.contentOffset.y;
-      if (y < -CHAT_LATEST_SCROLL_TOLERANCE) {
-        flatListRef.current?.scrollToOffset({ offset: 0, animated: false });
-        y = 0;
-      }
+      // Allow negative offsets (inverted list overscroll past latest) — clamping
+      // caused the shake when pulling past the bottom.
+      const y = event.nativeEvent.contentOffset.y;
       scrollOffsetRef.current = y;
       syncAnchoredToLatest(y);
     },
-    [flatListRef, syncAnchoredToLatest]
+    [syncAnchoredToLatest]
   );
 
   const handleChatScrollEnd = useCallback(
@@ -860,7 +1007,7 @@ export default function MessagesChatPane({
   );
 
   const renderMessage = useCallback(
-    ({ item }: { item: any }) => {
+    ({ item, index }: { item: any; index: number }) => {
       shouldAnimateMessage(item);
       const isMe = item.senderId === currentUserId;
       const isSystemMessage = item.type === "system";
@@ -871,6 +1018,37 @@ export default function MessagesChatPane({
         liveImages: liveImagesRef.current,
         messageImageUrl: item.imageurl,
       });
+      const isGroupChat = (chat?.participants?.length ?? 0) > 2;
+      // listData is newest-first; prior = older, newer = more recent.
+      const prior = index + 1 < listData.length ? listData[index + 1] : null;
+      const newer = index > 0 ? listData[index - 1] : null;
+      const itemMs = messageCreatedAtMs(item.createdAt);
+      const priorMs = prior ? messageCreatedAtMs(prior.createdAt) : 0;
+      // Collapsed burst only when same sender and within 1 minute.
+      const inBurstWithNewer = isChatBurstNeighbor(newer, item, itemMs);
+      const inBurstWithPrior = isChatBurstNeighbor(prior, item, itemMs);
+      const priorIsClusterBreak = !inBurstWithPrior;
+      // Avatar on the last bubble of a ≤1min same-sender burst (newest in that group).
+      const showAvatar = !isMe && !inBurstWithNewer;
+      const showSenderName = isGroupChat && !isMe && priorIsClusterBreak;
+      const clusterGap = priorIsClusterBreak ? 18 : 8;
+      const senderLabel = (() => {
+        if (!showSenderName) return "";
+        const raw =
+          chat?.participantNames?.[item.senderId]?.trim() ||
+          item.senderName?.trim() ||
+          "";
+        return raw || "Someone";
+      })();
+      const showTimeDivider =
+        !prior ||
+        priorMs <= 0 ||
+        itemMs <= 0 ||
+        itemMs - priorMs >= CHAT_TIMESTAMP_GAP_MS;
+      const timeDividerLabel = showTimeDivider
+        ? formatMessageDividerTime(item.createdAt)
+        : "";
+      const swipeTimeLabel = formatTime(item.createdAt);
 
       if (isSystemMessage) {
         return (
@@ -885,26 +1063,74 @@ export default function MessagesChatPane({
         const { name, address } = parseIdeaText(item.text);
         const isLegacyAiSuggestion = isLegacyAiSuggestionText(item.text);
         const ideaHeartCount = countHeartReactions(item.reactions);
+        const ideaCap = Math.min(
+          iMessageBubbleColumnMaxWidth(windowWidth, isMe) + 48,
+          Math.round(windowWidth * 0.78)
+        );
 
         return (
-          <View style={styles.centeredIdeaContainer}>
-            <View style={styles.ideaCardSlot}>
-              <AISuggestionBubble
-                text={item.text}
-                isLegacy={isLegacyAiSuggestion}
-                name={name}
-                address={address}
-                heartCount={ideaHeartCount || 0}
-                onPress={() =>
-                  onIdeaBubblePress(
-                    { id: item.id, reactions: item.reactions },
-                    { name, address }
-                  )
-                }
-              />
-            </View>
-
-            <Text style={styles.timestampCentered}>{formatTime(item.createdAt)}</Text>
+          <View
+            style={[
+              styles.msgContainer,
+              {
+                alignItems: isMe ? "flex-end" : "flex-start",
+                marginTop: CHAT_IDEA_EDGE_GAP,
+                marginBottom: CHAT_IDEA_EDGE_GAP,
+              },
+            ]}
+          >
+            {timeDividerLabel ? (
+              <Text style={styles.chatTimeDivider}>{timeDividerLabel}</Text>
+            ) : null}
+            <ChatSwipeRevealRow
+              revealX={swipeRevealX}
+              timeLabel={swipeTimeLabel}
+            >
+              <View
+                style={{
+                  flexDirection: "row",
+                  alignItems: "flex-end",
+                  alignSelf: "stretch",
+                  justifyContent: isMe ? "flex-end" : "flex-start",
+                  width: "100%",
+                }}
+              >
+                {!isMe &&
+                  (showAvatar ? (
+                    <Pressable
+                      onPress={() => handleOpenFriendProfile(item.senderId)}
+                      accessibilityRole="button"
+                      accessibilityLabel="View profile"
+                      hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
+                    >
+                      <ExpoImage
+                        source={{ uri: senderAvatar }}
+                        style={styles.chatAvatar}
+                        cachePolicy="memory-disk"
+                        transition={0}
+                        recyclingKey={`${item.senderId}-${senderAvatar}`}
+                      />
+                    </Pressable>
+                  ) : (
+                    <View style={{ width: CHAT_AVATAR_SLOT }} />
+                  ))}
+                <View style={[styles.ideaCardSlot, { maxWidth: ideaCap, width: ideaCap }]}>
+                  <AISuggestionBubble
+                    text={item.text}
+                    isLegacy={isLegacyAiSuggestion}
+                    name={name}
+                    address={address}
+                    heartCount={ideaHeartCount || 0}
+                    onPress={() =>
+                      onIdeaBubblePress(
+                        { id: item.id, reactions: item.reactions },
+                        { name, address }
+                      )
+                    }
+                  />
+                </View>
+              </View>
+            </ChatSwipeRevealRow>
           </View>
         );
       }
@@ -918,82 +1144,93 @@ export default function MessagesChatPane({
               styles.msgContainer,
               {
                 alignItems: isMe ? "flex-end" : "flex-start",
+                marginBottom: prior && isAiSuggestionMessage(prior)
+                  ? 0
+                  : clusterGap,
               },
             ]}
           >
-            <View
-              style={{
-                flexDirection: "row",
-                alignItems: "flex-end",
-              }}
+            {timeDividerLabel ? (
+              <Text style={styles.chatTimeDivider}>{timeDividerLabel}</Text>
+            ) : null}
+            <ChatSwipeRevealRow
+              revealX={swipeRevealX}
+              timeLabel={swipeTimeLabel}
             >
-              {!isMe && (
-                <Pressable
-                  onPress={() => handleOpenFriendProfile(item.senderId)}
-                  accessibilityRole="button"
-                  accessibilityLabel="View profile"
-                  hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
-                >
-                  <ExpoImage
-                    source={{ uri: senderAvatar }}
-                    style={styles.chatAvatar}
-                    cachePolicy="memory-disk"
-                    transition={0}
-                    recyclingKey={`${item.senderId}-${senderAvatar}`}
-                  />
-                </Pressable>
-              )}
-
               <View
-                style={[
-                  styles.messageBubbleColumn,
-                  {
-                    maxWidth: bubbleCap,
-                    alignSelf: isMe ? "flex-end" : "flex-start",
-                    alignItems: isMe ? "flex-end" : "flex-start",
-                  },
-                ]}
+                style={{
+                  flexDirection: "row",
+                  alignItems: "flex-end",
+                  alignSelf: "stretch",
+                  justifyContent: isMe ? "flex-end" : "flex-start",
+                  width: "100%",
+                }}
               >
-                <Pressable
-                  onLongPress={() =>
-                    onMessageLongPress?.({
-                      id: item.id,
-                      senderId: item.senderId,
-                      text: item.text,
-                    })
-                  }
-                  delayLongPress={400}
+                {!isMe &&
+                  (showAvatar ? (
+                    <Pressable
+                      onPress={() => handleOpenFriendProfile(item.senderId)}
+                      accessibilityRole="button"
+                      accessibilityLabel="View profile"
+                      hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
+                    >
+                      <ExpoImage
+                        source={{ uri: senderAvatar }}
+                        style={styles.chatAvatar}
+                        cachePolicy="memory-disk"
+                        transition={0}
+                        recyclingKey={`${item.senderId}-${senderAvatar}`}
+                      />
+                    </Pressable>
+                  ) : (
+                    <View style={{ width: CHAT_AVATAR_SLOT }} />
+                  ))}
+
+                <View
+                  style={[
+                    styles.messageBubbleColumn,
+                    {
+                      maxWidth: bubbleCap,
+                      alignSelf: isMe ? "flex-end" : "flex-start",
+                      alignItems: isMe ? "flex-end" : "flex-start",
+                    },
+                  ]}
                 >
-                  <ChatMessageBubble
-                    text={item.text}
-                    bubbleCap={bubbleCap}
-                    isMe={isMe}
-                    heartCount={heartCount || 0}
-                    sendStatus={item.sendStatus}
-                    onPress={() =>
-                      onMessageBubblePress({
+                  {showSenderName ? (
+                    <Text style={styles.chatSenderName} numberOfLines={1}>
+                      {senderLabel}
+                    </Text>
+                  ) : null}
+                  <Pressable
+                    onLongPress={() =>
+                      onMessageLongPress?.({
                         id: item.id,
-                        clientId: item.clientId,
+                        senderId: item.senderId,
                         text: item.text,
-                        sendStatus: item.sendStatus,
-                        reactions: item.reactions,
                       })
                     }
-                  />
-                </Pressable>
+                    delayLongPress={400}
+                  >
+                    <ChatMessageBubble
+                      text={item.text}
+                      bubbleCap={bubbleCap}
+                      isMe={isMe}
+                      heartCount={heartCount || 0}
+                      sendStatus={item.sendStatus}
+                      onPress={() =>
+                        onMessageBubblePress({
+                          id: item.id,
+                          clientId: item.clientId,
+                          text: item.text,
+                          sendStatus: item.sendStatus,
+                          reactions: item.reactions,
+                        })
+                      }
+                    />
+                  </Pressable>
+                </View>
               </View>
-            </View>
-            <Text
-              style={[
-                styles.chatTimestamp,
-                {
-                  marginLeft: isMe ? 0 : 44,
-                  alignSelf: isMe ? "flex-end" : "flex-start",
-                },
-              ]}
-            >
-              {formatTime(item.createdAt)}
-            </Text>
+            </ChatSwipeRevealRow>
           </View>
       );
     },
@@ -1002,11 +1239,13 @@ export default function MessagesChatPane({
       currentUserId,
       iMessageBubbleColumnMaxWidth,
       handleOpenFriendProfile,
+      listData,
       onIdeaBubblePress,
       onMessageBubblePress,
       onMessageLongPress,
       shouldAnimateMessage,
       styles,
+      swipeRevealX,
       windowWidth,
     ]
   );
@@ -1133,6 +1372,8 @@ export default function MessagesChatPane({
       ) : null}
       <View style={styles.chatBody}>
         <Animated.View style={[styles.chatList, threadRevealStyle]}>
+          <GestureDetector gesture={swipeRevealGesture}>
+            <Animated.View style={styles.chatListFill}>
           <FlatList
             ref={flatListRef}
             style={styles.chatListFill}
@@ -1151,9 +1392,9 @@ export default function MessagesChatPane({
             updateCellsBatchingPeriod={50}
             scrollEnabled={listPanActive}
             directionalLockEnabled={listPanActive}
-            bounces={listScrollable}
-            alwaysBounceVertical={false}
-            overScrollMode="never"
+            bounces
+            alwaysBounceVertical
+            overScrollMode="auto"
             maintainVisibleContentPosition={
               loadingEarlier && messages.length > 0
                 ? { minIndexForVisible: 1, autoscrollToTopThreshold: 24 }
@@ -1245,6 +1486,8 @@ export default function MessagesChatPane({
             }}
             contentContainerStyle={listContentStyle}
           />
+            </Animated.View>
+          </GestureDetector>
         </Animated.View>
 
         {showAICard && (
@@ -1387,7 +1630,7 @@ export default function MessagesChatPane({
                   {typingUserIds.length > 0 ? (
                     <Text style={styles.typingIndicatorText}>Typing…</Text>
                   ) : null}
-                  {showAISuggestions && !aiPillBelowTitle ? (
+                  {showAISuggestions && !aiPillBelowTitle && !chatTitleExpanded ? (
                     <View style={chatHeaderOverlayStyles.aiSubtitleSlot}>
                       {renderAiChip()}
                     </View>
@@ -1404,7 +1647,7 @@ export default function MessagesChatPane({
             />
           </View>
           {chatTitleExpanded && showMemberRoster ? renderMemberStrip() : null}
-          {aiPillBelowTitle ? (
+          {aiPillBelowTitle && !chatTitleExpanded ? (
             <View style={chatHeaderOverlayStyles.aiSubtitleSlotExpanded}>
               {renderAiChip(0)}
             </View>
@@ -1441,7 +1684,7 @@ const chatHeaderOverlayStyles = RNStyleSheet.create({
     zIndex: 2,
   },
   headerShell: {
-    backgroundColor: HEADER_BLACK,
+    backgroundColor: BG,
     paddingBottom: 6,
   },
   headerShellExpanded: {

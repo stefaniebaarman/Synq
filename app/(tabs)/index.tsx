@@ -2788,6 +2788,8 @@ const styles = StyleSheet.create({
   },
   activeFriendName: {
     ...listRowTitleText,
+    fontFamily: fonts.heavy,
+    letterSpacing: 0.05,
   },
   activeFriendMemo: {
     marginTop: 4,
@@ -2796,8 +2798,16 @@ const styles = StyleSheet.create({
     lineHeight: 18,
     fontFamily: fonts.book,
   },
-  activeFriendMeta: {
+  activeFriendMetaRow: {
+    flexDirection: "row",
+    alignItems: "center",
     marginTop: 5,
+  },
+  activeFriendMetaIcon: {
+    marginRight: 4,
+  },
+  activeFriendMeta: {
+    flex: 1,
     color: MUTED2,
     fontSize: TYPE_FINE,
     fontFamily: fonts.book,
@@ -2840,10 +2850,13 @@ const styles = StyleSheet.create({
   activeStartChatLabel: {
     color: ON_ACCENT_TEXT,
     fontSize: TYPE_BODY,
+    lineHeight: 20,
     fontFamily: fonts.heavy,
+    letterSpacing: 0.15,
   },
   activeStartChatLabelIdle: {
     color: MUTED2,
+    fontFamily: fonts.medium,
   },
   btnText: primaryButtonText,
   synqHomeLayer: {
@@ -3173,12 +3186,12 @@ const styles = StyleSheet.create({
     color: TEXT,
     fontSize: TYPE_SUBHEAD,
     lineHeight: 22,
-    fontFamily: fonts.medium,
+    fontFamily: fonts.heavy,
     letterSpacing: -0.2,
   },
   inboxCircle: { width: 50, height: 50, borderRadius: 25, backgroundColor: SURFACE_RAISED, justifyContent: 'center', alignItems: 'center' },
   stackedPhoto: { width: 40, height: 40, borderRadius: RADIUS_LG, position: 'absolute', borderWidth: 2, borderColor: 'black' },
-  msgContainer: { marginBottom: 12 },
+  msgContainer: { marginBottom: 16 },
   chatAvatar: {
     width: 34,
     height: 34,
@@ -3367,6 +3380,26 @@ const styles = StyleSheet.create({
     fontFamily: fonts.book,
     letterSpacing: 0.2,
   },
+  chatTimeDivider: {
+    alignSelf: "center",
+    textAlign: "center",
+    color: MUTED3,
+    fontSize: TYPE_MICRO,
+    fontFamily: fonts.medium,
+    letterSpacing: 0.2,
+    marginTop: 10,
+    marginBottom: 10,
+    paddingHorizontal: 16,
+  },
+  chatSenderName: {
+    color: MUTED2,
+    fontSize: TYPE_MICRO,
+    fontFamily: fonts.medium,
+    letterSpacing: 0.15,
+    marginBottom: 3,
+    marginLeft: 2,
+    maxWidth: "100%",
+  },
   explorePanel: { height: '85%', backgroundColor: SURFACE_INPUT, borderTopLeftRadius: MODAL_RADIUS + 8, borderTopRightRadius: MODAL_RADIUS + 8, overflow: 'hidden' },
   sectionHeader: { ...listSectionTitle, color: TEXT, marginBottom: 20, paddingHorizontal: 20 },
   scrollRow: { marginBottom: 30, paddingLeft: 20 },
@@ -3460,8 +3493,8 @@ const styles = StyleSheet.create({
     width: '100%',
   },
   ideaCardSlot: {
-    width: '88%',
-    alignSelf: 'center',
+    flexGrow: 0,
+    flexShrink: 1,
   },
   heartReaction: {
     position: "absolute",

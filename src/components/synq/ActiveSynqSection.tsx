@@ -250,9 +250,17 @@ export default function ActiveSynqSection({
                       </Text>
                     ) : null}
                     {locationLine ? (
-                      <Text style={styles.activeFriendMeta} numberOfLines={1}>
-                        {locationLine}
-                      </Text>
+                      <View style={styles.activeFriendMetaRow}>
+                        <Ionicons
+                          name="location-outline"
+                          size={12}
+                          color={MUTED2}
+                          style={styles.activeFriendMetaIcon}
+                        />
+                        <Text style={styles.activeFriendMeta} numberOfLines={1}>
+                          {locationLine}
+                        </Text>
+                      </View>
                     ) : null}
                   </View>
 
