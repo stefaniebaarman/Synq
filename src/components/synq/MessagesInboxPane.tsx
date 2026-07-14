@@ -4,7 +4,7 @@ import { ListRowsSkeleton } from "@/src/components/loading/BrandSkeletons";
 import ChatInboxActionSheet from "@/src/components/synq/ChatInboxActionSheet";
 import { MUTED2 } from "@/constants/Variables";
 import {
-  formatLastSynq,
+  formatInboxMessageTime,
   getCommunityChatInboxSubtitle,
 } from "@/src/lib/helpers";
 import { Ionicons } from "@expo/vector-icons";
@@ -49,7 +49,7 @@ function inboxTimestamp(item: any): string {
   if (!ts) return "";
   const date = ts.toDate ? ts.toDate() : new Date(ts);
   if (Number.isNaN(date.getTime())) return "";
-  return formatLastSynq(date);
+  return formatInboxMessageTime(date);
 }
 
 export default function MessagesInboxPane({
@@ -163,18 +163,47 @@ export default function MessagesInboxPane({
             {renderAvatarStack(item.participantImages, item.participants)}
           </View>
           <View style={styles.inboxTextCol}>
-            <View style={styles.inboxTitleRow}>
-              <Text
-                style={[
-                  styles.whiteBold,
-                  styles.inboxTitleText,
-                  isUnreadThread && styles.unreadChatTitle,
-                ]}
-                numberOfLines={1}
-                ellipsizeMode="tail"
-              >
-                {getChatTitle(item)}
-              </Text>
+            <View style={styles.inboxMainRow}>
+              <View style={styles.inboxCopyCol}>
+                <Text
+                  style={[
+                    styles.inboxTitleText,
+                    isUnreadThread ? styles.unreadChatTitle : styles.readChatTitle,
+                  ]}
+                  numberOfLines={1}
+                  ellipsizeMode="tail"
+                >
+                  {getChatTitle(item)}
+                </Text>
+                {(() => {
+                  const subtitle = getCommunityChatInboxSubtitle(item);
+                  if (!subtitle) return null;
+                  return (
+                    <Text style={styles.communityChatMeta} numberOfLines={1}>
+                      {subtitle}
+                    </Text>
+                  );
+                })()}
+                {(() => {
+                  const lm =
+                    typeof item.lastMessage === "string"
+                      ? item.lastMessage.trim()
+                      : "";
+                  if (!lm || lm === "Synq established!") return null;
+                  return (
+                    <Text
+                      style={[
+                        styles.grayText,
+                        styles.inboxPreview,
+                        isUnreadThread && styles.inboxPreviewUnread,
+                      ]}
+                      numberOfLines={2}
+                    >
+                      {lm}
+                    </Text>
+                  );
+                })()}
+              </View>
               {timeLabel ? (
                 <Text
                   style={[
@@ -187,33 +216,6 @@ export default function MessagesInboxPane({
                 </Text>
               ) : null}
             </View>
-            {(() => {
-              const subtitle = getCommunityChatInboxSubtitle(item);
-              if (!subtitle) return null;
-              return (
-                <Text style={styles.communityChatMeta} numberOfLines={1}>
-                  {subtitle}
-                </Text>
-              );
-            })()}
-            {(() => {
-              const lm =
-                typeof item.lastMessage === "string"
-                  ? item.lastMessage.trim()
-                  : "";
-              if (!lm || lm === "Synq established!") return null;
-              return (
-                <Text
-                  style={[
-                    styles.grayText,
-                    isUnreadThread && styles.inboxPreviewUnread,
-                  ]}
-                  numberOfLines={1}
-                >
-                  {lm}
-                </Text>
-              );
-            })()}
           </View>
         </View>
       </TouchableOpacity>
@@ -277,7 +279,6 @@ export default function MessagesInboxPane({
               accessibilityLabel="Close messages"
             />
           </View>
-          <View style={styles.headerDivider} />
         </View>
       )}
 
@@ -302,10 +303,16 @@ export default function MessagesInboxPane({
           )
         }
         ItemSeparatorComponent={() => (
-          <View style={styles.inboxSeparatorBetween}>
+          <View
+            style={[
+              styles.inboxSeparatorBetween,
+              mergeSelectMode && styles.inboxSeparatorBetweenMerge,
+            ]}
+          >
             <View style={styles.inboxSeparatorLine} />
           </View>
         )}
+        style={{ flex: 1 }}
         contentContainerStyle={[
           styles.inboxListContent,
           { paddingBottom: inboxBottomPad },
