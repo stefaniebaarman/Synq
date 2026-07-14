@@ -17,6 +17,7 @@ import { Image as ExpoImage } from "expo-image";
 import { LinearGradient } from "expo-linear-gradient";
 import React, { useEffect, useMemo, useState } from "react";
 import {
+  ActivityIndicator,
   DeviceEventEmitter,
   FlatList,
   Pressable,
@@ -32,16 +33,17 @@ import {
   BG_TRANSPARENT,
   MUTED2,
   MUTED3,
-  PRIMARY_CTA_HEIGHT,
+  ON_ACCENT_TEXT,
   TAB_BAR_SCROLL_INSET,
 } from "../../../constants/Variables";
 
 /** Matches audience lead icon on the active Synq screen. */
 const ACTIVE_LEAD_ICON_SIZE = 20;
-/** Fade strip sitting just above the Select friends button. */
+/** Fade strip sitting just above the Start chat dock. */
 const ACTIVE_LIST_BOTTOM_FADE_HEIGHT = 52;
-/** Extra lift for the Select friends CTA above the tab bar. */
+/** Extra lift for the Start chat CTA above the tab bar. */
 const ACTIVE_CTA_BOTTOM_NUDGE = 48;
+const ACTIVE_CTA_HEIGHT = 52;
 
 type Props = {
   styles: any;
@@ -98,18 +100,29 @@ export default function ActiveSynqSection({
     userProfile
   );
 
+  const selectedCount = selectedFriends.length;
+  const showCta = selectedCount > 0;
+
   const footerLayout = useMemo(() => {
-    const ctaPadTop = 12;
+    const ctaPadTop = 10;
     const ctaBottomPad = TAB_BAR_SCROLL_INSET + ACTIVE_CTA_BOTTOM_NUDGE;
-    const ctaBlockHeight = ctaPadTop + PRIMARY_CTA_HEIGHT;
-    const dockHeight = ctaBlockHeight + ctaBottomPad;
+    if (!showCta) {
+      const dockHeight = TAB_BAR_SCROLL_INSET + 12;
+      return {
+        ctaPadTop: 0,
+        ctaBottomPad: 0,
+        dockHeight,
+        listBottomPad: dockHeight + 20,
+      };
+    }
+    const dockHeight = ctaPadTop + ACTIVE_CTA_HEIGHT + ctaBottomPad;
     return {
       ctaPadTop,
       ctaBottomPad,
       dockHeight,
       listBottomPad: dockHeight + ACTIVE_LIST_BOTTOM_FADE_HEIGHT,
     };
-  }, []);
+  }, [showCta]);
 
   return (
     <View style={styles.activeSynqRoot}>
@@ -149,177 +162,171 @@ export default function ActiveSynqSection({
           { paddingTop: headerLayout.iconRowBottom + 14 },
         ]}
       >
-      <View style={styles.headerDivider} />
+        <View style={styles.headerDivider} />
 
-      <View style={styles.activeListFooterDock}>
-        {audienceLabel ? (
-          <Pressable
-            onPress={openChangeAudience}
-            disabled={!openChangeAudience}
-            style={({ pressed }) => [
-              styles.audienceRow,
-              openChangeAudience && pressed && styles.audienceRowPressed,
-            ]}
-            accessibilityRole="button"
-            accessibilityLabel={`Shared with ${audienceLabel}`}
-            accessibilityHint={
-              openChangeAudience ? "Opens change audience" : undefined
-            }
-          >
-            <Ionicons
-              name="people-outline"
-              size={ACTIVE_LEAD_ICON_SIZE}
-              color={ACCENT}
-              style={styles.activeSynqLeadIcon}
-            />
-            <Text style={styles.audienceText} numberOfLines={1}>
-              Shared with {audienceLabel}
-            </Text>
-            {openChangeAudience ? (
-              <Ionicons name="chevron-forward" size={14} color={MUTED2} />
-            ) : null}
-          </Pressable>
-        ) : null}
-
-        <FlatList
-          style={styles.activeFriendsList}
-          data={sortedAvailableFriends}
-          keyExtractor={(item) => item.id}
-          showsVerticalScrollIndicator={false}
-          ItemSeparatorComponent={null}
-          ListEmptyComponent={
-            viewerId ? (
-              <ActiveSynqEmptyState viewerId={viewerId} candidates={nudgeCandidates} />
-            ) : null
-          }
-          renderItem={({ item }) => {
-            const friendMemo = item.memo?.trim();
-            const locationLine = friendLocationLine(item);
-            const selected = selectedFriends.includes(item.id);
-            return (
-              <TouchableOpacity
-                onPress={() => {
-                  void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                  setSelectedFriends((prev) =>
-                    prev.includes(item.id)
-                      ? prev.filter((id) => id !== item.id)
-                      : [...prev, item.id]
-                  );
-                }}
-                style={[
-                  styles.activeFriendTile,
-                  selected && styles.activeFriendTileSelected,
-                ]}
-                accessibilityRole="button"
-                accessibilityState={{ selected }}
-                accessibilityLabel={item.displayName}
-              >
-                <View
-                  style={[
-                    styles.activeFriendAvatarRing,
-                    selected && styles.activeFriendAvatarRingSelected,
-                  ]}
-                >
-                  <ExpoImage
-                    source={{ uri: resolveAvatar(item.imageurl) }}
-                    style={styles.activeFriendAvatar}
-                    cachePolicy="memory-disk"
-                    transition={0}
-                  />
-                </View>
-
-                <View style={styles.activeFriendCopy}>
-                  <Text style={styles.activeFriendName} numberOfLines={1}>
-                    {item.displayName}
-                  </Text>
-                  {friendMemo ? (
-                    <Text style={styles.activeFriendMemo} numberOfLines={2}>
-                      {friendMemo}
-                    </Text>
-                  ) : null}
-                  {locationLine ? (
-                    <Text style={styles.activeFriendMeta} numberOfLines={1}>
-                      {locationLine}
-                    </Text>
-                  ) : null}
-                </View>
-
-                <Ionicons
-                  name={selected ? "checkmark-circle" : "ellipse-outline"}
-                  size={24}
-                  color={selected ? ACCENT : MUTED3}
-                />
-              </TouchableOpacity>
-            );
-          }}
-          contentContainerStyle={[
-            styles.activeListContent,
-            {
-              paddingTop: audienceLabel ? 4 : 8,
-              paddingBottom:
-                availableFriends.length > 0
-                  ? footerLayout.listBottomPad
-                  : TAB_BAR_SCROLL_INSET,
-            },
-          ]}
-        />
-
-        {availableFriends.length > 0 ? (
-          <>
-            <LinearGradient
-              pointerEvents="none"
-              colors={[BG_TRANSPARENT, BG_FADE_MID, BG]}
-              locations={[0, 0.55, 1]}
-              start={{ x: 0.5, y: 0 }}
-              end={{ x: 0.5, y: 1 }}
-              style={[
-                styles.activeListBottomFade,
-                {
-                  height: ACTIVE_LIST_BOTTOM_FADE_HEIGHT,
-                  bottom: footerLayout.dockHeight,
-                },
+        <View style={styles.activeListFooterDock}>
+          {audienceLabel ? (
+            <Pressable
+              onPress={openChangeAudience}
+              disabled={!openChangeAudience}
+              style={({ pressed }) => [
+                styles.audienceRow,
+                openChangeAudience && pressed && styles.audienceRowPressed,
               ]}
-            />
-            <View
-              style={[
-                styles.activeFooterDock,
-                {
-                  height: footerLayout.dockHeight,
-                  paddingTop: footerLayout.ctaPadTop,
-                  paddingBottom: footerLayout.ctaBottomPad,
-                },
-              ]}
+              accessibilityRole="button"
+              accessibilityLabel={`Shared with ${audienceLabel}`}
+              accessibilityHint={
+                openChangeAudience ? "Opens change audience" : undefined
+              }
             >
-              <TouchableOpacity
+              <Ionicons
+                name="people-outline"
+                size={ACTIVE_LEAD_ICON_SIZE}
+                color={ACCENT}
+                style={styles.activeSynqLeadIcon}
+              />
+              <Text style={styles.audienceText} numberOfLines={1}>
+                Shared with {audienceLabel}
+              </Text>
+              {openChangeAudience ? (
+                <Ionicons name="chevron-forward" size={14} color={MUTED2} />
+              ) : null}
+            </Pressable>
+          ) : null}
+
+          <FlatList
+            style={styles.activeFriendsList}
+            data={sortedAvailableFriends}
+            keyExtractor={(item) => item.id}
+            showsVerticalScrollIndicator={false}
+            ItemSeparatorComponent={null}
+            ListEmptyComponent={
+              viewerId ? (
+                <ActiveSynqEmptyState viewerId={viewerId} candidates={nudgeCandidates} />
+              ) : null
+            }
+            renderItem={({ item }) => {
+              const friendMemo = item.memo?.trim();
+              const locationLine = friendLocationLine(item);
+              const selected = selectedFriends.includes(item.id);
+              return (
+                <TouchableOpacity
+                  onPress={() => {
+                    void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                    setSelectedFriends((prev) =>
+                      prev.includes(item.id)
+                        ? prev.filter((id) => id !== item.id)
+                        : [...prev, item.id]
+                    );
+                  }}
+                  style={[
+                    styles.activeFriendTile,
+                    selected && styles.activeFriendTileSelected,
+                  ]}
+                  accessibilityRole="button"
+                  accessibilityState={{ selected }}
+                  accessibilityLabel={item.displayName}
+                >
+                  <View
+                    style={[
+                      styles.activeFriendAvatarRing,
+                      selected && styles.activeFriendAvatarRingSelected,
+                    ]}
+                  >
+                    <ExpoImage
+                      source={{ uri: resolveAvatar(item.imageurl) }}
+                      style={styles.activeFriendAvatar}
+                      cachePolicy="memory-disk"
+                      transition={0}
+                    />
+                  </View>
+
+                  <View style={styles.activeFriendCopy}>
+                    <Text style={styles.activeFriendName} numberOfLines={1}>
+                      {item.displayName}
+                    </Text>
+                    {friendMemo ? (
+                      <Text style={styles.activeFriendMemo} numberOfLines={2}>
+                        {friendMemo}
+                      </Text>
+                    ) : null}
+                    {locationLine ? (
+                      <Text style={styles.activeFriendMeta} numberOfLines={1}>
+                        {locationLine}
+                      </Text>
+                    ) : null}
+                  </View>
+
+                  <Ionicons
+                    name={selected ? "checkmark-circle" : "ellipse-outline"}
+                    size={24}
+                    color={selected ? ACCENT : MUTED3}
+                  />
+                </TouchableOpacity>
+              );
+            }}
+            contentContainerStyle={[
+              styles.activeListContent,
+              {
+                paddingTop: audienceLabel ? 4 : 8,
+                paddingBottom:
+                  availableFriends.length > 0
+                    ? footerLayout.listBottomPad
+                    : TAB_BAR_SCROLL_INSET,
+              },
+            ]}
+          />
+
+          {availableFriends.length > 0 && showCta ? (
+            <>
+              <LinearGradient
+                pointerEvents="none"
+                colors={[BG_TRANSPARENT, BG_FADE_MID, BG]}
+                locations={[0, 0.55, 1]}
+                start={{ x: 0.5, y: 0 }}
+                end={{ x: 0.5, y: 1 }}
                 style={[
-                  styles.btn,
-                  (!selectedFriends.length || isConnecting) && { opacity: 0.5 },
+                  styles.activeListBottomFade,
+                  {
+                    height: ACTIVE_LIST_BOTTOM_FADE_HEIGHT,
+                    bottom: footerLayout.dockHeight,
+                  },
                 ]}
-                onPress={handleConnect}
-                disabled={!selectedFriends.length || isConnecting}
-                accessibilityRole="button"
-                accessibilityLabel={
-                  isConnecting
-                    ? "Starting chat"
-                    : selectedFriends.length === 0
-                    ? "Select friends who are free to chat"
-                    : `Start chat with ${selectedFriends.length} friend${
-                        selectedFriends.length === 1 ? "" : "s"
-                      }`
-                }
+              />
+              <View
+                style={[
+                  styles.activeFooterDock,
+                  {
+                    height: footerLayout.dockHeight,
+                    paddingTop: footerLayout.ctaPadTop,
+                    paddingBottom: footerLayout.ctaBottomPad,
+                  },
+                ]}
               >
-                <Text style={styles.btnText}>
-                  {isConnecting
-                    ? "Starting..."
-                    : selectedFriends.length === 0
-                    ? "Select friends"
-                    : "Start chat"}
-                </Text>
-              </TouchableOpacity>
-            </View>
-          </>
-        ) : null}
-      </View>
+                <TouchableOpacity
+                  style={styles.activeStartChatBtn}
+                  onPress={handleConnect}
+                  disabled={isConnecting}
+                  activeOpacity={0.88}
+                  accessibilityRole="button"
+                  accessibilityLabel={
+                    isConnecting
+                      ? "Opening chat"
+                      : `Start chat with ${selectedCount} friend${
+                          selectedCount === 1 ? "" : "s"
+                        }`
+                  }
+                >
+                  {isConnecting ? (
+                    <ActivityIndicator color={ON_ACCENT_TEXT} />
+                  ) : (
+                    <Text style={styles.activeStartChatLabel}>Start chat</Text>
+                  )}
+                </TouchableOpacity>
+              </View>
+            </>
+          ) : null}
+        </View>
       </View>
 
       <FriendsSortMenu

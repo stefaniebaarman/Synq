@@ -2779,6 +2779,22 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
+  activeStartChatBtn: {
+    alignSelf: "center",
+    minWidth: 188,
+    height: 52,
+    paddingHorizontal: 28,
+    borderRadius: RADIUS_LG,
+    backgroundColor: ACCENT,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  activeStartChatLabel: {
+    color: ON_ACCENT_TEXT,
+    fontSize: TYPE_BODY,
+    fontFamily: fonts.heavy,
+  },
   btnText: primaryButtonText,
   synqHomeLayer: {
     flex: 1,
