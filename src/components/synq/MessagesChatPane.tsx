@@ -280,6 +280,7 @@ export default function MessagesChatPane({
   const openSettleTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const revealTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const threadOpacity = useSharedValue(0);
+  const threadVisibleRef = useRef(false);
   /** Newest-first for inverted FlatList (latest stays at offset 0 — no open jump). */
   const listData = useMemo(
     () => (messages.length > 1 ? [...messages].reverse() : messages),
@@ -287,6 +288,7 @@ export default function MessagesChatPane({
   );
 
   const revealThread = useCallback(() => {
+    threadVisibleRef.current = true;
     threadOpacity.value = withTiming(1, {
       duration: CHAT_THREAD_REVEAL_MS,
       easing: THREAD_REVEAL_EASING,
@@ -294,6 +296,7 @@ export default function MessagesChatPane({
   }, [threadOpacity]);
 
   const hideThread = useCallback(() => {
+    threadVisibleRef.current = false;
     threadOpacity.value = 0;
   }, [threadOpacity]);
 
@@ -469,37 +472,50 @@ export default function MessagesChatPane({
     const chatChanged = prevId !== nextId;
     prevChatIdRef.current = nextId;
 
+    const pendingToReal =
+      chatChanged &&
+      prevId === "__pending__" &&
+      !!nextId &&
+      nextId !== "__pending__";
+
     if (chatChanged) {
-      hideThread();
+      // First send creates the Firestore chat — keep the optimistic bubble visible.
+      if (!pendingToReal) {
+        hideThread();
+        Keyboard.dismiss();
+      }
+
       scrollOffsetRef.current = 0;
       prevHasEarlierRef.current = hasEarlierMessages;
       if (nextId) {
         prevMessagesLenByChatRef.current[nextId] = messages.length;
-        scheduleOpenAnchor(messages.length);
+        if (!pendingToReal) {
+          scheduleOpenAnchor(messages.length);
+        }
       }
       if (messages.length > 0) {
-        messages.forEach((message) => knownMessageIdsRef.current.add(message.id));
+        messages.forEach((message) => {
+          knownMessageIdsRef.current.add(message.id);
+          if (message.clientId) knownMessageIdsRef.current.add(message.clientId);
+        });
         chatSeededRef.current = true;
-      } else {
+      } else if (!pendingToReal) {
         knownMessageIdsRef.current = new Set();
         chatSeededRef.current = false;
         pendingNormalScrollRef.current = false;
       }
-
-      const pendingToReal =
-        prevId === "__pending__" && !!nextId && nextId !== "__pending__";
-      if (!pendingToReal) {
-        Keyboard.dismiss();
-      }
     }
 
     if (messages.length > 0 && !chatSeededRef.current) {
-      messages.forEach((message) => knownMessageIdsRef.current.add(message.id));
+      messages.forEach((message) => {
+        knownMessageIdsRef.current.add(message.id);
+        if (message.clientId) knownMessageIdsRef.current.add(message.clientId);
+      });
       chatSeededRef.current = true;
     }
   }, [
     activeChat?.id,
-    messages.length,
+    messages,
     hasEarlierMessages,
     scheduleOpenAnchor,
     hideThread,
@@ -557,7 +573,15 @@ export default function MessagesChatPane({
     if (!activeChat?.id) return;
     if (revealTimerRef.current) {
       clearTimeout(revealTimerRef.current);
+      revealTimerRef.current = null;
     }
+
+    // pending → real chat keeps opacity at 1; don't wait for the page-enter delay.
+    if (threadVisibleRef.current) {
+      revealThread();
+      return;
+    }
+
     revealTimerRef.current = setTimeout(() => {
       revealTimerRef.current = null;
       revealThread();

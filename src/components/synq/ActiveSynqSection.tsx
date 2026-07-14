@@ -54,7 +54,7 @@ const ACTIVE_CTA_BOTTOM_NUDGE = 48;
 
 type Props = {
   styles: any;
-  hasUnread: boolean;
+  unreadCount: number;
   availableFriends: any[];
   selectedFriends: string[];
   setSelectedFriends: React.Dispatch<React.SetStateAction<string[]>>;
@@ -73,7 +73,7 @@ type Props = {
 
 export default function ActiveSynqSection({
   styles,
-  hasUnread,
+  unreadCount,
   availableFriends,
   selectedFriends,
   setSelectedFriends,
@@ -160,8 +160,16 @@ export default function ActiveSynqSection({
           <HeaderIconButton
             name="chatbubbles-outline"
             onPress={openMessagesInbox}
-            accessibilityLabel="Open messages"
-            badge={hasUnread ? <NotificationBadge variant="dot" /> : undefined}
+            accessibilityLabel={
+              unreadCount > 0
+                ? `Open messages, ${unreadCount} unread`
+                : "Open messages"
+            }
+            badge={
+              unreadCount > 0 ? (
+                <NotificationBadge variant="count" count={unreadCount} tone="accent" />
+              ) : undefined
+            }
           />
         </View>
         <View style={styles.synqHeaderTitleCenter}>

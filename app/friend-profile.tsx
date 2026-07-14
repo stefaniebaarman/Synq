@@ -38,7 +38,9 @@ import SpringBottomSheet from "@/src/components/sheets/SpringBottomSheet";
 import { sheetStyles } from "@/constants/sheetStyles";
 import {
   appendOptimisticJoinedViewerEvent,
+  joinFriendOpenPlan,
   removeJoinedViewerEvent,
+  unjoinFriendOpenPlan,
   type FriendOpenPlanEvent,
 } from "@/src/lib/friendOpenPlanJoin";
 import ProfileTabHeaderOverlay, {
@@ -108,13 +110,10 @@ import {
 import {
   useSafeAreaInsets,
 } from "react-native-safe-area-context";
-import { resolvePlanHostUidForJoin } from "../src/lib/planAttribution";
 import {
   eventKey,
   eventKeyLoose,
   filterOutPastOpenPlans,
-  matchesPlanEvent,
-  matchesPlanEventForHostSync,
   sortOpenPlansByDateTime,
 } from "../src/lib/planEvents";
 import {
@@ -851,260 +850,23 @@ export default function FriendProfile({
     }
   };
 
-  const joinPlan = async (event: {
-    id: string;
-    date: string;
-    title: string;
-    time?: string;
-    location?: string;
-    planHostUid?: string;
-    joinedFromId?: string;
-    joinedFromIds?: string[];
-    joinedFromName?: string;
-    joinedFromNames?: string[];
-  }) => {
+  const joinPlan = async (event: FriendOpenPlanEvent) => {
     const user = auth.currentUser;
-    if (!user) return;
+    if (!user || !friendKey) return;
     setBusyPlanId(event.id);
+    const profileName = String(friend?.displayName || "Friend").trim();
     try {
-      const meRef = doc(db, "users", user.uid);
-      const meSnap = await getDoc(meRef);
-      const meData = meSnap.exists() ? (meSnap.data() as any) : {};
-      const existingEvents = Array.isArray(meData?.events) ? meData.events : [];
-      const joinerName =
-        String(meData?.displayName || auth.currentUser?.displayName || "Friend").trim();
-      const profileName = String(friend?.displayName || "Friend").trim();
-      const initialSourceIds = Array.from(
-        new Set(
-          [
-            ...((Array.isArray(event?.joinedFromIds) ? event.joinedFromIds : []).filter(Boolean) as string[]),
-            String(event?.joinedFromId || "").trim(),
-            friendKey,
-            user.uid,
-          ]
-            .map((id) => String(id).trim())
-            .filter(Boolean)
-        )
-      );
-      const sourceNames = Array.from(
-        new Set(
-          [
-            ...((Array.isArray(event?.joinedFromNames) ? event.joinedFromNames : []).filter(Boolean) as string[]),
-            String(event?.joinedFromName || "").trim(),
-            profileName,
-            joinerName,
-          ]
-            .map((n) => n.trim())
-            .filter(Boolean)
-        )
-      );
-      const sourceIdsSet = new Set(initialSourceIds);
-      const sourceNameSet = new Set(sourceNames.map((n) => n.toLowerCase()));
-      try {
-        const myFriendsSnap = await getDocs(collection(db, "users", user.uid, "friends"));
-        myFriendsSnap.docs.forEach((d) => {
-          const data = d.data() as any;
-          const display = String(data?.displayName || "").trim().toLowerCase();
-          if (display && sourceNameSet.has(display)) {
-            sourceIdsSet.add(d.id);
-          }
-        });
-      } catch {}
-      const sourceIds = Array.from(sourceIdsSet);
-
-      const displayNameById: Record<string, string> = {};
-      await Promise.all(
-        sourceIds.map(async (uid) => {
-          try {
-            const s = await getDoc(doc(db, "users", uid));
-            if (s.exists()) {
-              displayNameById[uid] = String((s.data() as any)?.displayName || "").trim();
-            }
-          } catch {}
-        })
-      );
-
-      const planHostUid = resolvePlanHostUidForJoin(event, friendKey);
-      const eventForMatch = { ...event, planHostUid: event.planHostUid || planHostUid };
-
-      const syncAttendeesAcrossUsers = async (allAttendeeIds: string[]) => {
-        await Promise.all(
-          allAttendeeIds.map(async (attendeeId) => {
-            try {
-              const attendeeRef = doc(db, "users", attendeeId);
-              const attendeeSnap = await getDoc(attendeeRef);
-              if (!attendeeSnap.exists()) return;
-              const attendeeData = attendeeSnap.data() as any;
-              const attendeeEvents = Array.isArray(attendeeData?.events) ? attendeeData.events : [];
-              let changed = false;
-              const nextAttendeeEvents = attendeeEvents.map((e: any) => {
-                const isHostDoc =
-                  !!planHostUid && String(attendeeId) === planHostUid;
-                const hostMatchedById =
-                  isHostDoc &&
-                  event?.id != null &&
-                  e?.id != null &&
-                  String(e.id) === String(event.id);
-                const matched =
-                  hostMatchedById ||
-                  matchesPlanEvent(e, eventForMatch, attendeeEvents) ||
-                  (isHostDoc &&
-                    matchesPlanEventForHostSync(e, eventForMatch, attendeeEvents, planHostUid));
-                if (!matched) return e;
-                const existingIds = Array.isArray(e?.joinedFromIds)
-                  ? e.joinedFromIds
-                  : [e?.joinedFromId].filter(Boolean);
-                const mergedIds = Array.from(
-                  new Set(
-                    [...existingIds, ...allAttendeeIds]
-                      .map((id: string) => String(id).trim())
-                      .filter(Boolean)
-                  )
-                );
-                const otherNames = mergedIds
-                  .filter((id) => id !== attendeeId)
-                  .map((id) => displayNameById[id])
-                  .filter(Boolean);
-                const prevNames = Array.isArray(e?.joinedFromNames)
-                  ? e.joinedFromNames
-                  : [e?.joinedFromName].filter(Boolean);
-                const idsChanged = mergedIds.join("|") !== existingIds.join("|");
-                const namesChanged = otherNames.join("|") !== prevNames.join("|");
-                const resolvedHost = String(planHostUid || "").trim();
-                const attendeeIsResolvedHost =
-                  !!resolvedHost && String(attendeeId) === resolvedHost;
-                const nextHost = attendeeIsResolvedHost
-                  ? e.planHostUid || planHostUid || undefined
-                  : resolvedHost || e.planHostUid || planHostUid || undefined;
-                const hostChanged = String(nextHost || "") !== String(e?.planHostUid || "");
-                const hostUidForDoc = String(nextHost || planHostUid || "").trim();
-                const orderedIds =
-                  isHostDoc && hostUidForDoc
-                    ? [hostUidForDoc, ...mergedIds.filter((id) => id !== hostUidForDoc)]
-                    : mergedIds;
-                const nextJoinedFromId =
-                  isHostDoc && hostUidForDoc ? hostUidForDoc : orderedIds[0] || "";
-                const hadWrongJoinAnchor =
-                  isHostDoc &&
-                  !!String(e?.joinedFromFriendUid || "").trim() &&
-                  String(e.joinedFromFriendUid).trim() !== hostUidForDoc;
-                if (
-                  !idsChanged &&
-                  !namesChanged &&
-                  !hostChanged &&
-                  !hadWrongJoinAnchor &&
-                  orderedIds.join("|") === mergedIds.join("|") &&
-                  String(e?.joinedFromId || "") === nextJoinedFromId
-                ) {
-                  return e;
-                }
-                changed = true;
-                const updated = {
-                  ...e,
-                  planHostUid: nextHost,
-                  joinedFromIds: orderedIds,
-                  joinedFromId: nextJoinedFromId,
-                  joinedFromNames: otherNames,
-                  joinedFromName: otherNames.join(", "),
-                };
-                if (isHostDoc) {
-                  delete updated.joinedFromFriendUid;
-                } else if (
-                  resolvedHost &&
-                  String(updated.joinedFromFriendUid || "").trim() === String(attendeeId)
-                ) {
-                  updated.joinedFromFriendUid = resolvedHost;
-                }
-                return updated;
-              });
-              if (changed) {
-                await updateDoc(attendeeRef, { events: nextAttendeeEvents });
-              }
-            } catch {}
-          })
-        );
-      };
-
-      const exists = existingEvents.some((e: any) => matchesPlanEvent(e, eventForMatch, existingEvents));
-      if (exists) {
-        const updatedExistingEvents = existingEvents.map((e: any) => {
-          if (!matchesPlanEvent(e, eventForMatch, existingEvents)) return e;
-          const existingNames = Array.isArray(e?.joinedFromNames)
-            ? e.joinedFromNames
-            : [e?.joinedFromName].filter(Boolean);
-          const mergedNames = Array.from(
-            new Set([...existingNames, ...sourceNames].map((n: string) => String(n).trim()).filter(Boolean))
-          );
-          return {
-            ...e,
-            planHostUid: e.planHostUid || event.planHostUid || planHostUid,
-            mergedIntoExisting: true,
-            joinedFromFriendUid: friendKey,
-            joinedFromIds: sourceIds,
-            joinedFromId: sourceIds[0] || "",
-            joinedFromNames: mergedNames,
-            joinedFromName: mergedNames.join(", "),
-            attendeeDisplayNames: {
-              ...(e.attendeeDisplayNames || {}),
-              ...displayNameById,
-            },
-          };
-        });
-        await updateDoc(meRef, { events: updatedExistingEvents });
-        await syncAttendeesAcrossUsers(sourceIds);
-        setJoinedKeysForEvent(event, true);
-        if (user.uid && friendKey) {
-          setViewerEvents((prev) =>
-            appendOptimisticJoinedViewerEvent(
-              prev,
-              event,
-              friendKey,
-              profileName,
-              user.uid
-            )
-          );
-        }
-        setTimeout(() => showPlanSuccessToast("Joined!"), 280);
-        return;
-      }
-
-      const newEvent = {
-        id: `${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
-        title: String(event.title || "").trim(),
-        date: String(event.date || "").trim(),
-        time: String(event.time || "").trim(),
-        location: String(event.location || "").trim(),
-        planHostUid,
-        joinedFromId: friendKey,
-        joinedFromIds: sourceIds,
-        joinedFromName: sourceNames.join(", "),
-        joinedFromNames: sourceNames,
-        mergedIntoExisting: false,
-        joinedFromFriendUid: friendKey,
-        attendeeDisplayNames: displayNameById,
-      };
-
-      const nextEvents = [...existingEvents, newEvent].sort(
-        (a: any, b: any) => eventSortValue(a) - eventSortValue(b)
-      );
-
-      await updateDoc(meRef, {
-        events: nextEvents,
-      });
-      await syncAttendeesAcrossUsers(sourceIds);
-
+      await joinFriendOpenPlan(event, friendKey, profileName);
       setJoinedKeysForEvent(event, true);
-      if (user.uid && friendKey) {
-        setViewerEvents((prev) =>
-          appendOptimisticJoinedViewerEvent(
-            prev,
-            event,
-            friendKey,
-            profileName,
-            user.uid
-          )
-        );
-      }
+      setViewerEvents((prev) =>
+        appendOptimisticJoinedViewerEvent(
+          prev,
+          event,
+          friendKey,
+          profileName,
+          user.uid
+        )
+      );
       setTimeout(() => showPlanSuccessToast("Joined!"), 280);
     } catch (e: any) {
       showAlert("Error", e?.message || "Could not join this plan right now.");
@@ -1145,121 +907,16 @@ export default function FriendProfile({
     }
   };
 
-  const unjoinPlan = async (event: any) => {
+  const unjoinPlan = async (event: FriendOpenPlanEvent) => {
     const user = auth.currentUser;
     if (!user || !friendKey) return;
     setBusyPlanId(String(event?.id || ""));
     try {
-      const meRef = doc(db, "users", user.uid);
-      const meSnap = await getDoc(meRef);
-      const meData = meSnap.exists() ? (meSnap.data() as any) : {};
-      const existingEvents = Array.isArray(meData?.events) ? meData.events : [];
-      const myEvent = existingEvents.find((e: any) => matchesPlanEvent(e, event, existingEvents));
-      if (!myEvent || !isInSharedPlanWithFriend(myEvent, user.uid, friendKey)) {
-        showAlert("Not in this plan", "You aren't going to this plan together.");
-        return;
-      }
-
-      const rawSet = new Set<string>();
-      for (const id of [
-        ...(Array.isArray(myEvent.joinedFromIds) ? myEvent.joinedFromIds : []),
-        myEvent.joinedFromId,
-      ].filter(Boolean)) {
-        rawSet.add(String(id).trim());
-      }
-      rawSet.add(user.uid);
-      rawSet.add(friendKey);
-      const allAttendeeIds = Array.from(rawSet);
-
-      const displayNameById: Record<string, string> = {};
-      await Promise.all(
-        allAttendeeIds.map(async (uid) => {
-          try {
-            const s = await getDoc(doc(db, "users", uid));
-            if (s.exists()) {
-              displayNameById[uid] = String((s.data() as any)?.displayName || "").trim();
-            }
-          } catch {}
-        })
-      );
-
-      await Promise.all(
-        allAttendeeIds.map(async (attendeeId) => {
-          if (attendeeId === user.uid) return;
-          try {
-            const attendeeRef = doc(db, "users", attendeeId);
-            const attendeeSnap = await getDoc(attendeeRef);
-            if (!attendeeSnap.exists()) return;
-            const attendeeData = attendeeSnap.data() as any;
-            const attendeeEvents = Array.isArray(attendeeData?.events) ? attendeeData.events : [];
-            let changed = false;
-            const nextAttendeeEvents = attendeeEvents.map((e: any) => {
-              if (!matchesPlanEvent(e, event, attendeeEvents)) return e;
-              const existingIds = Array.isArray(e?.joinedFromIds)
-                ? e.joinedFromIds
-                : [e?.joinedFromId].filter(Boolean);
-              const mergedIds = existingIds
-                .map((id: string) => String(id).trim())
-                .filter(Boolean)
-                .filter((id: string) => id !== user.uid);
-              const otherNames = mergedIds
-                .filter((id: string) => id !== attendeeId)
-                .map((id: string | number) => displayNameById[id])
-                .filter(Boolean);
-              const prevNames = Array.isArray(e?.joinedFromNames)
-                ? e.joinedFromNames
-                : [e?.joinedFromName].filter(Boolean);
-              const idsChanged = mergedIds.join("|") !== existingIds.join("|");
-              const namesChanged = otherNames.join("|") !== prevNames.join("|");
-              if (!idsChanged && !namesChanged) return e;
-              changed = true;
-              return {
-                ...e,
-                joinedFromIds: mergedIds,
-                joinedFromId: mergedIds[0] || "",
-                joinedFromNames: otherNames,
-                joinedFromName: otherNames.join(", "),
-              };
-            });
-            if (changed) {
-              await updateDoc(attendeeRef, { events: nextAttendeeEvents });
-            }
-          } catch {}
-        })
-      );
-
-      const idSet = new Set(
-        [...(Array.isArray(myEvent.joinedFromIds) ? myEvent.joinedFromIds : []), myEvent.joinedFromId]
-          .filter(Boolean)
-          .map((id: string) => String(id).trim())
-      );
-      const shouldDemerge =
-        myEvent.mergedIntoExisting === true ||
-        (myEvent.mergedIntoExisting !== false && idSet.size > 2);
-
-      let nextEvents: any[];
-      if (shouldDemerge) {
-        const soloRest = { ...myEvent };
-        delete soloRest.joinedFromId;
-        delete soloRest.joinedFromIds;
-        delete soloRest.joinedFromName;
-        delete soloRest.joinedFromNames;
-        delete soloRest.mergedIntoExisting;
-        delete soloRest.joinedFromFriendUid;
-        soloRest.planHostUid = user.uid;
-        nextEvents = existingEvents.map((e: any) => (e.id === myEvent.id ? soloRest : e));
-      } else {
-        nextEvents = existingEvents.filter((e: any) => e.id !== myEvent.id);
-      }
-
-      await updateDoc(meRef, { events: nextEvents });
-
+      await unjoinFriendOpenPlan(event, friendKey);
       setJoinedKeysForEvent(event, false);
-      if (user.uid && friendKey) {
-        setViewerEvents((prev) =>
-          removeJoinedViewerEvent(prev, event, friendKey, user.uid)
-        );
-      }
+      setViewerEvents((prev) =>
+        removeJoinedViewerEvent(prev, event, friendKey, user.uid)
+      );
       setTimeout(() => showPlanSuccessToast("Removed"), 280);
     } catch (e: any) {
       showAlert("Error", e?.message || "Could not remove this plan.");

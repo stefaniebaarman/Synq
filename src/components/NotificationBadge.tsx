@@ -2,6 +2,7 @@ import {
   ACCENT,
   BG,
   DESTRUCTIVE,
+  ON_ACCENT_TEXT,
   TEXT,
   TYPE_FINE,
   fonts,
@@ -10,7 +11,7 @@ import React from "react";
 import { StyleSheet, Text, View } from "react-native";
 
 type Props =
-  | { variant: "count"; count: number }
+  | { variant: "count"; count: number; tone?: "destructive" | "accent" }
   | { variant: "dot" };
 
 export default function NotificationBadge(props: Props) {
@@ -18,9 +19,12 @@ export default function NotificationBadge(props: Props) {
     return <View style={styles.dot} />;
   }
   const display = props.count > 99 ? "99+" : String(props.count);
+  const accent = props.tone === "accent";
   return (
-    <View style={styles.countBadge}>
-      <Text style={styles.countText}>{display}</Text>
+    <View style={[styles.countBadge, accent && styles.countBadgeAccent]}>
+      <Text style={[styles.countText, accent && styles.countTextAccent]}>
+        {display}
+      </Text>
     </View>
   );
 }
@@ -51,9 +55,15 @@ const styles = StyleSheet.create({
     borderWidth: 2,
     borderColor: BG,
   },
+  countBadgeAccent: {
+    backgroundColor: ACCENT,
+  },
   countText: {
     color: TEXT,
     fontSize: TYPE_FINE,
     fontFamily: fonts.heavy,
+  },
+  countTextAccent: {
+    color: ON_ACCENT_TEXT,
   },
 });

@@ -164,9 +164,6 @@ export default function MessagesInboxPane({
           </View>
           <View style={styles.inboxTextCol}>
             <View style={styles.inboxTitleRow}>
-              {isUnreadThread && !mergeSelectMode ? (
-                <View style={styles.inboxUnreadDot} accessibilityElementsHidden />
-              ) : null}
               <Text
                 style={[
                   styles.whiteBold,

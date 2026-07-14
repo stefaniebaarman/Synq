@@ -73,7 +73,9 @@ import {
   TouchableWithoutFeedback,
   useWindowDimensions,
   Vibration,
-  View
+  View,
+  type NativeSyntheticEvent,
+  type TextLayoutEventData,
 } from 'react-native';
 import Reanimated, {
   FadeOut,
@@ -261,7 +263,29 @@ function ChatMessageBubble({
   const padV = Math.round(IMESSAGE_BUBBLE_PADDING_V * fontScale);
   const padH = Math.round(IMESSAGE_BUBBLE_PADDING_H * fontScale);
   const minHeight = padV * 2 + lineHeight;
-  const innerMax = bubbleCap - padH * 2;
+  const innerMax = Math.max(1, bubbleCap - padH * 2);
+  // RN multi-line Text lays out at maxWidth even when lines are shorter — measure longest line.
+  const [textWidth, setTextWidth] = useState<number | null>(null);
+
+  useEffect(() => {
+    setTextWidth(null);
+  }, [text, innerMax, fontSize]);
+
+  const onTextLayout = useCallback(
+    (event: NativeSyntheticEvent<TextLayoutEventData>) => {
+      const lines = event.nativeEvent.lines;
+      if (!lines.length) return;
+      let longest = 0;
+      for (let i = 0; i < lines.length; i++) {
+        longest = Math.max(longest, lines[i].width);
+      }
+      const next = Math.min(innerMax, Math.ceil(longest));
+      setTextWidth((prev) =>
+        prev != null && Math.abs(prev - next) < 1 ? prev : next
+      );
+    },
+    [innerMax]
+  );
 
   return (
     <Pressable onPress={onPress}>
@@ -276,11 +300,13 @@ function ChatMessageBubble({
             minHeight,
             maxWidth: bubbleCap,
             alignSelf: "flex-start",
+            ...(textWidth != null ? { width: textWidth + padH * 2 } : null),
           },
           { position: "relative", overflow: "visible" },
         ]}
       >
         <Text
+          onTextLayout={onTextLayout}
           style={[
             styles.bubbleText,
             {
@@ -288,6 +314,7 @@ function ChatMessageBubble({
               fontSize,
               lineHeight,
               maxWidth: innerMax,
+              ...(textWidth != null ? { width: textWidth } : null),
               textAlign: "left",
             },
             sendStatus === "failed" && { color: isMe ? CHAT_FAILED_SELF : CHAT_FAILED_OTHER },
@@ -395,7 +422,6 @@ export default function SynqScreen() {
   const [chatsHydrated, setChatsHydrated] = useState(false);
   const [pendingScrollToMessageId, setPendingScrollToMessageId] = useState<string | null>(null);
   const lastTapRef = useRef<{ [key: string]: number }>({});
-  const [hasUnread, setHasUnread] = useState(false);
   const [showEndSynqModal, setShowEndSynqModal] = useState(false);
   const [endingSynq, setEndingSynq] = useState(false);
   const [savingMemo, setSavingMemo] = useState(false);
@@ -465,12 +491,103 @@ export default function SynqScreen() {
     );
   }, [allChats, isBlocked, hiddenChatIds]);
 
+  /** Live profile photos for everyone in the inbox (not only the open chat). */
+  const [inboxParticipantImages, setInboxParticipantImages] = useState<
+    Record<string, string>
+  >({});
+
+  const inboxCounterpartIdsKey = useMemo(() => {
+    const myId = auth.currentUser?.uid;
+    if (!myId) return "";
+    const ids = new Set<string>();
+    for (const chat of visibleChats) {
+      for (const p of chat.participants || []) {
+        if (p && p !== myId) ids.add(String(p));
+      }
+    }
+    return [...ids].sort().join("|");
+  }, [visibleChats]);
+
+  useEffect(() => {
+    if (!messagesModalVisible || !inboxCounterpartIdsKey) return;
+
+    const ids = inboxCounterpartIdsKey.split("|").filter(Boolean);
+    const unsubs = ids.map((uid) =>
+      subscribeUserDocMultiplexed(uid, (data) => {
+        const resolved = resolveAvatar(data?.imageurl);
+        setInboxParticipantImages((prev) => {
+          if (prev[uid] === resolved) return prev;
+          return { ...prev, [uid]: resolved };
+        });
+      })
+    );
+
+    return () => {
+      unsubs.forEach((unsub) => unsub());
+    };
+  }, [messagesModalVisible, inboxCounterpartIdsKey]);
+
+  // Keep chat docs' denormalized avatars in sync so other clients' inboxes update too.
+  useEffect(() => {
+    if (!messagesModalVisible) return;
+    const overlayEntries = Object.entries(inboxParticipantImages);
+    if (overlayEntries.length === 0) return;
+
+    for (const chat of visibleChats) {
+      const participants = Array.isArray(chat.participants)
+        ? chat.participants.map(String)
+        : [];
+      if (participants.length === 0) continue;
+
+      const stored = (chat.participantImages || {}) as Record<string, string>;
+      const updates: Record<string, string> = {};
+      for (const [uid, url] of overlayEntries) {
+        if (!participants.includes(uid)) continue;
+        if (stored[uid] === url) continue;
+        updates[`participantImages.${uid}`] = url;
+      }
+      if (Object.keys(updates).length === 0) continue;
+      void updateDoc(doc(db, "chats", chat.id), updates).catch(() => {});
+    }
+  }, [inboxParticipantImages, messagesModalVisible, visibleChats]);
+
   const inboxChats = useMemo(() => {
-    return [...visibleChats].sort((a, b) => {
+    const withLiveAvatars = visibleChats.map((chat) => {
+      if (Object.keys(inboxParticipantImages).length === 0) return chat;
+      const participants = Array.isArray(chat.participants)
+        ? chat.participants.map(String)
+        : [];
+      const merged = { ...(chat.participantImages || {}) } as Record<string, string>;
+      let changed = false;
+      for (const uid of participants) {
+        const live = inboxParticipantImages[uid];
+        if (live == null || merged[uid] === live) continue;
+        merged[uid] = live;
+        changed = true;
+      }
+      return changed ? { ...chat, participantImages: merged } : chat;
+    });
+
+    return [...withLiveAvatars].sort((a, b) => {
       const aMs = a.updatedAt?.toMillis?.() ?? a.createdAt?.toMillis?.() ?? 0;
       const bMs = b.updatedAt?.toMillis?.() ?? b.createdAt?.toMillis?.() ?? 0;
       return bMs - aMs;
     });
+  }, [visibleChats, inboxParticipantImages]);
+
+  const unreadInboxCount = useMemo(() => {
+    const myId = auth.currentUser?.uid;
+    if (!myId) return 0;
+    let count = 0;
+    for (const chat of visibleChats) {
+      const updatedAtMs = chat.updatedAt?.toMillis?.() ?? 0;
+      const lastReadMs = chat.lastReadBy?.[myId]?.toMillis?.() ?? 0;
+      const lastSender = chat.lastMessageSenderId;
+      if (lastSender && lastSender !== myId && updatedAtMs > lastReadMs) {
+        count += 1;
+      }
+    }
+    return count;
   }, [visibleChats]);
 
   useEffect(() => {
@@ -526,10 +643,18 @@ export default function SynqScreen() {
     pendingNewChat,
   });
 
-  const moderationTimersRef = useRef<Map<string, ReturnType<typeof setTimeout>>>(new Map());
-  const serverMessagesRef = useRef<ReturnType<typeof useChatMessages>["serverMessages"]>([]);
+  const moderationWatchCleanupsRef = useRef<Map<string, () => void>>(new Map());
   const onMessageDeliveredRef = useRef<
-    (clientId: string, meta: { text: string; senderId: string; sentAt: number }) => void
+    (
+      clientId: string,
+      meta: {
+        text: string;
+        senderId: string;
+        sentAt: number;
+        chatId: string;
+        messageId: string;
+      }
+    ) => void
   >(() => {});
 
   const {
@@ -567,39 +692,48 @@ export default function SynqScreen() {
     });
   }, [serverMessages, pendingMessages]);
 
-  serverMessagesRef.current = serverMessages;
-
   onMessageDeliveredRef.current = (clientId, meta) => {
-    const existing = moderationTimersRef.current.get(clientId);
-    if (existing) clearTimeout(existing);
+    const existing = moderationWatchCleanupsRef.current.get(clientId);
+    if (existing) existing();
 
-    const timer = setTimeout(() => {
-      moderationTimersRef.current.delete(clientId);
-      if (!recentlySentRef.current.has(clientId)) return;
+    let settled = false;
+    let unsub: () => void = () => {};
+    let timer: ReturnType<typeof setTimeout> | null = null;
 
-      const matched = serverMessagesRef.current.some((m) =>
-        pendingMatchesServer(
-          {
-            id: clientId,
-            clientId,
-            text: meta.text,
-            senderId: meta.senderId,
-            sendStatus: "sending",
-            createdAt: meta.sentAt,
-          },
-          m
-        )
-      );
-      recentlySentRef.current.delete(clientId);
-      if (!matched) {
+    const cleanup = () => {
+      if (settled) return;
+      settled = true;
+      unsub();
+      if (timer) clearTimeout(timer);
+      moderationWatchCleanupsRef.current.delete(clientId);
+    };
+
+    // Only alert if the message doc is actually deleted (auto-filter / block),
+    // not when the chat listener simply hasn't matched the pending bubble yet.
+    unsub = onSnapshot(
+      doc(db, "chats", meta.chatId, "messages", meta.messageId),
+      (snap) => {
+        if (settled) return;
+        if (snap.exists()) return;
+        cleanup();
+        recentlySentRef.current.delete(clientId);
         showActionError(
           "This message was removed because it isn't allowed on Synq.",
           "Message removed"
         );
+      },
+      () => {
+        cleanup();
+        recentlySentRef.current.delete(clientId);
       }
-    }, 12_000);
+    );
 
-    moderationTimersRef.current.set(clientId, timer);
+    timer = setTimeout(() => {
+      cleanup();
+      recentlySentRef.current.delete(clientId);
+    }, 15_000);
+
+    moderationWatchCleanupsRef.current.set(clientId, cleanup);
   };
 
   useEffect(() => {
@@ -621,17 +755,16 @@ export default function SynqScreen() {
       );
       if (matched) {
         recentlySentRef.current.delete(clientId);
-        const pendingTimer = moderationTimersRef.current.get(clientId);
-        if (pendingTimer) clearTimeout(pendingTimer);
-        moderationTimersRef.current.delete(clientId);
+        const stopWatch = moderationWatchCleanupsRef.current.get(clientId);
+        if (stopWatch) stopWatch();
       }
     }
   }, [serverMessages, messagesReady, recentlySentRef]);
 
   useEffect(() => {
     return () => {
-      moderationTimersRef.current.forEach((timer) => clearTimeout(timer));
-      moderationTimersRef.current.clear();
+      moderationWatchCleanupsRef.current.forEach((stop) => stop());
+      moderationWatchCleanupsRef.current.clear();
     };
   }, []);
 
@@ -1151,14 +1284,6 @@ export default function SynqScreen() {
       });
 
       setAllChats(chats);
-      const anyUnread = chats.some((c: any) => {
-        const updatedAtMs = c.updatedAt?.toMillis?.() ?? 0;
-        const lastReadMs = c.lastReadBy?.[uid]?.toMillis?.() ?? 0;
-        const lastSender = c.lastMessageSenderId;
-        return !!lastSender && lastSender !== uid && updatedAtMs > lastReadMs;
-      });
-
-      setHasUnread(anyUnread);
       openPendingChatFromNotification();
     },
       ignoreSnapshotPermissionDenied
@@ -2094,7 +2219,7 @@ export default function SynqScreen() {
             <ProfileTabHeaderOverlay variant="title" />
             <ActiveSynqSection
               styles={styles}
-              hasUnread={hasUnread}
+              unreadCount={unreadInboxCount}
               availableFriends={visibleAvailableFriends}
               selectedFriends={selectedFriends}
               setSelectedFriends={setSelectedFriends}
@@ -2795,13 +2920,6 @@ const styles = StyleSheet.create({
     flex: 1,
     flexShrink: 1,
     minWidth: 0,
-  },
-  inboxUnreadDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    backgroundColor: ACCENT,
-    flexShrink: 0,
   },
   inboxTime: {
     color: MUTED2,

@@ -225,10 +225,15 @@ export function useChatMessages({
     if (cached) {
       applyCacheEntry(activeChatId, cached);
     } else if (boundChatIdRef.current !== activeChatId) {
+      // Coming from pending compose (bound null): keep ready so the optimistic
+      // bubble doesn't flash through the loading skeleton.
+      const keepReady = boundChatIdRef.current === null;
       boundChatIdRef.current = activeChatId;
       setServerMessages([]);
       setHasEarlierMessages(false);
-      setMessagesReady(false);
+      if (!keepReady) {
+        setMessagesReady(false);
+      }
       setListenerError(null);
     }
   }, [activeChatId, isChatPaneOpen, pendingNewChat, applyCacheEntry]);

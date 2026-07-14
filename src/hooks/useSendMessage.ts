@@ -70,7 +70,13 @@ type Params = {
   rejectIfObjectionable: (text: string) => boolean;
   isBlocked?: (uid: string) => boolean;
   onSendError: (message: string) => void;
-  onMessageDelivered?: (clientId: string, meta: { text: string; senderId: string; sentAt: number }) => void;
+  onMessageDelivered?: (clientId: string, meta: {
+    text: string;
+    senderId: string;
+    sentAt: number;
+    chatId: string;
+    messageId: string;
+  }) => void;
 };
 
 export function useSendMessage({
@@ -239,11 +245,12 @@ export function useSendMessage({
           throw new Error("blocked_recipient");
         }
 
-        await addDoc(collection(db, "chats", chatId!, "messages"), {
+        const messageRef = await addDoc(collection(db, "chats", chatId!, "messages"), {
           text: trimmed,
           senderId: myId,
           imageurl: myAvatar,
           createdAt: serverTimestamp(),
+          clientId,
         });
 
         try {
@@ -266,6 +273,8 @@ export function useSendMessage({
           text: trimmed,
           senderId: myId,
           sentAt: Date.now(),
+          chatId: chatId!,
+          messageId: messageRef.id,
         });
         setTimeout(() => recentlySentRef.current.delete(clientId), 20_000);
 
