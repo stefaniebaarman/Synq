@@ -3,7 +3,6 @@ import {
   eventKey,
   eventKeyLoose,
   matchesPlanEvent,
-  matchesPlanEventForHostSync,
   openPlanSortValue,
 } from "@/src/lib/planEvents";
 import { auth, db } from "@/src/lib/firebase";
@@ -231,102 +230,9 @@ export async function joinFriendOpenPlan(
   const planHostUid = resolvePlanHostUidForJoin(event, friendKey);
   const eventForMatch = { ...event, planHostUid: event.planHostUid || planHostUid };
 
-  const syncAttendeesAcrossUsers = async (allAttendeeIds: string[]) => {
-    await Promise.all(
-      allAttendeeIds.map(async (attendeeId) => {
-        try {
-          const attendeeRef = doc(db, "users", attendeeId);
-          const attendeeSnap = await getDoc(attendeeRef);
-          if (!attendeeSnap.exists()) return;
-          const attendeeData = attendeeSnap.data() as Record<string, unknown>;
-          const attendeeEvents = Array.isArray(attendeeData?.events)
-            ? (attendeeData.events as FriendOpenPlanEvent[])
-            : [];
-          let changed = false;
-          const nextAttendeeEvents = attendeeEvents.map((row) => {
-            const isHostDoc = !!planHostUid && String(attendeeId) === planHostUid;
-            const hostMatchedById =
-              isHostDoc && event?.id != null && row?.id != null && String(row.id) === String(event.id);
-            const matched =
-              hostMatchedById ||
-              matchesPlanEvent(row, eventForMatch, attendeeEvents) ||
-              (isHostDoc &&
-                matchesPlanEventForHostSync(row, eventForMatch, attendeeEvents, planHostUid));
-            if (!matched) return row;
-            const existingIds = Array.isArray(row?.joinedFromIds)
-              ? row.joinedFromIds
-              : [row?.joinedFromId].filter(Boolean);
-            const mergedIds = Array.from(
-              new Set(
-                [...existingIds, ...allAttendeeIds]
-                  .map((id) => String(id || "").trim())
-                  .filter(Boolean)
-              )
-            );
-            const otherNames = mergedIds
-              .filter((id) => id !== attendeeId)
-              .map((id) => displayNameById[id])
-              .filter(Boolean);
-            const prevNames = Array.isArray(row?.joinedFromNames)
-              ? row.joinedFromNames
-              : [row?.joinedFromName].filter(Boolean);
-            const idsChanged = mergedIds.join("|") !== existingIds.join("|");
-            const namesChanged = otherNames.join("|") !== prevNames.join("|");
-            const resolvedHost = String(planHostUid || "").trim();
-            const attendeeIsResolvedHost = !!resolvedHost && String(attendeeId) === resolvedHost;
-            const nextHost = attendeeIsResolvedHost
-              ? row.planHostUid || planHostUid || undefined
-              : resolvedHost || row.planHostUid || planHostUid || undefined;
-            const hostChanged = String(nextHost || "") !== String(row?.planHostUid || "");
-            const hostUidForDoc = String(nextHost || planHostUid || "").trim();
-            const orderedIds =
-              isHostDoc && hostUidForDoc
-                ? [hostUidForDoc, ...mergedIds.filter((id) => id !== hostUidForDoc)]
-                : mergedIds;
-            const nextJoinedFromId =
-              isHostDoc && hostUidForDoc ? hostUidForDoc : orderedIds[0] || "";
-            const hadWrongJoinAnchor =
-              isHostDoc &&
-              !!String(row?.joinedFromFriendUid || "").trim() &&
-              String(row.joinedFromFriendUid).trim() !== hostUidForDoc;
-            if (
-              !idsChanged &&
-              !namesChanged &&
-              !hostChanged &&
-              !hadWrongJoinAnchor &&
-              orderedIds.join("|") === mergedIds.join("|") &&
-              String(row?.joinedFromId || "") === nextJoinedFromId
-            ) {
-              return row;
-            }
-            changed = true;
-            const updated: FriendOpenPlanEvent = {
-              ...row,
-              planHostUid: nextHost,
-              joinedFromIds: orderedIds,
-              joinedFromId: nextJoinedFromId,
-              joinedFromNames: otherNames,
-              joinedFromName: otherNames.join(", "),
-            };
-            if (isHostDoc) {
-              delete updated.joinedFromFriendUid;
-            } else if (
-              resolvedHost &&
-              String(updated.joinedFromFriendUid || "").trim() === String(attendeeId)
-            ) {
-              updated.joinedFromFriendUid = resolvedHost;
-            }
-            return updated;
-          });
-          if (changed) {
-            await updateDoc(attendeeRef, { events: nextAttendeeEvents });
-          }
-        } catch {
-          /* best-effort */
-        }
-      })
-    );
-  };
+  // Only write our own user doc. Cross-user roster sync runs in
+  // functions/openPlanSync via syncOpenPlanEvents (admin) — clients cannot
+  // update other users' events under firestore.rules.
 
   const exists = existingEvents.some((row) => matchesPlanEvent(row, eventForMatch, existingEvents));
   if (exists) {
@@ -359,7 +265,6 @@ export async function joinFriendOpenPlan(
       };
     });
     await updateDoc(meRef, { events: updatedExistingEvents });
-    await syncAttendeesAcrossUsers(sourceIds);
     return "updated";
   }
 
@@ -383,7 +288,6 @@ export async function joinFriendOpenPlan(
     (a, b) => openPlanSortValue(a) - openPlanSortValue(b)
   );
   await updateDoc(meRef, { events: nextEvents });
-  await syncAttendeesAcrossUsers(sourceIds);
   return "added";
 }
 
@@ -405,80 +309,7 @@ export async function unjoinFriendOpenPlan(
     throw new Error("You aren't going to this plan together.");
   }
 
-  const rawSet = new Set<string>();
-  for (const id of [
-    ...(Array.isArray(myEvent.joinedFromIds) ? myEvent.joinedFromIds : []),
-    myEvent.joinedFromId,
-  ].filter(Boolean)) {
-    rawSet.add(String(id).trim());
-  }
-  rawSet.add(user.uid);
-  rawSet.add(friendKey);
-  const allAttendeeIds = Array.from(rawSet);
-
-  const displayNameById: Record<string, string> = {};
-  await Promise.all(
-    allAttendeeIds.map(async (uid) => {
-      try {
-        const s = await getDoc(doc(db, "users", uid));
-        if (s.exists()) {
-          displayNameById[uid] = String((s.data() as Record<string, unknown>)?.displayName || "").trim();
-        }
-      } catch {
-        /* best-effort */
-      }
-    })
-  );
-
-  await Promise.all(
-    allAttendeeIds.map(async (attendeeId) => {
-      if (attendeeId === user.uid) return;
-      try {
-        const attendeeRef = doc(db, "users", attendeeId);
-        const attendeeSnap = await getDoc(attendeeRef);
-        if (!attendeeSnap.exists()) return;
-        const attendeeData = attendeeSnap.data() as Record<string, unknown>;
-        const attendeeEvents = Array.isArray(attendeeData?.events)
-          ? (attendeeData.events as FriendOpenPlanEvent[])
-          : [];
-        let changed = false;
-        const nextAttendeeEvents = attendeeEvents.map((row) => {
-          if (!matchesPlanEvent(row, event, attendeeEvents)) return row;
-          const existingIds = Array.isArray(row?.joinedFromIds)
-            ? row.joinedFromIds
-            : [row?.joinedFromId].filter(Boolean);
-          const mergedIds = existingIds
-            .map((id) => String(id || "").trim())
-            .filter(Boolean)
-            .filter((id) => id !== user.uid);
-          const otherNames = mergedIds
-            .filter((id) => id !== attendeeId)
-            .map((id) => displayNameById[id])
-            .filter(Boolean);
-          const prevNames = Array.isArray(row?.joinedFromNames)
-            ? row.joinedFromNames
-            : [row?.joinedFromName].filter(Boolean);
-          const idsChanged = mergedIds.join("|") !== existingIds.join("|");
-          const namesChanged = otherNames.join("|") !== prevNames.join("|");
-          if (!idsChanged && !namesChanged) return row;
-          changed = true;
-          return {
-            ...row,
-            joinedFromIds: mergedIds,
-            joinedFromId: mergedIds[0] || "",
-            joinedFromNames: otherNames,
-            joinedFromName: otherNames.join(", "),
-          };
-        });
-        if (changed) {
-          await updateDoc(attendeeRef, { events: nextAttendeeEvents });
-        }
-      } catch {
-        /* best-effort */
-      }
-    })
-  );
-
+  // Own calendar only — syncOpenPlanEvents removes us from others' copies.
   const idSet = new Set(
     [...(Array.isArray(myEvent.joinedFromIds) ? myEvent.joinedFromIds : []), myEvent.joinedFromId]
       .map((id) => String(id || "").trim())
