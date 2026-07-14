@@ -31,9 +31,9 @@ import {
   BG_FADE_MID,
   BG_TRANSPARENT,
   MUTED2,
+  MUTED3,
   PRIMARY_CTA_HEIGHT,
   TAB_BAR_SCROLL_INSET,
-  TEXT_MUTED_HEX,
 } from "../../../constants/Variables";
 
 /** Matches audience lead icon on the active Synq screen. */
@@ -207,41 +207,48 @@ export default function ActiveSynqSection({
                   );
                 }}
                 style={[
-                  styles.friendCard,
-                  selected ? styles.friendCardSelected : styles.friendCardUnselected,
+                  styles.activeFriendTile,
+                  selected && styles.activeFriendTileSelected,
                 ]}
+                accessibilityRole="button"
+                accessibilityState={{ selected }}
+                accessibilityLabel={item.displayName}
               >
-                <ExpoImage
-                  source={{ uri: resolveAvatar(item.imageurl) }}
-                  style={styles.friendImg}
-                  cachePolicy="memory-disk"
-                  transition={0}
-                />
-                <View style={{ flex: 1 }}>
-                  <Text style={styles.whiteBold}>{item.displayName}</Text>
+                <View
+                  style={[
+                    styles.activeFriendAvatarRing,
+                    selected && styles.activeFriendAvatarRingSelected,
+                  ]}
+                >
+                  <ExpoImage
+                    source={{ uri: resolveAvatar(item.imageurl) }}
+                    style={styles.activeFriendAvatar}
+                    cachePolicy="memory-disk"
+                    transition={0}
+                  />
+                </View>
 
-                  {locationLine ? (
-                    <View style={styles.locationRow}>
-                      <Ionicons
-                        name="location-outline"
-                        size={14}
-                        color={TEXT_MUTED_HEX}
-                        style={{ marginRight: 4 }}
-                      />
-                      <Text style={styles.locationText}>{locationLine}</Text>
-                    </View>
-                  ) : null}
-
+                <View style={styles.activeFriendCopy}>
+                  <Text style={styles.activeFriendName} numberOfLines={1}>
+                    {item.displayName}
+                  </Text>
                   {friendMemo ? (
-                    <Text style={styles.friendMemoInline} numberOfLines={2}>
+                    <Text style={styles.activeFriendMemo} numberOfLines={2}>
                       {friendMemo}
+                    </Text>
+                  ) : null}
+                  {locationLine ? (
+                    <Text style={styles.activeFriendMeta} numberOfLines={1}>
+                      {locationLine}
                     </Text>
                   ) : null}
                 </View>
 
-                {selected ? (
-                  <Ionicons name="checkmark-circle" size={24} color={ACCENT} />
-                ) : null}
+                <Ionicons
+                  name={selected ? "checkmark-circle" : "ellipse-outline"}
+                  size={24}
+                  color={selected ? ACCENT : MUTED3}
+                />
               </TouchableOpacity>
             );
           }}

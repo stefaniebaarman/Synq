@@ -2703,8 +2703,63 @@ const styles = StyleSheet.create({
     borderColor: ACCENT_BORDER_SUBTLE,
   },
   friendCardUnselected: {
-    // Match fill so the edge reads as a surface, not a ring.
     borderColor: GROUP_SURFACE,
+  },
+  activeFriendTile: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingVertical: 16,
+    paddingHorizontal: 14,
+    borderRadius: RADIUS_LG,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: GROUP_BORDER,
+    marginBottom: 12,
+    backgroundColor: GROUP_SURFACE,
+  },
+  activeFriendTileSelected: {
+    backgroundColor: ACCENT_FILL_MUTED,
+    borderColor: ACCENT_BORDER_SUBTLE,
+  },
+  activeFriendAvatarRing: {
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    marginRight: 14,
+    padding: 2,
+    borderWidth: 2,
+    borderColor: "transparent",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  activeFriendAvatarRingSelected: {
+    borderColor: ACCENT,
+  },
+  activeFriendAvatar: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+  },
+  activeFriendCopy: {
+    flex: 1,
+    minWidth: 0,
+    paddingRight: 10,
+  },
+  activeFriendName: {
+    ...listRowTitleText,
+  },
+  activeFriendMemo: {
+    marginTop: 4,
+    color: MUTED2,
+    fontSize: TYPE_CAPTION,
+    lineHeight: 18,
+    fontFamily: fonts.book,
+  },
+  activeFriendMeta: {
+    marginTop: 5,
+    color: MUTED2,
+    fontSize: TYPE_FINE,
+    fontFamily: fonts.book,
+    letterSpacing: 0.2,
   },
   activeFriendRowSeparator: {
     height: StyleSheet.hairlineWidth,
