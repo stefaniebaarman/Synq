@@ -2711,14 +2711,13 @@ const styles = StyleSheet.create({
     paddingVertical: 16,
     paddingHorizontal: 14,
     borderRadius: RADIUS_LG,
-    borderWidth: StyleSheet.hairlineWidth,
+    borderWidth: 1.5,
     borderColor: GROUP_BORDER,
     marginBottom: 12,
     backgroundColor: GROUP_SURFACE,
   },
   activeFriendTileSelected: {
-    backgroundColor: ACCENT_FILL_MUTED,
-    borderColor: ACCENT_BORDER_SUBTLE,
+    borderColor: ACCENT,
   },
   activeFriendAvatarRing: {
     width: 64,
