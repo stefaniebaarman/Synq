@@ -77,6 +77,16 @@ type Params = {
     chatId: string;
     messageId: string;
   }) => void;
+  onChatCreated?: (chat: {
+    id: string;
+    participants: string[];
+    participantNames: Record<string, string>;
+    participantImages: Record<string, string>;
+    communityGroupId?: string;
+    communityGroupName?: string;
+    communityPlanId?: string;
+    communityPlanTitle?: string;
+  }) => void;
 };
 
 export function useSendMessage({
@@ -92,6 +102,7 @@ export function useSendMessage({
   isBlocked,
   onSendError,
   onMessageDelivered,
+  onChatCreated,
 }: Params) {
   const [pendingMessages, setPendingMessages] = useState<PendingMessage[]>([]);
   const recentlySentRef = useRef<
@@ -141,6 +152,16 @@ export function useSendMessage({
       if (predeterminedChatId) {
         const chatRef = doc(db, "chats", predeterminedChatId);
         await setDoc(chatRef, payload, { merge: true });
+        onChatCreated?.({
+          id: predeterminedChatId,
+          participants,
+          participantNames,
+          participantImages,
+          communityGroupId,
+          communityGroupName,
+          communityPlanId,
+          communityPlanTitle,
+        });
         setActiveChatId(predeterminedChatId);
         setPendingNewChat(null);
         return predeterminedChatId;
@@ -148,6 +169,16 @@ export function useSendMessage({
 
       const chatRef = await addDoc(collection(db, "chats"), payload);
       const chatId = chatRef.id;
+      onChatCreated?.({
+        id: chatId,
+        participants,
+        participantNames,
+        participantImages,
+        communityGroupId,
+        communityGroupName,
+        communityPlanId,
+        communityPlanTitle,
+      });
       setActiveChatId(chatId);
       setPendingNewChat(null);
       return chatId;
@@ -159,7 +190,7 @@ export function useSendMessage({
     } finally {
       creatingChatRef.current = null;
     }
-  }, [activeChatId, pendingNewChat, setActiveChatId, setPendingNewChat]);
+  }, [activeChatId, pendingNewChat, setActiveChatId, setPendingNewChat, onChatCreated]);
 
   useEffect(() => {
     const matchedServerIds = new Set();

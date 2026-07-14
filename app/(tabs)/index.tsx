@@ -7,7 +7,7 @@ import { trackEvent } from '@/src/lib/analytics';
 import { useBlockedUsers } from '@/src/lib/blockedUsers';
 import { mergeMessages, pendingMatchesServer, type ChatMessage } from '@/src/lib/chatMessages';
 import { deleteChat } from '@/src/lib/chats';
-import { filterOrReject } from '@/src/lib/contentFilter';
+import { filterOrReject, containsObjectionableContent } from '@/src/lib/contentFilter';
 import { ignoreSnapshotPermissionDenied } from '@/src/lib/firestoreListeners';
 import { subscribeFriendGroups, type FriendGroup } from '@/src/lib/friendGroups';
 import {
@@ -399,6 +399,17 @@ export default function SynqScreen() {
     communityPlanId?: string;
     communityPlanTitle?: string;
   } | null>(null);
+  /** Bridging chat object after pending clears, until the chats listener catches up. */
+  const [seededActiveChat, setSeededActiveChat] = useState<{
+    id: string;
+    participants: string[];
+    participantNames: Record<string, string>;
+    participantImages: Record<string, string>;
+    communityGroupId?: string;
+    communityGroupName?: string;
+    communityPlanId?: string;
+    communityPlanTitle?: string;
+  } | null>(null);
   const [allChats, setAllChats] = useState<any[]>([]);
   const [inputText, setInputText] = useState('');
   const [isAILoading, setIsAILoading] = useState(false);
@@ -482,6 +493,17 @@ export default function SynqScreen() {
         )
     );
   }, [allChats, isBlocked, hiddenChatIds]);
+
+  useEffect(() => {
+    if (!seededActiveChat) return;
+    if (!activeChatId || seededActiveChat.id !== activeChatId) {
+      setSeededActiveChat(null);
+      return;
+    }
+    if (visibleChats.some((c) => c.id === seededActiveChat.id)) {
+      setSeededActiveChat(null);
+    }
+  }, [visibleChats, activeChatId, seededActiveChat]);
 
   /** Live profile photos for everyone in the inbox (not only the open chat). */
   const [inboxParticipantImages, setInboxParticipantImages] = useState<
@@ -671,6 +693,7 @@ export default function SynqScreen() {
     isBlocked,
     onSendError: (msg) => showActionError(msg),
     onMessageDelivered: (clientId, meta) => onMessageDeliveredRef.current(clientId, meta),
+    onChatCreated: (chat) => setSeededActiveChat(chat),
   });
 
   const messages = useMemo(() => {
@@ -709,9 +732,14 @@ export default function SynqScreen() {
         if (snap.exists()) return;
         cleanup();
         recentlySentRef.current.delete(clientId);
+        // Client already blocked objectionable sends; leftover deletes are usually
+        // blocked-recipient (no moderationQueue). Only use filter copy if text matches.
+        const filtered = containsObjectionableContent(meta.text);
         showActionError(
-          "This message was removed because it isn't allowed on Synq.",
-          "Message removed"
+          filtered
+            ? "This message was removed because it isn't allowed on Synq."
+            : "This message couldn't be delivered.",
+          filtered ? "Message removed" : "Not delivered"
         );
       },
       () => {
@@ -1132,6 +1160,14 @@ export default function SynqScreen() {
       viewerId: uid,
     });
   }, [availableFriends, isBlocked, userProfile, resolvedFriendIds, status, user?.uid]);
+
+  useEffect(() => {
+    const availableIds = new Set(visibleAvailableFriends.map((f) => f.id));
+    setSelectedFriends((prev) => {
+      const next = prev.filter((id) => availableIds.has(id));
+      return next.length === prev.length ? prev : next;
+    });
+  }, [visibleAvailableFriends]);
 
   useEffect(() => {
     const uid = user?.uid;
@@ -1748,11 +1784,14 @@ export default function SynqScreen() {
   };
 
   const handleConnect = async () => {
-    if (selectedFriends.length === 0 || !auth.currentUser || isConnecting) return;
+    if (!auth.currentUser || isConnecting) return;
+    const availableIds = new Set(visibleAvailableFriends.map((f) => f.id));
+    const selected = selectedFriends.filter((id) => availableIds.has(id));
+    if (selected.length === 0) return;
     setIsConnecting(true);
     void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     try {
-      const participants = [auth.currentUser.uid, ...selectedFriends].sort();
+      const participants = [auth.currentUser.uid, ...selected].sort();
       await executeConnection(participants);
     } finally {
       setIsConnecting(false);
@@ -1785,6 +1824,7 @@ export default function SynqScreen() {
           participantNames: nameMap,
           participantImages: imgMap,
         });
+        setSeededActiveChat(null);
         setActiveChatId(null);
         clearMessages();
       }
@@ -1799,10 +1839,7 @@ export default function SynqScreen() {
 
   const sendMessage = async () => {
     if (!inputText.trim() || !auth.currentUser) return;
-    if (
-      !pendingNewChat &&
-      (!activeChatId || !allChats.find((c) => c.id === activeChatId))
-    ) {
+    if (!pendingNewChat && !activeChatId) {
       return;
     }
 
@@ -2114,7 +2151,8 @@ export default function SynqScreen() {
         communityPlanId: pendingNewChat.communityPlanId,
         communityPlanTitle: pendingNewChat.communityPlanTitle,
       }
-    : visibleChats.find((c) => c.id === activeChatId);
+    : visibleChats.find((c) => c.id === activeChatId) ??
+      (seededActiveChat?.id === activeChatId ? seededActiveChat : undefined);
 
   const activeChatResolved = useMemo(() => {
     if (!activeChat) return activeChat;
@@ -2710,13 +2748,12 @@ const styles = StyleSheet.create({
     alignItems: "center",
     padding: 14,
     borderRadius: RADIUS_LG,
-    borderWidth: StyleSheet.hairlineWidth,
+    borderWidth: 1,
     borderColor: GROUP_BORDER,
     marginBottom: 14,
     backgroundColor: GROUP_SURFACE,
   },
   activeFriendTileSelected: {
-    borderWidth: 1.5,
     borderColor: ACCENT,
   },
   activeFriendAvatarRing: {
@@ -2795,10 +2832,18 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
+  activeStartChatBtnIdle: {
+    backgroundColor: GROUP_SURFACE,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: GROUP_BORDER,
+  },
   activeStartChatLabel: {
     color: ON_ACCENT_TEXT,
     fontSize: TYPE_BODY,
     fontFamily: fonts.heavy,
+  },
+  activeStartChatLabelIdle: {
+    color: MUTED2,
   },
   btnText: primaryButtonText,
   synqHomeLayer: {
@@ -2904,13 +2949,13 @@ const styles = StyleSheet.create({
   modalHeader: { flexDirection: 'row', justifyContent: 'space-between', padding: 20, alignItems: 'center', borderBottomWidth: 1, borderBottomColor: SURFACE_RAISED },
   inboxHeaderBlock: {
     paddingHorizontal: 20,
-    paddingBottom: 12,
+    paddingBottom: 4,
   },
   inboxHeaderRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingBottom: 10,
+    paddingBottom: 12,
   },
   inboxTitleRow: {
     flexDirection: 'row',
@@ -2918,18 +2963,36 @@ const styles = StyleSheet.create({
     gap: 8,
     minWidth: 0,
   },
-  inboxTitleText: {
+  inboxMainRow: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    gap: 8,
+    minWidth: 0,
+  },
+  inboxCopyCol: {
     flex: 1,
+    minWidth: 0,
+    paddingRight: 4,
+  },
+  inboxTitleText: {
     flexShrink: 1,
     minWidth: 0,
+    letterSpacing: -0.2,
+  },
+  inboxPreview: {
+    marginTop: 2,
+    fontSize: TYPE_BUTTON,
+    lineHeight: 20,
+    letterSpacing: -0.1,
   },
   inboxTime: {
     color: MUTED2,
     fontFamily: fonts.book,
     fontSize: TYPE_FINE,
-    letterSpacing: 0.1,
+    letterSpacing: -0.1,
     flexShrink: 0,
-    marginLeft: 4,
+    marginTop: 2,
+    textAlign: "right",
   },
   inboxTimeUnread: {
     color: ACCENT,
@@ -3039,8 +3102,8 @@ const styles = StyleSheet.create({
     borderWidth: 1.5,
     borderColor: MUTED3,
     marginRight: 10,
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: "center",
+    justifyContent: "center",
     backgroundColor: SURFACE_SUBTLE,
   },
   inboxSelectBadgeActive: {
@@ -3054,14 +3117,21 @@ const styles = StyleSheet.create({
   },
   modalTitle: modalTitleText,
   messagesInboxTitle: tabScreenMainHeaderTitle,
-  deleteAction: { backgroundColor: DESTRUCTIVE, justifyContent: 'center', alignItems: 'center', width: 80, height: '100%' },
+  deleteAction: {
+    backgroundColor: DESTRUCTIVE,
+    justifyContent: "center",
+    alignItems: "center",
+    width: 80,
+    height: "100%",
+  },
   inboxItem: {
-    paddingTop: 12,
-    paddingBottom: 12,
-    paddingHorizontal: 20,
+    paddingTop: 11,
+    paddingBottom: 11,
+    paddingLeft: 14,
+    paddingRight: 20,
   },
   inboxItemFirst: {
-    paddingTop: 16,
+    paddingTop: 8,
   },
   inboxListContent: {
     paddingBottom: 20,
@@ -3070,16 +3140,21 @@ const styles = StyleSheet.create({
   inboxItemRow: {
     flexDirection: "row",
     alignItems: "center",
-    minHeight: 56,
+    minHeight: 54,
   },
+  /** Hairline after avatar, ending flush with the date. */
   inboxSeparatorBetween: {
-    paddingLeft: 20 + 60 + 14,
-    paddingRight: 40,
+    marginLeft: 14 + 60 + 14,
+    marginRight: 20,
     justifyContent: "center",
+  },
+  /** Merge lead is a 26px badge + 10px margin. */
+  inboxSeparatorBetweenMerge: {
+    marginLeft: 14 + 36 + 60 + 14,
   },
   inboxSeparatorLine: {
     height: StyleSheet.hairlineWidth,
-    backgroundColor: BORDER_LIGHT,
+    backgroundColor: DIVIDER,
     width: "100%",
   },
   inboxItemUnread: {
@@ -3089,6 +3164,17 @@ const styles = StyleSheet.create({
   },
   unreadChatTitle: {
     color: ACCENT,
+    fontSize: TYPE_SUBHEAD,
+    lineHeight: 22,
+    fontFamily: fonts.heavy,
+    letterSpacing: -0.2,
+  },
+  readChatTitle: {
+    color: TEXT,
+    fontSize: TYPE_SUBHEAD,
+    lineHeight: 22,
+    fontFamily: fonts.medium,
+    letterSpacing: -0.2,
   },
   inboxCircle: { width: 50, height: 50, borderRadius: 25, backgroundColor: SURFACE_RAISED, justifyContent: 'center', alignItems: 'center' },
   stackedPhoto: { width: 40, height: 40, borderRadius: RADIUS_LG, position: 'absolute', borderWidth: 2, borderColor: 'black' },
@@ -3444,6 +3530,8 @@ const styles = StyleSheet.create({
     height: 48,
     borderRadius: RADIUS_XL,
     backgroundColor: SURFACE_ELEVATED,
+    borderWidth: 1.5,
+    borderColor: BG,
   },
   inboxStackWrap: {
     width: 56,
@@ -3456,6 +3544,8 @@ const styles = StyleSheet.create({
     borderRadius: 21,
     position: "absolute",
     backgroundColor: SURFACE_ELEVATED,
+    borderWidth: 2,
+    borderColor: BG,
   },
   inboxStackPhotoBack: {
     left: 0,

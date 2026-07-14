@@ -309,11 +309,12 @@ export default function ActiveSynqSection({
                 <TouchableOpacity
                   style={[
                     styles.activeStartChatBtn,
-                    (!showCta || isConnecting) && { opacity: 0.5 },
+                    !showCta && styles.activeStartChatBtnIdle,
+                    isConnecting && { opacity: 0.5 },
                   ]}
                   onPress={handleConnect}
                   disabled={!showCta || isConnecting}
-                  activeOpacity={0.88}
+                  activeOpacity={showCta ? 0.88 : 1}
                   accessibilityRole="button"
                   accessibilityLabel={
                     isConnecting
@@ -328,7 +329,12 @@ export default function ActiveSynqSection({
                   {isConnecting ? (
                     <ActivityIndicator color={ON_ACCENT_TEXT} />
                   ) : (
-                    <Text style={styles.activeStartChatLabel}>
+                    <Text
+                      style={[
+                        styles.activeStartChatLabel,
+                        !showCta && styles.activeStartChatLabelIdle,
+                      ]}
+                    >
                       {showCta ? "Start chat" : "Select friends"}
                     </Text>
                   )}

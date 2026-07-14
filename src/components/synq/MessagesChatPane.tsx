@@ -477,10 +477,14 @@ export default function MessagesChatPane({
       prevId === "__pending__" &&
       !!nextId &&
       nextId !== "__pending__";
+    // Pending cleared before the new chat lands in visibleChats — keep thread visible.
+    const pendingHandoffGap =
+      chatChanged && prevId === "__pending__" && !nextId;
+    const keepThreadThroughHandoff = pendingToReal || pendingHandoffGap;
 
     if (chatChanged) {
       // First send creates the Firestore chat — keep the optimistic bubble visible.
-      if (!pendingToReal) {
+      if (!keepThreadThroughHandoff) {
         hideThread();
         Keyboard.dismiss();
       }
@@ -489,7 +493,7 @@ export default function MessagesChatPane({
       prevHasEarlierRef.current = hasEarlierMessages;
       if (nextId) {
         prevMessagesLenByChatRef.current[nextId] = messages.length;
-        if (!pendingToReal) {
+        if (!keepThreadThroughHandoff) {
           scheduleOpenAnchor(messages.length);
         }
       }
@@ -499,7 +503,7 @@ export default function MessagesChatPane({
           if (message.clientId) knownMessageIdsRef.current.add(message.clientId);
         });
         chatSeededRef.current = true;
-      } else if (!pendingToReal) {
+      } else if (!keepThreadThroughHandoff) {
         knownMessageIdsRef.current = new Set();
         chatSeededRef.current = false;
         pendingNormalScrollRef.current = false;
