@@ -1010,7 +1010,7 @@ const styles = StyleSheet.create({
     borderWidth: StyleSheet.hairlineWidth,
     borderColor: GROUP_BORDER,
     backgroundColor: GROUP_SURFACE,
-    marginBottom: 12,
+    marginBottom: 14,
     overflow: "hidden",
   },
   cardHighlighted: {
@@ -1020,13 +1020,13 @@ const styles = StyleSheet.create({
   cardMain: {
     flexDirection: "row",
     alignItems: "center",
-    paddingVertical: 10,
-    paddingHorizontal: 12,
+    paddingVertical: 14,
+    paddingHorizontal: 14,
   },
   dateBlock: {
-    width: 40,
+    width: 44,
     alignItems: "center",
-    marginRight: 10,
+    marginRight: 12,
   },
   dateWeekday: {
     color: MUTED3,
@@ -1038,16 +1038,16 @@ const styles = StyleSheet.create({
     color: TEXT,
     fontSize: TYPE_SECTION,
     fontFamily: fonts.heavy,
-    lineHeight: 22,
+    lineHeight: 24,
     letterSpacing: -0.5,
-    marginTop: 1,
+    marginTop: 2,
   },
   dateMonth: {
     color: MUTED3,
     fontSize: TYPE_NANO,
     fontFamily: fonts.medium,
     letterSpacing: 0.4,
-    marginTop: 1,
+    marginTop: 2,
   },
   planBody: {
     flex: 1,
@@ -1091,26 +1091,26 @@ const styles = StyleSheet.create({
   },
   meta: {
     ...cardMetaText,
-    marginTop: 2,
-    lineHeight: 16,
+    marginTop: 5,
+    lineHeight: 18,
   },
   hostLine: {
     color: MUTED3,
-    marginTop: 3,
+    marginTop: 5,
     fontSize: TYPE_MICRO,
     fontFamily: fonts.medium,
     letterSpacing: 0.1,
   },
   goingPressable: {
     alignSelf: "flex-start",
-    marginTop: 4,
+    marginTop: 6,
   },
   goingText: {
     color: ACCENT,
     fontSize: TYPE_MICRO,
     fontFamily: fonts.medium,
     letterSpacing: 0.05,
-    lineHeight: 15,
+    lineHeight: 16,
   },
   addBtnRow: {
     width: "100%",

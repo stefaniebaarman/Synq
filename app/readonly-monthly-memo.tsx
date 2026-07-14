@@ -1,9 +1,14 @@
 import {
   BORDER_HAIRLINE,
   BORDER_MUTED,
+  cardMetaText,
+  cardTitleText,
+  fonts,
   MUTED,
   MUTED2,
   MUTED3,
+  RADIUS_LG,
+  RADIUS_SM,
   SURFACE,
   SURFACE_SUBTLE,
   TEXT,
@@ -12,11 +17,9 @@ import {
   TYPE_CTA,
   TYPE_FINE,
   TYPE_LEAD,
-  cardMetaText,
-  fonts,
-  listRowTitleText,
-  RADIUS_LG,
-  RADIUS_SM,
+  TYPE_MICRO,
+  TYPE_NANO,
+  TYPE_SECTION,
 } from "@/constants/Variables";
 import {
   GROUP_BORDER,
@@ -115,7 +118,6 @@ export default function FriendOpenPlans({
         const joined = isPlanJoined?.(p) ?? false;
         const isHost = isViewerHostOfPlan?.(p) ?? false;
         const rowHostLabel = planHostLabelForRow(p);
-        const hasInterestLine = !!rowHostLabel;
 
         return (
           <View key={p.id} style={styles.card}>
@@ -133,12 +135,7 @@ export default function FriendOpenPlans({
               </Text>
             </View>
 
-            <View
-              style={[
-                styles.planBody,
-                hasInterestLine && styles.planBodyWithInterest,
-              ]}
-            >
+            <View style={styles.planBody}>
               <Text style={styles.title} numberOfLines={2}>
                 {p.title}
               </Text>
@@ -232,30 +229,24 @@ const styles = StyleSheet.create({
     borderRadius: RADIUS_LG,
     borderWidth: StyleSheet.hairlineWidth,
     borderColor: GROUP_BORDER,
-    padding: 14,
+    paddingVertical: 14,
+    paddingHorizontal: 14,
     marginBottom: 14,
     flexDirection: "row",
-    alignItems: "stretch",
+    alignItems: "center",
   },
 
   dateBlock: {
-    width: 48,
+    width: 44,
     flexShrink: 0,
     alignItems: "center",
     marginRight: 12,
-    alignSelf: "stretch",
-    justifyContent: "center",
   },
   planBody: {
     flex: 1,
     minWidth: 0,
     flexShrink: 1,
-    alignSelf: "stretch",
-    justifyContent: "center",
     paddingRight: 10,
-  },
-  planBodyWithInterest: {
-    justifyContent: "flex-start",
   },
   planSidePill: {
     alignSelf: "center",
@@ -263,36 +254,46 @@ const styles = StyleSheet.create({
   },
 
   day: {
-    color: TEXT_MUTED_DARK,
-    fontSize: TYPE_FINE,
+    color: MUTED3,
+    fontSize: TYPE_NANO,
+    fontFamily: fonts.medium,
+    letterSpacing: 0.5,
   },
 
   date: {
     color: TEXT,
-    fontSize: TYPE_CTA,
+    fontSize: TYPE_SECTION,
     fontFamily: fonts.heavy,
+    lineHeight: 24,
+    letterSpacing: -0.5,
+    marginTop: 2,
   },
 
   month: {
-    color: TEXT_MUTED_DARK,
-    fontSize: TYPE_FINE,
+    color: MUTED3,
+    fontSize: TYPE_NANO,
+    fontFamily: fonts.medium,
+    letterSpacing: 0.4,
     marginTop: 2,
   },
 
   title: {
-    ...listRowTitleText,
+    ...cardTitleText,
   },
 
   meta: {
     ...cardMetaText,
     color: TEXT_MUTED_DARKER,
-    marginTop: 3,
+    marginTop: 5,
+    lineHeight: 18,
   },
 
   planOwnerLine: {
-    ...cardMetaText,
-    fontSize: TYPE_FINE,
+    color: MUTED3,
     marginTop: 5,
+    fontSize: TYPE_MICRO,
+    fontFamily: fonts.medium,
+    letterSpacing: 0.1,
   },
 
   interestPill: {
