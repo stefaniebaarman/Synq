@@ -2744,6 +2744,12 @@ const styles = StyleSheet.create({
     minWidth: 0,
     paddingRight: 10,
   },
+  activeFriendSelectSlot: {
+    width: 24,
+    height: 24,
+    alignItems: "center",
+    justifyContent: "center",
+  },
   activeFriendName: {
     ...listRowTitleText,
   },

@@ -32,7 +32,6 @@ import {
   BG_FADE_MID,
   BG_TRANSPARENT,
   MUTED2,
-  MUTED3,
   ON_ACCENT_TEXT,
   TAB_BAR_SCROLL_INSET,
 } from "../../../constants/Variables";
@@ -100,21 +99,22 @@ export default function ActiveSynqSection({
     userProfile
   );
 
+  // TEMP: duplicate rows so we can preview a denser active list (~2x).
+  const previewAvailableFriends = useMemo(
+    () =>
+      sortedAvailableFriends.flatMap((friend) => [
+        friend,
+        { ...friend, id: `${friend.id}__preview` },
+      ]),
+    [sortedAvailableFriends]
+  );
+
   const selectedCount = selectedFriends.length;
   const showCta = selectedCount > 0;
 
   const footerLayout = useMemo(() => {
     const ctaPadTop = 10;
     const ctaBottomPad = TAB_BAR_SCROLL_INSET + ACTIVE_CTA_BOTTOM_NUDGE;
-    if (!showCta) {
-      const dockHeight = TAB_BAR_SCROLL_INSET + 12;
-      return {
-        ctaPadTop: 0,
-        ctaBottomPad: 0,
-        dockHeight,
-        listBottomPad: dockHeight + 20,
-      };
-    }
     const dockHeight = ctaPadTop + ACTIVE_CTA_HEIGHT + ctaBottomPad;
     return {
       ctaPadTop,
@@ -122,7 +122,7 @@ export default function ActiveSynqSection({
       dockHeight,
       listBottomPad: dockHeight + ACTIVE_LIST_BOTTOM_FADE_HEIGHT,
     };
-  }, [showCta]);
+  }, []);
 
   return (
     <View style={styles.activeSynqRoot}>
@@ -196,7 +196,7 @@ export default function ActiveSynqSection({
 
           <FlatList
             style={styles.activeFriendsList}
-            data={sortedAvailableFriends}
+            data={previewAvailableFriends}
             keyExtractor={(item) => item.id}
             showsVerticalScrollIndicator={false}
             ItemSeparatorComponent={null}
@@ -206,17 +206,20 @@ export default function ActiveSynqSection({
               ) : null
             }
             renderItem={({ item }) => {
+              const realId = item.id.endsWith("__preview")
+                ? item.id.slice(0, -"__preview".length)
+                : item.id;
               const friendMemo = item.memo?.trim();
               const locationLine = friendLocationLine(item);
-              const selected = selectedFriends.includes(item.id);
+              const selected = selectedFriends.includes(realId);
               return (
                 <TouchableOpacity
                   onPress={() => {
                     void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
                     setSelectedFriends((prev) =>
-                      prev.includes(item.id)
-                        ? prev.filter((id) => id !== item.id)
-                        : [...prev, item.id]
+                      prev.includes(realId)
+                        ? prev.filter((id) => id !== realId)
+                        : [...prev, realId]
                     );
                   }}
                   style={[
@@ -257,11 +260,15 @@ export default function ActiveSynqSection({
                     ) : null}
                   </View>
 
-                  <Ionicons
-                    name={selected ? "checkmark-circle" : "ellipse-outline"}
-                    size={24}
-                    color={selected ? ACCENT : MUTED3}
-                  />
+                  <View style={styles.activeFriendSelectSlot}>
+                    {selected ? (
+                      <Ionicons
+                        name="checkmark-circle"
+                        size={24}
+                        color={ACCENT}
+                      />
+                    ) : null}
+                  </View>
                 </TouchableOpacity>
               );
             }}
@@ -277,7 +284,7 @@ export default function ActiveSynqSection({
             ]}
           />
 
-          {availableFriends.length > 0 && showCta ? (
+          {availableFriends.length > 0 ? (
             <>
               <LinearGradient
                 pointerEvents="none"
@@ -304,14 +311,19 @@ export default function ActiveSynqSection({
                 ]}
               >
                 <TouchableOpacity
-                  style={styles.activeStartChatBtn}
+                  style={[
+                    styles.activeStartChatBtn,
+                    (!showCta || isConnecting) && { opacity: 0.5 },
+                  ]}
                   onPress={handleConnect}
-                  disabled={isConnecting}
+                  disabled={!showCta || isConnecting}
                   activeOpacity={0.88}
                   accessibilityRole="button"
                   accessibilityLabel={
                     isConnecting
                       ? "Opening chat"
+                      : !showCta
+                      ? "Select friends who are free to chat"
                       : `Start chat with ${selectedCount} friend${
                           selectedCount === 1 ? "" : "s"
                         }`
@@ -320,7 +332,9 @@ export default function ActiveSynqSection({
                   {isConnecting ? (
                     <ActivityIndicator color={ON_ACCENT_TEXT} />
                   ) : (
-                    <Text style={styles.activeStartChatLabel}>Start chat</Text>
+                    <Text style={styles.activeStartChatLabel}>
+                      {showCta ? "Start chat" : "Select friends"}
+                    </Text>
                   )}
                 </TouchableOpacity>
               </View>
