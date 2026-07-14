@@ -1,14 +1,23 @@
+import { SynqBootSkeleton } from '@/src/components/loading/BrandSkeletons';
 import ProfileTabHeaderOverlay from '@/src/components/ProfileTabHeaderOverlay';
 import { useChatMessages } from '@/src/hooks/useChatMessages';
 import { useSendMessage } from '@/src/hooks/useSendMessage';
 import { useTypingIndicator } from '@/src/hooks/useTypingIndicator';
-import { mergeMessages, pendingMatchesServer, type ChatMessage } from '@/src/lib/chatMessages';
 import { trackEvent } from '@/src/lib/analytics';
 import { useBlockedUsers } from '@/src/lib/blockedUsers';
+import { mergeMessages, pendingMatchesServer, type ChatMessage } from '@/src/lib/chatMessages';
 import { deleteChat } from '@/src/lib/chats';
 import { filterOrReject } from '@/src/lib/contentFilter';
 import { ignoreSnapshotPermissionDenied } from '@/src/lib/firestoreListeners';
 import { subscribeFriendGroups, type FriendGroup } from '@/src/lib/friendGroups';
+import {
+  getChatTitle as buildChatTitle,
+  getStackAvatarUris,
+  isCustomAvatar,
+  resolveAvatar,
+  resolveChatSenderAvatar,
+  SynqStatus
+} from '@/src/lib/helpers';
 import {
   findChatWithParticipants,
   mergeParticipantMaps,
@@ -16,12 +25,14 @@ import {
   participantsMatch,
   uniqueChatIds,
 } from '@/src/lib/mergeChats';
+import { openInMaps } from "@/src/lib/openInMaps";
 import {
   friendGroupsCacheByUser,
   friendsListCacheByUser,
   pollSynqActiveFriends,
   SYNQ_FRIEND_POLL_TTL_MS,
 } from '@/src/lib/socialCache';
+import { useSynqBoot } from '@/src/lib/synqBootContext';
 import {
   buildSynqBroadcastFirestorePayload,
   filterActiveFriendsForInbound,
@@ -32,25 +43,22 @@ import {
   selectionFromUserBroadcastFields,
   type SynqAudienceSelection,
 } from '@/src/lib/synqBroadcast';
-import { useSynqBoot } from '@/src/lib/synqBootContext';
-import { useFocusEffect, useIsFocused } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
-import AsyncStorage from "@react-native-async-storage/async-storage";
+import { useFocusEffect, useIsFocused } from '@react-navigation/native';
 import * as Haptics from 'expo-haptics';
-import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Image as ExpoImage } from "expo-image";
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import {
   addDoc,
-  arrayRemove,
   arrayUnion,
   collection,
   deleteField,
   doc,
   getDoc,
+  limit,
   onSnapshot,
   orderBy,
   query,
-  limit,
   serverTimestamp,
   Timestamp,
   updateDoc,
@@ -59,7 +67,6 @@ import {
 import React, { useCallback, useEffect, useMemo, useRef, useState, type Dispatch, type SetStateAction } from 'react';
 import {
   BackHandler,
-  DeviceEventEmitter,
   FlatList,
   InteractionManager,
   Keyboard,
@@ -75,21 +82,20 @@ import {
   Vibration,
   View,
   type NativeSyntheticEvent,
-  type TextLayoutEventData,
+  type TextLayoutEventData
 } from 'react-native';
+import { KeyboardProvider } from "react-native-keyboard-controller";
 import Reanimated, {
   FadeOut,
 } from 'react-native-reanimated';
-import { KeyboardProvider } from "react-native-keyboard-controller";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-
-type MessagesPane = "inbox" | "chat" | "profile";
 import {
   ACCENT,
   ACCENT_BORDER_SUBTLE,
   ACCENT_FILL_MUTED,
   ACCENT_FILL_SUBTLE,
   AI_PLACE_SUGGESTIONS_ENABLED,
+  aiPrompts,
   BG,
   BORDER,
   BORDER_LIGHT,
@@ -97,16 +103,23 @@ import {
   BORDER_PANEL,
   BORDER_STRONG,
   BUTTON_RADIUS,
+  cardMetaText,
+  cardTitleText,
   CHAT_FAILED_OTHER,
   CHAT_FAILED_SELF,
   DESTRUCTIVE,
   DISABLED_CTA,
   DIVIDER,
   DIVIDER_STRONG,
+  eyebrowLabel,
+  fonts,
   GROUP_BORDER,
   HEADER_BLACK,
   HEART_LIKE,
+  listRowTitleText,
+  listSectionTitle,
   MODAL_RADIUS,
+  modalTitleText,
   MUTED,
   MUTED2,
   MUTED3,
@@ -114,9 +127,14 @@ import {
   OVERLAY_NEAR_FULL,
   PRIMARY_CTA_HEIGHT,
   PRIMARY_CTA_WIDTH,
+  primaryButtonText,
+  RADIUS_2XL,
+  RADIUS_LG,
+  RADIUS_MD,
+  RADIUS_SM,
+  RADIUS_XL,
   SHADOW,
   SHEET_SURFACE,
-  SPACE_3,
   SPACE_4,
   SPACE_5,
   SURFACE,
@@ -125,6 +143,7 @@ import {
   SURFACE_RAISED,
   SURFACE_SOFT,
   SURFACE_SUBTLE,
+  tabScreenMainHeaderTitle,
   TEXT,
   TEXT_MUTED_HEX,
   TYPE_BODY,
@@ -133,32 +152,17 @@ import {
   TYPE_FINE,
   TYPE_LEAD,
   TYPE_MICRO,
-  TYPE_MODAL_TITLE,
   TYPE_SECTION,
   TYPE_SUBHEAD,
-  TYPE_TITLE,
-  aiPrompts,
-  cardMetaText,
-  cardTitleText,
-  eyebrowLabel,
-  fonts,
-  listRowTitleText,
-  listSectionTitle,
-  modalTitleText,
-  primaryButtonText,
-  tabScreenMainHeaderTitle,
-  RADIUS_2XL,
-  RADIUS_LG,
-  RADIUS_MD,
-  RADIUS_SM,
-  RADIUS_XL,
+  TYPE_TITLE
 } from "../../constants/Variables";
+import {
+  GROUP_SURFACE,
+} from '../../src/components/friends/groupsListStyles';
 import ActiveSynqSection from '../../src/components/synq/ActiveSynqSection';
-import { SynqBootSkeleton } from '@/src/components/loading/BrandSkeletons';
 import MessagesChatPane from '../../src/components/synq/MessagesChatPane';
 import MessagesInboxPane from '../../src/components/synq/MessagesInboxPane';
 import MessagesModalStack from '../../src/components/synq/MessagesModalStack';
-import { auth, db } from '../../src/lib/firebase';
 import {
   buildLocationPrompt,
   formatUserLocationLabel,
@@ -170,7 +174,15 @@ import {
   getCachedCitySuggestions,
   hasCachedCitySuggestions,
 } from "../../src/lib/citySuggestions";
-import type { SynqSuggestion } from "../../src/lib/synqSuggestions";
+import { auth, db } from '../../src/lib/firebase';
+import { CHATS_LISTENER_LIMIT } from "../../src/lib/listenerLimits";
+import { registerDismissNavigationOverlaysHandler } from "../../src/lib/navigationOverlayEvents";
+import { getCachedOwnProfile } from "../../src/lib/ownProfileCache";
+import { consumePendingChatOpen, peekPendingChatOpen, subscribePendingChatOpen } from "../../src/lib/pendingChatOpen";
+import {
+  subscribeFriendsIdsMultiplexed,
+  subscribeUserDocMultiplexed,
+} from "../../src/lib/socialListenerHub";
 import {
   computeSynqActiveFromUserData,
   getCachedSynqActiveSync,
@@ -179,37 +191,20 @@ import {
   synqStartedAtMillis,
   writeCachedSynqActive,
 } from "../../src/lib/synqSession";
-import { registerDismissNavigationOverlaysHandler } from "../../src/lib/navigationOverlayEvents";
-import { consumePendingChatOpen, peekPendingChatOpen, subscribePendingChatOpen } from "../../src/lib/pendingChatOpen";
-import { CHATS_LISTENER_LIMIT } from "../../src/lib/listenerLimits";
-import {
-  subscribeFriendsIdsMultiplexed,
-  subscribeUserDocMultiplexed,
-} from "../../src/lib/socialListenerHub";
-import { getCachedOwnProfile } from "../../src/lib/ownProfileCache";
+import type { SynqSuggestion } from "../../src/lib/synqSuggestions";
 import { userHasLocation } from "../../src/lib/userProfile";
 import { useAuthRefresh } from '../_layout';
 import AlertModal from '../alert-modal';
 import ConfirmModal from '../confirm-modal';
 import ExploreModal from '../explore-modal';
-import {
-  GROUP_SURFACE,
-} from '../../src/components/friends/groupsListStyles';
 import FriendProfile from '../friend-profile';
-import {
-  getChatTitle as buildChatTitle,
-  getStackAvatarUris,
-  isCustomAvatar,
-  resolveAvatar,
-  resolveChatSenderAvatar,
-  SynqStatus
-} from '@/src/lib/helpers';
-import { openInMaps } from "@/src/lib/openInMaps";
 import ReportModal from '../report-modal';
 import ChangeSynqAudienceModal from '../synq-screens/ChangeSynqAudienceModal';
 import EditSynqModal from '../synq-screens/EditSynqModal';
 import InactiveSynqView from '../synq-screens/InactiveSynqView';
 import SynqActivatingView from '../synq-screens/SynqActivatingView';
+
+type MessagesPane = "inbox" | "chat" | "profile";
 
 type SynqUi = { status: SynqStatus; hydrated: boolean };
 
@@ -2701,12 +2696,15 @@ const styles = StyleSheet.create({
     borderRadius: BUTTON_RADIUS,
     borderWidth: 1,
     marginBottom: 10,
+    backgroundColor: GROUP_SURFACE,
   },
   friendCardSelected: {
-    borderColor: ACCENT,
+    backgroundColor: ACCENT_FILL_SUBTLE,
+    borderColor: ACCENT_BORDER_SUBTLE,
   },
   friendCardUnselected: {
-    borderColor: MUTED3,
+    // Match fill so the edge reads as a surface, not a ring.
+    borderColor: GROUP_SURFACE,
   },
   activeFriendRowSeparator: {
     height: StyleSheet.hairlineWidth,
