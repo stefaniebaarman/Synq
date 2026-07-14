@@ -12,10 +12,11 @@ import { friendLocationLine, resolveAvatar } from "@/src/lib/helpers";
 import { SYNQ_TAB_LONG_PRESS } from "@/src/lib/synqTabEvents";
 import { useSortedFriendsList } from "@/src/lib/useSortedFriendsList";
 import { Ionicons } from "@expo/vector-icons";
+import { useFocusEffect } from "@react-navigation/native";
 import * as Haptics from "expo-haptics";
 import { Image as ExpoImage } from "expo-image";
 import { LinearGradient } from "expo-linear-gradient";
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   ActivityIndicator,
   DeviceEventEmitter,
@@ -85,6 +86,7 @@ export default function ActiveSynqSection({
   const [sortMode, setSortMode] = useState<FriendsSortMode>("distance");
   const [sortMenuVisible, setSortMenuVisible] = useState(false);
   const headerLayout = useTabHeaderLayout();
+  const listRef = useRef<FlatList>(null);
 
   useEffect(() => {
     const subscription = DeviceEventEmitter.addListener(SYNQ_TAB_LONG_PRESS, () => {
@@ -93,20 +95,16 @@ export default function ActiveSynqSection({
     return () => subscription.remove();
   }, []);
 
+  useFocusEffect(
+    useCallback(() => {
+      listRef.current?.scrollToOffset({ offset: 0, animated: false });
+    }, [])
+  );
+
   const sortedAvailableFriends = useSortedFriendsList(
     availableFriends as Friend[],
     sortMode,
     userProfile
-  );
-
-  // TEMP: duplicate rows so we can preview a denser active list (~2x).
-  const previewAvailableFriends = useMemo(
-    () =>
-      sortedAvailableFriends.flatMap((friend) => [
-        friend,
-        { ...friend, id: `${friend.id}__preview` },
-      ]),
-    [sortedAvailableFriends]
   );
 
   const selectedCount = selectedFriends.length;
@@ -195,8 +193,9 @@ export default function ActiveSynqSection({
           ) : null}
 
           <FlatList
+            ref={listRef}
             style={styles.activeFriendsList}
-            data={previewAvailableFriends}
+            data={sortedAvailableFriends}
             keyExtractor={(item) => item.id}
             showsVerticalScrollIndicator={false}
             ItemSeparatorComponent={null}
@@ -206,20 +205,17 @@ export default function ActiveSynqSection({
               ) : null
             }
             renderItem={({ item }) => {
-              const realId = item.id.endsWith("__preview")
-                ? item.id.slice(0, -"__preview".length)
-                : item.id;
               const friendMemo = item.memo?.trim();
               const locationLine = friendLocationLine(item);
-              const selected = selectedFriends.includes(realId);
+              const selected = selectedFriends.includes(item.id);
               return (
                 <TouchableOpacity
                   onPress={() => {
                     void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
                     setSelectedFriends((prev) =>
-                      prev.includes(realId)
-                        ? prev.filter((id) => id !== realId)
-                        : [...prev, realId]
+                      prev.includes(item.id)
+                        ? prev.filter((id) => id !== item.id)
+                        : [...prev, item.id]
                     );
                   }}
                   style={[
@@ -275,7 +271,7 @@ export default function ActiveSynqSection({
             contentContainerStyle={[
               styles.activeListContent,
               {
-                paddingTop: audienceLabel ? 4 : 8,
+                paddingTop: audienceLabel ? 6 : 8,
                 paddingBottom:
                   availableFriends.length > 0
                     ? footerLayout.listBottomPad
