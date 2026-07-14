@@ -11,10 +11,10 @@ import {
 } from "@/constants/Variables";
 import { cropProfilePhoto } from "@/src/lib/cropProfilePhoto";
 import { SkeletonBlock } from "@/src/components/loading/BrandSkeletons";
-import { Image as ExpoImage } from "expo-image";
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import {
   Dimensions,
+  Image,
   Pressable,
   StyleSheet,
   Text,
@@ -82,6 +82,10 @@ export default function ProfilePhotoCropView({
     null
   );
   const [cropping, setCropping] = useState(false);
+  const [stageSize, setStageSize] = useState({
+    width: SCREEN_WIDTH,
+    height: SCREEN_HEIGHT,
+  });
   const [cropCenter, setCropCenter] = useState({
     cx: SCREEN_WIDTH / 2,
     cy: SCREEN_HEIGHT / 2,
@@ -166,9 +170,15 @@ export default function ProfilePhotoCropView({
         savedTranslateY.value = translateY.value;
       });
 
+    // Average touches + single-pointer pan avoids trackedTouchCount clashes with pinch.
     const pan = Gesture.Pan()
-      .minDistance(0)
+      .averageTouches(true)
       .maxPointers(1)
+      .minDistance(1)
+      .onStart(() => {
+        savedTranslateX.value = translateX.value;
+        savedTranslateY.value = translateY.value;
+      })
       .onUpdate((event) => {
         const width = imageWidth.value;
         const height = imageHeight.value;
@@ -201,13 +211,28 @@ export default function ProfilePhotoCropView({
     userScale,
   ]);
 
-  const imageAnimatedStyle = useAnimatedStyle(() => ({
-    transform: [
-      { scale: userScale.value },
-      { translateX: translateX.value },
-      { translateY: translateY.value },
-    ],
-  }));
+  // left/top/width/height match computeProfilePhotoCropRect (no scale matrix).
+  const imageAnimatedStyle = useAnimatedStyle(() => {
+    const width = imageWidth.value;
+    const height = imageHeight.value;
+    if (!width || !height) {
+      return { opacity: 0 };
+    }
+    const baseScale = Math.max(
+      PROFILE_PHOTO_CROP_SIZE / width,
+      PROFILE_PHOTO_CROP_SIZE / height
+    );
+    const totalScale = baseScale * userScale.value;
+    const scaledW = width * totalScale;
+    const scaledH = height * totalScale;
+    return {
+      opacity: 1,
+      width: scaledW,
+      height: scaledH,
+      left: (PROFILE_PHOTO_CROP_SIZE - scaledW) / 2 + translateX.value,
+      top: (PROFILE_PHOTO_CROP_SIZE - scaledH) / 2 + translateY.value,
+    };
+  });
 
   const handleChoose = async () => {
     if (!imageSize || processing || cropping) return;
@@ -228,67 +253,20 @@ export default function ProfilePhotoCropView({
     }
   };
 
-  const baseDisplay = imageSize
-    ? (() => {
-        const baseScale = Math.max(
-          PROFILE_PHOTO_CROP_SIZE / imageSize.width,
-          PROFILE_PHOTO_CROP_SIZE / imageSize.height
-        );
-        return {
-          width: imageSize.width * baseScale,
-          height: imageSize.height * baseScale,
-        };
-      })()
-    : null;
-
   const busy = processing || cropping;
 
   return (
     <GestureHandlerRootView style={styles.gestureRoot}>
       <View style={styles.container}>
-        <View style={styles.cropStage}>
-          <Svg
-            width={SCREEN_WIDTH}
-            height={SCREEN_HEIGHT}
-            style={styles.cropOverlay}
-            pointerEvents="none"
+        <GestureDetector gesture={composedGesture}>
+          <Animated.View
+            style={styles.cropStage}
+            collapsable={false}
+            onLayout={(event) => {
+              const { width, height } = event.nativeEvent.layout;
+              setStageSize({ width, height });
+            }}
           >
-            <Defs>
-              <Mask id="profilePhotoCropMask">
-                <Rect
-                  x={0}
-                  y={0}
-                  width={SCREEN_WIDTH}
-                  height={SCREEN_HEIGHT}
-                  fill="white"
-                />
-                <Circle
-                  cx={cropCenter.cx}
-                  cy={cropCenter.cy}
-                  r={PROFILE_PHOTO_CROP_SIZE / 2}
-                  fill="black"
-                />
-              </Mask>
-            </Defs>
-            <Rect
-              x={0}
-              y={0}
-              width={SCREEN_WIDTH}
-              height={SCREEN_HEIGHT}
-              fill={BG}
-              mask="url(#profilePhotoCropMask)"
-            />
-            <Circle
-              cx={cropCenter.cx}
-              cy={cropCenter.cy}
-              r={PROFILE_PHOTO_CROP_SIZE / 2}
-              fill="none"
-              stroke={ACCENT}
-              strokeWidth={2}
-            />
-          </Svg>
-
-          <GestureDetector gesture={composedGesture}>
             <View
               style={styles.cropTouchTarget}
               collapsable={false}
@@ -297,38 +275,60 @@ export default function ProfilePhotoCropView({
                 setCropCenter({ cx: x + width / 2, cy: y + height / 2 });
               }}
             >
-              {baseDisplay ? (
-                <Animated.View
-                  style={[
-                    styles.imageWrap,
-                    {
-                      width: baseDisplay.width,
-                      height: baseDisplay.height,
-                      left: (PROFILE_PHOTO_CROP_SIZE - baseDisplay.width) / 2,
-                      top: (PROFILE_PHOTO_CROP_SIZE - baseDisplay.height) / 2,
-                    },
-                    imageAnimatedStyle,
-                  ]}
-                >
-                  <ExpoImage
+              {imageSize ? (
+                <Animated.View style={[styles.imageWrap, imageAnimatedStyle]}>
+                  <Image
                     source={{ uri: imageUri }}
                     style={styles.image}
-                    contentFit="cover"
-                    onLoad={(event) => {
-                      const { width, height } = event.source;
-                      if (!width || !height || imageSize) return;
-                      setImageSize({ width, height });
-                      imageWidth.value = width;
-                      imageHeight.value = height;
-                    }}
+                    resizeMode="stretch"
+                    pointerEvents="none"
                   />
                 </Animated.View>
               ) : (
                 <SkeletonBlock style={styles.imageSkeleton} />
               )}
             </View>
-          </GestureDetector>
-        </View>
+
+            {/* RN SVG often ignores pointerEvents on Svg itself — wrap it. */}
+            <View style={styles.cropOverlay} pointerEvents="none">
+              <Svg width={stageSize.width} height={stageSize.height}>
+                <Defs>
+                  <Mask id="profilePhotoCropMask">
+                    <Rect
+                      x={0}
+                      y={0}
+                      width={stageSize.width}
+                      height={stageSize.height}
+                      fill="white"
+                    />
+                    <Circle
+                      cx={cropCenter.cx}
+                      cy={cropCenter.cy}
+                      r={PROFILE_PHOTO_CROP_SIZE / 2}
+                      fill="black"
+                    />
+                  </Mask>
+                </Defs>
+                <Rect
+                  x={0}
+                  y={0}
+                  width={stageSize.width}
+                  height={stageSize.height}
+                  fill={BG}
+                  mask="url(#profilePhotoCropMask)"
+                />
+                <Circle
+                  cx={cropCenter.cx}
+                  cy={cropCenter.cy}
+                  r={PROFILE_PHOTO_CROP_SIZE / 2}
+                  fill="none"
+                  stroke={ACCENT}
+                  strokeWidth={2}
+                />
+              </Svg>
+            </View>
+          </Animated.View>
+        </GestureDetector>
 
         <View style={[styles.footer, { paddingBottom: insets.bottom + 20 }]}>
           <Pressable
@@ -380,17 +380,12 @@ const styles = StyleSheet.create({
   },
   cropOverlay: {
     ...StyleSheet.absoluteFillObject,
-    zIndex: 0,
   },
   cropTouchTarget: {
     width: PROFILE_PHOTO_CROP_SIZE,
     height: PROFILE_PHOTO_CROP_SIZE,
-    borderRadius: PROFILE_PHOTO_CROP_SIZE / 2,
     overflow: "hidden",
     backgroundColor: "transparent",
-    borderWidth: 2,
-    borderColor: ACCENT,
-    zIndex: 1,
   },
   imageWrap: {
     position: "absolute",
@@ -410,7 +405,6 @@ const styles = StyleSheet.create({
     gap: 12,
     paddingHorizontal: 20,
     paddingTop: 16,
-    zIndex: 2,
   },
   footerBtn: {
     flex: 1,

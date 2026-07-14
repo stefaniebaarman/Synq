@@ -1,5 +1,4 @@
 import * as ImageManipulator from "expo-image-manipulator";
-import { Image } from "react-native";
 
 /** Max edge length while cropping; keeps preview math fast on camera originals. */
 export const PROFILE_PHOTO_CROP_PREP_MAX_DIMENSION = 2048;
@@ -30,14 +29,16 @@ export function computeProfilePhotoCropRect({
   const totalScale = baseScale * userScale;
   const scaledW = imageWidth * totalScale;
   const scaledH = imageHeight * totalScale;
+  // Same screen-space placement as ProfilePhotoCropView's animated left/top.
   const offsetX = (cropSize - scaledW) / 2 + translateX;
   const offsetY = (cropSize - scaledH) / 2 + translateY;
 
   const originX = Math.max(0, Math.round(-offsetX / totalScale));
   const originY = Math.max(0, Math.round(-offsetY / totalScale));
-  const width = Math.min(imageWidth - originX, Math.round(cropSize / totalScale));
-  const height = Math.min(imageHeight - originY, Math.round(cropSize / totalScale));
-  const size = Math.min(width, height);
+  const cropEdge = Math.max(1, Math.round(cropSize / totalScale));
+  const width = Math.min(imageWidth - originX, cropEdge);
+  const height = Math.min(imageHeight - originY, cropEdge);
+  const size = Math.max(1, Math.min(width, height));
 
   return { originX, originY, width: size, height: size };
 }
@@ -66,23 +67,17 @@ export async function prepareProfilePhotoForCrop(
     format: ImageManipulator.SaveFormat.JPEG,
   });
 
-  const { width, height } = await new Promise<{ width: number; height: number }>(
-    (resolve, reject) => {
-      Image.getSize(
-        normalized.uri,
-        (w, h) => resolve({ width: w, height: h }),
-        reject
-      );
-    }
-  );
-
   const resize = resizeToMaxDimension(
-    width,
-    height,
+    normalized.width,
+    normalized.height,
     PROFILE_PHOTO_CROP_PREP_MAX_DIMENSION
   );
   if (!resize) {
-    return { uri: normalized.uri, width, height };
+    return {
+      uri: normalized.uri,
+      width: normalized.width,
+      height: normalized.height,
+    };
   }
 
   const downscaled = await ImageManipulator.manipulateAsync(
@@ -91,10 +86,11 @@ export async function prepareProfilePhotoForCrop(
     { compress: 0.92, format: ImageManipulator.SaveFormat.JPEG }
   );
 
+  // Always use the manipulator's actual output size — requested resize can differ by 1px.
   return {
     uri: downscaled.uri,
-    width: resize.width,
-    height: resize.height,
+    width: downscaled.width,
+    height: downscaled.height,
   };
 }
 
