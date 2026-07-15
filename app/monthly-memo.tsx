@@ -697,7 +697,7 @@ export default function OpenPlans({
           style={[
             styles.popupOverlay,
             {
-              paddingTop: insets.top + 12,
+              paddingTop: insets.top + 36,
               paddingBottom: Math.max(insets.bottom, 12),
             },
           ]}
