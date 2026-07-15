@@ -29,10 +29,12 @@ import { openInMaps } from "@/src/lib/openInMaps";
 import {
   friendGroupsCacheByUser,
   friendsListCacheByUser,
+  invalidateSynqActiveFriendsPoll,
   pollSynqActiveFriends,
   SYNQ_FRIEND_POLL_TTL_MS,
 } from '@/src/lib/socialCache';
 import { useSynqBoot } from '@/src/lib/synqBootContext';
+import { SYNQ_ACTIVE_FRIENDS_REFRESH } from '@/src/lib/synqTabEvents';
 import {
   buildSynqBroadcastFirestorePayload,
   filterActiveFriendsForInbound,
@@ -67,6 +69,7 @@ import {
 import React, { useCallback, useEffect, useMemo, useRef, useState, type Dispatch, type SetStateAction } from 'react';
 import {
   BackHandler,
+  DeviceEventEmitter,
   FlatList,
   InteractionManager,
   Keyboard,
@@ -1337,8 +1340,14 @@ export default function SynqScreen() {
     }
 
     let cancelled = false;
-    const refreshAvailable = async (force = false) => {
-      const next = await pollSynqActiveFriends(myId, friendIds, { force });
+    const refreshAvailable = async (force = false, fromUserId?: string) => {
+      if (force) {
+        invalidateSynqActiveFriendsPoll(myId, fromUserId);
+      }
+      const next = await pollSynqActiveFriends(myId, friendIds, {
+        force,
+        focusFriendId: fromUserId,
+      });
       if (!cancelled) setAvailableFriends(next);
     };
 
@@ -1347,11 +1356,66 @@ export default function SynqScreen() {
       void refreshAvailable(false);
     }, SYNQ_FRIEND_POLL_TTL_MS);
 
+    const pushRefreshSub = DeviceEventEmitter.addListener(
+      SYNQ_ACTIVE_FRIENDS_REFRESH,
+      (payload?: { fromUserId?: string; inactive?: boolean }) => {
+        const fromUserId = payload?.fromUserId;
+        if (payload?.inactive && fromUserId) {
+          setAvailableFriends((prev) => prev.filter((f) => f.id !== fromUserId));
+        }
+        void refreshAvailable(true, fromUserId);
+      }
+    );
+
     return () => {
       cancelled = true;
       clearInterval(interval);
+      pushRefreshSub.remove();
     };
   }, [status, user?.uid, resolvedFriendIds]);
+
+  // Live status for friends currently on the active list — drop them the moment they end Synq.
+  const availableFriendIdsKey = useMemo(
+    () =>
+      availableFriends
+        .map((f) => String(f?.id || "").trim())
+        .filter(Boolean)
+        .sort()
+        .join("|"),
+    [availableFriends]
+  );
+
+  useEffect(() => {
+    const myId = user?.uid;
+    if (!myId || status !== "active" || !availableFriendIdsKey) return;
+
+    const friendIds = availableFriendIdsKey.split("|").filter(Boolean);
+    const unsubs = friendIds.map((fid) =>
+      onSnapshot(
+        doc(db, "users", fid),
+        (snap) => {
+          if (!snap.exists() || !computeSynqActiveFromUserData(snap.data())) {
+            invalidateSynqActiveFriendsPoll(myId, fid);
+            setAvailableFriends((prev) => prev.filter((f) => f.id !== fid));
+            return;
+          }
+          const data = snap.data();
+          setAvailableFriends((prev) => {
+            const idx = prev.findIndex((f) => f.id === fid);
+            if (idx < 0) return prev;
+            const next = [...prev];
+            next[idx] = { id: fid, ...data };
+            return next;
+          });
+        },
+        ignoreSnapshotPermissionDenied
+      )
+    );
+
+    return () => {
+      unsubs.forEach((u) => u());
+    };
+  }, [status, user?.uid, availableFriendIdsKey]);
 
   useEffect(() => {
     if (activeChatId) {

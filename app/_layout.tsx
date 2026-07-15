@@ -20,6 +20,7 @@ import {
 import { requestDismissNavigationOverlays } from "@/src/lib/navigationOverlayEvents";
 import { setPendingChatOpen } from "@/src/lib/pendingChatOpen";
 import { parsePushNotificationTap } from "@/src/lib/pushNotificationTapCore";
+import { SYNQ_ACTIVE_FRIENDS_REFRESH } from "@/src/lib/synqTabEvents";
 import {
   parseProfileShareCodeFromUrl,
   resolveProfileShareCodeToFriendId,
@@ -97,13 +98,17 @@ const PROFILE_GATE_TIMEOUT_MS = 12000;
 
 if (Platform.OS !== "web") {
   Notifications.setNotificationHandler({
-    handleNotification: async () => ({
-      shouldShowAlert: true,
-      shouldPlaySound: true,
-      shouldSetBadge: true,
-      shouldShowBanner: true,
-      shouldShowList: true,
-    }),
+    handleNotification: async (notification) => {
+      const type = notification.request.content.data?.type;
+      const silentInactive = type === "friend_synq_inactive";
+      return {
+        shouldShowAlert: !silentInactive,
+        shouldPlaySound: !silentInactive,
+        shouldSetBadge: !silentInactive,
+        shouldShowBanner: !silentInactive,
+        shouldShowList: !silentInactive,
+      };
+    },
   });
 }
 
@@ -367,22 +372,57 @@ export default function RootLayout() {
       }
     };
 
-    const sub = Notifications.addNotificationResponseReceivedListener(
+    const requestActiveFriendsRefresh = (
+      data: Record<string, unknown> | undefined
+    ) => {
+      const type = typeof data?.type === "string" ? data.type : "";
+      if (
+        type !== "friend_synq_active" &&
+        type !== "friend_synq_inactive" &&
+        type !== "synq_nudge"
+      ) {
+        return;
+      }
+      const fromRaw = data?.fromUserId;
+      const fromUserId =
+        typeof fromRaw === "string" && fromRaw.trim() ? fromRaw.trim() : undefined;
+      DeviceEventEmitter.emit(SYNQ_ACTIVE_FRIENDS_REFRESH, {
+        fromUserId,
+        inactive: type === "friend_synq_inactive",
+      });
+    };
+
+    const responseSub = Notifications.addNotificationResponseReceivedListener(
       (response) => {
-        applyNotificationData(
-          response.notification.request.content.data as Record<string, unknown> | undefined
+        const data = response.notification.request.content.data as
+          | Record<string, unknown>
+          | undefined;
+        requestActiveFriendsRefresh(data);
+        applyNotificationData(data);
+      }
+    );
+
+    const receivedSub = Notifications.addNotificationReceivedListener(
+      (notification) => {
+        requestActiveFriendsRefresh(
+          notification.request.content.data as Record<string, unknown> | undefined
         );
       }
     );
 
     Notifications.getLastNotificationResponseAsync().then((response) => {
       if (!response) return;
-      applyNotificationData(
-        response.notification.request.content.data as Record<string, unknown> | undefined
-      );
+      const data = response.notification.request.content.data as
+        | Record<string, unknown>
+        | undefined;
+      requestActiveFriendsRefresh(data);
+      applyNotificationData(data);
     });
 
-    return () => sub.remove();
+    return () => {
+      responseSub.remove();
+      receivedSub.remove();
+    };
   }, []);
 
   useEffect(() => {
@@ -939,6 +979,7 @@ export default function RootLayout() {
           activityNotificationId(notificationType, fromUserId, user.uid)
         ).catch(() => {});
       }
+      DeviceEventEmitter.emit(SYNQ_ACTIVE_FRIENDS_REFRESH, { fromUserId });
       router.push("/(tabs)");
       clearPendingTap();
       return;

@@ -83,6 +83,18 @@ export function invalidateSocialWarmCache(userId: string) {
   delete synqActiveFriendsPollCache[userId];
 }
 
+/** Drop Synq-active poll cache so the next poll re-reads friend status. */
+export function invalidateSynqActiveFriendsPoll(
+  viewerId: string,
+  friendId?: string
+) {
+  if (!viewerId) return;
+  delete synqActiveFriendsPollCache[viewerId];
+  if (!friendId) return;
+  const fetchedAtMap = friendProfileFetchedAtByUser[viewerId];
+  if (fetchedAtMap) delete fetchedAtMap[friendId];
+}
+
 const sortFriendsByName = (list: Friend[]) =>
   [...list].sort((a, b) => (a.displayName || "").localeCompare(b.displayName || ""));
 
@@ -729,11 +741,12 @@ export async function hydrateMutualCountsForUsers(
 export async function pollSynqActiveFriends(
   viewerId: string,
   friendIds: string[],
-  options: { force?: boolean } = {}
+  options: { force?: boolean; focusFriendId?: string } = {}
 ): Promise<Friend[]> {
   if (!viewerId || friendIds.length === 0) return [];
 
   const force = !!options.force;
+  const focusFriendId = String(options.focusFriendId || "").trim() || undefined;
   const now = Date.now();
   const pollKey = friendIdsKey(friendIds);
   const cached = synqActiveFriendsPollCache[viewerId];
@@ -754,7 +767,13 @@ export async function pollSynqActiveFriends(
     friendIds.map(async (fid) => {
       const cachedProfile = profileCache[fid];
       const profileAge = fetchedAtMap[fid] ?? 0;
-      const profileFresh = cachedProfile && now - profileAge < SYNQ_FRIEND_POLL_TTL_MS;
+      // Force re-reads every friend, or just the activator when focusFriendId is set.
+      const mustRefresh =
+        force && (!focusFriendId || fid === focusFriendId);
+      const profileFresh =
+        !mustRefresh &&
+        cachedProfile &&
+        now - profileAge < SYNQ_FRIEND_POLL_TTL_MS;
 
       let data: Record<string, unknown> | undefined;
       if (profileFresh) {
@@ -765,6 +784,9 @@ export async function pollSynqActiveFriends(
           if (!snap.exists()) return;
           data = snap.data() as Record<string, unknown>;
           profileCache[fid] = { id: fid, ...(data as object) } as Friend;
+          if (!friendProfileCacheByUser[viewerId]) {
+            friendProfileCacheByUser[viewerId] = profileCache;
+          }
           if (!friendProfileFetchedAtByUser[viewerId]) {
             friendProfileFetchedAtByUser[viewerId] = {};
           }
