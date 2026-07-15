@@ -338,6 +338,111 @@ function findRemovedHostedPlans(hostUid, beforeEvents, afterEvents) {
   return removed;
 }
 
+function planContentFields(e) {
+  return {
+    title: String(e?.title || "").trim(),
+    date: String(e?.date || "").trim(),
+    time: String(e?.time || "").trim(),
+    location: String(e?.location || "").trim(),
+  };
+}
+
+function planContentChanged(beforeEv, afterEv) {
+  const before = planContentFields(beforeEv);
+  const after = planContentFields(afterEv);
+  return (
+    before.title !== after.title ||
+    before.date !== after.date ||
+    before.time !== after.time ||
+    before.location !== after.location
+  );
+}
+
+/**
+ * Hosted plans that kept the same id but changed title/date/time/location.
+ * Match attendees with the *before* snapshot so renames still find their copy.
+ */
+function findChangedHostedPlans(hostUid, beforeEvents, afterEvents) {
+  const changes = [];
+  for (const afterEv of afterEvents) {
+    if (String(afterEv?.planHostUid || "").trim() !== hostUid) continue;
+    const afterId = String(afterEv?.id || "").trim();
+    if (!afterId) continue;
+
+    const beforeEv = beforeEvents.find((e) => String(e?.id || "").trim() === afterId);
+    if (!beforeEv) continue;
+    if (String(beforeEv?.planHostUid || "").trim() !== hostUid) continue;
+    if (!planContentChanged(beforeEv, afterEv)) continue;
+
+    changes.push({ before: beforeEv, after: afterEv });
+  }
+  return changes;
+}
+
+/**
+ * Patch title/date/time/location on one user's matching plan copy (matched via before snapshot).
+ */
+async function patchPlanFieldsOnUser(db, targetUid, beforeSnapshot, afterFields, planHostUid) {
+  const targetRef = db.collection("users").doc(targetUid);
+  const targetSnap = await targetRef.get();
+  if (!targetSnap.exists) return false;
+
+  let events = Array.isArray(targetSnap.data()?.events) ? [...targetSnap.data().events] : [];
+  const idx = findMatchingPlanIndex(events, beforeSnapshot, planHostUid);
+  if (idx < 0) return false;
+
+  const row = events[idx];
+  const nextFields = planContentFields({ ...row, ...afterFields });
+  const prevFields = planContentFields(row);
+  if (
+    prevFields.title === nextFields.title &&
+    prevFields.date === nextFields.date &&
+    prevFields.time === nextFields.time &&
+    prevFields.location === nextFields.location
+  ) {
+    return false;
+  }
+
+  events[idx] = {
+    ...row,
+    title: nextFields.title,
+    date: nextFields.date,
+    time: nextFields.time,
+    location: nextFields.location,
+  };
+  await targetRef.update({ events });
+  return true;
+}
+
+/**
+ * When a host edits plan details, update every joined friend's calendar copy.
+ */
+async function syncHostPlanFieldUpdates(db, hostUid, beforeEvents, afterEvents) {
+  const changes = findChangedHostedPlans(hostUid, beforeEvents, afterEvents);
+  if (changes.length === 0) return;
+
+  for (const { before, after } of changes) {
+    const fields = planContentFields(after);
+    const targets = new Set([...collectJoinedIds(before), ...collectJoinedIds(after)]);
+    targets.delete(hostUid);
+
+    for (const targetUid of targets) {
+      try {
+        const updated = await patchPlanFieldsOnUser(db, targetUid, before, fields, hostUid);
+        if (updated) {
+          logInfo("openPlanSync_fields_updated", {
+            hostUid,
+            targetUid,
+            planId: String(after?.id || "").trim(),
+          });
+        }
+      } catch (e) {
+        logError("openPlanSync_fields_update", e, { hostUid, targetUid });
+      }
+    }
+  }
+}
+
 /**
  * When a friend joins a plan, merge roster onto host + every listed attendee who has a copy.
  */
@@ -448,6 +553,7 @@ async function handleUserEventsChange(db, userId, beforeEvents, afterEvents) {
 
   await syncUnjoinFromAttendees(db, userId, beforeEvents, afterEvents);
   await syncJoinerInterestToAttendees(db, userId, beforeEvents, afterEvents);
+  await syncHostPlanFieldUpdates(db, userId, beforeEvents, afterEvents);
   await cascadeDeletedPlans(db, userId, beforeEvents, afterEvents);
 }
 
@@ -459,5 +565,7 @@ module.exports = {
   findHostPlanIndex,
   findMatchingPlanIndex,
   findRemovedHostedPlans,
+  findChangedHostedPlans,
+  planContentChanged,
   handleUserEventsChange,
 };

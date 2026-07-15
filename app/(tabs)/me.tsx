@@ -704,52 +704,32 @@ export default function ProfileScreen() {
       id: planId,
       planHostUid: myUid,
     };
-    const attendeeIds = new Set<string>();
-    attendeeIds.add(myUid);
-    if (host) attendeeIds.add(host);
-    for (const raw of [
-      ...((Array.isArray(existing.joinedFromIds) ? existing.joinedFromIds : []) as string[]),
-      existing.joinedFromId,
-    ].filter(Boolean)) {
-      attendeeIds.add(String(raw).trim());
-    }
 
-    const patchOnUserCalendar = async (uid: string) => {
-      const ref = doc(db, "users", uid);
+    const patchHostCalendar = async () => {
+      const ref = doc(db, "users", myUid);
       const snap = await getDoc(ref);
       if (!snap.exists()) return;
       const evs = (snap.data() as any).events || [];
-      let changed = false;
-      const hostIdx =
-        uid === myUid
-          ? findHostOpenPlanIndex(evs, planId, oldSnapshot, {
-              hostUid: myUid,
-              fields: updatedPayload,
-            })
-          : -1;
-      const next = evs.map((e: any, i: number) => {
-        if (uid === myUid) {
-          if (i !== hostIdx) return e;
-          changed = true;
-          return hostPlanRowWithIdentity({ ...e, ...updatedPayload }, planId, myUid);
-        }
-        if (!matchesPlanEvent(e, oldSnapshot, evs)) return e;
-        changed = true;
-        return { ...e, ...updatedPayload };
+      const hostIdx = findHostOpenPlanIndex(evs, planId, oldSnapshot, {
+        hostUid: myUid,
+        fields: updatedPayload,
       });
-      const toWrite = uid === myUid ? sortOpenPlansByDateTime(next) : next;
-      if (changed) await updateDoc(ref, { events: toWrite });
+      if (hostIdx < 0) return;
+      const next = evs.map((e: any, i: number) =>
+        i === hostIdx
+          ? hostPlanRowWithIdentity({ ...e, ...updatedPayload }, planId, myUid)
+          : e
+      );
+      await updateDoc(ref, { events: sortOpenPlansByDateTime(next) });
     };
 
     try {
-      await patchOnUserCalendar(myUid);
+      // Own calendar only — joined friends' copies are updated by syncOpenPlanEvents (admin).
+      await patchHostCalendar();
     } catch {
       showAlert("Error", "Could not update event.");
       return false;
     }
-
-    const otherAttendeeIds = [...attendeeIds].filter((uid) => uid !== myUid);
-    await Promise.allSettled(otherAttendeeIds.map((uid) => patchOnUserCalendar(uid)));
 
     const inviteFriendIds = Array.isArray(options?.inviteFriendIds)
       ? options.inviteFriendIds
