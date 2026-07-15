@@ -68,8 +68,9 @@ describe("planAttribution", () => {
 
     expect(result.primary).toBe("Shawn's plan");
     expect(result.secondary).toBe("You and Elliott are going");
-    expect(result.goingPeople).toHaveLength(1);
-    expect(result.goingPeople[0].displayName).toBe("Elliott");
+    expect(result.goingPeople.map((p) => p.displayName)).toEqual(["Shawn", "Elliott"]);
+    expect(result.goingPeople[0].isHost).toBe(true);
+    expect(result.goingPeople[1].isHost).toBeFalsy();
   });
 
   test("shows Shawns plan on Elliott friend profile", () => {

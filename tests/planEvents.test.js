@@ -1,4 +1,4 @@
-const { matchesPlanEvent } = require("../functions/openPlanSync.js");
+const { matchesPlanEvent, findChangedHostedPlans } = require("../functions/openPlanSync.js");
 
 describe("openPlan matchesPlanEvent", () => {
   test("matches identical full event keys", () => {
@@ -63,5 +63,51 @@ describe("openPlan matchesPlanEvent", () => {
       planHostUid: "host-1",
     };
     expect(matchesPlanEvent(planA, planB, [planA, planB])).toBe(false);
+  });
+});
+
+describe("openPlan findChangedHostedPlans", () => {
+  test("detects host title rename for same plan id", () => {
+    const before = [
+      {
+        id: "plan-1",
+        title: "Brunch",
+        date: "2026-07-20",
+        time: "11:00 AM",
+        location: "Cafe",
+        planHostUid: "host-1",
+        joinedFromIds: ["host-1", "friend-1"],
+      },
+    ];
+    const after = [
+      {
+        ...before[0],
+        title: "Lunch",
+      },
+    ];
+    const changes = findChangedHostedPlans("host-1", before, after);
+    expect(changes).toHaveLength(1);
+    expect(changes[0].before.title).toBe("Brunch");
+    expect(changes[0].after.title).toBe("Lunch");
+  });
+
+  test("ignores identical content and non-hosted rows", () => {
+    const hosted = {
+      id: "plan-1",
+      title: "Brunch",
+      date: "2026-07-20",
+      time: "",
+      location: "",
+      planHostUid: "host-1",
+    };
+    const joined = {
+      id: "copy-9",
+      title: "Other",
+      date: "2026-07-21",
+      time: "",
+      location: "",
+      planHostUid: "someone-else",
+    };
+    expect(findChangedHostedPlans("host-1", [hosted, joined], [hosted, joined])).toEqual([]);
   });
 });

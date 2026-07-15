@@ -50,6 +50,26 @@ describe("chatMessages", () => {
     expect(merged[0].clientId).toBe("pending-1");
   });
 
+  test("pendingMatchesServer matches by clientId first", () => {
+    expect(
+      pendingMatchesServer(
+        {
+          clientId: "pending-xyz",
+          text: "hello",
+          senderId: "u1",
+          createdAt: Date.now(),
+        },
+        {
+          id: "server-1",
+          clientId: "pending-xyz",
+          text: "different text still matches via clientId",
+          senderId: "u1",
+          createdAt: { toMillis: () => Date.now() },
+        }
+      )
+    ).toBe(true);
+  });
+
   test("pendingMatchesServer matches text and sender", () => {
     const pending = createPendingMessage({
       clientId: "p1",
