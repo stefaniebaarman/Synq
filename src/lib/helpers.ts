@@ -80,6 +80,31 @@ export const formatLastSynq = (date: Date) => {
   return date.toLocaleDateString();
 };
 
+/** Inbox list timestamp in Messages-style buckets (same day → clock time, etc.). */
+export function formatInboxMessageTime(date: Date): string {
+  if (Number.isNaN(date.getTime())) return "";
+
+  const now = new Date();
+  const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const startOfMsg = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+  const dayDiff = Math.round(
+    (startOfToday.getTime() - startOfMsg.getTime()) / 86_400_000
+  );
+
+  if (dayDiff <= 0) {
+    return date.toLocaleTimeString(undefined, {
+      hour: "numeric",
+      minute: "2-digit",
+    });
+  }
+  if (dayDiff === 1) return "Yesterday";
+  if (dayDiff < 7) {
+    return date.toLocaleDateString(undefined, { weekday: "long" });
+  }
+
+  return `${date.getMonth() + 1}/${date.getDate()}/${String(date.getFullYear()).slice(-2)}`;
+}
+
 export const parseIdeaText = (text: string) => {
   const lines = (text || "")
     .split("\n")

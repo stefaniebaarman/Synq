@@ -8,9 +8,7 @@ import {
   DESTRUCTIVE,
   MUTED,
   MUTED3,
-  ON_ACCENT_TEXT,
   TEXT,
-  TYPE_BODY,
   TYPE_BUTTON,
   TYPE_CAPTION,
   fonts,
@@ -18,15 +16,22 @@ import {
   RADIUS_SM,
 } from "@/constants/Variables";
 import { ReportReason, submitReport, type ReportContentType } from "@/src/lib/moderation";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
+  Keyboard,
+  KeyboardEvent,
   Modal,
+  Platform,
   Pressable,
+  ScrollView,
   StyleSheet,
   Text,
   TextInput,
-  TouchableOpacity
+  TouchableOpacity,
+  useWindowDimensions,
+  View,
 } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 const REASONS: { id: ReportReason; label: string }[] = [
   { id: "harassment", label: "Harassment or bullying" },
@@ -57,13 +62,59 @@ export default function ReportModal({
   onClose,
   onSubmitted,
 }: Props) {
+  const insets = useSafeAreaInsets();
+  const { height: windowHeight } = useWindowDimensions();
+  const scrollRef = useRef<ScrollView>(null);
   const [reason, setReason] = useState<ReportReason | null>(null);
   const [details, setDetails] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [keyboardInset, setKeyboardInset] = useState(0);
+
+  useEffect(() => {
+    if (!visible) {
+      setKeyboardInset(0);
+      return;
+    }
+
+    const onShow = (e: KeyboardEvent) => {
+      setKeyboardInset(e.endCoordinates.height);
+      // Keep the details field above the keyboard.
+      setTimeout(() => {
+        scrollRef.current?.scrollToEnd({ animated: true });
+      }, Platform.OS === "ios" ? 60 : 0);
+    };
+    const onHide = () => setKeyboardInset(0);
+    const showEvt = Platform.OS === "ios" ? "keyboardWillShow" : "keyboardDidShow";
+    const hideEvt = Platform.OS === "ios" ? "keyboardWillHide" : "keyboardDidHide";
+    const showSub = Keyboard.addListener(showEvt, onShow);
+    const hideSub = Keyboard.addListener(hideEvt, onHide);
+    return () => {
+      showSub.remove();
+      hideSub.remove();
+    };
+  }, [visible]);
+
+  const dismissKeyboard = () => {
+    Keyboard.dismiss();
+  };
+
+  const handleClose = () => {
+    Keyboard.dismiss();
+    onClose();
+  };
+
+  const handleBackdropPress = () => {
+    if (keyboardInset > 0) {
+      Keyboard.dismiss();
+      return;
+    }
+    handleClose();
+  };
 
   const handleSubmit = async () => {
     if (!reason || submitting) return;
+    Keyboard.dismiss();
     setSubmitting(true);
     setError(null);
     try {
@@ -87,55 +138,119 @@ export default function ReportModal({
     }
   };
 
+  const keyboardOpen = keyboardInset > 0;
+  // iOS modals don't resize for the keyboard; Android often does — don't double-lift.
+  const sheetLift = Platform.OS === "ios" ? keyboardInset : 0;
+  const paddingBottom = keyboardOpen ? 12 : Math.max(24, insets.bottom);
+  const sheetHeight = Math.min(
+    windowHeight * 0.92,
+    Math.max(480, windowHeight - sheetLift - insets.top - 12)
+  );
+
   return (
-    <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
-      <Pressable style={sheetStyles.overlay} onPress={onClose}>
-        <Pressable style={sheetStyles.sheetAlt} onPress={(e) => e.stopPropagation()}>
-          <Text style={sheetStyles.title}>Report</Text>
-          <Text style={sheetStyles.bodyCompact}>Why are you reporting this?</Text>
+    <Modal visible={visible} transparent animationType="fade" onRequestClose={handleClose}>
+      <View style={sheetStyles.overlay}>
+        <Pressable
+          style={StyleSheet.absoluteFill}
+          onPress={handleBackdropPress}
+          accessibilityLabel="Dismiss"
+        />
+        <Pressable
+          style={[
+            sheetStyles.sheetAlt,
+            styles.sheet,
+            {
+              height: sheetHeight,
+              paddingBottom,
+              marginBottom: sheetLift,
+            },
+          ]}
+          onPress={dismissKeyboard}
+          accessible={false}
+        >
+          <Pressable onPress={dismissKeyboard} accessible={false}>
+            <Text style={sheetStyles.title}>Report</Text>
+          </Pressable>
 
-          {REASONS.map((r) => (
-            <TouchableOpacity
-              key={r.id}
-              style={[styles.reasonRow, reason === r.id && styles.reasonRowActive]}
-              onPress={() => setReason(r.id)}
-            >
-              <Text style={styles.reasonText}>{r.label}</Text>
-            </TouchableOpacity>
-          ))}
-
-          <TextInput
-            style={styles.input}
-            placeholder="Additional details (optional)"
-            placeholderTextColor={MUTED3}
-            value={details}
-            onChangeText={setDetails}
-            multiline
-            maxLength={500}
-          />
-
-          {error ? <Text style={styles.error}>{error}</Text> : null}
-
-          <TouchableOpacity
-            style={[styles.submitBtn, (!reason || submitting) && styles.submitDisabled]}
-            disabled={!reason || submitting}
-            onPress={handleSubmit}
+          <ScrollView
+            ref={scrollRef}
+            keyboardShouldPersistTaps="handled"
+            keyboardDismissMode="on-drag"
+            onScrollBeginDrag={dismissKeyboard}
+            showsVerticalScrollIndicator={false}
+            bounces={false}
+            style={styles.scroll}
+            contentContainerStyle={styles.scrollContent}
           >
-            <Text style={[primaryButtonText, submitting && { opacity: 0.5 }]}>
-              Submit report
-            </Text>
-          </TouchableOpacity>
+            <Pressable style={styles.scrollBody} onPress={dismissKeyboard} accessible={false}>
+              {REASONS.map((r) => (
+                <TouchableOpacity
+                  key={r.id}
+                  style={[styles.reasonRow, reason === r.id && styles.reasonRowActive]}
+                  onPress={() => {
+                    dismissKeyboard();
+                    setReason(r.id);
+                  }}
+                >
+                  <Text style={styles.reasonText}>{r.label}</Text>
+                </TouchableOpacity>
+              ))}
 
-          <TouchableOpacity onPress={onClose} style={styles.cancelBtn}>
-            <Text style={styles.cancelText}>Cancel</Text>
-          </TouchableOpacity>
+              <TextInput
+                style={styles.input}
+                placeholder="Why are you reporting this?"
+                placeholderTextColor={MUTED3}
+                value={details}
+                onChangeText={setDetails}
+                multiline
+                maxLength={500}
+                blurOnSubmit
+                returnKeyType="done"
+                onFocus={() => {
+                  setTimeout(() => {
+                    scrollRef.current?.scrollToEnd({ animated: true });
+                  }, 100);
+                }}
+                onSubmitEditing={dismissKeyboard}
+              />
+
+              {error ? <Text style={styles.error}>{error}</Text> : null}
+
+              <TouchableOpacity
+                style={[styles.submitBtn, (!reason || submitting) && styles.submitDisabled]}
+                disabled={!reason || submitting}
+                onPress={handleSubmit}
+              >
+                <Text style={[primaryButtonText, submitting && { opacity: 0.5 }]}>
+                  Submit report
+                </Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity onPress={handleClose} style={styles.cancelBtn}>
+                <Text style={styles.cancelText}>Cancel</Text>
+              </TouchableOpacity>
+            </Pressable>
+          </ScrollView>
         </Pressable>
-      </Pressable>
+      </View>
     </Modal>
   );
 }
 
 const styles = StyleSheet.create({
+  sheet: {
+    width: "100%",
+  },
+  scroll: {
+    flex: 1,
+  },
+  scrollContent: {
+    flexGrow: 1,
+    paddingBottom: 8,
+  },
+  scrollBody: {
+    flexGrow: 1,
+  },
   reasonRow: {
     paddingVertical: 12,
     paddingHorizontal: 14,
@@ -173,6 +288,8 @@ const styles = StyleSheet.create({
   },
   submitBtn: {
     marginTop: 16,
+    alignSelf: "center",
+    width: "78%",
     height: 48,
     borderRadius: BUTTON_RADIUS,
     backgroundColor: ACCENT,
