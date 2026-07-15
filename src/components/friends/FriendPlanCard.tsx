@@ -26,7 +26,7 @@ import PlanGoingPeopleSheet, {
 } from "@/src/components/plans/PlanGoingPeopleSheet";
 import type { FriendOpenPlanEvent } from "@/src/lib/friendOpenPlanJoin";
 import type { AggregatedFriendPlan } from "@/src/lib/useFriendPlansFeed";
-import { planLooseMatch, resolvePlanAttribution } from "@/src/lib/planAttribution";
+import { planLooseMatch, resolvePlanAttribution, mergeEventsForGoingAttribution } from "@/src/lib/planAttribution";
 import React, { useState } from "react";
 import {
   Pressable,
@@ -87,7 +87,10 @@ export default function FriendPlanCard({
     joined && Array.isArray(viewerEvents)
       ? viewerEvents.find((row) => planLooseMatch(row, item.event))
       : undefined;
-  const eventForAttribution = viewerRow || item.event;
+  const eventForAttribution = mergeEventsForGoingAttribution(
+    item.event,
+    viewerRow || undefined
+  );
   const profileSubject = joined ? viewerId : item.sourceFriendId;
 
   const { primary: hostLine, secondary: goingLine, goingPeople } = resolvePlanAttribution(
