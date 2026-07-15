@@ -49,6 +49,7 @@ import {
   fonts,
 } from "../../constants/Variables";
 import { auth, db } from "../../src/lib/firebase";
+import { syncMyPhoneHash } from "../../src/lib/matchContacts";
 import {
   consumePendingProfilePhoto,
   setPendingProfilePhotoSource,
@@ -190,6 +191,14 @@ export default function Details() {
         },
         { merge: true }
       );
+
+      if (auth.currentUser.phoneNumber) {
+        try {
+          await syncMyPhoneHash();
+        } catch {
+          // Auth trigger / contacts flow can sync later.
+        }
+      }
 
       await auth.currentUser.reload();
       router.push("/(auth)/location?onboarding=1");

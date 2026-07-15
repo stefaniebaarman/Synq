@@ -44,6 +44,8 @@ import {
   MUTED,
   MUTED2,
   MUTED3,
+  RADIUS_2XL,
+  RADIUS_LG,
   RADIUS_MD,
   SPACE_3,
   SPACE_4,
@@ -58,8 +60,6 @@ import {
   TYPE_BUTTON,
   TYPE_CAPTION,
   TYPE_MICRO,
-  RADIUS_2XL,
-  RADIUS_LG,
 } from "../constants/Variables";
 import {
   acceptCommunityGroupInvite,
@@ -314,7 +314,7 @@ export default function NotificationsScreen() {
           ? `${firstName(actorName)} is in for ${planTitle}`
           : `${firstName(actorName)} joined a community plan`;
       } else if (type === "friend_synq_active") {
-        body = `${firstName(actorName)} just activated Synq.`;
+        body = `${firstName(actorName)} is free.`;
       } else if (type === "synq_nudge") {
         body = `${firstName(actorName)} wants to know if you're free right now`;
       }

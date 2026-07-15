@@ -276,12 +276,11 @@ export default function ProfilePhotoCropView({
               }}
             >
               {imageSize ? (
-                <Animated.View style={[styles.imageWrap, imageAnimatedStyle]}>
+                <Animated.View style={[styles.imageWrap, imageAnimatedStyle]} pointerEvents="none">
                   <Image
                     source={{ uri: imageUri }}
                     style={styles.image}
                     resizeMode="stretch"
-                    pointerEvents="none"
                   />
                 </Animated.View>
               ) : (

@@ -65,6 +65,7 @@ import {
   type FriendsSortMode,
 } from "@/src/components/friends/FriendsSortControls";
 import GroupsListPane from "@/src/components/friends/GroupsListPane";
+import FindFromContactsModal from "@/src/components/friends/FindFromContactsModal";
 import ProfileQrScannerModal from "@/src/components/friends/ProfileQrScannerModal";
 import ProfileTabHeaderOverlay, {
   useTabHeaderLayout,
@@ -1113,6 +1114,7 @@ function SearchModal({
   } | null>(null);
   const [pendingCancelTarget, setPendingCancelTarget] = useState<any | null>(null);
   const [qrScannerVisible, setQrScannerVisible] = useState(false);
+  const [contactsFinderVisible, setContactsFinderVisible] = useState(false);
   const [mutualCountsByUserId, setMutualCountsByUserId] = useState<
     Record<string, number>
   >({});
@@ -1146,6 +1148,7 @@ function SearchModal({
       setPendingCancelTarget(null);
       setMutualCountsByUserId({});
       setQrScannerVisible(false);
+      setContactsFinderVisible(false);
       return;
     }
     searchRequestIdRef.current += 1;
@@ -1995,6 +1998,17 @@ function SearchModal({
           <Ionicons name="chevron-forward" size={18} color={MUTED2} />
         </TouchableOpacity>
 
+        <TouchableOpacity
+          style={styles.qrScanRow}
+          onPress={() => setContactsFinderVisible(true)}
+          accessibilityRole="button"
+          accessibilityLabel="Find friends from contacts"
+        >
+          <Ionicons name="people-outline" size={20} color={ACCENT} />
+          <Text style={styles.qrScanRowText}>Find from contacts</Text>
+          <Ionicons name="chevron-forward" size={18} color={MUTED2} />
+        </TouchableOpacity>
+
         {!queryText ? (
           <View style={styles.addFriendsListWrap}>
             {addFriendsListEmpty ? (
@@ -2107,6 +2121,26 @@ function SearchModal({
         onClose={() => setQrScannerVisible(false)}
         onFound={handleQrFound}
         onInvalidCode={handleInvalidQr}
+      />
+      <FindFromContactsModal
+        visible={contactsFinderVisible}
+        onClose={() => setContactsFinderVisible(false)}
+        onOpenProfile={(userId) => {
+          setContactsFinderVisible(false);
+          onOpenProfile(userId);
+        }}
+        onAddFriend={(user) => {
+          void sendInvite(user);
+        }}
+        onAcceptIncoming={(user) => {
+          void acceptIncomingRequest(user);
+        }}
+        getFriendAction={(userId) => {
+          if (acceptedIds[userId] || currentFriends.includes(userId)) return "friends";
+          if (incomingRequestIds[userId]) return "incoming";
+          if (pendingRequestIds[userId]) return "pending";
+          return "add";
+        }}
       />
     </>
   );

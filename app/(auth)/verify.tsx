@@ -47,6 +47,7 @@ import {
 } from "@/constants/Variables";
 import AlertModal from "../alert-modal";
 import { auth } from "../../src/lib/firebase";
+import { syncMyPhoneHash } from "../../src/lib/matchContacts";
 
 export default function Verify() {
   const { verificationId, phone } = useLocalSearchParams<{ verificationId?: string; phone?: string }>();
@@ -73,6 +74,11 @@ export default function Verify() {
       setLoading(true);
       const credential = PhoneAuthProvider.credential(verificationId, code);
       await signInWithCredential(auth, credential);
+      try {
+        await syncMyPhoneHash();
+      } catch {
+        // Index sync can retry later from contacts matcher / Auth trigger.
+      }
 
       router.replace("/(auth)/getting-started");
     } catch (err: any) {

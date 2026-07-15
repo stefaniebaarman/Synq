@@ -61,6 +61,15 @@ export default function PrivacyPolicyContent() {
             platform information included in the drafted email.
           </Bullet>
           <Bullet>
+            <Text style={styles.bold}>Contacts (optional):</Text> if you choose
+            Find from contacts, Synq reads phone numbers from your device
+            address book only with your permission. Numbers are sent securely to
+            our servers, hashed, and compared to Synq accounts that signed up with
+            a phone number so we can show who is already on Synq. We do not store
+            your full address book. People who are not on Synq can be invited with
+            your profile link.
+          </Bullet>
+          <Bullet>
             <Text style={styles.bold}>On-device data:</Text> AsyncStorage data
             such as social caches, pending invite information, and local Synq
             status stored on your device to make the app work faster and resume
@@ -73,7 +82,7 @@ export default function PrivacyPolicyContent() {
         <P>We collect personal information from the following sources:</P>
         <View style={styles.bullets}>
           <Bullet>Directly from you when you create an account, build your profile, message, add plans, or contact us.</Bullet>
-          <Bullet>From your device when you enable permissions like notifications, photo-library access, or foreground location.</Bullet>
+          <Bullet>From your device when you enable permissions like notifications, photo-library access, contacts (for Find from contacts), or foreground location.</Bullet>
           <Bullet>From other users when they send you friend requests, connect with you, or interact with you in chats and shared plans.</Bullet>
           <Bullet>From service providers that help us run Synq, including Firebase, Expo, and Google.</Bullet>
         </View>
@@ -103,7 +112,10 @@ export default function PrivacyPolicyContent() {
         <P>
           If you upload a profile photo, Synq requests photo-library access
           only when you choose that action. If you enable push notifications,
-          Synq requests notification permission so alerts can be delivered.
+          Synq requests notification permission so alerts can be delivered. If you
+          use Find from contacts, Synq requests contacts permission to match
+          phone numbers against Synq accounts and to help you share your invite
+          link; your full address book is not stored.
         </P>
         <P>
           We use this information only to provide the features you request, not
