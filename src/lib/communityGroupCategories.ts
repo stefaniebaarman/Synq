@@ -1,6 +1,7 @@
 export const COMMUNITY_GROUP_CATEGORIES = [
   "Sports",
   "Social",
+  "Arts",
   "Food & Drink",
   "Fitness",
   "Music",

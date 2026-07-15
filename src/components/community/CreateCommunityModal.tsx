@@ -72,6 +72,7 @@ const CATEGORY_ICONS: Record<
 > = {
   Sports: "basketball-outline",
   Social: "people-outline",
+  Arts: "color-palette-outline",
   "Food & Drink": "restaurant-outline",
   Fitness: "barbell-outline",
   Music: "musical-notes-outline",

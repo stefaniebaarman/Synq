@@ -219,10 +219,9 @@ const IMESSAGE_REF_SCREEN_WIDTH = 375;
 const IMESSAGE_BUBBLE_MAX_WIDTH_PT = 252;
 const IMESSAGE_BUBBLE_FONT_SIZE = 17;
 const IMESSAGE_BUBBLE_LINE_HEIGHT = 22;
-/** MessageKit / Messages.app label insets (top/bottom). */
+/** MessageKit / Messages.app text insets — UIEdgeInsets(top: 7, left: 14, bottom: 7, right: 14). */
 const IMESSAGE_BUBBLE_PADDING_V = 7;
-/** Horizontal inset inside the bubble (symmetric; tail space not needed in flat bubbles). */
-const IMESSAGE_BUBBLE_PADDING_H = 10;
+const IMESSAGE_BUBBLE_PADDING_H = 14;
 const IMESSAGE_BUBBLE_CORNER_RADIUS = 18;
 const IMESSAGE_CHAT_HORIZONTAL_INSET = 8;
 const IMESSAGE_BUBBLE_OUTER_MARGIN = 6;

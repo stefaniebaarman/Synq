@@ -15,6 +15,7 @@ export function getCommunityCategoryIcon(
   const icons: Record<CommunityGroupCategory, keyof typeof Ionicons.glyphMap> = {
     Sports: "football-outline",
     Social: "people-outline",
+    Arts: "color-palette-outline",
     "Food & Drink": "restaurant-outline",
     Fitness: "barbell-outline",
     Music: "musical-notes-outline",
