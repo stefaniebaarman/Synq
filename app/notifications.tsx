@@ -22,7 +22,6 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   FlatList,
   RefreshControl,
-  SafeAreaView,
   ScrollView,
   StatusBar,
   StyleSheet,
@@ -31,6 +30,7 @@ import {
   useWindowDimensions,
   View,
 } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 import {
   ACCENT,
   BG,
@@ -1160,7 +1160,7 @@ export default function NotificationsScreen() {
   const emptyTopOffset = Math.round(windowHeight * 0.2);
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={styles.container} edges={["bottom", "left", "right"]}>
       <StatusBar barStyle="light-content" />
 
       <StackScreenHeader

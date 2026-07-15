@@ -61,13 +61,13 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   FlatList,
   Modal,
-  SafeAreaView,
   StatusBar,
   StyleSheet,
   Text,
   TouchableOpacity,
   View,
 } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 
 function formatNameList(names: string[]): string {
   if (names.length === 0) return "them";
@@ -275,7 +275,7 @@ export default function FriendGroupDetailScreen() {
 
   if (!groupId) {
     return (
-      <SafeAreaView style={styles.screen}>
+      <SafeAreaView style={styles.screen} edges={["bottom", "left", "right"]}>
         <Text style={styles.errorText}>Group not found.</Text>
       </SafeAreaView>
     );
@@ -287,7 +287,7 @@ export default function FriendGroupDetailScreen() {
       : `${group?.memberIds.length ?? 0} members`;
 
   return (
-    <SafeAreaView style={styles.screen}>
+    <SafeAreaView style={styles.screen} edges={["bottom", "left", "right"]}>
       <StatusBar barStyle="light-content" />
       <StackScreenHeader
         title={group?.name || "Group"}

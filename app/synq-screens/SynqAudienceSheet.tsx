@@ -1,5 +1,3 @@
-import SynqAudiencePicker from "@/src/components/synq/SynqAudiencePicker";
-import SpringBottomSheet from "@/src/components/sheets/SpringBottomSheet";
 import { sheetStyles } from "@/constants/sheetStyles";
 import {
   ACCENT,
@@ -12,9 +10,10 @@ import {
   SPACE_6,
   primaryButtonText,
 } from "@/constants/Variables";
+import SpringBottomSheet from "@/src/components/sheets/SpringBottomSheet";
+import SynqAudiencePicker from "@/src/components/synq/SynqAudiencePicker";
 import type { FriendGroup } from "@/src/lib/friendGroups";
 import type { SynqAudienceSelection } from "@/src/lib/synqBroadcast";
-import React from "react";
 import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
@@ -43,7 +42,7 @@ export default function SynqAudienceSheet({
       cardStyle={sheetStyles.sheetCard}
     >
       <Text style={[sheetStyles.sheetTitle, styles.sheetTitlePad]}>
-        Share with
+        Sharing with
       </Text>
       <View style={styles.pickerSection}>
         <SynqAudiencePicker

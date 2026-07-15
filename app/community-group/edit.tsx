@@ -175,14 +175,14 @@ export default function EditCommunityScreen() {
 
   if (!groupId) {
     return (
-      <SafeAreaView style={styles.screen}>
+      <SafeAreaView style={styles.screen} edges={["bottom", "left", "right"]}>
         <Text style={styles.errorText}>Community not found.</Text>
       </SafeAreaView>
     );
   }
 
   return (
-    <SafeAreaView style={styles.screen}>
+    <SafeAreaView style={styles.screen} edges={["bottom", "left", "right"]}>
       <StatusBar barStyle="light-content" />
       <StackScreenHeader
         title="Edit community"

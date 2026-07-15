@@ -174,7 +174,7 @@ export default function ActiveSynqSection({
               accessibilityRole="button"
               accessibilityLabel={`Shared with ${audienceLabel}`}
               accessibilityHint={
-                openChangeAudience ? "Opens change audience" : undefined
+                openChangeAudience ? "Opens sharing with" : undefined
               }
             >
               <Ionicons

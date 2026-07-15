@@ -18,7 +18,6 @@ import { signOut } from "firebase/auth";
 import { getFunctions, httpsCallable } from "firebase/functions";
 import React, { useState } from "react";
 import {
-  SafeAreaView,
   ScrollView,
   StatusBar,
   StyleSheet,
@@ -26,6 +25,7 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 import { auth } from "../src/lib/firebase";
 import AlertModal from "./alert-modal";
 import ConfirmModal from "./confirm-modal";
@@ -90,7 +90,7 @@ export default function DeleteAccountScreen() {
   };
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={styles.container} edges={["bottom", "left", "right"]}>
       <StatusBar barStyle="light-content" />
       <StackScreenHeader title="Delete account" />
 

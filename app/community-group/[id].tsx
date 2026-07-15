@@ -446,7 +446,7 @@ export default function CommunityGroupDetailScreen() {
 
   if (!groupId) {
     return (
-      <SafeAreaView style={styles.screen}>
+      <SafeAreaView style={styles.screen} edges={["top", "bottom", "left", "right"]}>
         <Text style={styles.errorText}>Group not found.</Text>
       </SafeAreaView>
     );
@@ -528,7 +528,7 @@ export default function CommunityGroupDetailScreen() {
       <StatusBar barStyle="light-content" />
       <SafeAreaView
         style={styles.flex}
-        edges={hasCover ? ["bottom", "left", "right"] : undefined}
+        edges={["bottom", "left", "right"]}
       >
         {!hasCover && group ? (
           <StackScreenHeader

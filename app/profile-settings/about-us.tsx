@@ -1,13 +1,13 @@
 import StackScreenHeader from "@/src/components/StackScreenHeader";
 import React from "react";
 import {
-  SafeAreaView,
   ScrollView,
   StatusBar,
   StyleSheet,
   Text,
   View,
 } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 import { formScreenStyles } from "@/constants/formScreenStyles";
 import {
   ACCENT,
@@ -44,7 +44,7 @@ export default function AboutUsScreen() {
   );
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={styles.container} edges={["bottom", "left", "right"]}>
       <StatusBar barStyle="light-content" />
       <StackScreenHeader title="About us" />
 

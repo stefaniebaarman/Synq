@@ -1,6 +1,5 @@
 import {
   ACCENT,
-  ACCENT_BORDER,
   ACCENT_ICON,
   BG,
   BG_FADE_HEAVY,
@@ -124,7 +123,6 @@ import {
   type LayoutChangeEvent,
   type NativeScrollEvent,
   type NativeSyntheticEvent,
-  type ViewStyle
 } from "react-native";
 import Animated, {
   Easing,
@@ -925,64 +923,40 @@ function AddFriendsSectionHeader({
 function AddFriendsUserRow({
   item,
   subtitle,
-  subtitleAccent,
   onPressProfile,
   trailing,
-  cardStyle,
-  stackTrailing,
 }: {
   item: { id: string; displayName?: string; imageurl?: string | null };
-  subtitle: string;
-  subtitleAccent?: boolean;
+  subtitle?: string;
   onPressProfile: () => void;
   trailing: React.ReactNode;
-  cardStyle?: ViewStyle;
-  /** Friend-request rows: name on top, actions below so long names are not clipped. */
-  stackTrailing?: boolean;
 }) {
-  const profileBlock = (
-    <TouchableOpacity
-      onPress={onPressProfile}
-      style={stackTrailing ? styles.addFriendCardMainStacked : styles.addFriendCardMain}
-      activeOpacity={0.8}
-    >
-      <View style={styles.avatarRing}>
-        <ExpoImage
-          source={{ uri: resolveAvatar(item.imageurl) }}
-          style={styles.img}
-          cachePolicy="memory-disk"
-          transition={120}
-        />
-      </View>
-      <View style={styles.addFriendRowContent}>
-        <Text style={styles.friendNameAccent} numberOfLines={stackTrailing ? 2 : 1}>
-          {item.displayName || "User"}
-        </Text>
-        <Text
-          style={[
-            styles.addFriendSubtitle,
-            subtitleAccent && styles.addFriendSubtitleAccent,
-          ]}
-          numberOfLines={1}
-        >
-          {subtitle}
-        </Text>
-      </View>
-    </TouchableOpacity>
-  );
-
-  if (stackTrailing) {
-    return (
-      <View style={[styles.addFriendRowStacked, cardStyle]}>
-        {profileBlock}
-        <View style={styles.addFriendRequestActionsStacked}>{trailing}</View>
-      </View>
-    );
-  }
-
   return (
-    <View style={[styles.addFriendRow, cardStyle]}>
-      {profileBlock}
+    <View style={styles.addFriendRow}>
+      <TouchableOpacity
+        onPress={onPressProfile}
+        style={styles.addFriendCardMain}
+        activeOpacity={0.8}
+      >
+        <View style={styles.avatarRing}>
+          <ExpoImage
+            source={{ uri: resolveAvatar(item.imageurl) }}
+            style={styles.img}
+            cachePolicy="memory-disk"
+            transition={120}
+          />
+        </View>
+        <View style={styles.addFriendRowContent}>
+          <Text style={styles.friendNameAccent} numberOfLines={1}>
+            {item.displayName || "User"}
+          </Text>
+          {subtitle ? (
+            <Text style={styles.addFriendSubtitle} numberOfLines={1}>
+              {subtitle}
+            </Text>
+          ) : null}
+        </View>
+      </TouchableOpacity>
       <View style={styles.addFriendCardTrailing}>{trailing}</View>
     </View>
   );
@@ -1894,17 +1868,14 @@ function SearchModal({
       return (
         <AddFriendsUserRow
           item={item}
-          subtitle="Sent you a request"
-          subtitleAccent
           onPressProfile={() => openProfile(item)}
-          cardStyle={styles.addFriendCardIncoming}
-          stackTrailing
           trailing={
             <View style={styles.addFriendRequestActions}>
               <TouchableOpacity
                 onPress={() => declineIncomingRequest(item)}
                 style={styles.addFriendDeclineBtn}
                 activeOpacity={0.8}
+                accessibilityLabel="Decline friend request"
               >
                 <Text style={styles.addFriendDeclineBtnText}>Decline</Text>
               </TouchableOpacity>
@@ -2277,24 +2248,6 @@ const styles = StyleSheet.create({
     paddingVertical: 14,
     minWidth: 0,
   },
-  addFriendRowStacked: {
-    paddingVertical: 14,
-    minWidth: 0,
-  },
-  addFriendCardMainStacked: {
-    flexDirection: "row",
-    alignItems: "center",
-    minWidth: 0,
-    paddingRight: 0,
-  },
-  addFriendRequestActionsStacked: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "flex-end",
-    gap: 8,
-    marginTop: 10,
-    marginLeft: 60,
-  },
   friendRowContent: { flex: 1, justifyContent: "center" },
   friendRowName: {
     marginBottom: 3,
@@ -2566,11 +2519,6 @@ const styles = StyleSheet.create({
     marginTop: 0,
   },
   addFriendsSectionGap: { height: 8 },
-  addFriendCardIncoming: {
-    borderLeftWidth: 2,
-    borderLeftColor: ACCENT_BORDER,
-    paddingLeft: 10,
-  },
   addFriendCardMain: {
     flex: 1,
     flexDirection: "row",
@@ -2585,10 +2533,6 @@ const styles = StyleSheet.create({
     fontFamily: fonts.book,
     marginTop: 3,
   },
-  addFriendSubtitleAccent: {
-    color: ACCENT,
-    fontFamily: fonts.medium,
-  },
   addFriendCardTrailing: {
     flexShrink: 0,
     alignItems: "flex-end",
@@ -2600,12 +2544,14 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   addFriendDeclineBtn: {
-    backgroundColor: SURFACE_INPUT,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: FRIENDS_BORDER,
-    paddingHorizontal: 12,
-    paddingVertical: 9,
+    borderWidth: 1.5,
+    borderColor: "rgba(255,255,255,0.2)",
     borderRadius: BUTTON_RADIUS,
+    paddingVertical: 9,
+    paddingHorizontal: 14,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "transparent",
   },
   addFriendDeclineBtnText: {
     color: MUTED2,

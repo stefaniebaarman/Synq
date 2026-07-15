@@ -5,7 +5,7 @@ import {
 } from "@/constants/Variables";
 import CloseButton from "@/src/components/CloseButton";
 import { Ionicons } from "@expo/vector-icons";
-import React, { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import {
   Keyboard,
   Modal,
@@ -29,7 +29,7 @@ type Props = {
 
 const SUGGESTIONS = [
   "Down for drinks",
-  "Anyone for happy hour?",
+  "Happy hour?",
   "Coffee?",
   "Down for something chill",
   "Quick bite?",

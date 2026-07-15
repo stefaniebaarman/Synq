@@ -2734,7 +2734,7 @@ const styles = StyleSheet.create({
   },
   headerTitle: {
     ...tabScreenMainHeaderTitle,
-    fontSize: 27,
+    fontSize: 25,
     textAlign: "center",
     includeFontPadding: false,
   },

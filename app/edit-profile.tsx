@@ -9,7 +9,6 @@ import {
   LayoutAnimation,
   Platform,
   StatusBar,
-  SafeAreaView,
   ScrollView,
   StyleSheet,
   Text,
@@ -19,6 +18,7 @@ import {
   UIManager,
   View
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import Animated, {
   useAnimatedStyle,
   useSharedValue,
@@ -427,7 +427,7 @@ export default function EditProfileScreen() {
 
   return (
     <TouchableWithoutFeedback onPress={Keyboard.dismiss} accessible={false}>
-      <SafeAreaView style={styles.container}>
+      <SafeAreaView style={styles.container} edges={['bottom', 'left', 'right']}>
         <StatusBar barStyle="light-content" />
         <StackScreenHeader title="Edit profile" onBack={handleCancel} />
 

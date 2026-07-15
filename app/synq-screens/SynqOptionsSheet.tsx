@@ -1,7 +1,7 @@
-import { Ionicons } from "@expo/vector-icons";
 import { sheetStyles } from "@/constants/sheetStyles";
 import SpringBottomSheet from "@/src/components/sheets/SpringBottomSheet";
-import React, { useRef } from "react";
+import { Ionicons } from "@expo/vector-icons";
+import { useRef } from "react";
 import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import {
   BG,
@@ -73,21 +73,6 @@ export default function SynqOptionsSheet({
         <Ionicons name="create-outline" size={22} color={TEXT} />
         <Text style={styles.optionText}>Edit status</Text>
       </TouchableOpacity>
-      {onChangeAudience ? (
-        <>
-          <View style={styles.divider} />
-          <TouchableOpacity
-            style={styles.option}
-            onPress={() => runAfterClose(onChangeAudience)}
-            activeOpacity={0.75}
-            accessibilityRole="button"
-            accessibilityLabel="Change audience"
-          >
-            <Ionicons name="people-outline" size={22} color={TEXT} />
-            <Text style={styles.optionText}>Change audience</Text>
-          </TouchableOpacity>
-        </>
-      ) : null}
       {onSortFriends ? (
         <>
           <View style={styles.divider} />

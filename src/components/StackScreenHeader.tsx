@@ -9,6 +9,7 @@ import {
 import { router } from "expo-router";
 import React from "react";
 import { StyleSheet, Text, View } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 const SIDE_SLOT_WIDTH = 40;
 
@@ -19,8 +20,10 @@ type Props = {
 };
 
 export default function StackScreenHeader({ title, onBack, right }: Props) {
+  const insets = useSafeAreaInsets();
+
   return (
-    <View style={styles.wrapper}>
+    <View style={[styles.wrapper, { paddingTop: insets.top }]}>
       <View style={styles.header}>
         <View style={styles.sideSlot}>
           <BackButton

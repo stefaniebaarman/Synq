@@ -1,5 +1,3 @@
-import SynqAudiencePicker from "@/src/components/synq/SynqAudiencePicker";
-import SpringBottomSheet from "@/src/components/sheets/SpringBottomSheet";
 import { sheetStyles } from "@/constants/sheetStyles";
 import {
   ACCENT,
@@ -9,9 +7,11 @@ import {
   TYPE_BODY,
   fonts,
 } from "@/constants/Variables";
+import SpringBottomSheet from "@/src/components/sheets/SpringBottomSheet";
+import SynqAudiencePicker from "@/src/components/synq/SynqAudiencePicker";
 import type { FriendGroup } from "@/src/lib/friendGroups";
 import type { SynqAudienceSelection } from "@/src/lib/synqBroadcast";
-import React, { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   Dimensions,
   ScrollView,
@@ -82,7 +82,7 @@ export default function ChangeSynqAudienceModal({
     >
       <View style={styles.headerRow}>
         <Text style={[sheetStyles.sheetHeaderTitle, styles.sheetTitleFlex]}>
-          Change audience
+          Sharing with
         </Text>
         <TouchableOpacity
           style={styles.saveBtn}

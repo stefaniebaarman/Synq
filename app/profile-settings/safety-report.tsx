@@ -3,7 +3,6 @@ import { router, useLocalSearchParams } from "expo-router";
 import { useRef, useState } from "react";
 import {
   Platform,
-  SafeAreaView,
   ScrollView,
   StatusBar,
   StyleSheet,
@@ -12,6 +11,7 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 import {
   ACCENT,
   BG,
@@ -117,7 +117,7 @@ export default function SafetyReportScreen() {
   };
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={styles.container} edges={["bottom", "left", "right"]}>
       <StatusBar barStyle="light-content" />
       <StackScreenHeader title="Report a safety issue" />
 

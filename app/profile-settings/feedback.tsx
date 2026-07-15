@@ -5,7 +5,6 @@ import {
   KeyboardAvoidingView,
   Linking,
   Platform,
-  SafeAreaView,
   ScrollView,
   StatusBar,
   StyleSheet,
@@ -14,6 +13,7 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 import { formScreenStyles } from "../../constants/formScreenStyles";
 import {
   ACCENT,
@@ -124,7 +124,7 @@ export default function FeedbackScreen() {
   };
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={styles.container} edges={["bottom", "left", "right"]}>
       <StatusBar barStyle="light-content" />
 
       <StackScreenHeader title="Feedback" />
