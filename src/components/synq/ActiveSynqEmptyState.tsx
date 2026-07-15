@@ -1,6 +1,7 @@
 import type { Friend } from "@/constants/Variables";
 import {
   ACCENT,
+  MUTED2,
   SPACE_3,
   SPACE_4,
   SPACE_5,
@@ -25,8 +26,10 @@ import {
   warmSynqNudgeClient,
 } from "@/src/lib/synqNudge";
 import { Ionicons } from "@expo/vector-icons";
-import React, { useCallback, useEffect, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
+
+const NUDGE_PAGE_SIZE = 3;
 
 type NudgeRowState = { loading: boolean; sent: boolean };
 
@@ -35,12 +38,75 @@ type Props = {
   candidates: Friend[];
 };
 
+function shuffleArray<T>(items: T[]): T[] {
+  const next = [...items];
+  for (let i = next.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [next[i], next[j]] = [next[j], next[i]];
+  }
+  return next;
+}
+
+function pickFriendIds(
+  friends: Friend[],
+  count: number,
+  excludeIds: string[] = []
+): string[] {
+  if (friends.length === 0) return [];
+  const exclude = new Set(excludeIds);
+  let pool = friends.filter((f) => !exclude.has(f.id));
+  if (pool.length < Math.min(count, friends.length)) {
+    pool = [...friends];
+  }
+  return shuffleArray(pool)
+    .slice(0, Math.min(count, pool.length))
+    .map((f) => f.id);
+}
+
 export default function ActiveSynqEmptyState({ viewerId, candidates }: Props) {
   const [nudgeByFriendId, setNudgeByFriendId] = useState<Record<string, NudgeRowState>>({});
+  const [shownIds, setShownIds] = useState<string[]>([]);
   const [sharingProfile, setSharingProfile] = useState(false);
   const [alertVisible, setAlertVisible] = useState(false);
   const [alertTitle, setAlertTitle] = useState<string | undefined>();
   const [alertMessage, setAlertMessage] = useState("");
+
+  const candidateKey = useMemo(
+    () =>
+      candidates
+        .map((f) => String(f.id || "").trim())
+        .filter(Boolean)
+        .sort()
+        .join("|"),
+    [candidates]
+  );
+
+  useEffect(() => {
+    if (!candidateKey) {
+      setShownIds([]);
+      return;
+    }
+    setShownIds((prev) => {
+      const idSet = new Set(candidateKey.split("|"));
+      const valid = prev.filter((id) => idSet.has(id));
+      const need = Math.min(NUDGE_PAGE_SIZE, idSet.size);
+      if (valid.length >= need && valid.length > 0) {
+        const next = valid.slice(0, NUDGE_PAGE_SIZE);
+        if (next.length === prev.length && next.every((id, i) => id === prev[i])) {
+          return prev;
+        }
+        return next;
+      }
+      return pickFriendIds(candidates, NUDGE_PAGE_SIZE);
+    });
+  }, [candidateKey, candidates]);
+
+  const shownFriends = useMemo(() => {
+    const byId = new Map(candidates.map((f) => [f.id, f]));
+    return shownIds.map((id) => byId.get(id)).filter(Boolean) as Friend[];
+  }, [candidates, shownIds]);
+
+  const canShuffle = candidates.length > NUDGE_PAGE_SIZE;
 
   const showAlert = useCallback((title: string, message: string) => {
     setAlertTitle(title);
@@ -87,6 +153,10 @@ export default function ActiveSynqEmptyState({ viewerId, candidates }: Props) {
       timers.forEach(clearTimeout);
     };
   }, [viewerId, candidates]);
+
+  const handleShuffle = useCallback(() => {
+    setShownIds((prev) => pickFriendIds(candidates, NUDGE_PAGE_SIZE, prev));
+  }, [candidates]);
 
   const handleNudge = useCallback(
     async (friend: Friend) => {
@@ -168,8 +238,20 @@ export default function ActiveSynqEmptyState({ viewerId, candidates }: Props) {
 
       {hasCandidates ? (
         <View style={styles.nudgeSection}>
+          {canShuffle ? (
+            <TouchableOpacity
+              style={styles.shuffleBtn}
+              onPress={handleShuffle}
+              activeOpacity={0.85}
+              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+              accessibilityRole="button"
+              accessibilityLabel="Show 3 more friends to nudge"
+            >
+              <Ionicons name="shuffle-outline" size={22} color={MUTED2} />
+            </TouchableOpacity>
+          ) : null}
           <View style={styles.nudgeList}>
-            {candidates.map((friend) => {
+            {shownFriends.map((friend) => {
               const row = nudgeByFriendId[friend.id];
               return (
                 <SynqNudgeCard
@@ -234,10 +316,16 @@ const styles = StyleSheet.create({
     marginTop: SPACE_3,
   },
   nudgeSection: {
-    marginTop: SPACE_5,
+    marginTop: SPACE_4,
   },
   nudgeList: {
     gap: 10,
+  },
+  shuffleBtn: {
+    alignSelf: "flex-end",
+    marginTop: -4,
+    marginBottom: 2,
+    padding: 4,
   },
   growthSection: {
     marginTop: SPACE_5,
