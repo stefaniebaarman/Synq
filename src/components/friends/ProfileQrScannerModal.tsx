@@ -23,6 +23,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { CameraView, useCameraPermissions } from "expo-camera";
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
+  Linking,
   Modal,
   StyleSheet,
   Text,
@@ -62,6 +63,18 @@ export default function ProfileQrScannerModal({
       void requestPermission();
     }
   }, [visible, permission?.granted, permission?.canAskAgain, requestPermission]);
+
+  const openSystemSettings = useCallback(async () => {
+    try {
+      await Linking.openSettings();
+    } catch {
+      try {
+        await Linking.openURL("app-settings:");
+      } catch {
+        // Device may not support deep-linking into Settings.
+      }
+    }
+  }, []);
 
   const handleBarcodeScanned = useCallback(
     async ({ data }: { data: string }) => {
@@ -130,19 +143,28 @@ export default function ProfileQrScannerModal({
                   <Ionicons name="camera-outline" size={36} color={MUTED2} />
                   <Text style={styles.permissionTitle}>Camera access needed</Text>
                   <Text style={styles.permissionText}>
-                    Allow camera access to scan profile QR codes.
+                    {permission.canAskAgain
+                      ? "Allow camera access to scan profile QR codes."
+                      : "Enable camera access in your device settings to scan profile QR codes."}
                   </Text>
                   {permission.canAskAgain ? (
                     <TouchableOpacity
                       style={styles.permissionBtn}
                       onPress={() => void requestPermission()}
+                      accessibilityRole="button"
+                      accessibilityLabel="Allow camera"
                     >
                       <Text style={styles.permissionBtnText}>Allow camera</Text>
                     </TouchableOpacity>
                   ) : (
-                    <Text style={styles.permissionText}>
-                      Enable camera access in your device settings.
-                    </Text>
+                    <TouchableOpacity
+                      style={styles.permissionBtn}
+                      onPress={() => void openSystemSettings()}
+                      accessibilityRole="button"
+                      accessibilityLabel="Open Settings"
+                    >
+                      <Text style={styles.permissionBtnText}>Open Settings</Text>
+                    </TouchableOpacity>
                   )}
                 </>
               )}
