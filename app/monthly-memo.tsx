@@ -645,7 +645,7 @@ export default function OpenPlans({
                   </View>
                   {(p.time || p.location) ? (
                     <Text style={styles.meta} numberOfLines={1}>
-                      {[p.time, p.location].filter(Boolean).join(" · ")}
+                      {[p.location, p.time].filter(Boolean).join(" · ")}
                     </Text>
                   ) : null}
                   {!isOwnPlan && hostLine ? (

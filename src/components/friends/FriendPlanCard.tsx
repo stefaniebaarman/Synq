@@ -148,8 +148,9 @@ export default function FriendPlanCard({
           </View>
           <Pressable onPress={onPressCard}>
             <Text style={styles.meta} numberOfLines={2}>
-              {item.event.time}
-              {item.event.location ? ` · ${item.event.location}` : ""}
+              {item.event.location
+                ? `${item.event.location}${item.event.time ? ` · ${item.event.time}` : ""}`
+                : item.event.time}
             </Text>
             {!isHost ? (
               <Text style={styles.planOwnerLine} numberOfLines={1}>
