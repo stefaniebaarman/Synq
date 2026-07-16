@@ -102,9 +102,6 @@ const THREAD_REVEAL_EASING = Easing.bezier(0.22, 1, 0.36, 1);
 const CHAT_TIMESTAMP_GAP_MS = 60 * 60 * 1000;
 /** Same-sender bursts within this window share one trailing avatar. */
 const CHAT_AVATAR_CLUSTER_MS = 60 * 1000;
-/** Breathing room above/below place cards (each side; inverted list). */
-const CHAT_IDEA_EDGE_GAP = 22;
-
 function messageCreatedAtMs(createdAt: unknown): number {
   if (!createdAt) return 0;
   const anyTs = createdAt as { toDate?: () => Date; seconds?: number };
@@ -122,7 +119,15 @@ function isChatBurstNeighbor(
   b: { type?: string; senderId?: string; createdAt?: unknown },
   bMs: number
 ): boolean {
-  if (!a || a.type === "system" || isAiSuggestionMessage(a)) return false;
+  if (
+    !a ||
+    a.type === "system" ||
+    b.type === "system" ||
+    isAiSuggestionMessage(a) ||
+    isAiSuggestionMessage(b)
+  ) {
+    return false;
+  }
   if (a.senderId !== b.senderId) return false;
   const aMs = messageCreatedAtMs(a.createdAt);
   if (aMs <= 0 || bMs <= 0) return false;
@@ -1042,14 +1047,11 @@ export default function MessagesChatPane({
       const showSenderName = isGroupChat && !isMe && priorIsClusterBreak;
       // Inverted list: marginBottom separates this row from the newer row below it.
       const gapToNewer = newer ? (newerIsClusterBreak ? 18 : 8) : 6;
-      const senderLabel = (() => {
-        if (!showSenderName) return "";
-        const raw =
-          chat?.participantNames?.[item.senderId]?.trim() ||
-          item.senderName?.trim() ||
-          "";
-        return raw || "Someone";
-      })();
+      const senderName =
+        chat?.participantNames?.[item.senderId]?.trim() ||
+        item.senderName?.trim() ||
+        "Someone";
+      const senderLabel = showSenderName ? senderName : "";
       const showTimeDivider =
         !prior ||
         priorMs <= 0 ||
@@ -1084,10 +1086,9 @@ export default function MessagesChatPane({
               styles.msgContainer,
               {
                 alignItems: isMe ? "flex-end" : "flex-start",
-                marginTop: CHAT_IDEA_EDGE_GAP,
-                marginBottom: newer
-                  ? Math.max(gapToNewer, CHAT_IDEA_EDGE_GAP)
-                  : CHAT_IDEA_EDGE_GAP,
+                // Same gap rules as text bubbles — prior message already owns
+                // the space above this card via its own marginBottom.
+                marginBottom: gapToNewer,
               },
             ]}
           >
@@ -1107,25 +1108,22 @@ export default function MessagesChatPane({
                   width: "100%",
                 }}
               >
-                {!isMe &&
-                  (showAvatar ? (
-                    <Pressable
-                      onPress={() => handleOpenFriendProfile(item.senderId)}
-                      accessibilityRole="button"
-                      accessibilityLabel="View profile"
-                      hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
-                    >
-                      <ExpoImage
-                        source={{ uri: senderAvatar }}
-                        style={styles.chatAvatar}
-                        cachePolicy="memory-disk"
-                        transition={0}
-                        recyclingKey={`${item.senderId}-${senderAvatar}`}
-                      />
-                    </Pressable>
-                  ) : (
-                    <View style={{ width: CHAT_AVATAR_SLOT }} />
-                  ))}
+                {!isMe ? (
+                  <Pressable
+                    onPress={() => handleOpenFriendProfile(item.senderId)}
+                    accessibilityRole="button"
+                    accessibilityLabel="View profile"
+                    hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
+                  >
+                    <ExpoImage
+                      source={{ uri: senderAvatar }}
+                      style={styles.chatAvatar}
+                      cachePolicy="memory-disk"
+                      transition={0}
+                      recyclingKey={`${item.senderId}-${senderAvatar}`}
+                    />
+                  </Pressable>
+                ) : null}
                 <View
                   style={[
                     styles.messageBubbleColumn,
@@ -1138,6 +1136,14 @@ export default function MessagesChatPane({
                     },
                   ]}
                 >
+                  {!isMe ? (
+                    <Text
+                      style={styles.chatSenderName}
+                      numberOfLines={1}
+                    >
+                      {senderName}
+                    </Text>
+                  ) : null}
                   <AISuggestionBubble
                     text={item.text}
                     isLegacy={isLegacyAiSuggestion}
