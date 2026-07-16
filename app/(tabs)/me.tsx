@@ -6,7 +6,6 @@ import {
   BORDER,
   BORDER_MUTED,
   BORDER_SOFT,
-  BUTTON_RADIUS,
   Friend,
   MODAL_RADIUS,
   MUTED,
@@ -15,8 +14,6 @@ import {
   ON_ACCENT_TEXT,
   OVERLAY_FULL,
   OVERLAY_SCRIM,
-  PRIMARY_CTA_HEIGHT,
-  PRIMARY_CTA_WIDTH,
   SPACE_6,
   SURFACE,
   SURFACE_INPUT,
@@ -26,7 +23,7 @@ import {
   TEXT,
   TYPE_BUTTON,
   TYPE_CAPTION,
-  TYPE_CTA,
+  BUTTON_RADIUS,
   fonts,
   profileInterestPillText,
   profileInterestPillTextActive,
@@ -34,6 +31,10 @@ import {
   profileNameText,
   profileScreenSectionTitle,
   tabScreenMainHeaderTitle,
+  synqOutlineAddBtn,
+  synqOutlineAddBtnDisabled,
+  synqOutlineAddBtnText,
+  synqOutlineAddBtnTextDisabled,
 } from "@/constants/Variables";
 import CloseButton from "@/src/components/CloseButton";
 import HeaderIconButton from "@/src/components/HeaderIconButton";
@@ -1596,15 +1597,23 @@ export default function ProfileScreen() {
               onPress={saveInterests}
               disabled={!interestsDirty}
               style={[
+                synqOutlineAddBtn,
                 styles.interestSaveBtn,
-                !interestsDirty && styles.interestSaveBtnDisabled,
+                !interestsDirty && synqOutlineAddBtnDisabled,
               ]}
               activeOpacity={interestsDirty ? 0.85 : 1}
               accessibilityRole="button"
               accessibilityLabel="Save interests"
               accessibilityState={{ disabled: !interestsDirty }}
             >
-              <Text style={styles.interestSaveBtnText}>Save</Text>
+              <Text
+                style={[
+                  synqOutlineAddBtnText,
+                  !interestsDirty && synqOutlineAddBtnTextDisabled,
+                ]}
+              >
+                Save
+              </Text>
             </TouchableOpacity>
           </View>
           </SafeAreaView>
@@ -1938,6 +1947,7 @@ const styles = StyleSheet.create({
     width: "100%",
     paddingHorizontal: 20,
     paddingTop: 8,
+    paddingBottom: 48,
   },
   interestHeader: {
     flexDirection: "row",
@@ -1984,23 +1994,8 @@ const styles = StyleSheet.create({
   interestPillText: profileInterestPillText,
   interestPillTextOn: profileInterestPillTextActive,
   interestSaveBtn: {
-    marginTop: 20,
+    marginTop: 12,
     alignSelf: "center",
-    width: PRIMARY_CTA_WIDTH,
-    backgroundColor: ACCENT,
-    height: PRIMARY_CTA_HEIGHT,
-    borderRadius: BUTTON_RADIUS,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  interestSaveBtnDisabled: {
-    opacity: 0.45,
-  },
-  interestSaveBtnText: {
-    color: ON_ACCENT_TEXT,
-    fontSize: TYPE_CTA,
-    fontFamily: fonts.heavy,
-    letterSpacing: 0.2,
   },
   signOutSection: {
     paddingBottom: 20,
