@@ -1,16 +1,17 @@
 import {
   ACCENT,
   BG,
-  BUTTON_RADIUS,
-  DISABLED_ACCENT,
   MUTED2,
-  ON_ACCENT_TEXT,
   RADIUS_MD,
   TEXT,
   TYPE_BODY,
   TYPE_CAPTION,
   fonts,
   sheetHeaderTitleText,
+  synqOutlineAddBtn,
+  synqOutlineAddBtnDisabled,
+  synqOutlineAddBtnText,
+  synqOutlineAddBtnTextDisabled,
 } from "@/constants/Variables";
 import CloseButton from "@/src/components/CloseButton";
 import SpringBottomSheet from "@/src/components/sheets/SpringBottomSheet";
@@ -43,12 +44,6 @@ type Props = {
 const ROW_HEIGHT = 44;
 const LIST_MAX_ROWS = 8;
 const LIST_MAX_HEIGHT = ROW_HEIGHT * LIST_MAX_ROWS;
-
-function saveCtaLabel(changeCount: number): string {
-  if (changeCount === 0) return "Save";
-  if (changeCount === 1) return "Save change";
-  return `Save changes (${changeCount})`;
-}
 
 export default function AddFriendToGroupSheet({
   visible,
@@ -161,12 +156,24 @@ export default function AddFriendToGroupSheet({
         <View style={{ height: listHeight }}>{rows}</View>
       )}
       <TouchableOpacity
-        style={[styles.cta, (changeCount === 0 || busy) && styles.ctaDisabled]}
+        style={[
+          synqOutlineAddBtn,
+          styles.cta,
+          (changeCount === 0 || busy) && synqOutlineAddBtnDisabled,
+        ]}
         disabled={changeCount === 0 || busy}
         onPress={handleSave}
+        activeOpacity={0.85}
+        accessibilityRole="button"
+        accessibilityLabel="Save"
       >
-        <Text style={styles.ctaText}>
-          {saveCtaLabel(changeCount)}
+        <Text
+          style={[
+            synqOutlineAddBtnText,
+            (changeCount === 0 || busy) && synqOutlineAddBtnTextDisabled,
+          ]}
+        >
+          Save
         </Text>
       </TouchableOpacity>
     </SpringBottomSheet>
@@ -216,21 +223,6 @@ const styles = StyleSheet.create({
     lineHeight: 18,
   },
   cta: {
-    alignSelf: "center",
-    width: "62%",
     marginTop: 12,
-    minHeight: 48,
-    borderRadius: BUTTON_RADIUS,
-    backgroundColor: ACCENT,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  ctaDisabled: {
-    backgroundColor: DISABLED_ACCENT,
-  },
-  ctaText: {
-    fontFamily: fonts.medium,
-    fontSize: TYPE_BODY,
-    color: ON_ACCENT_TEXT,
   },
 });
