@@ -1,5 +1,5 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { Redirect, useLocalSearchParams } from "expo-router";
+import { Redirect, useLocalSearchParams, useRootNavigationState } from "expo-router";
 import React, { useEffect, useState } from "react";
 import { StyleSheet, View } from "react-native";
 import { BG } from "../../constants/Variables";
@@ -16,6 +16,7 @@ export default function InviteRoute() {
     code?: string | string[];
   }>();
   const [persistReady, setPersistReady] = useState(false);
+  const navReady = !!useRootNavigationState()?.key;
 
   const resolveParam = (value: string | string[] | undefined): string => {
     if (typeof value === "string") return value.trim();
@@ -52,7 +53,7 @@ export default function InviteRoute() {
     };
   }, [params.code, params.from, params.inviteFrom]);
 
-  if (!persistReady) {
+  if (!persistReady || !navReady) {
     return (
       <View style={styles.container}>
         <PageLoadSkeleton />

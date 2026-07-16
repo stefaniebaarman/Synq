@@ -78,7 +78,11 @@ import {
 import { computeSynqActiveFromUserData } from "@/src/lib/synqSession";
 import { Ionicons } from "@expo/vector-icons";
 import { Image as ExpoImage } from "expo-image";
-import { useLocalSearchParams, useRouter } from "expo-router";
+import {
+  useLocalSearchParams,
+  useRootNavigationState,
+  useRouter,
+} from "expo-router";
 import {
   collection,
   doc,
@@ -186,6 +190,7 @@ export default function FriendProfile({
     communityPlanTitle?: string;
   }>();
   const router = useRouter();
+  const navReady = !!useRootNavigationState()?.key;
 
   const goBackOrHome = useCallback(() => {
     if (onEmbeddedBack) {
@@ -212,11 +217,7 @@ export default function FriendProfile({
   const headerLayout = useTabHeaderLayout({ embedded: isEmbedded });
   const profileScrollTopInset =
     headerLayout.contentPaddingTop - (isEmbedded ? 12 : 30);
-
-  useLayoutEffect(() => {
-    if (!isOwnProfile || isEmbedded) return;
-    router.replace("/(tabs)/me");
-  }, [isOwnProfile, isEmbedded, router]);
+  const ownProfileHandledRef = useRef(false);
 
   const renderStickyNav = (showOptions = true) => (
     <ProfileTabHeaderOverlay embedded={isEmbedded}>
@@ -301,6 +302,21 @@ export default function FriendProfile({
   const [viewerCommunityGroups, setViewerCommunityGroups] = useState<CommunityGroup[]>(
     () => (viewerId ? communityGroupsCacheByUser[viewerId] ?? [] : [])
   );
+
+  useEffect(() => {
+    if (!isOwnProfile || isEmbedded || !navReady) return;
+    if (ownProfileHandledRef.current) return;
+    ownProfileHandledRef.current = true;
+    setAlertTitle("That's your link");
+    setAlertMessage("Open someone else's profile QR code or link to add them.");
+    setAlertVisible(true);
+  }, [isOwnProfile, isEmbedded, navReady]);
+
+  const dismissOwnProfileLink = useCallback(() => {
+    setAlertVisible(false);
+    if (!navReady) return;
+    router.replace("/(tabs)/me");
+  }, [navReady, router]);
 
   const sharedCommunityGroups = useMemo(() => {
     if (!friendKey) return [];
@@ -756,6 +772,12 @@ export default function FriendProfile({
         <View style={styles.center}>
           <ProfileSkeleton />
         </View>
+        <AlertModal
+          visible={alertVisible}
+          title={alertTitle}
+          message={alertMessage}
+          onClose={dismissOwnProfileLink}
+        />
       </ProfileShell>
     );
   }

@@ -249,6 +249,7 @@ export default function RootLayout() {
   const inviteAttemptsRef = useRef<Set<string>>(new Set());
   const [suspendedNoticeVisible, setSuspendedNoticeVisible] = useState(false);
   const [inviteLinkAlert, setInviteLinkAlert] = useState<string | null>(null);
+  const [ownProfileLinkAlert, setOwnProfileLinkAlert] = useState(false);
 
   const [pendingNotificationTap, setPendingNotificationTap] = useState<
     | { kind: "chat"; chatId: string; messageId?: string }
@@ -797,6 +798,7 @@ export default function RootLayout() {
           PENDING_INVITE_FROM_UID_KEY,
           PENDING_INVITE_CODE_KEY,
         ]);
+        setOwnProfileLinkAlert(true);
         return;
       }
 
@@ -818,6 +820,8 @@ export default function RootLayout() {
         ]);
       } catch (err: any) {
         const code = String(err?.code || "");
+        const message = String(err?.message || "");
+        const isSelfInvite = /yourself/i.test(message);
         const shouldDropInvite =
           code.includes("invalid-argument") ||
           code.includes("already-exists") ||
@@ -827,6 +831,9 @@ export default function RootLayout() {
             PENDING_INVITE_FROM_UID_KEY,
             PENDING_INVITE_CODE_KEY,
           ]);
+          if (isSelfInvite) {
+            setOwnProfileLinkAlert(true);
+          }
         } else {
           inviteAttemptsRef.current.delete(attemptKey);
           setInviteLinkAlert(
@@ -857,6 +864,10 @@ export default function RootLayout() {
       if (!friendId || cancelled) return;
       if (friendId === user.uid) {
         await AsyncStorage.removeItem(PENDING_FRIEND_PROFILE_ID_KEY);
+        // friend-profile shows the friendly alert when opened via deep link
+        if (segments[0] !== "friend-profile") {
+          setOwnProfileLinkAlert(true);
+        }
         return;
       }
       navigateToFriendProfile(
@@ -901,6 +912,9 @@ export default function RootLayout() {
       if (!friendId || cancelled) return;
       if (friendId === user.uid) {
         await AsyncStorage.removeItem(PENDING_PROFILE_SHARE_CODE_KEY);
+        if (segments[0] !== "friend-profile") {
+          setOwnProfileLinkAlert(true);
+        }
         return;
       }
       navigateToFriendProfile(
@@ -1099,59 +1113,59 @@ export default function RootLayout() {
           >
             <BlockedUsersProvider>
             <View style={styles.root}>
-              {navReady ? (
-                <Stack screenOptions={{ headerShown: false }}>
-                  <Stack.Screen name="(auth)" />
-                  <Stack.Screen name="(tabs)" />
-                  <Stack.Screen
-                    name="friend-profile"
-                    options={({ route }) => ({
-                      animation:
-                        (route.params as { from?: string } | undefined)?.from ===
-                        "chat"
-                          ? "none"
-                          : "slide_from_right",
-                      gestureEnabled: true,
-                    })}
-                  />
-                  <Stack.Screen
-                    name="friend-group/[id]"
-                    options={{
-                      animation: "slide_from_right",
-                      gestureEnabled: true,
-                    }}
-                  />
-                  <Stack.Screen
-                    name="community-group/edit"
-                    options={{
-                      animation: "slide_from_right",
-                      gestureEnabled: true,
-                    }}
-                  />
-                  <Stack.Screen
-                    name="discover-communities"
-                    options={{
-                      animation: "slide_from_right",
-                      gestureEnabled: true,
-                    }}
-                  />
-                  <Stack.Screen
-                    name="community-group/[id]"
-                    options={{
-                      animation: "slide_from_right",
-                      gestureEnabled: true,
-                    }}
-                  />
-                  <Stack.Screen
-                    name="profile-photo-crop"
-                    options={{
-                      animation: "slide_from_bottom",
-                      presentation: "fullScreenModal",
-                      gestureEnabled: false,
-                    }}
-                  />
-                </Stack>
-              ) : null}
+              {/* Always mount the navigator on first render — gating on navReady
+                  causes "navigate before mounting the Root Layout" on deep links. */}
+              <Stack screenOptions={{ headerShown: false }}>
+                <Stack.Screen name="(auth)" />
+                <Stack.Screen name="(tabs)" />
+                <Stack.Screen
+                  name="friend-profile"
+                  options={({ route }) => ({
+                    animation:
+                      (route.params as { from?: string } | undefined)?.from ===
+                      "chat"
+                        ? "none"
+                        : "slide_from_right",
+                    gestureEnabled: true,
+                  })}
+                />
+                <Stack.Screen
+                  name="friend-group/[id]"
+                  options={{
+                    animation: "slide_from_right",
+                    gestureEnabled: true,
+                  }}
+                />
+                <Stack.Screen
+                  name="community-group/edit"
+                  options={{
+                    animation: "slide_from_right",
+                    gestureEnabled: true,
+                  }}
+                />
+                <Stack.Screen
+                  name="discover-communities"
+                  options={{
+                    animation: "slide_from_right",
+                    gestureEnabled: true,
+                  }}
+                />
+                <Stack.Screen
+                  name="community-group/[id]"
+                  options={{
+                    animation: "slide_from_right",
+                    gestureEnabled: true,
+                  }}
+                />
+                <Stack.Screen
+                  name="profile-photo-crop"
+                  options={{
+                    animation: "slide_from_bottom",
+                    presentation: "fullScreenModal",
+                    gestureEnabled: false,
+                  }}
+                />
+              </Stack>
               {showBootSplashOverlay ? (
                 <View
                   style={styles.bootSplashOverlay}
@@ -1181,6 +1195,12 @@ export default function RootLayout() {
               title="Invite link"
               message={inviteLinkAlert ?? ""}
               onClose={() => setInviteLinkAlert(null)}
+            />
+            <AlertModal
+              visible={ownProfileLinkAlert}
+              title="That's your link"
+              message="Open someone else's profile QR code or link to add them."
+              onClose={() => setOwnProfileLinkAlert(false)}
             />
             </BlockedUsersProvider>
           </SynqBootProvider>
