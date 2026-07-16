@@ -4,12 +4,10 @@ import {
   BG_FADE_MID,
   BG_TRANSPARENT,
   BUTTON_RADIUS,
-  DISABLED_ACCENT,
   Friend,
   MODAL_RADIUS,
   MUTED2,
   MUTED3,
-  ON_ACCENT_TEXT,
   RADIUS_MD,
   SURFACE,
   TEXT,
@@ -17,6 +15,10 @@ import {
   TYPE_CAPTION,
   fonts,
   sheetHeaderTitleText,
+  synqOutlineAddBtn,
+  synqOutlineAddBtnDisabled,
+  synqOutlineAddBtnText,
+  synqOutlineAddBtnTextDisabled,
 } from "@/constants/Variables";
 import CloseButton from "@/src/components/CloseButton";
 import SpringBottomSheet from "@/src/components/sheets/SpringBottomSheet";
@@ -52,15 +54,9 @@ type Props = {
   onAdd: (memberIds: string[]) => void | Promise<void>;
 };
 
-function actionCtaLabel(mode: "add" | "invite", selectedCount: number): string {
-  if (mode === "invite") {
-    if (selectedCount === 0) return "Send invites";
-    if (selectedCount === 1) return "Send invite";
-    return `Send invites (${selectedCount})`;
-  }
-  if (selectedCount === 0) return "Add members";
-  if (selectedCount === 1) return "Add member";
-  return `Add members (${selectedCount})`;
+function actionCtaLabel(mode: "add" | "invite", _selectedCount: number): string {
+  if (mode === "invite") return "Send invites";
+  return "Add members";
 }
 
 const WINDOW_HEIGHT = Dimensions.get("window").height;
@@ -233,12 +229,22 @@ export default function AddMembersToGroupSheet({
             style={styles.ctaFade}
           />
           <TouchableOpacity
-            style={[styles.cta, (selected.size === 0 || busy) && styles.ctaDisabled]}
+            style={[
+              synqOutlineAddBtn,
+              (selected.size === 0 || busy) && synqOutlineAddBtnDisabled,
+            ]}
             disabled={selected.size === 0 || busy}
             onPress={() => void handleAdd()}
             activeOpacity={0.85}
+            accessibilityRole="button"
+            accessibilityLabel={actionCtaLabel(mode, selected.size)}
           >
-            <Text style={styles.ctaText}>
+            <Text
+              style={[
+                synqOutlineAddBtnText,
+                (selected.size === 0 || busy) && synqOutlineAddBtnTextDisabled,
+              ]}
+            >
               {actionCtaLabel(mode, selected.size)}
             </Text>
           </TouchableOpacity>
@@ -330,25 +336,5 @@ const styles = StyleSheet.create({
     right: -20,
     top: -CTA_FADE_HEIGHT,
     height: CTA_FADE_HEIGHT,
-  },
-  cta: {
-    alignSelf: "center",
-    width: "62%",
-    minHeight: 48,
-    borderRadius: BUTTON_RADIUS,
-    backgroundColor: ACCENT,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  ctaDisabled: {
-    backgroundColor: DISABLED_ACCENT,
-  },
-  ctaText: {
-    fontFamily: fonts.medium,
-    fontSize: TYPE_BODY,
-    color: ON_ACCENT_TEXT,
-    lineHeight: 22,
-    includeFontPadding: false,
-    textAlignVertical: "center",
   },
 });

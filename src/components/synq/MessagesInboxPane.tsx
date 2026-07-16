@@ -2,7 +2,13 @@ import BackButton from "@/src/components/BackButton";
 import CloseButton from "@/src/components/CloseButton";
 import { ListRowsSkeleton } from "@/src/components/loading/BrandSkeletons";
 import ChatInboxActionSheet from "@/src/components/synq/ChatInboxActionSheet";
-import { MUTED2 } from "@/constants/Variables";
+import {
+  MUTED2,
+  synqOutlineAddBtn,
+  synqOutlineAddBtnDisabled,
+  synqOutlineAddBtnText,
+  synqOutlineAddBtnTextDisabled,
+} from "@/constants/Variables";
 import {
   formatInboxMessageTime,
   getCommunityChatInboxSubtitle,
@@ -10,7 +16,7 @@ import {
 import { Ionicons } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
 import React from "react";
-import { FlatList, Text, TouchableOpacity, View } from "react-native";
+import { FlatList, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { Swipeable } from "react-native-gesture-handler";
 import { initialWindowMetrics, useSafeAreaInsets } from "react-native-safe-area-context";
 
@@ -337,8 +343,9 @@ export default function MessagesInboxPane({
           )}
           <TouchableOpacity
             style={[
-              styles.inboxMergePrimaryBtn,
-              (!mergeReady || mergeBusy) && styles.inboxMergePrimaryBtnDisabled,
+              synqOutlineAddBtn,
+              localStyles.mergePrimaryBtn,
+              (!mergeReady || mergeBusy) && synqOutlineAddBtnDisabled,
             ]}
             onPress={onConfirmMerge}
             disabled={!mergeReady || mergeBusy}
@@ -348,8 +355,8 @@ export default function MessagesInboxPane({
           >
             <Text
               style={[
-                styles.inboxMergePrimaryBtnText,
-                (!mergeReady || mergeBusy) && styles.inboxMergePrimaryBtnTextDisabled,
+                synqOutlineAddBtnText,
+                (!mergeReady || mergeBusy) && synqOutlineAddBtnTextDisabled,
                 mergeBusy && { opacity: 0.5 },
               ]}
             >
@@ -377,3 +384,11 @@ export default function MessagesInboxPane({
     </View>
   );
 }
+
+const localStyles = StyleSheet.create({
+  mergePrimaryBtn: {
+    alignSelf: "stretch",
+    width: "100%",
+    paddingVertical: 15,
+  },
+});

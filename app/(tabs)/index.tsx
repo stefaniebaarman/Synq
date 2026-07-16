@@ -3149,27 +3149,6 @@ const styles = StyleSheet.create({
     lineHeight: 20,
     marginBottom: 16,
   },
-  inboxMergePrimaryBtn: {
-    backgroundColor: ACCENT,
-    borderRadius: BUTTON_RADIUS,
-    paddingVertical: 15,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  inboxMergePrimaryBtnDisabled: {
-    backgroundColor: SURFACE,
-    borderWidth: 1,
-    borderColor: BORDER,
-  },
-  inboxMergePrimaryBtnText: {
-    color: ON_ACCENT_TEXT,
-    fontFamily: fonts.heavy,
-    fontSize: TYPE_BUTTON,
-    letterSpacing: 0.2,
-  },
-  inboxMergePrimaryBtnTextDisabled: {
-    color: MUTED3,
-  },
   inboxListContentMerge: {
     paddingBottom: 12,
   },
@@ -3544,17 +3523,6 @@ const styles = StyleSheet.create({
     fontSize: TYPE_BUTTON,
     minHeight: 80,
   },
-  saveBtn: {
-    alignSelf: 'center',
-    width: PRIMARY_CTA_WIDTH,
-    height: PRIMARY_CTA_HEIGHT,
-    backgroundColor: ACCENT,
-    borderRadius: BUTTON_RADIUS,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginTop: 20,
-  },
-  saveBtnText: primaryButtonText,
   centeredIdeaContainer: {
     alignItems: 'center',
     marginVertical: 15,

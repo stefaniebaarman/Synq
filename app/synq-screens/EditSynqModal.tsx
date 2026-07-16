@@ -2,6 +2,10 @@ import { DIALOG_ANIMATION } from "@/constants/sheetStyles";
 import {
   MUTED,
   MUTED3,
+  synqOutlineAddBtn,
+  synqOutlineAddBtnDisabled,
+  synqOutlineAddBtnText,
+  synqOutlineAddBtnTextDisabled,
 } from "@/constants/Variables";
 import CloseButton from "@/src/components/CloseButton";
 import { Ionicons } from "@expo/vector-icons";
@@ -119,12 +123,23 @@ export default function EditSynqModal({
               </View>
 
               <TouchableOpacity
-                style={[styles.saveBtn, saving && { opacity: 0.6 }]}
+                style={[
+                  synqOutlineAddBtn,
+                  localStyles.saveBtn,
+                  saving && synqOutlineAddBtnDisabled,
+                ]}
                 onPress={onSaveMemo}
                 disabled={saving}
                 activeOpacity={0.85}
+                accessibilityRole="button"
+                accessibilityLabel="Update status"
               >
-                <Text style={[styles.saveBtnText, saving && { opacity: 0.5 }]}>
+                <Text
+                  style={[
+                    synqOutlineAddBtnText,
+                    saving && synqOutlineAddBtnTextDisabled,
+                  ]}
+                >
                   Update
                 </Text>
               </TouchableOpacity>
@@ -161,5 +176,8 @@ const localStyles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     marginRight: -6,
+  },
+  saveBtn: {
+    marginTop: 20,
   },
 });

@@ -1,19 +1,20 @@
 import {
-  ACCENT,
   BG,
   BORDER_SOFT,
   BUTTON_RADIUS,
-  DISABLED_ACCENT,
   fonts,
   MUTED2,
   MUTED3,
-  ON_ACCENT_TEXT,
   OVERLAY_DARK,
   RADIUS_MD,
   SURFACE_SUBTLE,
   TEXT,
   TYPE_BODY,
   TYPE_CTA,
+  synqOutlineAddBtn,
+  synqOutlineAddBtnDisabled,
+  synqOutlineAddBtnText,
+  synqOutlineAddBtnTextDisabled,
 } from "@/constants/Variables";
 import CloseButton from "@/src/components/CloseButton";
 import { useEffect, useState } from "react";
@@ -123,13 +124,19 @@ export default function CreateGroupModal({
             />
             <View style={[styles.ctaRow, compact && styles.ctaRowCompact]}>
               <TouchableOpacity
-                style={[styles.cta, !canSubmit && styles.ctaDisabled]}
+                style={[synqOutlineAddBtn, !canSubmit && synqOutlineAddBtnDisabled]}
                 disabled={!canSubmit}
                 onPress={() => void handleCreate()}
+                activeOpacity={0.85}
                 accessibilityRole="button"
                 accessibilityLabel={submitLabel}
               >
-                <Text style={styles.ctaText}>
+                <Text
+                  style={[
+                    synqOutlineAddBtnText,
+                    !canSubmit && synqOutlineAddBtnTextDisabled,
+                  ]}
+                >
                   {submitLabel}
                 </Text>
               </TouchableOpacity>
@@ -207,22 +214,5 @@ const styles = StyleSheet.create({
   ctaRowCompact: {
     marginTop: 0,
     paddingTop: 0,
-  },
-  cta: {
-    minHeight: 48,
-    paddingHorizontal: 32,
-    borderRadius: BUTTON_RADIUS,
-    backgroundColor: ACCENT,
-    alignItems: "center",
-    justifyContent: "center",
-    alignSelf: "center",
-  },
-  ctaDisabled: {
-    backgroundColor: DISABLED_ACCENT,
-  },
-  ctaText: {
-    fontFamily: fonts.medium,
-    fontSize: TYPE_BODY,
-    color: ON_ACCENT_TEXT,
   },
 });
