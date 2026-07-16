@@ -176,6 +176,25 @@ function firstName(name: string): string {
   return String(name || "").trim().split(/\s+/)[0] || "Someone";
 }
 
+/** Drop trailing sentence periods from notification copy. */
+function stripTrailingPeriod(text: string): string {
+  return String(text || "").replace(/\.+$/u, "").trimEnd();
+}
+
+/** Normalize known Title Case notification titles to sentence case. */
+function normalizeNotificationTitle(title: string): string {
+  const trimmed = String(title || "").trim();
+  if (!trimmed) return "";
+  const known: Record<string, string> = {
+    "Request Accepted! ✨": "Request accepted! ✨",
+    "Request Accepted!": "Request accepted!",
+    "New Friend Request 🤝": "New friend request 🤝",
+    "New Friend Request": "New friend request",
+    "New Message": "New message",
+  };
+  return known[trimmed] || trimmed;
+}
+
 /** Cloud Functions mirror many notifications in both collections (same doc id). */
 function activityDeleteRefs(userId: string, notificationId: string) {
   return [
@@ -297,10 +316,10 @@ export default function NotificationsScreen() {
     const title = String(item.title || "").trim();
     const storedBody = String(item.body || "").trim();
 
-    let body = storedBody;
+    let body = storedBody ? stripTrailingPeriod(storedBody) : "";
     if (!body) {
       if (type === "friend_accepted") {
-        body = `${actorName} accepted your friend request.`;
+        body = `${actorName} accepted your friend request`;
       } else if (type === "open_plan_interest") {
         body = planTitle
           ? `${firstName(actorName)} is going to ${planTitle}`
@@ -314,7 +333,7 @@ export default function NotificationsScreen() {
           ? `${firstName(actorName)} is in for ${planTitle}`
           : `${firstName(actorName)} joined a community plan`;
       } else if (type === "friend_synq_active") {
-        body = `${firstName(actorName)} is free.`;
+        body = `${firstName(actorName)} is free`;
       } else if (type === "synq_nudge") {
         body = `${firstName(actorName)} wants to know if you're free right now`;
       }
@@ -327,7 +346,7 @@ export default function NotificationsScreen() {
       actorName,
       actorImageUrl,
       title:
-        title ||
+        normalizeNotificationTitle(title) ||
         (type === "friend_accepted"
           ? "Request accepted"
           : type === "open_plan_interest"
@@ -943,7 +962,7 @@ export default function NotificationsScreen() {
             <Text style={styles.rowKicker}>{kickerFor(item.kind)}</Text>
             <Text style={styles.rowText}>
               <Text style={styles.boldWhite}>{item.actorName}</Text>
-              <Text style={styles.grayText}> wants to be your friend.</Text>
+              <Text style={styles.grayText}> wants to be your friend</Text>
             </Text>
           </View>
         </View>
@@ -999,7 +1018,6 @@ export default function NotificationsScreen() {
               <Text style={styles.boldWhite}>{item.actorName}</Text>
               <Text style={styles.grayText}> invited you to join </Text>
               <Text style={styles.boldWhite}>{groupLabel}</Text>
-              <Text style={styles.grayText}>.</Text>
             </Text>
           </View>
         </View>

@@ -1,9 +1,14 @@
 import {
   BG,
   BORDER,
+  FRIENDS_SEARCH_BORDER,
   MUTED2,
+  MUTED3,
   RADIUS_2XL,
+  RADIUS_MD,
+  SURFACE_INPUT,
   TEXT,
+  TYPE_BODY,
   TYPE_LEAD,
   TYPE_SECTION,
   fonts,
@@ -12,13 +17,18 @@ import {
 } from "@/constants/Variables";
 import ConfirmModal from "@/app/confirm-modal";
 import CloseButton from "@/src/components/CloseButton";
+import CloseIcon from "@/src/components/CloseIcon";
 import FriendPlanCard from "@/src/components/friends/FriendPlanCard";
 import SpringBottomSheet from "@/src/components/sheets/SpringBottomSheet";
-import type { useFriendPlansFeed } from "@/src/lib/useFriendPlansFeed";
+import type { AggregatedFriendPlan, useFriendPlansFeed } from "@/src/lib/useFriendPlansFeed";
+import { Ionicons } from "@expo/vector-icons";
+import { useEffect, useMemo, useState } from "react";
 import {
   FlatList,
   StyleSheet,
   Text,
+  TextInput,
+  TouchableOpacity,
   useWindowDimensions,
   View,
 } from "react-native";
@@ -34,6 +44,40 @@ type Props = {
   onOpenFriendProfile: (friendId: string) => void;
 };
 
+function planSearchHaystack(
+  item: AggregatedFriendPlan,
+  hostDisplayNameByUid: Record<string, string>
+): string {
+  const event = item.event;
+  const parts: string[] = [
+    item.sourceFriendName,
+    hostDisplayNameByUid[item.sourceFriendId] || "",
+    String(event.title || ""),
+    String(event.location || ""),
+    String(event.time || ""),
+  ];
+
+  if (Array.isArray(event.joinedFromNames)) {
+    for (const name of event.joinedFromNames) {
+      if (name) parts.push(String(name));
+    }
+  }
+
+  if (Array.isArray(event.joinedFromIds)) {
+    for (const id of event.joinedFromIds) {
+      const uid = String(id || "").trim();
+      if (uid && hostDisplayNameByUid[uid]) parts.push(hostDisplayNameByUid[uid]);
+    }
+  }
+
+  const attendeeNames = event.attendeeDisplayNames;
+  if (attendeeNames && typeof attendeeNames === "object") {
+    parts.push(...Object.values(attendeeNames).filter(Boolean));
+  }
+
+  return parts.join(" ").toLowerCase();
+}
+
 export default function FriendsPlansSheet({
   visible,
   userId,
@@ -44,6 +88,7 @@ export default function FriendsPlansSheet({
   const insets = useSafeAreaInsets();
   const { height: windowHeight } = useWindowDimensions();
   const sheetHeight = Math.round(windowHeight * 0.88);
+  const [searchText, setSearchText] = useState("");
   const {
     aggregatedPlans,
     hostDisplayNameByUid,
@@ -60,6 +105,18 @@ export default function FriendsPlansSheet({
     confirmUnjoin,
     cancelUnjoin,
   } = feed;
+
+  useEffect(() => {
+    if (!visible) setSearchText("");
+  }, [visible]);
+
+  const query = searchText.trim().toLowerCase();
+  const filteredPlans = useMemo(() => {
+    if (!query) return aggregatedPlans;
+    return aggregatedPlans.filter((item) =>
+      planSearchHaystack(item, hostDisplayNameByUid).includes(query)
+    );
+  }, [aggregatedPlans, hostDisplayNameByUid, query]);
 
   const confirmOverlay = (
     <>
@@ -89,6 +146,13 @@ export default function FriendsPlansSheet({
     </>
   );
 
+  const emptyTitle = query
+    ? "No matching plans"
+    : "Nothing planned right now";
+  const emptyText = query
+    ? "Try another name, venue, or plan title."
+    : "When friends add plans, they'll show up here.";
+
   return (
     <SpringBottomSheet
       visible={visible}
@@ -104,21 +168,47 @@ export default function FriendsPlansSheet({
         <CloseButton onPress={onClose} accessibilityLabel="Close plans" />
       </View>
 
+      <View style={styles.searchWrap}>
+        <View style={styles.searchBar}>
+          <Ionicons name="search-outline" size={17} color={MUTED2} />
+          <TextInput
+            placeholder="Search by name, venue…"
+            placeholderTextColor={MUTED3}
+            style={styles.searchBarInput}
+            value={searchText}
+            onChangeText={setSearchText}
+            autoCapitalize="none"
+            autoCorrect={false}
+            clearButtonMode="never"
+          />
+          {searchText.length > 0 ? (
+            <TouchableOpacity
+              onPress={() => setSearchText("")}
+              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+              accessibilityRole="button"
+              accessibilityLabel="Clear search"
+            >
+              <CloseIcon variant="inline" />
+            </TouchableOpacity>
+          ) : null}
+        </View>
+      </View>
+
       <FlatList
-        data={aggregatedPlans}
+        data={filteredPlans}
         keyExtractor={(item) => `${item.sourceFriendId}|${item.event.id}`}
         style={styles.list}
+        keyboardShouldPersistTaps="handled"
+        keyboardDismissMode="on-drag"
         showsVerticalScrollIndicator={false}
         contentContainerStyle={[
           styles.listContent,
-          aggregatedPlans.length === 0 && styles.listContentEmpty,
+          filteredPlans.length === 0 && styles.listContentEmpty,
         ]}
         ListEmptyComponent={
           <View style={styles.emptyWrap}>
-            <Text style={styles.emptyTitle}>Nothing planned right now</Text>
-            <Text style={styles.emptyText}>
-              When friends add plans, they'll show up here.
-            </Text>
+            <Text style={styles.emptyTitle}>{emptyTitle}</Text>
+            <Text style={styles.emptyText}>{emptyText}</Text>
           </View>
         }
         renderItem={({ item }) => (
@@ -163,6 +253,30 @@ const styles = StyleSheet.create({
     fontSize: TYPE_SECTION,
     lineHeight: 26,
     letterSpacing: 0.04,
+  },
+  searchWrap: {
+    paddingHorizontal: 20,
+    marginBottom: 12,
+  },
+  searchBar: {
+    flexDirection: "row",
+    alignItems: "center",
+    minHeight: 44,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    borderRadius: RADIUS_MD,
+    backgroundColor: SURFACE_INPUT,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: FRIENDS_SEARCH_BORDER,
+    gap: 10,
+  },
+  searchBarInput: {
+    flex: 1,
+    color: TEXT,
+    fontFamily: fonts.book,
+    fontSize: TYPE_BODY,
+    paddingVertical: 0,
+    minHeight: 22,
   },
   list: {
     flex: 1,

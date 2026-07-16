@@ -741,25 +741,26 @@ export default function FriendsScreen() {
             { paddingTop: headerLayout.iconRowBottom + 14 },
           ]}
         >
-          {showFriendSearch && (
-            <>
-              <View style={styles.searchBar}>
-                <Ionicons name="search-outline" size={17} color={MUTED2} />
-                <TextInput
-                  placeholder="Search"
-                  placeholderTextColor={MUTED3}
-                  style={styles.searchBarInput}
-                  value={searchText}
-                  onChangeText={setSearchText}
-                />
-                {searchText.length > 0 && (
-                  <TouchableOpacity onPress={() => setSearchText("")} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
-                    <CloseIcon variant="inline" />
-                  </TouchableOpacity>
-                )}
-              </View>
-            </>
-          )}
+          {showFriendSearch ? (
+            <View style={styles.searchBar}>
+              <Ionicons name="search-outline" size={17} color={MUTED2} />
+              <TextInput
+                placeholder="Search friends"
+                placeholderTextColor={MUTED3}
+                style={styles.searchBarInput}
+                value={searchText}
+                onChangeText={setSearchText}
+              />
+              {searchText.length > 0 ? (
+                <TouchableOpacity
+                  onPress={() => setSearchText("")}
+                  hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                >
+                  <CloseIcon variant="inline" />
+                </TouchableOpacity>
+              ) : null}
+            </View>
+          ) : null}
         </View>
       </View>
 
