@@ -18,7 +18,7 @@ import {
   serverTimestamp,
   writeBatch,
 } from "firebase/firestore";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   FlatList,
   RefreshControl,
@@ -72,6 +72,8 @@ import { acceptPlanInvite, acceptPlanInviteErrorMessage, declinePlanInvite, decl
 import { resolveAvatar } from "@/src/lib/helpers";
 import {
   FRIEND_REQUESTS_LISTENER_LIMIT,
+  GROUP_INVITES_LISTENER_LIMIT,
+  LEGACY_NOTIFICATION_LOCKS_LIMIT,
   NOTIFICATIONS_LISTENER_LIMIT,
 } from "@/src/lib/listenerLimits";
 import AlertModal from "./alert-modal";
@@ -172,6 +174,226 @@ function timestampMillis(v: unknown): number {
   if (typeof t.toMillis === "function") return t.toMillis();
   if (typeof t.seconds === "number") return t.seconds * 1000;
   return 0;
+}
+
+type ActorProfile = { actorName: string; actorImageUrl: string | null };
+type ActorCache = Map<string, ActorProfile>;
+type ActorFallback = { name?: string; image?: string | null };
+const actorFetchInflight = new Map<string, Promise<ActorProfile>>();
+
+async function fetchActorProfile(
+  userId: string,
+  fallback: ActorFallback
+): Promise<ActorProfile> {
+  const existing = actorFetchInflight.get(userId);
+  if (existing) return existing;
+
+  const promise = (async () => {
+    let actorName = fallback.name || "Someone";
+    let actorImageUrl = fallback.image || null;
+    try {
+      const senderSnap = await getDoc(doc(db, "users", userId));
+      if (senderSnap.exists()) {
+        const senderData = senderSnap.data() as Record<string, unknown>;
+        actorName = (senderData?.displayName as string) || actorName;
+        actorImageUrl = (senderData?.imageurl as string) || actorImageUrl;
+      }
+    } catch {}
+    return { actorName, actorImageUrl };
+  })();
+
+  actorFetchInflight.set(userId, promise);
+  try {
+    return await promise;
+  } finally {
+    if (actorFetchInflight.get(userId) === promise) {
+      actorFetchInflight.delete(userId);
+    }
+  }
+}
+
+async function prefetchActors(
+  cache: ActorCache,
+  userIds: Array<string | null | undefined>,
+  fallbacks = new Map<string, ActorFallback>()
+): Promise<void> {
+  const missing = new Set<string>();
+  for (const id of userIds) {
+    const uid = id ? String(id).trim() : "";
+    if (!uid || cache.has(uid)) continue;
+    missing.add(uid);
+  }
+  if (missing.size === 0) return;
+
+  await Promise.all(
+    [...missing].map(async (userId) => {
+      const profile = await fetchActorProfile(userId, fallbacks.get(userId) ?? {});
+      cache.set(userId, profile);
+    })
+  );
+}
+
+function lookupActor(
+  cache: ActorCache,
+  userId: string | null | undefined,
+  fallbackName?: string,
+  fallbackImage?: string | null
+): ActorProfile {
+  const uid = userId ? String(userId).trim() : "";
+  if (!uid) {
+    return { actorName: fallbackName || "Someone", actorImageUrl: fallbackImage || null };
+  }
+  return (
+    cache.get(uid) ?? {
+      actorName: fallbackName || "Someone",
+      actorImageUrl: fallbackImage || null,
+    }
+  );
+}
+
+function friendRequestActorFallback(
+  request: Record<string, unknown> & { id: string }
+): { userId: string; fallback: ActorFallback } {
+  const userId = String(request.from || request.fromId || request.id || "");
+  return {
+    userId,
+    fallback: {
+      name:
+        (request.senderName as string) ||
+        (request.fromName as string) ||
+        undefined,
+      image:
+        (request.senderImageUrl as string) ||
+        (request.fromImageUrl as string) ||
+        (request.fromImageurl as string) ||
+        (request.imageurl as string) ||
+        null,
+    },
+  };
+}
+
+function mapFriendRequest(
+  request: Record<string, unknown> & { id: string },
+  cache: ActorCache
+) {
+  const { userId, fallback } = friendRequestActorFallback(request);
+  const { actorName, actorImageUrl } = lookupActor(
+    cache,
+    userId,
+    fallback.name,
+    fallback.image
+  );
+
+  return {
+    ...request,
+    fromUserId: userId,
+    actorName,
+    actorImageUrl,
+    sortMs: timestampMillis(request.sentAt) || Date.now(),
+  };
+}
+
+function mapCommunityGroupInvite(invite: CommunityGroupInvite, cache: ActorCache) {
+  const { actorName, actorImageUrl } = lookupActor(
+    cache,
+    invite.fromUserId,
+    invite.fromUserName,
+    invite.fromUserImageUrl || null
+  );
+
+  return {
+    ...invite,
+    actorName,
+    actorImageUrl,
+    sortMs: timestampMillis(invite.createdAt) || Date.now(),
+  };
+}
+
+function mapActivity(item: Record<string, unknown> & { id: string }, cache: ActorCache) {
+  const fromUserId = item.fromUserId ? String(item.fromUserId) : null;
+  const { actorName, actorImageUrl } = lookupActor(cache, fromUserId);
+  const type = String(item.type || "") as PlanInviteFeedItem["kind"] | ActivityFeedKind;
+  const planTitle = String(item.planTitle || "").trim();
+  const title = String(item.title || "").trim();
+  const name = displayPersonName(actorName);
+  const parts = activityMessageParts(type, planTitle);
+  const body = stripTrailingPeriod(
+    `${name}${parts.rest}${parts.emphasis || ""}`
+  );
+
+  return {
+    ...item,
+    type,
+    fromUserId,
+    actorName: name,
+    actorImageUrl,
+    planTitle: planTitle || null,
+    title:
+      normalizeNotificationTitle(title) ||
+      (type === "friend_accepted"
+        ? "Request accepted"
+        : type === "open_plan_interest"
+          ? "Open plan"
+          : type === "plan_invite"
+            ? "Plan invite"
+          : type === "community_plan_join"
+            ? "Community plan"
+          : type === "synq_nudge"
+            ? "Are you free?"
+            : "Friend active on Synq"),
+    body,
+    sortMs: timestampMillis(item.createdAt) || Date.now(),
+    read: item.read === true,
+    eventId: item.eventId ? String(item.eventId) : null,
+    planHostUid: item.planHostUid ? String(item.planHostUid) : null,
+    groupId: item.groupId ? String(item.groupId) : null,
+    planId: item.planId ? String(item.planId) : null,
+    groupName: item.groupName ? String(item.groupName) : null,
+  };
+}
+
+function collectActorPrefetch(
+  friendRequests: Array<Record<string, unknown> & { id: string }>,
+  groupInvites: CommunityGroupInvite[],
+  activityList: Array<Record<string, unknown> & { id: string }>
+) {
+  const userIds: string[] = [];
+  const fallbacks = new Map<string, ActorFallback>();
+
+  for (const request of friendRequests) {
+    const { userId, fallback } = friendRequestActorFallback(request);
+    userIds.push(userId);
+    if (userId) fallbacks.set(userId, fallback);
+  }
+
+  for (const invite of groupInvites) {
+    userIds.push(invite.fromUserId);
+    fallbacks.set(invite.fromUserId, {
+      name: invite.fromUserName,
+      image: invite.fromUserImageUrl || null,
+    });
+  }
+
+  for (const item of activityList) {
+    if (item.fromUserId) userIds.push(String(item.fromUserId));
+  }
+
+  return { userIds, fallbacks };
+}
+
+function parseCommunityGroupInviteDoc(
+  id: string,
+  data: Record<string, unknown>
+): CommunityGroupInvite {
+  return {
+    id,
+    groupId: String(data.groupId || id).trim(),
+    groupName: String(data.groupName || "").trim() || "Group",
+    fromUserId: String(data.fromUserId || "").trim(),
+    fromUserName: String(data.fromUserName || "").trim() || "Friend",
+    fromUserImageUrl: data.fromUserImageUrl ? String(data.fromUserImageUrl) : undefined,
+    createdAt: data.createdAt,
+  };
 }
 
 function displayPersonName(name: string): string {
@@ -278,6 +500,7 @@ export default function NotificationsScreen() {
   const [dismissingKeys, setDismissingKeys] = useState<Set<string>>(() => new Set());
   const [clearingAll, setClearingAll] = useState(false);
   const [showClearConfirm, setShowClearConfirm] = useState(false);
+  const actorCacheRef = useRef<ActorCache>(new Map());
 
   const [alertVisible, setAlertVisible] = useState(false);
   const [alertConfig, setAlertConfig] = useState<{
@@ -290,130 +513,124 @@ export default function NotificationsScreen() {
     setAlertVisible(true);
   };
 
-  const resolveActor = async (
-    fromUserId: string | null | undefined,
-    fallbackName?: string,
-    fallbackImage?: string | null
-  ) => {
-    let actorName = fallbackName || "Someone";
-    let actorImageUrl = fallbackImage || null;
+  const finishInitialLoad = useCallback(() => {
+    setLoading(false);
+  }, []);
 
-    if (!fromUserId) {
-      return { actorName, actorImageUrl };
-    }
+  const hydrateFriendRequests = useCallback(
+    async (reqList: Array<Record<string, unknown> & { id: string }>) => {
+      const cache = actorCacheRef.current;
+      setFriendRequests(reqList.map((request) => mapFriendRequest(request, cache)));
+      finishInitialLoad();
 
-    try {
-      const senderSnap = await getDoc(doc(db, "users", fromUserId));
-      if (senderSnap.exists()) {
-        const senderData = senderSnap.data() as Record<string, unknown>;
-        actorName = (senderData?.displayName as string) || actorName;
-        actorImageUrl = (senderData?.imageurl as string) || actorImageUrl;
-      }
-    } catch {}
+      const { userIds, fallbacks } = collectActorPrefetch(reqList, [], []);
+      await prefetchActors(cache, userIds, fallbacks);
+      setFriendRequests(reqList.map((request) => mapFriendRequest(request, cache)));
+    },
+    [finishInitialLoad]
+  );
 
-    return { actorName, actorImageUrl };
-  };
+  const hydrateCommunityGroupInvites = useCallback(
+    async (list: CommunityGroupInvite[]) => {
+      const cache = actorCacheRef.current;
+      setCommunityGroupInvites(list.map((invite) => mapCommunityGroupInvite(invite, cache)));
+      finishInitialLoad();
 
-  const resolveCommunityGroupInvite = async (invite: CommunityGroupInvite) => {
-    const { actorName, actorImageUrl } = await resolveActor(
-      invite.fromUserId,
-      invite.fromUserName,
-      invite.fromUserImageUrl || null
-    );
+      const { userIds, fallbacks } = collectActorPrefetch([], list, []);
+      await prefetchActors(cache, userIds, fallbacks);
+      setCommunityGroupInvites(list.map((invite) => mapCommunityGroupInvite(invite, cache)));
+    },
+    [finishInitialLoad]
+  );
 
-    return {
-      ...invite,
-      actorName,
-      actorImageUrl,
-      sortMs: timestampMillis(invite.createdAt) || Date.now(),
-    };
-  };
+  const hydrateActivityItems = useCallback(
+    async (list: Array<Record<string, unknown> & { id: string }>) => {
+      const cache = actorCacheRef.current;
+      setActivityItems(list.map((item) => mapActivity(item, cache)));
+      finishInitialLoad();
 
-  const resolveFriendRequest = async (request: Record<string, unknown> & { id: string }) => {
-    const fromUserId = String(request.from || request.fromId || request.id || "");
-    const inlineName =
-      (request.senderName as string) ||
-      (request.fromName as string) ||
-      undefined;
-    const inlineImage =
-      (request.senderImageUrl as string) ||
-      (request.fromImageUrl as string) ||
-      (request.fromImageurl as string) ||
-      (request.imageurl as string) ||
-      null;
+      const { userIds, fallbacks } = collectActorPrefetch([], [], list);
+      await prefetchActors(cache, userIds, fallbacks);
+      setActivityItems(list.map((item) => mapActivity(item, cache)));
+    },
+    [finishInitialLoad]
+  );
 
-    const { actorName, actorImageUrl } = await resolveActor(
-      fromUserId,
-      inlineName,
-      inlineImage
-    );
+  const hydrateLegacyActivityItems = useCallback(
+    async (rows: LegacyNotificationLockRow[]) => {
+      const cache = actorCacheRef.current;
+      const mapped = rows.map((row) =>
+        mapActivity(
+          {
+            id: row.id,
+            type: row.type,
+            fromUserId: row.from || row.joinerId || null,
+            planTitle: row.planTitle || null,
+            createdAt: row.createdAt,
+            read: true,
+          },
+          cache
+        )
+      );
+      setLegacyActivityItems(mapped);
+      finishInitialLoad();
 
-    return {
-      ...request,
-      fromUserId,
-      actorName,
-      actorImageUrl,
-      sortMs: timestampMillis(request.sentAt) || Date.now(),
-    };
-  };
-
-  const resolveActivity = async (item: Record<string, unknown> & { id: string }) => {
-    const fromUserId = item.fromUserId ? String(item.fromUserId) : null;
-    const { actorName, actorImageUrl } = await resolveActor(fromUserId);
-    const type = String(item.type || "") as PlanInviteFeedItem["kind"] | ActivityFeedKind;
-    const planTitle = String(item.planTitle || "").trim();
-    const title = String(item.title || "").trim();
-    const name = displayPersonName(actorName);
-    const parts = activityMessageParts(type, planTitle);
-    const body = stripTrailingPeriod(
-      `${name}${parts.rest}${parts.emphasis || ""}`
-    );
-
-    return {
-      ...item,
-      type,
-      fromUserId,
-      actorName: name,
-      actorImageUrl,
-      planTitle: planTitle || null,
-      title:
-        normalizeNotificationTitle(title) ||
-        (type === "friend_accepted"
-          ? "Request accepted"
-          : type === "open_plan_interest"
-            ? "Open plan"
-            : type === "plan_invite"
-              ? "Plan invite"
-            : type === "community_plan_join"
-              ? "Community plan"
-            : type === "synq_nudge"
-              ? "Are you free?"
-              : "Friend active on Synq"),
-      body,
-      sortMs: timestampMillis(item.createdAt) || Date.now(),
-      read: item.read === true,
-      eventId: item.eventId ? String(item.eventId) : null,
-      planHostUid: item.planHostUid ? String(item.planHostUid) : null,
-      groupId: item.groupId ? String(item.groupId) : null,
-      planId: item.planId ? String(item.planId) : null,
-      groupName: item.groupName ? String(item.groupName) : null,
-    };
-  };
+      const activityRows = rows.map((row) => ({
+        id: row.id,
+        fromUserId: row.from || row.joinerId || null,
+      }));
+      const { userIds, fallbacks } = collectActorPrefetch([], [], activityRows);
+      await prefetchActors(cache, userIds, fallbacks);
+      setLegacyActivityItems(
+        rows.map((row) =>
+          mapActivity(
+            {
+              id: row.id,
+              type: row.type,
+              fromUserId: row.from || row.joinerId || null,
+              planTitle: row.planTitle || null,
+              createdAt: row.createdAt,
+              read: true,
+            },
+            cache
+          )
+        )
+      );
+    },
+    [finishInitialLoad]
+  );
 
   const fetchAll = async () => {
     if (!auth.currentUser) return;
     const myId = auth.currentUser.uid;
+    const cache = actorCacheRef.current;
 
     const [reqSnap, groupInviteSnap, activitySnap, legacySnap] = await Promise.all([
-      getDocs(collection(db, "users", myId, "friendRequests")),
-      getDocs(collection(db, "users", myId, "communityGroupInvites")),
+      getDocs(
+        query(
+          collection(db, "users", myId, "friendRequests"),
+          limit(FRIEND_REQUESTS_LISTENER_LIMIT)
+        )
+      ),
+      getDocs(
+        query(
+          collection(db, "users", myId, "communityGroupInvites"),
+          limit(GROUP_INVITES_LISTENER_LIMIT)
+        )
+      ),
       getDocs(
         query(
           collection(db, "users", myId, "notifications"),
-          orderBy("createdAt", "desc")
+          orderBy("createdAt", "desc"),
+          limit(NOTIFICATIONS_LISTENER_LIMIT)
         )
       ),
-      getDocs(collection(db, "users", myId, "notificationLocks")),
+      getDocs(
+        query(
+          collection(db, "users", myId, "notificationLocks"),
+          limit(LEGACY_NOTIFICATION_LOCKS_LIMIT)
+        )
+      ),
     ]);
 
     const reqList = reqSnap.docs.map((d) => ({ id: d.id, ...d.data() }));
@@ -421,45 +638,47 @@ export default function NotificationsScreen() {
     const legacyList = legacySnap.docs
       .map((d) => ({ id: d.id, ...d.data() } as LegacyNotificationLockRow))
       .filter((row) =>
-        ["friend_accepted", "open_plan_interest", "plan_invite", "community_plan_join"].includes(String(row.type || ""))
+        ["friend_accepted", "open_plan_interest", "plan_invite", "community_plan_join"].includes(
+          String(row.type || "")
+        )
       );
+    const groupInviteList = groupInviteSnap.docs.map((d) =>
+      parseCommunityGroupInviteDoc(d.id, d.data() as Record<string, unknown>)
+    );
 
-    const groupInviteList: CommunityGroupInvite[] = groupInviteSnap.docs.map((d) => {
-      const data = d.data() as Record<string, unknown>;
-      return {
-        id: d.id,
-        groupId: String(data.groupId || d.id).trim(),
-        groupName: String(data.groupName || "").trim() || "Group",
-        fromUserId: String(data.fromUserId || "").trim(),
-        fromUserName: String(data.fromUserName || "").trim() || "Friend",
-        fromUserImageUrl: data.fromUserImageUrl ? String(data.fromUserImageUrl) : undefined,
-        createdAt: data.createdAt,
-      };
+    const { userIds, fallbacks } = collectActorPrefetch(
+      reqList,
+      groupInviteList,
+      activityList
+    );
+    legacyList.forEach((row) => {
+      const fromUserId = row.from || row.joinerId || null;
+      if (fromUserId) userIds.push(String(fromUserId));
     });
+    await prefetchActors(cache, userIds, fallbacks);
 
-    const [resolvedReqs, resolvedGroupInvites, resolvedActivity, resolvedLegacy] =
-      await Promise.all([
-      Promise.all(reqList.map(resolveFriendRequest)),
-      Promise.all(groupInviteList.map(resolveCommunityGroupInvite)),
-      Promise.all(activityList.map(resolveActivity)),
-      Promise.all(
-        legacyList.map((row) =>
-          resolveActivity({
+    setFriendRequests(reqList.map((request) => mapFriendRequest(request, cache)));
+    setCommunityGroupInvites(
+      groupInviteList.map((invite) => mapCommunityGroupInvite(invite, cache))
+    );
+    setActivityItems(activityList.map((item) => mapActivity(item, cache)));
+    setLegacyActivityItems(
+      legacyList.map((row) =>
+        mapActivity(
+          {
             id: row.id,
             type: row.type,
             fromUserId: row.from || row.joinerId || null,
             planTitle: row.planTitle || null,
             createdAt: row.createdAt,
             read: true,
-          })
+          },
+          cache
         )
-      ),
-    ]);
-
-    setFriendRequests(resolvedReqs);
-    setCommunityGroupInvites(resolvedGroupInvites);
-    setActivityItems(resolvedActivity);
-    setLegacyActivityItems(resolvedLegacy);
+      )
+    );
+    setLoadError(false);
+    finishInitialLoad();
   };
 
   const onRefresh = async () => {
@@ -469,122 +688,88 @@ export default function NotificationsScreen() {
   };
 
   useEffect(() => {
-    if (!auth.currentUser) return;
+    if (!auth.currentUser) {
+      setLoading(false);
+      return;
+    }
     const myId = auth.currentUser.uid;
 
     const reqRef = query(
       collection(db, "users", myId, "friendRequests"),
       limit(FRIEND_REQUESTS_LISTENER_LIMIT)
     );
-    const groupInviteRef = collection(db, "users", myId, "communityGroupInvites");
+    const groupInviteRef = query(
+      collection(db, "users", myId, "communityGroupInvites"),
+      limit(GROUP_INVITES_LISTENER_LIMIT)
+    );
     const activityRef = query(
       collection(db, "users", myId, "notifications"),
       orderBy("createdAt", "desc"),
       limit(NOTIFICATIONS_LISTENER_LIMIT)
     );
-    const legacyRef = collection(db, "users", myId, "notificationLocks");
-
-    let reqReady = false;
-    let groupInviteReady = false;
-    let activityReady = false;
-    let legacyReady = false;
-
-    const maybeDoneLoading = () => {
-      if (reqReady && groupInviteReady && activityReady && legacyReady) setLoading(false);
-    };
+    const legacyRef = query(
+      collection(db, "users", myId, "notificationLocks"),
+      limit(LEGACY_NOTIFICATION_LOCKS_LIMIT)
+    );
 
     const unsubReq = onSnapshot(
       reqRef,
-      async (snapshot) => {
+      (snapshot) => {
         const reqList = snapshot.docs.map((d) => ({ id: d.id, ...d.data() }));
-        const resolved = await Promise.all(reqList.map(resolveFriendRequest));
-        setFriendRequests(resolved);
+        void hydrateFriendRequests(reqList);
         setLoadError(false);
-        reqReady = true;
-        maybeDoneLoading();
       },
       (error) => {
         console.error("friendRequests snapshot:", error);
         setLoadError(true);
-        reqReady = true;
-        maybeDoneLoading();
+        finishInitialLoad();
       }
     );
 
     const unsubGroupInvites = onSnapshot(
       groupInviteRef,
-      async (snapshot) => {
-        const list: CommunityGroupInvite[] = snapshot.docs.map((d) => {
-          const data = d.data() as Record<string, unknown>;
-          return {
-            id: d.id,
-            groupId: String(data.groupId || d.id).trim(),
-            groupName: String(data.groupName || "").trim() || "Group",
-            fromUserId: String(data.fromUserId || "").trim(),
-            fromUserName: String(data.fromUserName || "").trim() || "Friend",
-            fromUserImageUrl: data.fromUserImageUrl ? String(data.fromUserImageUrl) : undefined,
-            createdAt: data.createdAt,
-          };
-        });
-        const resolved = await Promise.all(list.map(resolveCommunityGroupInvite));
-        setCommunityGroupInvites(resolved);
+      (snapshot) => {
+        const list = snapshot.docs.map((d) =>
+          parseCommunityGroupInviteDoc(d.id, d.data() as Record<string, unknown>)
+        );
+        void hydrateCommunityGroupInvites(list);
         setLoadError(false);
-        groupInviteReady = true;
-        maybeDoneLoading();
       },
       (error) => {
         console.error("communityGroupInvites snapshot:", error);
         setLoadError(true);
-        groupInviteReady = true;
-        maybeDoneLoading();
+        finishInitialLoad();
       }
     );
 
     const unsubActivity = onSnapshot(
       activityRef,
-      async (snapshot) => {
+      (snapshot) => {
         const list = snapshot.docs.map((d) => ({ id: d.id, ...d.data() }));
-        const resolved = await Promise.all(list.map(resolveActivity));
-        setActivityItems(resolved);
+        void hydrateActivityItems(list);
         setLoadError(false);
-        activityReady = true;
-        maybeDoneLoading();
       },
       (error) => {
         console.error("notifications snapshot:", error);
         setLoadError(true);
-        activityReady = true;
-        maybeDoneLoading();
+        finishInitialLoad();
       }
     );
 
     const unsubLegacy = onSnapshot(
       legacyRef,
-      async (snapshot) => {
+      (snapshot) => {
         const list = snapshot.docs
           .map((d) => ({ id: d.id, ...d.data() } as LegacyNotificationLockRow))
           .filter((row) =>
-            ["friend_accepted", "open_plan_interest", "plan_invite", "community_plan_join"].includes(String(row.type || ""))
+            ["friend_accepted", "open_plan_interest", "plan_invite", "community_plan_join"].includes(
+              String(row.type || "")
+            )
           );
-        const resolved = await Promise.all(
-          list.map((row) =>
-            resolveActivity({
-              id: row.id,
-              type: row.type,
-              fromUserId: row.from || row.joinerId || null,
-              planTitle: row.planTitle || null,
-              createdAt: row.createdAt,
-              read: true,
-            })
-          )
-        );
-        setLegacyActivityItems(resolved);
-        legacyReady = true;
-        maybeDoneLoading();
+        void hydrateLegacyActivityItems(list);
       },
       () => {
-        legacyReady = true;
-        maybeDoneLoading();
+        finishInitialLoad();
       }
     );
 
@@ -594,7 +779,13 @@ export default function NotificationsScreen() {
       unsubActivity();
       unsubLegacy();
     };
-  }, []);
+  }, [
+    finishInitialLoad,
+    hydrateActivityItems,
+    hydrateCommunityGroupInvites,
+    hydrateFriendRequests,
+    hydrateLegacyActivityItems,
+  ]);
 
   const feedItems: FeedItem[] = useMemo(() => {
     const requests: FeedItem[] = friendRequests.map((r) => ({
@@ -1187,6 +1378,7 @@ export default function NotificationsScreen() {
 
   const isEmpty = feedItems.length === 0;
   const emptyTopOffset = Math.round(windowHeight * 0.2);
+  const showInitialSkeleton = loading && isEmpty && !loadError;
 
   return (
     <SafeAreaView style={styles.container} edges={["bottom", "left", "right"]}>
@@ -1195,7 +1387,7 @@ export default function NotificationsScreen() {
       <StackScreenHeader
         title="Notifications"
         right={
-          !loading && !loadError && !isEmpty ? (
+          !loadError && !isEmpty ? (
             <TouchableOpacity
               onPress={() => setShowClearConfirm(true)}
               disabled={clearingAll}
@@ -1211,11 +1403,11 @@ export default function NotificationsScreen() {
         }
       />
 
-      {loading ? (
-        <View style={styles.center}>
-          <ListRowsSkeleton />
+      {showInitialSkeleton ? (
+        <View style={styles.listLoading}>
+          <ListRowsSkeleton count={6} />
         </View>
-      ) : loadError ? (
+      ) : loadError && isEmpty ? (
         <ScrollView
           style={styles.emptyScroll}
           contentContainerStyle={styles.center}
@@ -1282,6 +1474,11 @@ export default function NotificationsScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: BACKGROUND },
   center: { flex: 1, justifyContent: "center", alignItems: "center", paddingHorizontal: SPACE_4 },
+  listLoading: {
+    flex: 1,
+    paddingTop: SPACE_3,
+    paddingHorizontal: SPACE_4,
+  },
   listContent: {
     paddingBottom: SPACE_6 + 8,
     paddingTop: SPACE_3,

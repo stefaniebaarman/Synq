@@ -75,7 +75,9 @@ import { MESSAGES_STACK_DURATION_MS } from "./MessagesModalStack";
 
 const COMPOSER_KEYBOARD_GAP = 10;
 /** Extra lift while the keyboard is open so the field isn’t covered. */
-const COMPOSER_KEYBOARD_CLEARANCE = 12;
+const COMPOSER_KEYBOARD_CLEARANCE = 20;
+/** Inverted list: paddingTop = visual gap between the latest message and the composer. */
+const CHAT_LIST_COMPOSER_CLEARANCE = 18;
 const LIST_SCROLL_OVERFLOW_SLACK = 4;
 
 /** Matches MessagesModalStack push/pop timing. */
@@ -218,7 +220,7 @@ function ChatSwipeRevealRow({
           {timeLabel}
         </Text>
       </Animated.View>
-      <Animated.View style={rowStyle}>{children}</Animated.View>
+      <Animated.View style={[rowStyle, { width: "100%" }]}>{children}</Animated.View>
     </View>
   );
 }
@@ -981,7 +983,7 @@ export default function MessagesChatPane({
       styles.chatListContent,
       messages.length > 0 && {
         // inverted: paddingTop = visual bottom (above composer)
-        paddingTop: 10,
+        paddingTop: CHAT_LIST_COMPOSER_CLEARANCE,
         // inverted: paddingBottom = visual top (under absolute header)
         paddingBottom:
           Math.max(headerOverlayHeight, 88) + CHAT_LIST_HEADER_FADE_CLEARANCE,
@@ -1034,10 +1036,12 @@ export default function MessagesChatPane({
       const inBurstWithNewer = isChatBurstNeighbor(newer, item, itemMs);
       const inBurstWithPrior = isChatBurstNeighbor(prior, item, itemMs);
       const priorIsClusterBreak = !inBurstWithPrior;
+      const newerIsClusterBreak = !inBurstWithNewer;
       // Avatar on the last bubble of a ≤1min same-sender burst (newest in that group).
       const showAvatar = !isMe && !inBurstWithNewer;
       const showSenderName = isGroupChat && !isMe && priorIsClusterBreak;
-      const clusterGap = priorIsClusterBreak ? 18 : 8;
+      // Inverted list: marginBottom separates this row from the newer row below it.
+      const gapToNewer = newer ? (newerIsClusterBreak ? 18 : 8) : 6;
       const senderLabel = (() => {
         if (!showSenderName) return "";
         const raw =
@@ -1070,8 +1074,8 @@ export default function MessagesChatPane({
         const isLegacyAiSuggestion = isLegacyAiSuggestionText(item.text);
         const ideaHeartCount = countHeartReactions(item.reactions);
         const ideaCap = Math.min(
-          iMessageBubbleColumnMaxWidth(windowWidth, isMe) + 48,
-          Math.round(windowWidth * 0.78)
+          iMessageBubbleColumnMaxWidth(windowWidth, isMe) + 24,
+          Math.round(windowWidth * (isMe ? 0.68 : 0.74))
         );
 
         return (
@@ -1081,7 +1085,9 @@ export default function MessagesChatPane({
               {
                 alignItems: isMe ? "flex-end" : "flex-start",
                 marginTop: CHAT_IDEA_EDGE_GAP,
-                marginBottom: CHAT_IDEA_EDGE_GAP,
+                marginBottom: newer
+                  ? Math.max(gapToNewer, CHAT_IDEA_EDGE_GAP)
+                  : CHAT_IDEA_EDGE_GAP,
               },
             ]}
           >
@@ -1120,7 +1126,18 @@ export default function MessagesChatPane({
                   ) : (
                     <View style={{ width: CHAT_AVATAR_SLOT }} />
                   ))}
-                <View style={[styles.ideaCardSlot, { maxWidth: ideaCap, width: ideaCap }]}>
+                <View
+                  style={[
+                    styles.messageBubbleColumn,
+                    styles.ideaCardSlot,
+                    {
+                      maxWidth: ideaCap,
+                      width: ideaCap,
+                      alignSelf: isMe ? "flex-end" : "flex-start",
+                      alignItems: isMe ? "flex-end" : "flex-start",
+                    },
+                  ]}
+                >
                   <AISuggestionBubble
                     text={item.text}
                     isLegacy={isLegacyAiSuggestion}
@@ -1150,9 +1167,7 @@ export default function MessagesChatPane({
               styles.msgContainer,
               {
                 alignItems: isMe ? "flex-end" : "flex-start",
-                marginBottom: prior && isAiSuggestionMessage(prior)
-                  ? 0
-                  : clusterGap,
+                marginBottom: gapToNewer,
               },
             ]}
           >
