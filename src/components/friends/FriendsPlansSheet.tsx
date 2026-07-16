@@ -221,7 +221,8 @@ export default function FriendsPlansSheet({
             joined={planJoined(item)}
             isHost={planIsHost(item)}
             busy={isPlanBusy(item)}
-            onPressCard={() => onOpenFriendProfile(item.sourceFriendId)}
+            cardPressOpensGoing
+            onPressCard={() => {}}
             onPressAction={() => void handlePlanAction(item)}
             onOpenPersonProfile={onOpenFriendProfile}
           />

@@ -65,6 +65,8 @@ type Props = {
   onPressCard: () => void;
   onPressAction: () => void;
   onOpenPersonProfile?: (userId: string) => void;
+  /** When true, tapping the card opens the going list instead of onPressCard. */
+  cardPressOpensGoing?: boolean;
 };
 
 export default function FriendPlanCard({
@@ -79,6 +81,7 @@ export default function FriendPlanCard({
   onPressCard,
   onPressAction,
   onOpenPersonProfile,
+  cardPressOpensGoing = false,
 }: Props) {
   const [goingSheetOpen, setGoingSheetOpen] = useState(false);
   const d = parsePlanDate(item.event.date);
@@ -109,10 +112,18 @@ export default function FriendPlanCard({
     imageUrl: person.userId ? friendImageByUid[person.userId] ?? null : null,
   }));
 
+  const handleCardPress = () => {
+    if (cardPressOpensGoing) {
+      setGoingSheetOpen(true);
+      return;
+    }
+    onPressCard();
+  };
+
   return (
     <>
       <View style={styles.card}>
-        <Pressable style={styles.dateBlock} onPress={onPressCard}>
+        <Pressable style={styles.dateBlock} onPress={handleCardPress}>
           <Text style={styles.day}>
             {d.toLocaleDateString("en-US", { weekday: "short" }).toUpperCase()}
           </Text>
@@ -126,9 +137,13 @@ export default function FriendPlanCard({
           <View style={styles.planHeaderRow}>
             <Pressable
               style={styles.titlePress}
-              onPress={onPressCard}
+              onPress={handleCardPress}
               accessibilityRole="button"
-              accessibilityLabel={`${ownerLine}, ${item.event.title}`}
+              accessibilityLabel={
+                cardPressOpensGoing
+                  ? `See who's going to ${item.event.title}`
+                  : `${ownerLine}, ${item.event.title}`
+              }
             >
               <Text style={styles.title} numberOfLines={2}>
                 {item.event.title}
@@ -149,7 +164,7 @@ export default function FriendPlanCard({
               </TouchableOpacity>
             ) : null}
           </View>
-          <Pressable onPress={onPressCard}>
+          <Pressable onPress={handleCardPress}>
             <Text style={styles.meta} numberOfLines={2}>
               {item.event.location
                 ? `${item.event.location}${item.event.time ? ` · ${item.event.time}` : ""}`
