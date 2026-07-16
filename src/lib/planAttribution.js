@@ -319,47 +319,50 @@ function resolvePlanAttribution(
     viewerEvents
   );
 
-  if (!hasJoinMetadata(effectiveEvent)) {
-    return { primary: null, secondary: null, goingPeople: [] };
-  }
-
   const joinedIds = collectJoinedIds(effectiveEvent);
+  const hasMeta = hasJoinMetadata(effectiveEvent, joinedIds);
   const anchorUid = String(
     effectiveEvent?.joinedFromFriendUid || effectiveEvent?.joinedFromId || ""
   ).trim();
-  const hostUid = resolveEffectiveHostUid(
+  let hostUid = resolveEffectiveHostUid(
     effectiveEvent,
     viewerUid,
     joinedIds,
     profileSubject
   );
+  // Solo hosted plans often have no join metadata — still treat the stored host
+  // (or profile owner) as the host so the going sheet is never empty.
+  if (!hostUid && !hasMeta) {
+    hostUid =
+      String(effectiveEvent?.planHostUid || "").trim() || profileSubject || "";
+  }
   const hostIsViewer = !!(hostUid && viewerUid && hostUid === viewerUid);
+  const viewerKey = String(viewerUid || "").trim();
+  const hostKey = String(hostUid || "").trim();
 
-  const excludeUids = new Set(
-    [viewerUid, hostUid].map((id) => String(id || "").trim()).filter(Boolean)
-  );
+  if (!hasMeta && !hostKey) {
+    return { primary: null, secondary: null, goingPeople: [] };
+  }
 
-  const goingPeople = joinedIds
-    .filter((id) => !excludeUids.has(id))
-    .map((id) => {
-      const displayName =
-        displayNameForUid(id, effectiveEvent, hostDisplayNameByUid) || "Friend";
-      return {
-        userId: id,
-        displayName,
-        imageUrl: null,
-      };
-    });
+  const personFromUid = (id) => {
+    const displayName =
+      displayNameForUid(id, effectiveEvent, hostDisplayNameByUid) || "Someone";
+    return {
+      userId: id,
+      displayName,
+      imageUrl: null,
+    };
+  };
 
-  const othersFirsts = Array.from(
-    new Set(goingPeople.map((p) => firstNameFromDisplay(p.displayName)).filter(Boolean))
-  );
-
-  const viewerAttending = !!(
-    viewerUid &&
-    joinedIds.includes(String(viewerUid).trim()) &&
-    !hostIsViewer
-  );
+  // Sheet lists everyone going except the viewer-as-attendee; host is always first.
+  const goingPeople = [];
+  if (hostKey) {
+    goingPeople.push({ ...personFromUid(hostKey), isHost: true });
+  }
+  for (const id of joinedIds) {
+    if (id === viewerKey || id === hostKey) continue;
+    goingPeople.push(personFromUid(id));
+  }
 
   const hostFn =
     hostUid && !hostIsViewer
@@ -371,6 +374,71 @@ function resolvePlanAttribution(
           hostDisplayNameByUid
         )
       : null;
+
+  // Legacy / incomplete rows: names without matching uids still belong on the list.
+  const coveredNames = new Set(
+    goingPeople.map((p) => String(p.displayName || "").trim().toLowerCase()).filter(Boolean)
+  );
+  const viewerName = String(
+    displayNameForUid(viewerKey, effectiveEvent, hostDisplayNameByUid) || ""
+  )
+    .trim()
+    .toLowerCase();
+  const hostName = String(
+    displayNameForUid(hostKey, effectiveEvent, hostDisplayNameByUid) || ""
+  )
+    .trim()
+    .toLowerCase();
+  const rawNames = (
+    Array.isArray(effectiveEvent?.joinedFromNames) && effectiveEvent.joinedFromNames.length > 0
+      ? effectiveEvent.joinedFromNames
+      : [effectiveEvent?.joinedFromName].filter(Boolean)
+  )
+    .map((n) => String(n || "").trim())
+    .filter(Boolean);
+
+  for (const name of rawNames) {
+    const key = name.toLowerCase();
+    if (!key || coveredNames.has(key)) continue;
+    if (key === viewerName || key === hostName) continue;
+    if (hostFn && firstNameFromDisplay(name).toLowerCase() === String(hostFn).toLowerCase()) {
+      continue;
+    }
+    const someoneIdx = goingPeople.findIndex(
+      (p) => !p.isHost && String(p.displayName || "").trim().toLowerCase() === "someone"
+    );
+    if (someoneIdx >= 0) {
+      goingPeople[someoneIdx] = {
+        ...goingPeople[someoneIdx],
+        displayName: name,
+      };
+      coveredNames.add(key);
+      coveredNames.delete("someone");
+      continue;
+    }
+    goingPeople.push({
+      userId: null,
+      displayName: name,
+      imageUrl: null,
+    });
+    coveredNames.add(key);
+  }
+
+  // Card subtitle still omits the host (already shown as "X's plan").
+  const othersFirsts = Array.from(
+    new Set(
+      goingPeople
+        .filter((p) => !p.isHost)
+        .map((p) => firstNameFromDisplay(p.displayName))
+        .filter(Boolean)
+    )
+  );
+
+  const viewerAttending = !!(
+    viewerUid &&
+    joinedIds.includes(String(viewerUid).trim()) &&
+    !hostIsViewer
+  );
 
   const primary =
     hostIsViewer || !hostUid ? null : hostFn ? `${hostFn}'s plan` : null;
@@ -401,6 +469,49 @@ function resolvePlanHostUidForJoin(event, profileFriendUid) {
   return stored || fk;
 }
 
+/**
+ * Merge two plan rows so going lists include every attendee id/name from either copy
+ * (host roster is often richer than a joiner's optimistic copy).
+ */
+function mergeEventsForGoingAttribution(primary, secondary) {
+  if (!secondary) return primary;
+  if (!primary) return secondary;
+
+  const ids = Array.from(
+    new Set([...collectJoinedIds(primary), ...collectJoinedIds(secondary)])
+  );
+  const names = Array.from(
+    new Set(
+      [
+        ...(Array.isArray(primary?.joinedFromNames) ? primary.joinedFromNames : []),
+        ...(Array.isArray(secondary?.joinedFromNames) ? secondary.joinedFromNames : []),
+        primary?.joinedFromName,
+        secondary?.joinedFromName,
+      ]
+        .map((n) => String(n || "").trim())
+        .filter(Boolean)
+    )
+  );
+
+  return {
+    ...primary,
+    planHostUid: primary.planHostUid || secondary.planHostUid,
+    joinedFromFriendUid: primary.joinedFromFriendUid || secondary.joinedFromFriendUid,
+    joinedFromIds: ids,
+    joinedFromId: primary.joinedFromId || secondary.joinedFromId || ids[0] || "",
+    joinedFromNames: names,
+    joinedFromName: names.join(", "),
+    attendeeDisplayNames: {
+      ...(typeof secondary.attendeeDisplayNames === "object" && secondary.attendeeDisplayNames
+        ? secondary.attendeeDisplayNames
+        : {}),
+      ...(typeof primary.attendeeDisplayNames === "object" && primary.attendeeDisplayNames
+        ? primary.attendeeDisplayNames
+        : {}),
+    },
+  };
+}
+
 module.exports = {
   collectJoinedIds,
   resolveEffectiveHostUid,
@@ -408,4 +519,5 @@ module.exports = {
   resolvePlanHostUidForJoin,
   planLooseMatch,
   enrichEventForFriendProfileAttribution,
+  mergeEventsForGoingAttribution,
 };

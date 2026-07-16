@@ -278,4 +278,56 @@ describe("planAttribution", () => {
     expect(result.primary).toBe("Shawn's plan");
     expect(result.secondary).toBe("You and Elliott are going");
   });
+
+  test("solo friend plan with no joiners still lists the host in goingPeople", () => {
+    const result = resolvePlanAttribution(
+      {
+        id: "solo-1",
+        title: "Happy Hour",
+        date: "2099-07-17",
+        time: "5:00 PM",
+        location: "Lulu's Wine Garden",
+        planHostUid: "priscilla",
+      },
+      "viewer",
+      { priscilla: "Priscilla Park" },
+      "priscilla"
+    );
+
+    expect(result.primary).toBe("Priscilla's plan");
+    expect(result.secondary).toBeNull();
+    expect(result.goingPeople).toEqual([
+      {
+        userId: "priscilla",
+        displayName: "Priscilla Park",
+        imageUrl: null,
+        isHost: true,
+      },
+    ]);
+  });
+
+  test("viewer host solo plan still lists themselves as host in goingPeople", () => {
+    const result = resolvePlanAttribution(
+      {
+        id: "mine-1",
+        title: "Coffee",
+        date: "2099-07-18",
+        planHostUid: "viewer",
+      },
+      "viewer",
+      { viewer: "Blake Reilly" },
+      "viewer"
+    );
+
+    expect(result.primary).toBeNull();
+    expect(result.secondary).toBeNull();
+    expect(result.goingPeople).toEqual([
+      {
+        userId: "viewer",
+        displayName: "Blake Reilly",
+        imageUrl: null,
+        isHost: true,
+      },
+    ]);
+  });
 });
