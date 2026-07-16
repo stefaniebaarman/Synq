@@ -9,7 +9,6 @@ import {
   SURFACE_ELEVATED,
   SURFACE_MUTED,
   SURFACE_RAISED,
-  SYNQ_OUTLINE_CTA_RADIUS,
   TYPE_BUTTON,
   TYPE_CAPTION,
   TYPE_CTA,
@@ -65,7 +64,7 @@ export const groupsPageStyles = StyleSheet.create({
   sectionAddBtn: {
     width: 24,
     height: 24,
-    borderRadius: SYNQ_OUTLINE_CTA_RADIUS,
+    borderRadius: 12,
     borderWidth: 1,
     borderColor: ACCENT_BORDER,
     alignItems: "center",

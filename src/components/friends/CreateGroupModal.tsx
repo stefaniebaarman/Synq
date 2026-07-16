@@ -52,7 +52,7 @@ export default function CreateGroupModal({
   onClose,
   onCreate,
   title = "New group",
-  hint = "Name a list to organize friends — like Close friends or Gym crew.",
+  hint = "Name a list to organize friends — like Running buddies or Gym crew.",
   submitLabel = "Create group",
   placeholder = "Group name",
   initialName = "",

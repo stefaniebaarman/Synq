@@ -159,7 +159,7 @@ export default function CreateCircleModal({
             <View style={styles.searchBar}>
               <TextInput
                 style={styles.searchInput}
-                placeholder="e.g. Close friends"
+                placeholder="e.g. Running buddies"
                 placeholderTextColor={MUTED2}
                 value={name}
                 onChangeText={setName}
