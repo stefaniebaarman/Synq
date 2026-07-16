@@ -6,19 +6,18 @@ import {
   BORDER,
   BORDER_STRONG,
   BORDER_SUBTLE_HEX,
-  BUTTON_RADIUS,
   DEFAULT_AVATAR,
-  DISABLED_ACCENT,
   MUTED2,
-  ON_ACCENT_TEXT,
   PRIMARY_CTA_WIDTH,
   TEXT,
   TYPE_BODY,
   TYPE_CAPTION,
   heroTitleText,
   fonts,
+  synqOutlineAddBtn,
   synqOutlineAddBtnCompact,
   synqOutlineAddBtnDisabled,
+  synqOutlineAddBtnText,
   synqOutlineAddBtnTextCompact,
   synqOutlineAddBtnTextDisabled,
   MODAL_RADIUS,
@@ -366,9 +365,10 @@ export default function PlanInviteFriendsSheet({
             />
             <TouchableOpacity
               style={[
+                synqOutlineAddBtn,
                 styles.inviteBtn,
                 (selected.size === 0 || inviting || selectableFriends.length === 0) &&
-                  styles.inviteBtnDisabled,
+                  synqOutlineAddBtnDisabled,
               ]}
               disabled={selected.size === 0 || inviting || selectableFriends.length === 0}
               onPress={() => void inviteSelected()}
@@ -376,7 +376,13 @@ export default function PlanInviteFriendsSheet({
               accessibilityRole="button"
               accessibilityLabel={inviteCtaLabel(selected.size)}
             >
-              <Text style={styles.inviteBtnText}>
+              <Text
+                style={[
+                  synqOutlineAddBtnText,
+                  (selected.size === 0 || inviting || selectableFriends.length === 0) &&
+                    synqOutlineAddBtnTextDisabled,
+                ]}
+              >
                 {inviteCtaLabel(selected.size)}
               </Text>
             </TouchableOpacity>
@@ -449,21 +455,10 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   inviteBtn: {
-    alignSelf: "center",
     width: PRIMARY_CTA_WIDTH,
     height: 50,
-    borderRadius: BUTTON_RADIUS,
-    backgroundColor: ACCENT,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  inviteBtnDisabled: {
-    backgroundColor: DISABLED_ACCENT,
-  },
-  inviteBtnText: {
-    color: ON_ACCENT_TEXT,
-    fontFamily: fonts.heavy,
-    fontSize: TYPE_BODY,
+    paddingVertical: 0,
+    paddingHorizontal: 0,
   },
   ctaFooter: {
     position: "relative",

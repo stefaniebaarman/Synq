@@ -11,7 +11,6 @@ import {
   MUTED3,
   OVERLAY_HEAVY,
   PLACEHOLDER_DARK,
-  PRIMARY_CTA_WIDTH,
   RADIUS_LG,
   SURFACE_INPUT,
   TEXT,
@@ -845,13 +844,14 @@ export default function OpenPlans({
 
               {canInviteToPlan ? (
                 <TouchableOpacity
-                  style={styles.inviteFriendsBtn}
+                  style={[synqOutlineAddBtn, styles.inviteFriendsBtn]}
                   onPress={openInviteSheet}
+                  activeOpacity={0.85}
                   accessibilityRole="button"
                   accessibilityLabel="Invite friends to this plan"
                 >
                   <Ionicons name="person-add-outline" size={18} color={ACCENT} />
-                  <Text style={styles.inviteFriendsBtnText}>
+                  <Text style={synqOutlineAddBtnText}>
                     {pendingInviteFriendIds.length > 0
                       ? `Invite friends (${pendingInviteFriendIds.length})`
                       : "Invite friends"}
@@ -1173,7 +1173,7 @@ const styles = StyleSheet.create({
   },
   popupPostBtn: {
     marginTop: 14,
-    width: PRIMARY_CTA_WIDTH,
+    width: "56%",
     height: 50,
     paddingVertical: 0,
     paddingHorizontal: 0,
@@ -1201,22 +1201,13 @@ const styles = StyleSheet.create({
   inviteFriendsBtn: {
     marginTop: 12,
     marginBottom: 4,
-    alignSelf: "center",
-    width: PRIMARY_CTA_WIDTH,
+    width: "56%",
     height: 50,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 8,
+    paddingVertical: 0,
+    paddingHorizontal: 0,
     borderRadius: BUTTON_RADIUS,
-    borderWidth: 1,
-    borderColor: ACCENT_BORDER,
-    backgroundColor: ACCENT_FILL_SUBTLE,
-  },
-  inviteFriendsBtnText: {
-    color: ACCENT,
-    fontSize: TYPE_BODY,
-    fontFamily: fonts.heavy,
+    flexDirection: "row",
+    gap: 8,
   },
   planInputSecondary: {
     backgroundColor: SURFACE_INPUT,
