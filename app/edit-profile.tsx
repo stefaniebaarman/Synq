@@ -32,14 +32,10 @@ import {
   ACCENT_BORDER_SUBTLE,
   ACCENT_FILL,
   BG,
-  BORDER,
-  BUTTON_RADIUS,
   DIVIDER,
   MUTED,
   MUTED2,
   MUTED3,
-  ON_ACCENT_TEXT,
-  RADIUS_MD,
   SPACE_3,
   SPACE_4,
   SPACE_5,
@@ -47,10 +43,13 @@ import {
   TEXT,
   TYPE_BODY,
   TYPE_BUTTON,
-  TYPE_CAPTION,
   TYPE_LEAD,
   fonts,
   RADIUS_LG,
+  synqOutlineAddBtn,
+  synqOutlineAddBtnDisabled,
+  synqOutlineAddBtnText,
+  synqOutlineAddBtnTextDisabled,
 } from "../constants/Variables";
 import { auth, db } from "../src/lib/firebase";
 import { filterOrReject } from "@/src/lib/contentFilter";
@@ -493,95 +492,117 @@ export default function EditProfileScreen() {
             </View>
           </Animated.View>
 
-          {locationAutofill !== "dismissed" && (
+          {(locationAutofill !== "dismissed" || hasSavedLocation) && (
             <View style={formScreenStyles.group}>
-              <TouchableOpacity
-                onPress={fillFromCurrentLocation}
-                disabled={
-                  saving ||
-                  locating ||
-                  removingLocation ||
-                  locationPermissionRequesting ||
-                  locationAutofill === "success"
-                }
-                activeOpacity={0.75}
-                style={[
-                  styles.actionRow,
-                  (saving ||
+              {locationAutofill !== "dismissed" && (
+                <TouchableOpacity
+                  onPress={fillFromCurrentLocation}
+                  disabled={
+                    saving ||
                     locating ||
                     removingLocation ||
-                    locationPermissionRequesting) &&
-                    styles.disabledControl,
-                ]}
-              >
-                <View
+                    locationPermissionRequesting ||
+                    locationAutofill === "success"
+                  }
+                  activeOpacity={0.75}
                   style={[
-                    styles.actionIconWrap,
-                    locationAutofill === "success" && styles.actionIconSuccess,
+                    styles.actionRow,
+                    (saving ||
+                      locating ||
+                      removingLocation ||
+                      locationPermissionRequesting) &&
+                      styles.disabledControl,
                   ]}
                 >
-                  {locationAutofill === "success" ? (
-                    <Ionicons name="checkmark" size={20} color={ACCENT} />
-                  ) : (
-                    <Ionicons
-                      name="location-outline"
-                      size={20}
-                      color={ACCENT}
-                      style={
-                        locating || locationPermissionRequesting ? { opacity: 0.7 } : undefined
-                      }
-                    />
-                  )}
-                </View>
-                <View style={styles.actionCopy}>
-                  <Text style={styles.actionTitle}>
-                    {locationAutofill === "success"
-                      ? "Location found"
-                      : locating || locationPermissionRequesting
-                        ? "Using current location…"
-                        : "Use current location"}
-                  </Text>
-                  <Text style={styles.actionSubtitle}>
-                    {locationAutofill === "success"
-                      ? resolvedLocationPreview
-                      : locating || locationPermissionRequesting
-                        ? locatingSubtitle
-                        : "Auto-fill city and state"}
-                  </Text>
-                </View>
-                {locationAutofill === "offered" &&
-                  !locating &&
-                  !locationPermissionRequesting && (
-                    <Ionicons name="chevron-forward" size={18} color={MUTED2} />
-                  )}
-              </TouchableOpacity>
-            </View>
-          )}
+                  <View
+                    style={[
+                      styles.actionIconWrap,
+                      locationAutofill === "success" && styles.actionIconSuccess,
+                    ]}
+                  >
+                    {locationAutofill === "success" ? (
+                      <Ionicons name="checkmark" size={20} color={ACCENT} />
+                    ) : (
+                      <Ionicons
+                        name="location-outline"
+                        size={20}
+                        color={ACCENT}
+                        style={
+                          locating || locationPermissionRequesting
+                            ? { opacity: 0.7 }
+                            : undefined
+                        }
+                      />
+                    )}
+                  </View>
+                  <View style={styles.actionCopy}>
+                    <Text style={styles.actionTitle}>
+                      {locationAutofill === "success"
+                        ? "Location found"
+                        : locating || locationPermissionRequesting
+                          ? "Using current location…"
+                          : "Use current location"}
+                    </Text>
+                    <Text style={styles.actionSubtitle}>
+                      {locationAutofill === "success"
+                        ? resolvedLocationPreview
+                        : locating || locationPermissionRequesting
+                          ? locatingSubtitle
+                          : "Auto-fill city and state"}
+                    </Text>
+                  </View>
+                  {locationAutofill === "offered" &&
+                    !locating &&
+                    !locationPermissionRequesting && (
+                      <Ionicons name="chevron-forward" size={18} color={MUTED2} />
+                    )}
+                </TouchableOpacity>
+              )}
 
-          {hasSavedLocation && (
-            <TouchableOpacity
-              onPress={() => setShowRemoveLocationConfirm(true)}
-              disabled={saving || locating || removingLocation}
-              style={styles.removeLocationBtn}
-              activeOpacity={0.8}
-            >
-              <Text style={styles.removeLocationText}>Remove location</Text>
-            </TouchableOpacity>
+              {hasSavedLocation && locationAutofill !== "dismissed" ? (
+                <View style={styles.locationActionDivider} />
+              ) : null}
+
+              {hasSavedLocation ? (
+                <TouchableOpacity
+                  onPress={() => setShowRemoveLocationConfirm(true)}
+                  disabled={saving || locating || removingLocation}
+                  style={[
+                    styles.removeLocationRow,
+                    locationAutofill === "dismissed" && styles.removeLocationRowAlone,
+                    (saving || locating || removingLocation) && styles.disabledControl,
+                  ]}
+                  activeOpacity={0.8}
+                  accessibilityRole="button"
+                  accessibilityLabel="Remove location"
+                >
+                  <Text style={styles.removeLocationText}>Remove location</Text>
+                </TouchableOpacity>
+              ) : null}
+            </View>
           )}
 
           <TouchableOpacity
             onPress={handleSave}
             disabled={!isDirty || saving || removingLocation}
             style={[
+              synqOutlineAddBtn,
               styles.saveButton,
-              (!isDirty || saving || removingLocation) && styles.saveButtonDisabled,
+              (!isDirty || saving || removingLocation) && synqOutlineAddBtnDisabled,
             ]}
-            activeOpacity={isDirty && !saving && !removingLocation ? 0.9 : 1}
+            activeOpacity={isDirty && !saving && !removingLocation ? 0.85 : 1}
             accessibilityRole="button"
             accessibilityLabel="Save profile"
             accessibilityState={{ disabled: !isDirty || saving || removingLocation }}
           >
-            <Text style={[styles.saveButtonText, saving && { opacity: 0.5 }]}>Save</Text>
+            <Text
+              style={[
+                synqOutlineAddBtnText,
+                (!isDirty || saving || removingLocation) && synqOutlineAddBtnTextDisabled,
+              ]}
+            >
+              {saving ? "Saving…" : "Save"}
+            </Text>
           </TouchableOpacity>
 
           <TouchableOpacity
@@ -736,12 +757,19 @@ const styles = StyleSheet.create({
     lineHeight: 18,
   },
 
-  removeLocationBtn: {
-    alignSelf: "flex-start",
-    marginTop: SPACE_3 - 4,
-    marginLeft: SPACE_5,
-    marginBottom: SPACE_3,
-    paddingVertical: SPACE_3 - 4,
+  removeLocationRow: {
+    paddingVertical: SPACE_3 + 2,
+    paddingHorizontal: SPACE_4 + 2,
+    alignItems: "flex-start",
+    justifyContent: "center",
+  },
+  removeLocationRowAlone: {
+    paddingVertical: SPACE_4,
+  },
+  locationActionDivider: {
+    height: StyleSheet.hairlineWidth,
+    backgroundColor: DIVIDER,
+    marginLeft: SPACE_4 + 2 + 40 + SPACE_3 + 2,
   },
   removeLocationText: {
     color: MUTED2,
@@ -750,25 +778,7 @@ const styles = StyleSheet.create({
   },
 
   saveButton: {
-    marginTop: SPACE_5,
-    alignSelf: "center",
-    minWidth: 200,
-    minHeight: 48,
-    backgroundColor: ACCENT,
-    borderRadius: BUTTON_RADIUS,
-    paddingVertical: 12,
-    paddingHorizontal: SPACE_5,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  saveButtonDisabled: {
-    opacity: 0.45,
-  },
-  saveButtonText: {
-    color: ON_ACCENT_TEXT,
-    fontSize: TYPE_BODY,
-    fontFamily: fonts.heavy,
-    letterSpacing: 0.1,
+    marginTop: SPACE_3,
   },
   cancelButton: {
     marginTop: SPACE_4,
