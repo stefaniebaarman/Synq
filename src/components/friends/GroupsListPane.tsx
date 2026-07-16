@@ -193,7 +193,7 @@ export default function GroupsListPane({
 
         </View>
 
-        <CommunitySection userId={userId} friends={friends} />
+        <CommunitySection userId={userId} />
       </ScrollView>
 
       <CreateCircleModal

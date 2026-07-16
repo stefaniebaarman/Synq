@@ -1,15 +1,11 @@
 import AlertModal from "@/app/alert-modal";
 import {
-  ACCENT,
   ACCENT_BORDER,
   ACCENT_FILL,
   BG,
   BORDER,
-  Friend,
   MUTED2,
   MUTED3,
-  ON_ACCENT_TEXT,
-  RADIUS_2XL,
   RADIUS_LG,
   SURFACE,
   SURFACE_MUTED,
@@ -20,9 +16,7 @@ import {
   fonts,
   profileInterestPillText,
   profileInterestPillTextActive,
-  profileNameText,
 } from "@/constants/Variables";
-import CloseButton from "@/src/components/CloseButton";
 import { ListRowsSkeleton } from "@/src/components/loading/BrandSkeletons";
 import CommunityGroupListAvatar from "@/src/components/friends/CommunityGroupListAvatar";
 import {
@@ -30,15 +24,20 @@ import {
   GROUP_SURFACE,
   groupsPageStyles,
 } from "@/src/components/friends/groupsListStyles";
-import SpringBottomSheet from "@/src/components/sheets/SpringBottomSheet";
+import StackScreenHeader from "@/src/components/StackScreenHeader";
 import { COMMUNITY_GROUP_CATEGORIES } from "@/src/lib/communityGroupCategories";
 import {
   CommunityGroup,
   fetchAllCommunityGroups,
   joinCommunityGroup,
   searchCommunityGroups,
+  subscribeJoinedCommunityGroups,
 } from "@/src/lib/communityGroups";
+import { auth } from "@/src/lib/firebase";
+import { communityGroupsCacheByUser } from "@/src/lib/socialCache";
 import { Ionicons } from "@expo/vector-icons";
+import * as Haptics from "expo-haptics";
+import { useRouter } from "expo-router";
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   FlatList,
@@ -50,24 +49,11 @@ import {
   Text,
   TextInput,
   TouchableOpacity,
-  TouchableWithoutFeedback,
-  useWindowDimensions,
   View,
 } from "react-native";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
-
-type Props = {
-  visible: boolean;
-  userId: string;
-  friends: Friend[];
-  joinedGroupIds: Set<string>;
-  onClose: () => void;
-  onJoined: (groupId: string) => void;
-  onOpenGroup: (groupId: string) => void;
-};
+import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 
 const LIST_GAP = 10;
-const NAV_SIDE = 44;
 const CONTENT_PAD_X = 20;
 
 function formatMemberCount(count: number): string {
@@ -90,30 +76,25 @@ function ListGap() {
   return <View style={styles.listGap} />;
 }
 
-export default function CommunityGroupSearchSheet({
-  visible,
-  userId,
-  friends,
-  joinedGroupIds,
-  onClose,
-  onJoined,
-  onOpenGroup,
-}: Props) {
+export default function CommunityGroupDiscover() {
+  const router = useRouter();
   const insets = useSafeAreaInsets();
-  const { height: windowHeight } = useWindowDimensions();
-  const sheetHeight = Math.round(windowHeight * 0.94);
+  const userId = auth.currentUser?.uid ?? "";
+  const cached = userId ? communityGroupsCacheByUser[userId] ?? [] : [];
+  const [joined, setJoined] = useState<CommunityGroup[]>(cached);
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<CommunityGroup[]>([]);
   const [searching, setSearching] = useState(false);
   const [joiningId, setJoiningId] = useState<string | null>(null);
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [allGroups, setAllGroups] = useState<CommunityGroup[]>([]);
-  const [allGroupsLoading, setAllGroupsLoading] = useState(false);
+  const [allGroupsLoading, setAllGroupsLoading] = useState(true);
   const searchTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const [keyboardOpen, setKeyboardOpen] = useState(false);
   const [alertVisible, setAlertVisible] = useState(false);
   const [alertTitle, setAlertTitle] = useState<string | undefined>();
   const [alertMessage, setAlertMessage] = useState("");
+
+  const joinedGroupIds = useMemo(() => new Set(joined.map((g) => g.id)), [joined]);
 
   const showAlert = useCallback((title: string, message: string) => {
     setAlertTitle(title);
@@ -124,43 +105,30 @@ export default function CommunityGroupSearchSheet({
   const dismissKeyboard = () => Keyboard.dismiss();
   const listContentPadding = { paddingBottom: Math.max(insets.bottom, 16) + 12 };
 
-  useEffect(() => {
-    if (!visible) {
-      setKeyboardOpen(false);
-      return;
-    }
+  const goBack = () => {
+    if (router.canGoBack()) router.back();
+    else router.replace("/(tabs)/friends");
+  };
 
-    const onShow = () => setKeyboardOpen(true);
-    const onHide = () => setKeyboardOpen(false);
-    const showEvt = Platform.OS === "ios" ? "keyboardWillShow" : "keyboardDidShow";
-    const hideEvt = Platform.OS === "ios" ? "keyboardWillHide" : "keyboardDidHide";
-    const showSub = Keyboard.addListener(showEvt, onShow);
-    const hideSub = Keyboard.addListener(hideEvt, onHide);
-    return () => {
-      showSub.remove();
-      hideSub.remove();
-    };
-  }, [visible]);
+  const openGroup = (id: string) => {
+    void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    router.push({ pathname: "/community-group/[id]", params: { id } });
+  };
 
   useEffect(() => {
-    if (!visible) {
-      setQuery("");
-      setResults([]);
-      setSearching(false);
-      setJoiningId(null);
-      setSelectedCategory(null);
-      setAllGroups([]);
-      setAllGroupsLoading(false);
-      if (searchTimerRef.current) {
-        clearTimeout(searchTimerRef.current);
-        searchTimerRef.current = null;
-      }
-    }
-  }, [visible]);
+    if (!userId) return;
+    const unsub = subscribeJoinedCommunityGroups(
+      userId,
+      (next) => {
+        communityGroupsCacheByUser[userId] = next;
+        setJoined(next);
+      },
+      () => {}
+    );
+    return unsub;
+  }, [userId]);
 
   useEffect(() => {
-    if (!visible) return;
-
     const trimmed = query.trim();
     if (!trimmed) {
       setResults([]);
@@ -180,11 +148,9 @@ export default function CommunityGroupSearchSheet({
     return () => {
       if (searchTimerRef.current) clearTimeout(searchTimerRef.current);
     };
-  }, [query, visible]);
+  }, [query]);
 
   useEffect(() => {
-    if (!visible) return;
-
     let cancelled = false;
     setAllGroupsLoading(true);
     void fetchAllCommunityGroups()
@@ -201,7 +167,7 @@ export default function CommunityGroupSearchSheet({
     return () => {
       cancelled = true;
     };
-  }, [visible]);
+  }, []);
 
   const trimmed = query.trim();
 
@@ -217,9 +183,7 @@ export default function CommunityGroupSearchSheet({
     setJoiningId(group.id);
     try {
       await joinCommunityGroup(userId, group.id, group.memberIds);
-      onJoined(group.id);
-      onOpenGroup(group.id);
-      onClose();
+      openGroup(group.id);
     } catch (err: unknown) {
       showAlert(
         "Could not join",
@@ -228,14 +192,6 @@ export default function CommunityGroupSearchSheet({
     } finally {
       setJoiningId(null);
     }
-  };
-
-  const handleBackdropPress = () => {
-    if (keyboardOpen) {
-      dismissKeyboard();
-      return;
-    }
-    onClose();
   };
 
   const selectCategory = (category: string | null) => {
@@ -260,8 +216,7 @@ export default function CommunityGroupSearchSheet({
         activeOpacity={0.78}
         onPress={() => {
           dismissKeyboard();
-          onOpenGroup(item.id);
-          onClose();
+          openGroup(item.id);
         }}
       >
         <CommunityGroupListAvatar
@@ -394,48 +349,36 @@ export default function CommunityGroupSearchSheet({
   }
 
   return (
-    <SpringBottomSheet
-      visible={visible}
-      onClose={onClose}
-      onBackdropPress={handleBackdropPress}
-      cardStyle={[
-        styles.sheet,
-        { height: sheetHeight, paddingBottom: Math.max(insets.bottom, 16) },
-      ]}
-    >
-      <TouchableWithoutFeedback onPress={dismissKeyboard} accessible={false}>
-        <View style={styles.sheetHeader}>
-          <View style={styles.headerRow}>
-            <View style={styles.headerTitleWrap}>
-              <Text style={styles.title}>Discover</Text>
-            </View>
-            <CloseButton onPress={onClose} style={styles.navIconBtnTrailing} />
-          </View>
+    <SafeAreaView style={styles.screen} edges={["bottom", "left", "right"]}>
+      <StackScreenHeader title="Discover" onBack={goBack} />
+
+      <View style={styles.body}>
+        <View style={styles.searchRow}>
+          <Ionicons name="search" size={17} color={MUTED3} />
+          <TextInput
+            style={styles.searchInput}
+            placeholder="Search by name"
+            placeholderTextColor={MUTED3}
+            value={query}
+            onChangeText={setQuery}
+            returnKeyType="search"
+            onSubmitEditing={() => Keyboard.dismiss()}
+          />
+          {query.length > 0 ? (
+            <TouchableOpacity
+              onPress={() => setQuery("")}
+              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+            >
+              <Ionicons name="close-circle" size={18} color={MUTED2} />
+            </TouchableOpacity>
+          ) : null}
         </View>
-      </TouchableWithoutFeedback>
 
-      <View style={styles.searchRow}>
-        <Ionicons name="search" size={17} color={MUTED3} />
-        <TextInput
-          style={styles.searchInput}
-          placeholder="Search by name"
-          placeholderTextColor={MUTED3}
-          value={query}
-          onChangeText={setQuery}
-          returnKeyType="search"
-          onSubmitEditing={() => Keyboard.dismiss()}
-        />
-        {query.length > 0 ? (
-          <TouchableOpacity onPress={() => setQuery("")} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
-            <Ionicons name="close-circle" size={18} color={MUTED2} />
-          </TouchableOpacity>
-        ) : null}
-      </View>
+        {renderCategoryChips()}
 
-      {renderCategoryChips()}
-
-      <View style={styles.listArea} {...listTouchProps}>
-        {listContent}
+        <View style={styles.listArea} {...listTouchProps}>
+          {listContent}
+        </View>
       </View>
 
       <AlertModal
@@ -444,46 +387,18 @@ export default function CommunityGroupSearchSheet({
         message={alertMessage}
         onClose={() => setAlertVisible(false)}
       />
-    </SpringBottomSheet>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  sheet: {
-    backgroundColor: BG,
-    borderRadius: RADIUS_2XL,
-    paddingHorizontal: CONTENT_PAD_X,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: GROUP_BORDER,
-    overflow: "hidden",
-  },
-  sheetHeader: {
-    paddingTop: 8,
-    paddingBottom: 16,
-  },
-  headerRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    minHeight: NAV_SIDE,
-    gap: 4,
-  },
-  headerTitleWrap: {
+  screen: {
     flex: 1,
-    minWidth: 0,
-    justifyContent: "center",
+    backgroundColor: BG,
   },
-  navIconBtnTrailing: {
-    width: NAV_SIDE,
-    height: NAV_SIDE,
-    alignItems: "center",
-    justifyContent: "center",
-    flexShrink: 0,
-    marginRight: -10,
-  },
-  title: {
-    ...profileNameText,
-    lineHeight: 32,
-    letterSpacing: 0.15,
+  body: {
+    flex: 1,
+    paddingHorizontal: CONTENT_PAD_X,
   },
   searchRow: {
     flexDirection: "row",
@@ -491,6 +406,7 @@ const styles = StyleSheet.create({
     gap: 10,
     height: 48,
     paddingHorizontal: 16,
+    marginTop: 12,
     marginBottom: 16,
     borderRadius: 999,
     backgroundColor: GROUP_SURFACE,

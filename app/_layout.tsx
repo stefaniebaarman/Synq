@@ -1129,6 +1129,13 @@ export default function RootLayout() {
                     }}
                   />
                   <Stack.Screen
+                    name="discover-communities"
+                    options={{
+                      animation: "slide_from_right",
+                      gestureEnabled: true,
+                    }}
+                  />
+                  <Stack.Screen
                     name="community-group/[id]"
                     options={{
                       animation: "slide_from_right",

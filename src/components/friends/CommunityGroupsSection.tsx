@@ -1,11 +1,9 @@
 import AlertModal from "@/app/alert-modal";
 import {
-  Friend,
   MUTED2,
   MUTED3,
 } from "@/constants/Variables";
 import CommunityGroupListAvatar from "@/src/components/friends/CommunityGroupListAvatar";
-import CommunityGroupSearchSheet from "@/src/components/friends/CommunityGroupSearchSheet";
 import CreateCommunityModal, {
   type CreateCommunityInput,
 } from "@/src/components/community/CreateCommunityModal";
@@ -21,7 +19,7 @@ import { communityGroupsCacheByUser } from "@/src/lib/socialCache";
 import { Ionicons } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
 import { useRouter } from "expo-router";
-import React, { useCallback, useEffect, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import {
   Text,
   TouchableOpacity,
@@ -30,18 +28,16 @@ import {
 
 type Props = {
   userId: string;
-  friends?: Friend[];
 };
 
 function formatMemberCount(count: number): string {
   return count === 1 ? "1 member" : `${count} members`;
 }
 
-export default function CommunitySection({ userId, friends = [] }: Props) {
+export default function CommunitySection({ userId }: Props) {
   const router = useRouter();
   const cached = userId ? communityGroupsCacheByUser[userId] ?? [] : [];
   const [joined, setJoined] = useState<CommunityGroup[]>(cached);
-  const [searchVisible, setSearchVisible] = useState(false);
   const [createVisible, setCreateVisible] = useState(false);
   const [createBusy, setCreateBusy] = useState(false);
   const [communityInfoVisible, setCommunityInfoVisible] = useState(false);
@@ -54,8 +50,6 @@ export default function CommunitySection({ userId, friends = [] }: Props) {
     setAlertMessage(message);
     setAlertVisible(true);
   }, []);
-
-  const joinedIds = useMemo(() => new Set(joined.map((g) => g.id)), [joined]);
 
   useEffect(() => {
     if (!userId) return;
@@ -77,7 +71,7 @@ export default function CommunitySection({ userId, friends = [] }: Props) {
 
   const openSearch = () => {
     void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    setSearchVisible(true);
+    router.push("/discover-communities");
   };
 
   const openCreate = () => {
@@ -164,16 +158,6 @@ export default function CommunitySection({ userId, friends = [] }: Props) {
           </TouchableOpacity>
         ))}
       </View>
-
-      <CommunityGroupSearchSheet
-        visible={searchVisible}
-        userId={userId}
-        friends={friends}
-        joinedGroupIds={joinedIds}
-        onClose={() => setSearchVisible(false)}
-        onJoined={() => {}}
-        onOpenGroup={openGroup}
-      />
 
       <CreateCommunityModal
         visible={createVisible}
