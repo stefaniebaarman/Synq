@@ -5,11 +5,9 @@ import {
   BG_TRANSPARENT,
   BORDER_SOFT,
   BUTTON_RADIUS,
-  DISABLED_ACCENT,
   Friend,
   MUTED2,
   MUTED3,
-  ON_ACCENT_TEXT,
   SURFACE,
   TEXT,
   TYPE_BODY,
@@ -17,6 +15,10 @@ import {
   heroTitleText,
   fonts,
   MODAL_RADIUS,
+  synqOutlineAddBtn,
+  synqOutlineAddBtnDisabled,
+  synqOutlineAddBtnText,
+  synqOutlineAddBtnTextDisabled,
 } from "@/constants/Variables";
 import CloseButton from "@/src/components/CloseButton";
 import { useCreateSheetLayout } from "@/src/components/friends/createSheetLayout";
@@ -132,8 +134,6 @@ export default function CreateCircleModal({
     Keyboard.dismiss();
     await onCreate(trimmed, [...selected]);
   };
-
-  const selectedCount = selected.size;
 
   return (
     <SpringBottomSheet
@@ -255,17 +255,20 @@ export default function CreateCircleModal({
             style={styles.ctaFade}
           />
           <TouchableOpacity
-            style={[styles.cta, !canSubmit && styles.ctaDisabled]}
+            style={[synqOutlineAddBtn, !canSubmit && synqOutlineAddBtnDisabled]}
             disabled={!canSubmit}
             onPress={() => void handleCreate()}
             activeOpacity={0.85}
             accessibilityRole="button"
             accessibilityLabel="Create circle"
           >
-            <Text style={styles.ctaText}>
-              {selectedCount > 0
-                ? `Create · ${selectedCount} friend${selectedCount === 1 ? "" : "s"}`
-                : "Create"}
+            <Text
+              style={[
+                synqOutlineAddBtnText,
+                !canSubmit && synqOutlineAddBtnTextDisabled,
+              ]}
+            >
+              {busy ? "Creating…" : "Create"}
             </Text>
           </TouchableOpacity>
         </View>
@@ -387,22 +390,5 @@ const styles = StyleSheet.create({
     right: -20,
     top: -CTA_FADE_HEIGHT,
     height: CTA_FADE_HEIGHT,
-  },
-  cta: {
-    alignSelf: "center",
-    width: "62%",
-    minHeight: 48,
-    borderRadius: BUTTON_RADIUS,
-    backgroundColor: ACCENT,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  ctaDisabled: {
-    backgroundColor: DISABLED_ACCENT,
-  },
-  ctaText: {
-    fontFamily: fonts.medium,
-    fontSize: TYPE_BODY,
-    color: ON_ACCENT_TEXT,
   },
 });

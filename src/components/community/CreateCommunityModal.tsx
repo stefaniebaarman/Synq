@@ -7,12 +7,9 @@ import {
   BG,
   BORDER_HAIRLINE,
   BORDER_SOFT,
-  BUTTON_RADIUS,
-  DISABLED_ACCENT,
   fonts,
   heroTitleText,
   MUTED2,
-  ON_ACCENT_TEXT,
   OVERLAY_MID,
   RADIUS_LG,
   RADIUS_XL,
@@ -21,6 +18,10 @@ import {
   TYPE_BODY,
   TYPE_CAPTION,
   TYPE_MODAL_TITLE,
+  synqOutlineAddBtn,
+  synqOutlineAddBtnDisabled,
+  synqOutlineAddBtnText,
+  synqOutlineAddBtnTextDisabled,
 } from "@/constants/Variables";
 import CloseButton from "@/src/components/CloseButton";
 import { useCreateSheetLayout } from "@/src/components/friends/createSheetLayout";
@@ -349,14 +350,20 @@ export default function CreateCommunityModal({
 
           <View style={styles.footer}>
             <TouchableOpacity
-              style={[styles.cta, !canSubmit && styles.ctaDisabled]}
+              style={[synqOutlineAddBtn, !canSubmit && synqOutlineAddBtnDisabled]}
               disabled={!canSubmit}
               onPress={() => void handleCreate()}
+              activeOpacity={0.85}
               accessibilityRole="button"
               accessibilityLabel="Create community"
             >
-              <Text style={[styles.ctaText, busy && { opacity: 0.5 }]}>
-                Create community
+              <Text
+                style={[
+                  synqOutlineAddBtnText,
+                  !canSubmit && synqOutlineAddBtnTextDisabled,
+                ]}
+              >
+                {busy ? "Creating…" : "Create"}
               </Text>
             </TouchableOpacity>
           </View>
@@ -567,23 +574,5 @@ const styles = StyleSheet.create({
   footer: {
     paddingTop: 14,
     alignItems: "center",
-  },
-  cta: {
-    alignSelf: "center",
-    width: "62%",
-    minHeight: 52,
-    borderRadius: BUTTON_RADIUS,
-    backgroundColor: ACCENT,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  ctaDisabled: {
-    backgroundColor: DISABLED_ACCENT,
-  },
-  ctaText: {
-    fontFamily: fonts.heavy,
-    fontSize: TYPE_BODY,
-    color: ON_ACCENT_TEXT,
-    letterSpacing: 0.04,
   },
 });
