@@ -9,7 +9,6 @@ import {
   MODAL_RADIUS,
   MUTED2,
   MUTED3,
-  ON_ACCENT_TEXT,
   OVERLAY_HEAVY,
   PLACEHOLDER_DARK,
   PRIMARY_CTA_WIDTH,
@@ -31,6 +30,10 @@ import {
   fonts,
   modalTitleText,
   profileScreenSectionTitle,
+  synqOutlineAddBtn,
+  synqOutlineAddBtnDisabled,
+  synqOutlineAddBtnText,
+  synqOutlineAddBtnTextDisabled,
 } from "@/constants/Variables";
 import CloseButton from "@/src/components/CloseButton";
 import {
@@ -857,11 +860,23 @@ export default function OpenPlans({
               ) : null}
 
               <TouchableOpacity
-                style={[styles.popupPostBtn, !canPost && styles.popupPostBtnDisabled]}
+                style={[
+                  synqOutlineAddBtn,
+                  styles.popupPostBtn,
+                  !canPost && synqOutlineAddBtnDisabled,
+                ]}
                 disabled={!canPost}
                 onPress={() => void handleSave()}
+                activeOpacity={0.85}
+                accessibilityRole="button"
+                accessibilityLabel={isEditing ? "Save" : "Post"}
               >
-                <Text style={styles.popupPostBtnText}>
+                <Text
+                  style={[
+                    synqOutlineAddBtnText,
+                    !canPost && synqOutlineAddBtnTextDisabled,
+                  ]}
+                >
                   {isEditing ? "Save" : "Post"}
                 </Text>
               </TouchableOpacity>
@@ -1158,21 +1173,11 @@ const styles = StyleSheet.create({
   },
   popupPostBtn: {
     marginTop: 14,
-    alignSelf: "center",
     width: PRIMARY_CTA_WIDTH,
     height: 50,
+    paddingVertical: 0,
+    paddingHorizontal: 0,
     borderRadius: BUTTON_RADIUS,
-    backgroundColor: ACCENT,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  popupPostBtnDisabled: {
-    opacity: 0.4,
-  },
-  popupPostBtnText: {
-    color: ON_ACCENT_TEXT,
-    fontFamily: fonts.heavy,
-    fontSize: TYPE_BODY,
   },
   calendarWrap: {
     marginTop: 6,
