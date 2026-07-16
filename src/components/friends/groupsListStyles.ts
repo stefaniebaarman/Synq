@@ -1,5 +1,7 @@
 import {
   ACCENT,
+  ACCENT_BORDER,
+  ACCENT_FILL_SUBTLE,
   BORDER,
   GROUP_BORDER,
   ON_ACCENT_TEXT,
@@ -7,6 +9,7 @@ import {
   SURFACE_ELEVATED,
   SURFACE_MUTED,
   SURFACE_RAISED,
+  SYNQ_OUTLINE_CTA_RADIUS,
   TYPE_BUTTON,
   TYPE_CAPTION,
   TYPE_CTA,
@@ -62,12 +65,12 @@ export const groupsPageStyles = StyleSheet.create({
   sectionAddBtn: {
     width: 24,
     height: 24,
-    borderRadius: RADIUS_SM,
-    borderWidth: 1.5,
-    borderColor: ACCENT,
+    borderRadius: SYNQ_OUTLINE_CTA_RADIUS,
+    borderWidth: 1,
+    borderColor: ACCENT_BORDER,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: "transparent",
+    backgroundColor: ACCENT_FILL_SUBTLE,
   },
   sectionSubtitle: {
     ...searchPlaceholderText,

@@ -1,16 +1,16 @@
 import { resolveAvatar } from "@/src/lib/helpers";
 import {
-  ACCENT,
-  ACCENT_BORDER,
-  ACCENT_FILL_SUBTLE,
   BORDER_SOFT,
   MUTED2,
   RADIUS_MD,
   TEXT,
   TYPE_BUTTON,
-  TYPE_CAPTION,
   TYPE_FINE,
   fonts,
+  synqOutlineAddBtnCompact,
+  synqOutlineAddBtnDisabled,
+  synqOutlineAddBtnTextCompact,
+  synqOutlineAddBtnTextDisabled,
 } from "@/constants/Variables";
 import {
   GROUP_BORDER,
@@ -82,7 +82,7 @@ export default function SynqNudgeCard({
 
       <TouchableOpacity
         activeOpacity={0.8}
-        style={[styles.cta, sent && styles.ctaSent]}
+        style={[synqOutlineAddBtnCompact, sent && synqOutlineAddBtnDisabled]}
         onPress={onNudge}
         disabled={disabled}
         accessibilityRole="button"
@@ -92,7 +92,13 @@ export default function SynqNudgeCard({
             : `Nudge${friend ? ` ${friend.displayName}` : ""}`
         }
       >
-        <Text style={[styles.ctaText, sent && styles.ctaTextSent, loading && { opacity: 0.5 }]}>
+        <Text
+          style={[
+            synqOutlineAddBtnTextCompact,
+            sent && synqOutlineAddBtnTextDisabled,
+            loading && { opacity: 0.5 },
+          ]}
+        >
           {sent ? "Nudged" : "Nudge"}
         </Text>
       </TouchableOpacity>
@@ -153,29 +159,5 @@ const styles = StyleSheet.create({
     fontFamily: fonts.medium,
     fontSize: TYPE_BUTTON,
     lineHeight: 21,
-  },
-  cta: {
-    minWidth: 58,
-    paddingVertical: 7,
-    paddingHorizontal: 12,
-    borderRadius: 10,
-    borderWidth: 1,
-    borderColor: ACCENT_BORDER,
-    backgroundColor: ACCENT_FILL_SUBTLE,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  ctaSent: {
-    borderColor: BORDER_SOFT,
-    backgroundColor: "transparent",
-  },
-  ctaText: {
-    color: ACCENT,
-    fontFamily: fonts.medium,
-    fontSize: TYPE_CAPTION,
-    letterSpacing: 0.1,
-  },
-  ctaTextSent: {
-    color: MUTED2,
   },
 });

@@ -1117,6 +1117,7 @@ export default function FriendProfile({
                       joined={planLooksJoined(event)}
                       isHost={isViewerHostOfFriendsPlan(event)}
                       busy={busyPlanId === event.id}
+                      cardPressOpensGoing
                       onPressCard={() => {}}
                       onPressAction={() => handleProfilePlanAction(event)}
                       onOpenPersonProfile={(userId) => {

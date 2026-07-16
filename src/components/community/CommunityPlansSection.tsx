@@ -1,6 +1,5 @@
 import {
   ACCENT,
-  ACCENT_FILL,
   ACCENT_FILL_MUTED,
   ACCENT_SUBTLE,
   BORDER,
@@ -13,7 +12,6 @@ import {
   SPACE_5,
   SURFACE_RAISED,
   TEXT,
-  TYPE_BODY,
   TYPE_CAPTION,
   TYPE_LEAD,
   TYPE_NANO,
@@ -23,6 +21,10 @@ import {
   listSectionTitle,
   sectionLinkText,
   BUTTON_RADIUS,
+  synqOutlineAddBtnCompact,
+  synqOutlineAddBtnDisabled,
+  synqOutlineAddBtnTextCompact,
+  synqOutlineAddBtnTextDisabled,
 } from "@/constants/Variables";
 import AlertModal from "@/app/alert-modal";
 import ConfirmModal from "@/app/confirm-modal";
@@ -391,7 +393,11 @@ export default function CommunityPlansSection({
 
                     <View style={styles.cardAside}>
                       <TouchableOpacity
-                        style={[styles.pill, isGoing && styles.pillJoined, busy && styles.pillDisabled]}
+                        style={[
+                          synqOutlineAddBtnCompact,
+                          isGoing && synqOutlineAddBtnDisabled,
+                          busy && styles.pillDisabled,
+                        ]}
                         onPress={(e) => {
                           e.stopPropagation?.();
                           if (isGoing) {
@@ -411,8 +417,8 @@ export default function CommunityPlansSection({
                       >
                         <Text
                           style={[
-                            styles.pillText,
-                            isGoing && styles.pillTextJoined,
+                            synqOutlineAddBtnTextCompact,
+                            isGoing && synqOutlineAddBtnTextDisabled,
                             busy && { opacity: 0.5 },
                           ]}
                         >
@@ -614,28 +620,6 @@ const styles = StyleSheet.create({
     fontSize: TYPE_NANO,
     color: MUTED2,
     lineHeight: 18,
-  },
-  pill: {
-    minWidth: 72,
-    minHeight: 34,
-    paddingHorizontal: 14,
-    borderRadius: 999,
-    borderWidth: 1,
-    borderColor: ACCENT,
-    backgroundColor: "transparent",
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  pillJoined: {
-    backgroundColor: ACCENT_FILL,
-  },
-  pillText: {
-    fontFamily: fonts.medium,
-    fontSize: TYPE_CAPTION,
-    color: ACCENT,
-  },
-  pillTextJoined: {
-    color: TEXT,
   },
   pillDisabled: {
     opacity: 0.6,

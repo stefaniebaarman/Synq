@@ -1,6 +1,4 @@
 import {
-  BORDER_HAIRLINE,
-  BORDER_MUTED,
   cardMetaText,
   cardTitleText,
   fonts,
@@ -9,7 +7,6 @@ import {
   MUTED3,
   RADIUS_LG,
   RADIUS_SM,
-  SURFACE,
   SURFACE_SUBTLE,
   TEXT,
   TEXT_MUTED_DARK,
@@ -20,6 +17,10 @@ import {
   TYPE_MICRO,
   TYPE_NANO,
   TYPE_SECTION,
+  synqOutlineAddBtnCompact,
+  synqOutlineAddBtnDisabled,
+  synqOutlineAddBtnTextCompact,
+  synqOutlineAddBtnTextDisabled,
 } from "@/constants/Variables";
 import {
   GROUP_BORDER,
@@ -165,14 +166,9 @@ export default function FriendOpenPlans({
               canJoin && (
                 <TouchableOpacity
                   style={[
-                    styles.interestPill,
+                    synqOutlineAddBtnCompact,
                     styles.planSidePill,
-                    joined
-                      ? {
-                          borderColor: BORDER_HAIRLINE,
-                          backgroundColor: SURFACE,
-                        }
-                      : { borderColor: ACCENT },
+                    joined && synqOutlineAddBtnDisabled,
                   ]}
                   activeOpacity={0.85}
                   onPress={() => onPressPlan?.(p)}
@@ -187,11 +183,8 @@ export default function FriendOpenPlans({
                 >
                   <Text
                     style={[
-                      styles.interestText,
-                      {
-                        color: joined ? MUTED2 : ACCENT,
-                        fontFamily: joined ? fonts.medium : fonts.heavy,
-                      },
+                      synqOutlineAddBtnTextCompact,
+                      joined && synqOutlineAddBtnTextDisabled,
                     ]}
                   >
                     {joined ? "Added" : "Add"}
@@ -296,10 +289,6 @@ const styles = StyleSheet.create({
     letterSpacing: 0.1,
   },
 
-  interestPill: {
-    ...PLAN_PILL_LAYOUT,
-    borderColor: BORDER_MUTED,
-  },
   hostPill: {
     ...PLAN_PILL_LAYOUT,
     borderColor: MUTED3,

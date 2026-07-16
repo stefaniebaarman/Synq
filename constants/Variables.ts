@@ -510,45 +510,53 @@ export const destructiveActionBtnText: TextStyle = {
   textTransform: "uppercase",
 };
 
-/** Green outline Add / Add friend CTA (transparent fill). */
+/**
+ * Soft green outline CTA — matches Nudge (subtle fill, soft border, medium label).
+ * Use for Add / Join / Nudge and other accent outline actions.
+ */
+export const SYNQ_OUTLINE_CTA_RADIUS = 10;
+
 export const synqOutlineAddBtn: ViewStyle = {
   alignSelf: "center",
-  borderWidth: 1.5,
-  borderColor: ACCENT,
-  borderRadius: BUTTON_RADIUS,
+  minWidth: 58,
+  borderWidth: 1,
+  borderColor: ACCENT_BORDER,
+  borderRadius: SYNQ_OUTLINE_CTA_RADIUS,
   paddingVertical: 13,
   paddingHorizontal: 32,
   alignItems: "center",
   justifyContent: "center",
-  backgroundColor: "transparent",
+  backgroundColor: ACCENT_FILL_SUBTLE,
 };
 
 export const synqOutlineAddBtnCompact: ViewStyle = {
-  borderWidth: 1.5,
-  borderColor: ACCENT,
-  borderRadius: BUTTON_RADIUS,
-  paddingVertical: 9,
-  paddingHorizontal: 18,
+  minWidth: 58,
+  borderWidth: 1,
+  borderColor: ACCENT_BORDER,
+  borderRadius: SYNQ_OUTLINE_CTA_RADIUS,
+  paddingVertical: 7,
+  paddingHorizontal: 12,
   alignItems: "center",
   justifyContent: "center",
-  backgroundColor: "transparent",
+  backgroundColor: ACCENT_FILL_SUBTLE,
 };
 
 export const synqOutlineAddBtnText: TextStyle = {
   color: ACCENT,
-  fontFamily: fonts.heavy,
+  fontFamily: fonts.medium,
   fontSize: TYPE_BUTTON,
+  letterSpacing: 0.1,
 };
 
 export const synqOutlineAddBtnTextCompact: TextStyle = {
   color: ACCENT,
-  fontFamily: fonts.heavy,
+  fontFamily: fonts.medium,
   fontSize: TYPE_CAPTION,
-  letterSpacing: 0.15,
+  letterSpacing: 0.1,
 };
 
 export const synqOutlineAddBtnDisabled: ViewStyle = {
-  borderColor: "rgba(255,255,255,0.2)",
+  borderColor: BORDER_SOFT,
   backgroundColor: "transparent",
 };
 
@@ -566,11 +574,11 @@ export const synqAddIconBtn: ViewStyle = {
   width: SYNQ_ADD_ICON_SIZE,
   height: SYNQ_ADD_ICON_SIZE,
   borderRadius: SYNQ_ADD_ICON_RADIUS,
-  borderWidth: 1.5,
-  borderColor: ACCENT,
+  borderWidth: 1,
+  borderColor: ACCENT_BORDER,
   alignItems: "center",
   justifyContent: "center",
-  backgroundColor: "transparent",
+  backgroundColor: ACCENT_FILL_SUBTLE,
 };
 
 /** Compact “+ Add” chip (Interests, Open plans, etc.). */
@@ -578,11 +586,11 @@ export const synqPlusAddBtn: ViewStyle = {
   flexDirection: "row",
   alignItems: "center",
   alignSelf: "flex-start",
-  borderWidth: 1.5,
-  borderColor: ACCENT,
+  borderWidth: 1,
+  borderColor: ACCENT_BORDER,
   borderRadius: SYNQ_ADD_ICON_RADIUS,
   paddingRight: 12,
-  backgroundColor: "transparent",
+  backgroundColor: ACCENT_FILL_SUBTLE,
   minHeight: SYNQ_ADD_ICON_SIZE,
 };
 
@@ -595,9 +603,9 @@ export const synqPlusAddBtnIcon: ViewStyle = {
 
 export const synqPlusAddBtnText: TextStyle = {
   color: ACCENT,
-  fontFamily: fonts.heavy,
+  fontFamily: fonts.medium,
   fontSize: TYPE_CAPTION,
-  letterSpacing: 0.15,
+  letterSpacing: 0.1,
 };
 
 export interface Friend {

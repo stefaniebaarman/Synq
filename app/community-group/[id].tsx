@@ -45,6 +45,8 @@ import {
   sheetTitleText,
   stackNavigationBackBtn,
   RADIUS_XL,
+  synqOutlineAddBtnCompact,
+  synqOutlineAddBtnTextCompact,
 } from "@/constants/Variables";
 import AddMembersToGroupSheet from "@/src/components/friends/AddMembersToGroupSheet";
 import { groupsPageStyles, GROUP_BORDER } from "@/src/components/friends/groupsListStyles";
@@ -499,7 +501,8 @@ export default function CommunityGroupDetailScreen() {
   const renderJoinButton = (compact = false) => (
     <TouchableOpacity
       style={[
-        styles.joinCommunityBtn,
+        synqOutlineAddBtnCompact,
+        styles.joinCommunityBtnRow,
         compact && styles.joinCommunityBtnCompact,
         joinBusy && styles.joinCommunityBtnDisabled,
       ]}
@@ -516,7 +519,12 @@ export default function CommunityGroupDetailScreen() {
           color={ACCENT}
           style={joinBusy ? { opacity: 0.5 } : undefined}
         />
-        <Text style={[styles.joinCommunityBtnText, joinBusy && { opacity: 0.5 }]}>
+        <Text
+          style={[
+            synqOutlineAddBtnTextCompact,
+            joinBusy && { opacity: 0.5 },
+          ]}
+        >
           Join
         </Text>
       </>
@@ -1020,29 +1028,18 @@ const styles = StyleSheet.create({
     color: MUTED2,
     lineHeight: 20,
   },
-  joinCommunityBtn: {
+  joinCommunityBtnRow: {
     flexDirection: "row",
     alignItems: "center",
     gap: 6,
     minHeight: 36,
     paddingHorizontal: 14,
-    borderRadius: 18,
-    borderWidth: 1.5,
-    borderColor: ACCENT,
-    backgroundColor: "transparent",
-    justifyContent: "center",
   },
   joinCommunityBtnCompact: {
     flexShrink: 0,
   },
   joinCommunityBtnDisabled: {
     opacity: 0.6,
-  },
-  joinCommunityBtnText: {
-    fontFamily: fonts.heavy,
-    fontSize: TYPE_LEAD,
-    color: ACCENT,
-    letterSpacing: 0.04,
   },
   headerActions: {
     flexDirection: "row",

@@ -1,6 +1,5 @@
 import {
   ACCENT,
-  BORDER_MUTED,
   MUTED,
   MUTED2,
   MUTED3,
@@ -16,6 +15,8 @@ import {
   listRowTitleText,
   RADIUS_LG,
   RADIUS_SM,
+  synqOutlineAddBtnCompact,
+  synqOutlineAddBtnTextCompact,
 } from "@/constants/Variables";
 import {
   GROUP_BORDER,
@@ -207,9 +208,8 @@ export default function FriendPlanCard({
         ) : !joined ? (
           <TouchableOpacity
             style={[
-              styles.interestPill,
+              synqOutlineAddBtnCompact,
               styles.planSidePill,
-              { borderColor: ACCENT },
               busy && styles.actionBusy,
             ]}
             activeOpacity={0.85}
@@ -219,14 +219,7 @@ export default function FriendPlanCard({
             accessibilityLabel="Join"
             accessibilityState={{ disabled: busy }}
           >
-            <Text
-              style={[
-                styles.interestText,
-                { color: ACCENT, fontFamily: fonts.heavy },
-              ]}
-            >
-              Join
-            </Text>
+            <Text style={synqOutlineAddBtnTextCompact}>Join</Text>
           </TouchableOpacity>
         ) : null}
       </View>
@@ -351,10 +344,6 @@ const styles = StyleSheet.create({
     fontSize: TYPE_FINE,
     fontFamily: fonts.medium,
     includeFontPadding: false,
-  },
-  interestPill: {
-    ...PLAN_PILL_LAYOUT,
-    borderColor: BORDER_MUTED,
   },
   hostPill: {
     ...PLAN_PILL_LAYOUT,
