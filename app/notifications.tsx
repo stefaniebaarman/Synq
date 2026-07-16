@@ -34,7 +34,6 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import {
   ACCENT,
   BG,
-  BORDER,
   BORDER_MUTED,
   BORDER_STRONG,
   BORDER_SUBTLE_HEX,
@@ -46,21 +45,22 @@ import {
   MUTED3,
   RADIUS_2XL,
   RADIUS_LG,
-  RADIUS_MD,
   SPACE_3,
   SPACE_4,
   SPACE_5,
   SPACE_6,
   SURFACE,
-  SURFACE_FAINT,
   TEXT,
   TEXT_MUTED_DARKER,
   TEXT_MUTED_HEX,
   TYPE_BODY,
   TYPE_BUTTON,
   TYPE_CAPTION,
-  TYPE_MICRO,
 } from "../constants/Variables";
+import {
+  GROUP_BORDER,
+  GROUP_SURFACE,
+} from "@/src/components/friends/groupsListStyles";
 import {
   acceptCommunityGroupInvite,
   declineCommunityGroupInvite,
@@ -109,6 +109,7 @@ type PlanInviteFeedItem = {
   actorImageUrl: string | null;
   title: string;
   body: string;
+  planTitle?: string | null;
   sortMs: number;
   read: boolean;
   eventId?: string | null;
@@ -126,6 +127,7 @@ type StandardActivityFeedItem = {
   actorImageUrl: string | null;
   title: string;
   body: string;
+  planTitle?: string | null;
   sortMs: number;
   read: boolean;
   eventId?: string | null;
@@ -172,8 +174,8 @@ function timestampMillis(v: unknown): number {
   return 0;
 }
 
-function firstName(name: string): string {
-  return String(name || "").trim().split(/\s+/)[0] || "Someone";
+function displayPersonName(name: string): string {
+  return String(name || "").trim() || "Someone";
 }
 
 /** Drop trailing sentence periods from notification copy. */
@@ -193,6 +195,53 @@ function normalizeNotificationTitle(title: string): string {
     "New Message": "New message",
   };
   return known[trimmed] || trimmed;
+}
+
+function activityMessageParts(
+  kind: PlanInviteFeedItem["kind"] | ActivityFeedKind,
+  planTitle?: string | null
+): { rest: string; emphasis?: string } {
+  const title = String(planTitle || "").trim();
+  switch (kind) {
+    case "friend_accepted":
+      return { rest: " accepted your friend request" };
+    case "open_plan_interest":
+      return title
+        ? { rest: ` is going to your plan ${title}` }
+        : { rest: " is going to your plan" };
+    case "plan_invite":
+      return title
+        ? { rest: " wants you to join ", emphasis: title }
+        : { rest: " wants you to join their plan" };
+    case "community_plan_join":
+      return title
+        ? { rest: " is in for ", emphasis: title }
+        : { rest: " joined a community plan" };
+    case "friend_synq_active":
+      return { rest: " is free" };
+    case "synq_nudge":
+      return { rest: " wants to know if you're free right now" };
+    default:
+      return { rest: "" };
+  }
+}
+
+function NotificationMessage({
+  name,
+  rest,
+  emphasis,
+}: {
+  name: string;
+  rest: string;
+  emphasis?: string;
+}) {
+  return (
+    <Text style={styles.rowText}>
+      <Text style={styles.nameBold}>{displayPersonName(name)}</Text>
+      {rest ? <Text style={styles.messageRest}>{rest}</Text> : null}
+      {emphasis ? <Text style={styles.emphasisText}>{emphasis}</Text> : null}
+    </Text>
+  );
 }
 
 /** Cloud Functions mirror many notifications in both collections (same doc id). */
@@ -314,37 +363,19 @@ export default function NotificationsScreen() {
     const type = String(item.type || "") as PlanInviteFeedItem["kind"] | ActivityFeedKind;
     const planTitle = String(item.planTitle || "").trim();
     const title = String(item.title || "").trim();
-    const storedBody = String(item.body || "").trim();
-
-    let body = storedBody ? stripTrailingPeriod(storedBody) : "";
-    if (!body) {
-      if (type === "friend_accepted") {
-        body = `${actorName} accepted your friend request`;
-      } else if (type === "open_plan_interest") {
-        body = planTitle
-          ? `${firstName(actorName)} is going to ${planTitle}`
-          : `${firstName(actorName)} is going to your plan`;
-      } else if (type === "plan_invite") {
-        body = planTitle
-          ? `${firstName(actorName)} wants you to join their plan ${planTitle}`
-          : `${firstName(actorName)} wants you to join their plan`;
-      } else if (type === "community_plan_join") {
-        body = planTitle
-          ? `${firstName(actorName)} is in for ${planTitle}`
-          : `${firstName(actorName)} joined a community plan`;
-      } else if (type === "friend_synq_active") {
-        body = `${firstName(actorName)} is free`;
-      } else if (type === "synq_nudge") {
-        body = `${firstName(actorName)} wants to know if you're free right now`;
-      }
-    }
+    const name = displayPersonName(actorName);
+    const parts = activityMessageParts(type, planTitle);
+    const body = stripTrailingPeriod(
+      `${name}${parts.rest}${parts.emphasis || ""}`
+    );
 
     return {
       ...item,
       type,
       fromUserId,
-      actorName,
+      actorName: name,
       actorImageUrl,
+      planTitle: planTitle || null,
       title:
         normalizeNotificationTitle(title) ||
         (type === "friend_accepted"
@@ -627,6 +658,7 @@ export default function NotificationsScreen() {
           actorImageUrl: a.actorImageUrl,
           title: a.title,
           body: a.body,
+          planTitle: a.planTitle,
           sortMs: a.sortMs,
           read: a.read,
           eventId: a.eventId,
@@ -917,29 +949,6 @@ export default function NotificationsScreen() {
     }
   }, []);
 
-  const kickerFor = (kind: FeedItem["kind"]) => {
-    switch (kind) {
-      case "friend_request":
-        return "Friend request";
-      case "friend_accepted":
-        return "Request accepted";
-      case "open_plan_interest":
-        return "Friend going";
-      case "plan_invite":
-        return "Plan invite";
-      case "community_plan_join":
-        return "Community plan";
-      case "community_group_invite":
-        return "Group invite";
-      case "friend_synq_active":
-        return "Synq active";
-      case "synq_nudge":
-        return "Are you free?";
-      default:
-        return "Notification";
-    }
-  };
-
   const FriendRequestRow = ({ item }: { item: Extract<FeedItem, { kind: "friend_request" }> }) => {
     const avatarUri = resolveAvatar(item.actorImageUrl);
 
@@ -959,11 +968,10 @@ export default function NotificationsScreen() {
           </View>
 
           <View style={{ flex: 1 }}>
-            <Text style={styles.rowKicker}>{kickerFor(item.kind)}</Text>
-            <Text style={styles.rowText}>
-              <Text style={styles.boldWhite}>{item.actorName}</Text>
-              <Text style={styles.grayText}> wants to be your friend</Text>
-            </Text>
+            <NotificationMessage
+              name={item.actorName}
+              rest=" wants to be your friend"
+            />
           </View>
         </View>
 
@@ -1013,12 +1021,11 @@ export default function NotificationsScreen() {
           </View>
 
           <View style={{ flex: 1 }}>
-            <Text style={styles.rowKicker}>{kickerFor(item.kind)}</Text>
-            <Text style={styles.rowText}>
-              <Text style={styles.boldWhite}>{item.actorName}</Text>
-              <Text style={styles.grayText}> invited you to join </Text>
-              <Text style={styles.boldWhite}>{groupLabel}</Text>
-            </Text>
+            <NotificationMessage
+              name={item.actorName}
+              rest=" invited you to join "
+              emphasis={groupLabel}
+            />
           </View>
         </View>
 
@@ -1073,8 +1080,10 @@ export default function NotificationsScreen() {
           </View>
 
           <View style={{ flex: 1 }}>
-            <Text style={styles.rowKicker}>{kickerFor(item.kind)}</Text>
-            <Text style={styles.rowText}>{item.body}</Text>
+            <NotificationMessage
+              name={item.actorName}
+              {...activityMessageParts(item.kind, item.planTitle)}
+            />
           </View>
         </View>
 
@@ -1138,8 +1147,10 @@ export default function NotificationsScreen() {
             </View>
 
             <View style={{ flex: 1 }}>
-              <Text style={styles.rowKicker}>{kickerFor(item.kind)}</Text>
-              <Text style={styles.rowText}>{item.body}</Text>
+              <NotificationMessage
+                name={item.actorName}
+                {...activityMessageParts(item.kind, item.planTitle)}
+              />
             </View>
           </View>
         </TouchableOpacity>
@@ -1291,13 +1302,13 @@ const styles = StyleSheet.create({
     alignSelf: "center",
   },
   group: {
-    backgroundColor: SURFACE,
+    backgroundColor: GROUP_SURFACE,
     marginHorizontal: SPACE_4 + 4,
-    borderRadius: RADIUS_MD,
+    borderRadius: RADIUS_LG,
     overflow: "hidden",
     marginBottom: SPACE_3,
-    borderWidth: 1,
-    borderColor: BORDER,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: GROUP_BORDER,
   },
   row: {
     flexDirection: "row",
@@ -1312,7 +1323,7 @@ const styles = StyleSheet.create({
     borderBottomWidth: 0,
   },
   activityRowUnread: {
-    backgroundColor: SURFACE_FAINT,
+    backgroundColor: "transparent",
   },
   activityTapArea: {
     flex: 1,
@@ -1350,22 +1361,27 @@ const styles = StyleSheet.create({
     height: 56,
     borderRadius: RADIUS_2XL,
   },
-  rowKicker: {
-    color: MUTED2,
-    fontSize: TYPE_MICRO,
-    fontFamily: fonts.heavy,
-    textTransform: "uppercase",
-    letterSpacing: 1,
-    marginBottom: 3,
-  },
   rowText: {
     fontSize: TYPE_BODY,
     color: TEXT,
     fontFamily: fonts.medium,
-    lineHeight: 18,
+    lineHeight: 22,
   },
-  boldWhite: { fontFamily: fonts.heavy, color: TEXT },
-  grayText: { color: TEXT_MUTED_HEX, fontFamily: fonts.medium, fontSize: TYPE_BODY },
+  nameBold: {
+    fontFamily: fonts.heavy,
+    color: TEXT,
+    fontSize: TYPE_BODY,
+  },
+  messageRest: {
+    color: TEXT_MUTED_HEX,
+    fontFamily: fonts.book,
+    fontSize: TYPE_BODY,
+  },
+  emphasisText: {
+    color: TEXT,
+    fontFamily: fonts.medium,
+    fontSize: TYPE_BODY,
+  },
   rowRight: {
     flexDirection: "row",
     alignItems: "center",
