@@ -12,10 +12,7 @@ import {
   MODAL_RADIUS,
   MUTED2,
   MUTED3,
-  ON_ACCENT_TEXT,
   OVERLAY_DARK,
-  PRIMARY_CTA_HEIGHT,
-  PRIMARY_CTA_WIDTH,
   RADIUS_LG,
   SURFACE_SUBTLE,
   TEXT,
@@ -23,15 +20,17 @@ import {
   TYPE_CAPTION,
   TYPE_LEAD,
   TYPE_SUBHEAD,
-  TYPE_TITLE,
   cardMetaText,
   cardTitleText,
   fonts,
   listRowTitleText,
-  primaryButtonText,
   profileNameText,
   sheetTitleText,
   RADIUS_SM,
+  synqOutlineAddBtn,
+  synqOutlineAddBtnDisabled,
+  synqOutlineAddBtnText,
+  synqOutlineAddBtnTextDisabled,
 } from "@/constants/Variables";
 import BackButton from "@/src/components/BackButton";
 import CloseButton from "@/src/components/CloseButton";
@@ -81,6 +80,7 @@ type Props = {
     onClose: () => void;
     onBack: () => void;
     onSelectVibe: (label: string) => void;
+    onShuffleOptions?: () => void;
     isAILoading: boolean;
     showOptionsList: boolean;
     aiOptions: any[];
@@ -125,12 +125,12 @@ function SheetHeader({
                     >
                         {title}
                     </Text>
+                    {hint ? <Text style={styles.sheetHint}>{hint}</Text> : null}
                 </View>
                 {showClose ? (
                     <CloseButton onPress={onClose} style={[styles.navIconBtn, styles.navIconBtnTrailing]} />
                 ) : null}
             </View>
-            {hint ? <Text style={styles.sheetHint}>{hint}</Text> : null}
         </View>
     );
 }
@@ -140,6 +140,7 @@ export default function ExploreModal({
     onClose,
     onBack,
     onSelectVibe,
+    onShuffleOptions,
     isAILoading,
     showOptionsList,
     aiOptions,
@@ -271,78 +272,100 @@ export default function ExploreModal({
                                 </Text>
                             </View>
                         ) : (
-                            <FlatList
-                                style={styles.placesList}
-                                data={aiOptions}
-                                keyExtractor={(item, index) =>
-                                    `${item.name}-${item.address || item.location || index}`
-                                }
-                                contentContainerStyle={styles.bodyContent}
-                                showsVerticalScrollIndicator={false}
-                                keyboardShouldPersistTaps="handled"
-                                renderItem={({ item }) => {
-                                    const isSelected = selectedOption?.name === item.name;
-                                    const address = formatVenueAddressDisplay(
-                                        item.address || item.location || ""
-                                    );
-
-                                    return (
+                            <View style={styles.placesSection}>
+                                {onShuffleOptions ? (
+                                    <View style={styles.shuffleRow}>
                                         <TouchableOpacity
+                                            style={styles.shuffleBtn}
+                                            onPress={onShuffleOptions}
                                             activeOpacity={0.85}
-                                            style={[
-                                                styles.placeRow,
-                                                isSelected && styles.placeRowSelected,
-                                            ]}
-                                            onPress={() =>
-                                                setSelectedOption(isSelected ? null : item)
-                                            }
+                                            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                                            accessibilityRole="button"
+                                            accessibilityLabel="Show more ideas"
                                         >
-                                            <View style={styles.placeIconWrap}>
-                                                <Ionicons
-                                                    name="location-outline"
-                                                    size={20}
-                                                    color={MUTED2}
-                                                />
-                                            </View>
-                                            <View style={styles.placeCopy}>
-                                                <Text style={styles.placeName} numberOfLines={2}>
-                                                    {item.name}
-                                                </Text>
-                                                {address ? (
-                                                    <Text style={styles.placeAddress} numberOfLines={2}>
-                                                        {address}
-                                                    </Text>
-                                                ) : null}
-                                            </View>
-                                            <View style={styles.placeCheckSlot}>
-                                                {isSelected ? (
-                                                    <Ionicons
-                                                        name="checkmark-circle"
-                                                        size={22}
-                                                        color={ACCENT}
-                                                    />
-                                                ) : (
-                                                    <View style={styles.placeCheckEmpty} />
-                                                )}
-                                            </View>
+                                            <Ionicons name="shuffle-outline" size={22} color={MUTED2} />
                                         </TouchableOpacity>
-                                    );
-                                }}
-                                ListFooterComponent={<View style={styles.listFooterSpacer} />}
-                            />
+                                    </View>
+                                ) : null}
+                                <FlatList
+                                    style={styles.placesList}
+                                    data={aiOptions}
+                                    keyExtractor={(item, index) =>
+                                        `${item.name}-${item.address || item.location || index}`
+                                    }
+                                    contentContainerStyle={styles.bodyContent}
+                                    showsVerticalScrollIndicator={false}
+                                    keyboardShouldPersistTaps="handled"
+                                    renderItem={({ item }) => {
+                                        const isSelected = selectedOption?.name === item.name;
+                                        const address = formatVenueAddressDisplay(
+                                            item.address || item.location || ""
+                                        );
+
+                                        return (
+                                            <TouchableOpacity
+                                                activeOpacity={0.85}
+                                                style={[
+                                                    styles.placeRow,
+                                                    isSelected && styles.placeRowSelected,
+                                                ]}
+                                                onPress={() =>
+                                                    setSelectedOption(isSelected ? null : item)
+                                                }
+                                                accessibilityRole="radio"
+                                                accessibilityState={{ selected: isSelected }}
+                                                accessibilityLabel={item.name}
+                                            >
+                                                <View
+                                                    style={[
+                                                        styles.placeIconWrap,
+                                                        isSelected && styles.placeIconWrapSelected,
+                                                    ]}
+                                                >
+                                                    <Ionicons
+                                                        name="location-outline"
+                                                        size={20}
+                                                        color={isSelected ? ACCENT : MUTED2}
+                                                    />
+                                                </View>
+                                                <View style={styles.placeCopy}>
+                                                    <Text style={styles.placeName} numberOfLines={2}>
+                                                        {item.name}
+                                                    </Text>
+                                                    {address ? (
+                                                        <Text style={styles.placeAddress} numberOfLines={2}>
+                                                            {address}
+                                                        </Text>
+                                                    ) : null}
+                                                </View>
+                                            </TouchableOpacity>
+                                        );
+                                    }}
+                                    ListFooterComponent={<View style={styles.listFooterSpacer} />}
+                                />
+                            </View>
                         )}
 
                         <View style={[styles.footerDock, { paddingBottom: 12 }]}>
                             <TouchableOpacity
                                 style={[
-                                    styles.sendBtn,
-                                    !selectedOption && styles.sendBtnDisabled,
+                                    synqOutlineAddBtn,
+                                    !selectedOption && synqOutlineAddBtnDisabled,
                                 ]}
                                 disabled={!selectedOption}
                                 onPress={sendAISuggestionToChat}
                                 activeOpacity={0.85}
+                                accessibilityRole="button"
+                                accessibilityLabel="Send idea"
                             >
-                                <Text style={styles.sendText}>Send idea</Text>
+                                <Text
+                                    style={[
+                                        synqOutlineAddBtnText,
+                                        !selectedOption && synqOutlineAddBtnTextDisabled,
+                                    ]}
+                                >
+                                    Send idea
+                                </Text>
                             </TouchableOpacity>
                         </View>
                     </View>
@@ -466,15 +489,14 @@ const styles = StyleSheet.create({
         paddingBottom: 0,
     },
     sheetHeaderWithHint: {
-        paddingBottom: 12,
+        paddingBottom: 0,
     },
     sheetHint: {
         ...cardMetaText,
-        paddingHorizontal: CONTENT_PAD_X,
-        marginTop: 6,
+        marginTop: 4,
     },
     placesHeaderBlock: {
-        paddingBottom: 14,
+        paddingBottom: 0,
     },
     headerRow: {
         flexDirection: "row",
@@ -511,14 +533,26 @@ const styles = StyleSheet.create({
         letterSpacing: 0.15,
     },
     bodyContent: {
-        paddingHorizontal: CONTENT_PAD_X,
         paddingBottom: 24,
     },
     placesView: {
         flex: 1,
     },
+    placesSection: {
+        flex: 1,
+        paddingHorizontal: CONTENT_PAD_X,
+    },
     placesList: {
         flex: 1,
+    },
+    shuffleRow: {
+        alignItems: "flex-end",
+        justifyContent: "center",
+        paddingTop: 6,
+        paddingBottom: 10,
+    },
+    shuffleBtn: {
+        padding: 4,
     },
     placeRow: {
         flexDirection: "row",
@@ -546,6 +580,10 @@ const styles = StyleSheet.create({
         alignItems: "center",
         justifyContent: "center",
     },
+    placeIconWrapSelected: {
+        borderColor: ACCENT_BORDER,
+        backgroundColor: ACCENT_FILL_MUTED,
+    },
     placeCopy: {
         flex: 1,
         minWidth: 0,
@@ -560,18 +598,6 @@ const styles = StyleSheet.create({
         ...cardMetaText,
         lineHeight: 18,
     },
-    placeCheckSlot: {
-        width: 24,
-        alignItems: "center",
-        justifyContent: "center",
-    },
-    placeCheckEmpty: {
-        width: 22,
-        height: 22,
-        borderRadius: 11,
-        borderWidth: StyleSheet.hairlineWidth,
-        borderColor: MUTED3,
-    },
     listFooterSpacer: {
         height: 8,
     },
@@ -581,20 +607,8 @@ const styles = StyleSheet.create({
         paddingTop: 14,
         paddingHorizontal: 20,
         backgroundColor: BG,
-    },
-    sendBtn: {
-        alignSelf: "center",
-        width: PRIMARY_CTA_WIDTH,
-        height: PRIMARY_CTA_HEIGHT,
-        backgroundColor: ACCENT,
-        borderRadius: BUTTON_RADIUS,
         alignItems: "center",
-        justifyContent: "center",
     },
-    sendBtnDisabled: {
-        opacity: 0.45,
-    },
-    sendText: primaryButtonText,
     emptyState: {
         flex: 1,
         alignItems: "center",

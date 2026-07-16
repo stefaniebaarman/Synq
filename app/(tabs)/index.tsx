@@ -73,6 +73,7 @@ import {
   FlatList,
   InteractionManager,
   Keyboard,
+  LayoutAnimation,
   Modal,
   PixelRatio,
   Platform,
@@ -81,6 +82,7 @@ import {
   StyleSheet,
   Text,
   TouchableWithoutFeedback,
+  UIManager,
   useWindowDimensions,
   Vibration,
   View,
@@ -197,7 +199,6 @@ import {
   synqStartedAtMillis,
   writeCachedSynqActive,
 } from "../../src/lib/synqSession";
-import type { SynqSuggestion } from "../../src/lib/synqSuggestions";
 import { userHasLocation } from "../../src/lib/userProfile";
 import { useAuthRefresh } from '../_layout';
 import AlertModal from '../alert-modal';
@@ -424,6 +425,7 @@ export default function SynqScreen() {
   const [selectedOption, setSelectedOption] = useState<any>(null);
   const [showOptionsList, setShowOptionsList] = useState(false);
   const [currentCategory, setCurrentCategory] = useState('');
+  const suggestionLocationRef = useRef<string | null>(null);
   const flatListRef = useRef<FlatList>(null);
   const chatOpenGraceRef = useRef<Map<string, number>>(new Map());
   const chatsHydratedRef = useRef(false);
@@ -1614,6 +1616,7 @@ export default function SynqScreen() {
     setAiExploreError(null);
     setShowOptionsList(false);
     setSelectedOption(null);
+    suggestionLocationRef.current = null;
 
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
 
@@ -1658,27 +1661,11 @@ export default function SynqScreen() {
         return;
       }
 
-      const suggestions: SynqSuggestion[] = [];
-      const triedNames = new Set<string>();
-
-      while (suggestions.length < 3) {
-        const batch = getCachedCitySuggestions(senderLocationLabel, category, [
-          ...triedNames,
-        ]);
-        if (!batch || batch.length === 0) break;
-
-        let addedFromBatch = false;
-        for (const suggestion of batch) {
-          triedNames.add(suggestion.name);
-          suggestions.push(suggestion);
-          addedFromBatch = true;
-          if (suggestions.length >= 3) break;
-        }
-
-        if (!addedFromBatch) break;
-      }
+      const suggestions =
+        getCachedCitySuggestions(senderLocationLabel, category) ?? [];
 
       if (suggestions.length > 0) {
+        suggestionLocationRef.current = senderLocationLabel;
         setAiOptions(suggestions);
         setShowOptionsList(true);
         setAiExploreError(null);
@@ -1700,6 +1687,43 @@ export default function SynqScreen() {
       setIsAILoading(false);
     }
   };
+
+  const shuffleAISuggestions = useCallback(() => {
+    const locationLabel = suggestionLocationRef.current;
+    if (!locationLabel || !currentCategory || isAILoading) return;
+
+    const excludeNames = aiOptions
+      .map((item) => String(item?.name || "").trim())
+      .filter(Boolean);
+
+    let suggestions =
+      getCachedCitySuggestions(locationLabel, currentCategory, excludeNames) ??
+      [];
+
+    if (suggestions.length === 0 && excludeNames.length > 0) {
+      suggestions =
+        getCachedCitySuggestions(locationLabel, currentCategory, []) ?? [];
+    }
+
+    if (suggestions.length === 0) return;
+
+    if (
+      Platform.OS === "android" &&
+      UIManager.setLayoutAnimationEnabledExperimental
+    ) {
+      UIManager.setLayoutAnimationEnabledExperimental(true);
+    }
+    LayoutAnimation.configureNext({
+      duration: 220,
+      create: { type: LayoutAnimation.Types.easeInEaseOut, property: LayoutAnimation.Properties.opacity },
+      update: { type: LayoutAnimation.Types.easeInEaseOut },
+      delete: { type: LayoutAnimation.Types.easeInEaseOut, property: LayoutAnimation.Properties.opacity },
+    });
+
+    setSelectedOption(null);
+    setAiOptions(suggestions);
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
+  }, [aiOptions, currentCategory, isAILoading]);
 
   const sendAISuggestionToChat = async () => {
     if (!auth.currentUser) return;
@@ -2531,14 +2555,17 @@ export default function SynqScreen() {
                 setIsExploreVisible(false);
                 setShowOptionsList(false);
                 setAiExploreError(null);
+                suggestionLocationRef.current = null;
               }}
               onBack={() => {
                 setShowOptionsList(false);
                 setAiExploreError(null);
+                suggestionLocationRef.current = null;
               }}
               onSelectVibe={(label: string) => {
                 void triggerAISuggestion(label);
               }}
+              onShuffleOptions={shuffleAISuggestions}
               isAILoading={isAILoading}
               showOptionsList={showOptionsList}
               aiOptions={aiOptions}
