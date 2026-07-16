@@ -205,10 +205,10 @@ import ConfirmModal from '../confirm-modal';
 import ExploreModal from '../explore-modal';
 import FriendProfile from '../friend-profile';
 import ReportModal from '../report-modal';
-import ChangeSynqAudienceModal from '../synq-screens/ChangeSynqAudienceModal';
 import EditSynqModal from '../synq-screens/EditSynqModal';
 import InactiveSynqView from '../synq-screens/InactiveSynqView';
 import SynqActivatingView from '../synq-screens/SynqActivatingView';
+import SynqAudienceSheet from '../synq-screens/SynqAudienceSheet';
 
 type MessagesPane = "inbox" | "chat" | "profile";
 
@@ -2627,12 +2627,16 @@ export default function SynqScreen() {
             }
           }}
         />
-        <ChangeSynqAudienceModal
+        <SynqAudienceSheet
           visible={changeAudienceVisible}
           groups={friendGroups}
-          initialSelection={audienceSelection}
+          selection={audienceSelection}
+          onChangeSelection={(next) => {
+            void applySynqAudience(next).catch(() => {
+              showActionError("Could not update sharing. Please try again.");
+            });
+          }}
           onClose={() => setChangeAudienceVisible(false)}
-          onSave={applySynqAudience}
         />
       </View>
     </TouchableWithoutFeedback>
@@ -2729,6 +2733,10 @@ const styles = StyleSheet.create({
     color: MUTED2,
     fontSize: TYPE_CAPTION,
     fontFamily: fonts.medium,
+  },
+  audienceValue: {
+    color: TEXT,
+    fontFamily: fonts.heavy,
   },
   activeSynqLeadIcon: {
     width: 20,

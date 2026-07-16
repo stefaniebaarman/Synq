@@ -23,6 +23,8 @@ type Props = {
   onChangeSelection: (next: SynqAudienceSelection) => void;
   /** Tighter rows for bottom-sheet modals. */
   compact?: boolean;
+  /** Pick one audience option at a time (no multi-group toggle). */
+  singleSelect?: boolean;
 };
 
 type RowProps = {
@@ -80,6 +82,7 @@ export default function SynqAudiencePicker({
   selection,
   onChangeSelection,
   compact = false,
+  singleSelect = false,
 }: Props) {
   const selectAllFriends = () => {
     onChangeSelection({ mode: "all", groupIds: [] });
@@ -87,6 +90,10 @@ export default function SynqAudiencePicker({
 
   const toggleGroup = (groupId: string, memberCount: number) => {
     if (memberCount === 0) return;
+    if (singleSelect) {
+      onChangeSelection({ mode: "groups", groupIds: [groupId] });
+      return;
+    }
     if (selection.mode === "all") {
       onChangeSelection({ mode: "groups", groupIds: [groupId] });
       return;

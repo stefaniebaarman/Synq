@@ -171,7 +171,7 @@ export default function ActiveSynqSection({
                 openChangeAudience && pressed && styles.audienceRowPressed,
               ]}
               accessibilityRole="button"
-              accessibilityLabel={`Shared with ${audienceLabel}`}
+              accessibilityLabel={`Sharing with ${audienceLabel}`}
               accessibilityHint={
                 openChangeAudience ? "Opens sharing with" : undefined
               }
@@ -183,7 +183,8 @@ export default function ActiveSynqSection({
                 style={styles.activeSynqLeadIcon}
               />
               <Text style={styles.audienceText} numberOfLines={1}>
-                Shared with {audienceLabel}
+                Sharing with{" "}
+                <Text style={styles.audienceValue}>{audienceLabel}</Text>
               </Text>
               {openChangeAudience ? (
                 <Ionicons name="chevron-forward" size={14} color={MUTED2} />

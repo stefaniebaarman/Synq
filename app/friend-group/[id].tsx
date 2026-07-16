@@ -1,5 +1,6 @@
 import AlertModal from "@/app/alert-modal";
 import ConfirmModal from "@/app/confirm-modal";
+import { sheetStyles } from "@/constants/sheetStyles";
 import {
   ACCENT,
   BG,
@@ -11,10 +12,11 @@ import {
   Friend,
   HEADER_BLACK,
   MUTED2,
-  OVERLAY_MID,
   OVERLAY_DIM,
+  OVERLAY_MID,
   OVERLAY_ZERO,
   RADIUS_MD,
+  RADIUS_XL,
   SPACE_3,
   SPACE_4,
   SPACE_5,
@@ -23,14 +25,12 @@ import {
   TEXT,
   TYPE_BODY,
   TYPE_CAPTION,
-  TYPE_SECTION,
   TYPE_SUBHEAD,
   fonts,
   listSectionTitle,
   sheetTitleText,
   synqOutlineAddBtnCompact,
-  synqOutlineAddBtnText,
-  RADIUS_XL,
+  synqOutlineAddBtnText
 } from "@/constants/Variables";
 import AddMembersToGroupSheet from "@/src/components/friends/AddMembersToGroupSheet";
 import CreateGroupModal from "@/src/components/friends/CreateGroupModal";
@@ -38,7 +38,6 @@ import HeaderIconButton from "@/src/components/HeaderIconButton";
 import { PageLoadSkeleton } from "@/src/components/loading/BrandSkeletons";
 import SpringBottomSheet from "@/src/components/sheets/SpringBottomSheet";
 import StackScreenHeader from "@/src/components/StackScreenHeader";
-import { sheetStyles } from "@/constants/sheetStyles";
 import { auth } from "@/src/lib/firebase";
 import {
   addMembersToFriendGroup,
@@ -316,7 +315,6 @@ export default function FriendGroupDetailScreen() {
         <View style={styles.membersPane}>
           <View style={styles.sectionHeader}>
             <Text style={styles.sectionTitle}>Members</Text>
-            <Text style={styles.sectionMeta}>{memberLabel}</Text>
           </View>
 
           <FlatList

@@ -1,20 +1,10 @@
 import { sheetStyles } from "@/constants/sheetStyles";
-import {
-  ACCENT,
-  BUTTON_RADIUS,
-  GROUP_BORDER,
-  SHEET_SURFACE,
-  SPACE_3,
-  SPACE_4,
-  SPACE_5,
-  SPACE_6,
-  primaryButtonText,
-} from "@/constants/Variables";
+import { SPACE_3, SPACE_4, SPACE_5 } from "@/constants/Variables";
 import SpringBottomSheet from "@/src/components/sheets/SpringBottomSheet";
 import SynqAudiencePicker from "@/src/components/synq/SynqAudiencePicker";
 import type { FriendGroup } from "@/src/lib/friendGroups";
 import type { SynqAudienceSelection } from "@/src/lib/synqBroadcast";
-import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { StyleSheet, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 type Props = {
@@ -34,6 +24,11 @@ export default function SynqAudienceSheet({
 }: Props) {
   const insets = useSafeAreaInsets();
 
+  const handleSelect = (next: SynqAudienceSelection) => {
+    onChangeSelection(next);
+    onClose();
+  };
+
   return (
     <SpringBottomSheet
       visible={visible}
@@ -48,19 +43,9 @@ export default function SynqAudienceSheet({
         <SynqAudiencePicker
           groups={groups}
           selection={selection}
-          onChangeSelection={onChangeSelection}
+          onChangeSelection={handleSelect}
+          singleSelect
         />
-      </View>
-      <View style={styles.footer}>
-        <TouchableOpacity
-          style={styles.doneBtn}
-          onPress={onClose}
-          activeOpacity={0.88}
-          accessibilityRole="button"
-          accessibilityLabel="Done"
-        >
-          <Text style={styles.doneText}>Done</Text>
-        </TouchableOpacity>
       </View>
     </SpringBottomSheet>
   );
@@ -74,29 +59,10 @@ const styles = StyleSheet.create({
     paddingTop: SPACE_3,
     paddingBottom: SPACE_4,
     paddingHorizontal: SPACE_4,
+    textAlign: "left",
+    alignSelf: "stretch",
   },
   pickerSection: {
     paddingBottom: SPACE_4,
   },
-  footer: {
-    alignItems: "center",
-    paddingHorizontal: SPACE_4,
-    paddingTop: SPACE_6,
-    paddingBottom: SPACE_5,
-    borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: GROUP_BORDER,
-    backgroundColor: SHEET_SURFACE,
-  },
-  doneBtn: {
-    alignSelf: "center",
-    backgroundColor: ACCENT,
-    borderRadius: BUTTON_RADIUS,
-    minHeight: 48,
-    minWidth: 128,
-    alignItems: "center",
-    justifyContent: "center",
-    paddingHorizontal: SPACE_5,
-    paddingVertical: 12,
-  },
-  doneText: primaryButtonText,
 });
