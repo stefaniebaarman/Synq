@@ -33,7 +33,6 @@ import {
   BG_FADE_MID,
   BG_TRANSPARENT,
   MUTED2,
-  ON_ACCENT_TEXT,
   TAB_BAR_SCROLL_INSET,
 } from "../../../constants/Variables";
 
@@ -335,7 +334,7 @@ export default function ActiveSynqSection({
                   }
                 >
                   {isConnecting ? (
-                    <ActivityIndicator color={ON_ACCENT_TEXT} />
+                    <ActivityIndicator color={ACCENT} />
                   ) : (
                     <Text
                       style={[
