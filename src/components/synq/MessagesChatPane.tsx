@@ -151,9 +151,15 @@ function formatMessageDividerTime(createdAt: unknown): string {
   if (dayDiff < 7) {
     return `${date.toLocaleDateString(undefined, { weekday: "long" })} ${time}`;
   }
-  return `${date.getMonth() + 1}/${date.getDate()}/${String(
-    date.getFullYear()
-  ).slice(-2)} ${time}`;
+
+  const weekday = date.toLocaleDateString(undefined, { weekday: "short" });
+  const monthDay = date.toLocaleDateString(undefined, {
+    month: "short",
+    day: "numeric",
+  });
+  const yearSuffix =
+    date.getFullYear() !== now.getFullYear() ? `, ${date.getFullYear()}` : "";
+  return `${weekday}, ${monthDay}${yearSuffix} at ${time}`;
 }
 
 /** Max iMessage-style swipe reveal for per-message times. */
