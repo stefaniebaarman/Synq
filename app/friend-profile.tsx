@@ -66,7 +66,6 @@ import {
 } from "@/src/lib/friends";
 import { formatLastSynq, resolveAvatar } from "@/src/lib/helpers";
 import { blockUser, unblockUser } from "@/src/lib/moderation";
-import { requestDismissNavigationOverlays } from "@/src/lib/navigationOverlayEvents";
 import {
   nudgeSentStorageKey as buildNudgeSentStorageKey,
   nudgeCooldownRemainingMs,
@@ -218,11 +217,6 @@ export default function FriendProfile({
     if (!isOwnProfile || isEmbedded) return;
     router.replace("/(tabs)/me");
   }, [isOwnProfile, isEmbedded, router]);
-
-  useLayoutEffect(() => {
-    if (isEmbedded) return;
-    requestDismissNavigationOverlays();
-  }, [isEmbedded, friendKey]);
 
   const renderStickyNav = (showOptions = true) => (
     <ProfileTabHeaderOverlay embedded={isEmbedded}>

@@ -343,6 +343,7 @@ export default function FriendsScreen() {
   const friendsListRef = useRef<FlatList<Friend>>(null);
   const friendsRefreshInFlightRef = useRef(false);
   const lastFriendsIdsKeyRef = useRef("");
+  const reopenPlansSheetOnFocusRef = useRef(false);
 
   const showAddFriendsModal = searchModalVisible;
   const headerFadeOpacity = Math.min(1, listScrollY / 28);
@@ -373,6 +374,7 @@ export default function FriendsScreen() {
     const subscription = DeviceEventEmitter.addListener(FRIENDS_TAB_PRESS, () => {
       setFriendsTabMode("friends");
       scrollFriendsListToTop(true);
+      reopenPlansSheetOnFocusRef.current = false;
       closeAddFriendsModal();
       closePlansSheet();
       if (openAddFriends === "1") {
@@ -384,6 +386,7 @@ export default function FriendsScreen() {
 
   useEffect(() => {
     return registerDismissNavigationOverlaysHandler(() => {
+      reopenPlansSheetOnFocusRef.current = false;
       closeAddFriendsModal();
       closePlansSheet();
     });
@@ -412,6 +415,11 @@ export default function FriendsScreen() {
   useFocusEffect(
     useCallback(() => {
       scrollFriendsListToTop(false);
+
+      if (reopenPlansSheetOnFocusRef.current) {
+        reopenPlansSheetOnFocusRef.current = false;
+        setPlansSheetVisible(true);
+      }
 
       const t = setTimeout(() => {
         DeviceEventEmitter.emit(LOCATION_PROMPT_CHECK_REQUEST);
@@ -545,12 +553,16 @@ export default function FriendsScreen() {
   const openFriendProfileFromFriendsTab = useCallback(
     (friendId: string) => {
       void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+      if (plansSheetVisible) {
+        reopenPlansSheetOnFocusRef.current = true;
+        setPlansSheetVisible(false);
+      }
       router.push({
         pathname: "/friend-profile",
         params: { friendId, from: "friends" },
       });
     },
-    [router]
+    [router, plansSheetVisible]
   );
 
   const friendPlansFeed = useFriendPlansFeed({
