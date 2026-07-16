@@ -20,9 +20,11 @@ import {
   BG,
   BORDER,
   BUTTON_RADIUS,
+  GROUP_BORDER,
   MUTED,
   MUTED3,
   ON_ACCENT_TEXT,
+  RADIUS_LG,
   RADIUS_MD,
   SPACE_2,
   SPACE_3,
@@ -30,6 +32,7 @@ import {
   SPACE_5,
   SPACE_6,
   SURFACE,
+  SURFACE_RAISED,
   TEXT,
   heroTitleText,
   primaryButtonText,
@@ -221,11 +224,11 @@ const styles = StyleSheet.create({
   hero: {
     marginHorizontal: SPACE_4 + SPACE_3,
     marginBottom: SPACE_3,
-    backgroundColor: SURFACE,
-    borderRadius: RADIUS_MD,
+    backgroundColor: SURFACE_RAISED,
+    borderRadius: RADIUS_LG,
     padding: SPACE_4 + 2,
-    borderWidth: 1,
-    borderColor: BORDER,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: GROUP_BORDER,
   },
   heroTitle: {
     ...heroTitleText,
@@ -270,12 +273,12 @@ const styles = StyleSheet.create({
   },
 
   card: {
-    backgroundColor: SURFACE,
+    backgroundColor: SURFACE_RAISED,
     marginHorizontal: SPACE_4 + SPACE_3,
-    borderRadius: RADIUS_MD,
+    borderRadius: RADIUS_LG,
     padding: SPACE_4 + 2,
-    borderWidth: 1,
-    borderColor: BORDER,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: GROUP_BORDER,
   },
 
   input: {

@@ -21,19 +21,19 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { formScreenStyles } from "../constants/formScreenStyles";
 import {
   BG,
-  BORDER,
   BORDER_MUTED,
   BORDER_SUBTLE_HEX,
   DESTRUCTIVE,
+  GROUP_BORDER,
   MUTED,
   MUTED2,
-  RADIUS_MD,
+  RADIUS_LG,
   SPACE_1,
   SPACE_3,
   SPACE_4,
   SPACE_5,
   SPACE_6,
-  SURFACE_ELEVATED,
+  SURFACE_RAISED,
   TEXT,
   TEXT_MUTED_HEX,
   TYPE_BODY,
@@ -127,14 +127,16 @@ export default function SettingsScreen() {
     onPress,
     value,
     danger,
+    isLast,
   }: {
     label: string;
     onPress?: () => void;
     value?: string;
     danger?: boolean;
+    isLast?: boolean;
   }) => (
     <TouchableOpacity
-      style={styles.item}
+      style={[styles.item, isLast && styles.itemLast]}
       onPress={onPress}
       activeOpacity={0.85}
       accessibilityRole="button"
@@ -154,8 +156,16 @@ export default function SettingsScreen() {
     </TouchableOpacity>
   );
 
-  const StaticItem = ({ label, value }: { label: string; value: string }) => (
-    <View style={styles.item}>
+  const StaticItem = ({
+    label,
+    value,
+    isLast,
+  }: {
+    label: string;
+    value: string;
+    isLast?: boolean;
+  }) => (
+    <View style={[styles.item, isLast && styles.itemLast]}>
       <View style={styles.itemLeft}>
         <Text style={styles.itemLabel}>{label}</Text>
       </View>
@@ -196,7 +206,7 @@ export default function SettingsScreen() {
             label="Push notification settings"
             onPress={openSystemSettings}
           />
-          <SettingItem label="Sign out" onPress={confirmSignOut} />
+          <SettingItem label="Sign out" onPress={confirmSignOut} isLast />
         </View>
 
         <Text style={formScreenStyles.groupTitle}>Safety</Text>
@@ -204,6 +214,7 @@ export default function SettingsScreen() {
           <SettingItem
             label="Report a safety issue"
             onPress={() => router.push("/profile-settings/safety-report")}
+            isLast
           />
         </View>
 
@@ -229,7 +240,7 @@ export default function SettingsScreen() {
             label="Feedback"
             onPress={() => router.push("/profile-settings/feedback")}
           />
-          <StaticItem label="Version" value={appVersion} />
+          <StaticItem label="Version" value={appVersion} isLast />
         </View>
 
         <Text style={formScreenStyles.groupTitle}>Danger zone</Text>
@@ -238,6 +249,7 @@ export default function SettingsScreen() {
             label="Delete account"
             danger
             onPress={() => router.push("/delete-account")}
+            isLast
           />
         </View>
       </ScrollView>
@@ -274,12 +286,12 @@ const styles = StyleSheet.create({
   userSection: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: SURFACE_ELEVATED,
-    borderWidth: 1,
-    borderColor: BORDER_MUTED,
+    backgroundColor: SURFACE_RAISED,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: GROUP_BORDER,
     margin: SPACE_4 + SPACE_1,
     padding: SPACE_4,
-    borderRadius: RADIUS_MD,
+    borderRadius: RADIUS_LG,
   },
   avatar: {
     width: 50,
@@ -300,8 +312,11 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     paddingVertical: SPACE_4 + 2,
     paddingHorizontal: SPACE_4 + 2,
-    borderBottomWidth: 0.5,
+    borderBottomWidth: StyleSheet.hairlineWidth,
     borderBottomColor: BORDER_SUBTLE_HEX,
+  },
+  itemLast: {
+    borderBottomWidth: 0,
   },
   itemLeft: { flexDirection: "row", alignItems: "center" },
   itemLabel: {

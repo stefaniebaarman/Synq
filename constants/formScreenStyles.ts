@@ -1,13 +1,13 @@
 import { StyleSheet } from "react-native";
 import {
-  BORDER,
+  GROUP_BORDER,
+  RADIUS_LG,
   formSectionLabel,
-  RADIUS_MD,
   SPACE_1,
   SPACE_3,
   SPACE_4,
   SPACE_5,
-  SURFACE,
+  SURFACE_RAISED,
 } from "./Variables";
 
 export const formScreenStyles = StyleSheet.create({
@@ -18,12 +18,12 @@ export const formScreenStyles = StyleSheet.create({
     marginTop: SPACE_3 - 2,
   },
   group: {
-    backgroundColor: SURFACE,
+    backgroundColor: SURFACE_RAISED,
     marginHorizontal: SPACE_4 + SPACE_1,
-    borderRadius: RADIUS_MD,
+    borderRadius: RADIUS_LG,
     overflow: "hidden",
     marginBottom: SPACE_5 + SPACE_1,
-    borderWidth: 1,
-    borderColor: BORDER,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: GROUP_BORDER,
   },
 });

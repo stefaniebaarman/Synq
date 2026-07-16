@@ -12,14 +12,14 @@ import { formScreenStyles } from "@/constants/formScreenStyles";
 import {
   ACCENT,
   BG,
-  BORDER,
+  GROUP_BORDER,
   MUTED,
-  RADIUS_MD,
+  RADIUS_LG,
   SPACE_3,
   SPACE_4,
   SPACE_5,
   SPACE_6,
-  SURFACE,
+  SURFACE_RAISED,
   TEXT,
   TYPE_BODY,
   TYPE_BUTTON,
@@ -125,11 +125,11 @@ const styles = StyleSheet.create({
   hero: {
     marginHorizontal: SPACE_4 + SPACE_3,
     marginBottom: SPACE_3,
-    backgroundColor: SURFACE,
-    borderRadius: RADIUS_MD,
+    backgroundColor: SURFACE_RAISED,
+    borderRadius: RADIUS_LG,
     padding: SPACE_4 + 2,
-    borderWidth: 1,
-    borderColor: BORDER,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: GROUP_BORDER,
   },
   heroTitle: {
     ...heroTitleText,
@@ -144,13 +144,13 @@ const styles = StyleSheet.create({
 
   section: { marginTop: 2 },
   card: {
-    backgroundColor: SURFACE,
+    backgroundColor: SURFACE_RAISED,
     marginHorizontal: SPACE_4 + SPACE_3,
-    borderRadius: RADIUS_MD,
+    borderRadius: RADIUS_LG,
     padding: SPACE_4 + 2,
     overflow: "hidden",
-    borderWidth: 1,
-    borderColor: BORDER,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: GROUP_BORDER,
   },
 
   copyText: {
