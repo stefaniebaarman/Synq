@@ -1,11 +1,8 @@
 import StackScreenHeader from "@/src/components/StackScreenHeader";
-import { Ionicons } from "@expo/vector-icons";
-import { useMemo, useState } from "react";
+import { router } from "expo-router";
+import { useRef, useState } from "react";
 import {
-  KeyboardAvoidingView,
-  Linking,
   Platform,
-  ScrollView,
   StatusBar,
   StyleSheet,
   Text,
@@ -13,19 +10,18 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
+import { KeyboardAwareScrollView } from "react-native-keyboard-controller";
+import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 import { formScreenStyles } from "../../constants/formScreenStyles";
 import {
   ACCENT,
   BG,
   BORDER,
-  BUTTON_RADIUS,
   GROUP_BORDER,
   MUTED,
   MUTED3,
   ON_ACCENT_TEXT,
   RADIUS_LG,
-  RADIUS_MD,
   SPACE_2,
   SPACE_3,
   SPACE_4,
@@ -34,84 +30,87 @@ import {
   SURFACE,
   SURFACE_RAISED,
   TEXT,
-  heroTitleText,
-  primaryButtonText,
   TYPE_BODY,
   TYPE_BUTTON,
-  TYPE_CAPTION,
   TYPE_LEAD,
-  TYPE_SECTION,
   fonts,
+  heroTitleText,
+  synqOutlineAddBtn,
+  synqOutlineAddBtnDisabled,
+  synqOutlineAddBtnText,
+  synqOutlineAddBtnTextDisabled,
 } from "../../constants/Variables";
+import {
+  submitFeedback,
+  type FeedbackType,
+} from "../../src/lib/feedback";
+import { auth } from "../../src/lib/firebase";
 
 import AlertModal from "../alert-modal";
 
-const FEEDBACK_EMAIL = "synqapp@gmail.com";
-
 export default function FeedbackScreen() {
-  const [type, setType] = useState<"Feedback" | "Bug" | "Feature Request">("Feedback");
+  const insets = useSafeAreaInsets();
+  const scrollRef = useRef<React.ComponentRef<typeof KeyboardAwareScrollView>>(null);
+  const messageYRef = useRef(0);
+  const [type, setType] = useState<FeedbackType>("Feedback");
   const [message, setMessage] = useState("");
-  const [email, setEmail] = useState("");
+  const [submitting, setSubmitting] = useState(false);
   const [alertVisible, setAlertVisible] = useState(false);
   const [alertConfig, setAlertConfig] = useState<{
     title?: string;
     message: string;
+    goBack?: boolean;
   } | null>(null);
 
-  const subject = useMemo(() => `Synq ${type}`, [type]);
-  const canSubmit = message.trim().length >= 10;
+  const canSubmit = message.trim().length >= 10 && !submitting;
 
-  const showAlert = (title: string, message: string) => {
-    setAlertConfig({ title, message });
+  const keepMessageVisible = () => {
+    const delay = Platform.OS === "ios" ? 100 : 0;
+    setTimeout(() => {
+      scrollRef.current?.scrollTo({
+        y: Math.max(0, messageYRef.current - 72),
+        animated: true,
+      });
+    }, delay);
+  };
+
+  const showAlert = (
+    title: string,
+    message: string,
+    opts?: { goBack?: boolean }
+  ) => {
+    setAlertConfig({ title, message, goBack: opts?.goBack });
     setAlertVisible(true);
   };
 
   const submit = async () => {
-    if (!canSubmit) {
+    if (!auth.currentUser) {
+      showAlert("Sign in required", "Sign in to send feedback.");
+      return;
+    }
+    if (message.trim().length < 10) {
       showAlert("Add a bit more", "Please include at least 10 characters of feedback.");
       return;
     }
 
-    const bodyLines = [
-      `Type: ${type}`,
-      email.trim() ? `Contact: ${email.trim()}` : `Contact: (not provided)`,
-      "",
-      "Message:",
-      message.trim(),
-      "",
-      "—",
-      `Platform: ${Platform.OS}`,
-    ];
-
-    const mailto = `mailto:${FEEDBACK_EMAIL}?subject=${encodeURIComponent(
-      subject
-    )}&body=${encodeURIComponent(bodyLines.join("\n"))}`;
-
+    setSubmitting(true);
     try {
-      const supported = await Linking.canOpenURL(mailto);
-
-      if (!supported) {
-        showAlert("Email not available", "No email app is configured on this device.");
-        return;
-      }
-
-      await Linking.openURL(mailto);
-
-      showAlert("Thanks!", "Your email app opened with your feedback ready to send.");
-
+      await submitFeedback({
+        type,
+        message: message.trim(),
+        platform: Platform.OS,
+      });
       setMessage("");
-      setEmail("");
       setType("Feedback");
+      showAlert("Thanks!", "Your feedback was sent.", { goBack: true });
     } catch {
-      showAlert("Something went wrong", "We couldn't open your email app.");
+      showAlert("Something went wrong", "We couldn't send your feedback. Please try again.");
+    } finally {
+      setSubmitting(false);
     }
   };
 
-  const TypeChip = ({
-    label,
-  }: {
-    label: "Feedback" | "Bug" | "Feature Request";
-  }) => {
+  const TypeChip = ({ label }: { label: FeedbackType }) => {
     const active = type === label;
     return (
       <TouchableOpacity
@@ -130,84 +129,90 @@ export default function FeedbackScreen() {
     <SafeAreaView style={styles.container} edges={["bottom", "left", "right"]}>
       <StatusBar barStyle="light-content" />
 
-      <StackScreenHeader title="Feedback" />
+      <StackScreenHeader title="Send feedback" />
 
-      <KeyboardAvoidingView
-        style={{ flex: 1 }}
-        behavior={Platform.OS === "ios" ? "padding" : undefined}
-        keyboardVerticalOffset={Platform.OS === "ios" ? 8 : 0}
+      <KeyboardAwareScrollView
+        ref={scrollRef}
+        style={styles.flex}
+        contentContainerStyle={styles.scrollContent}
+        keyboardShouldPersistTaps="handled"
+        keyboardDismissMode="on-drag"
+        bottomOffset={16}
+        extraKeyboardSpace={insets.bottom + 8}
+        showsVerticalScrollIndicator={false}
       >
-        <ScrollView
-          contentContainerStyle={styles.scrollContent}
-          keyboardShouldPersistTaps="handled"
-          keyboardDismissMode="on-drag"
+        <View style={styles.hero}>
+          <Text style={styles.heroTitle}>Help us build Synq</Text>
+          <Text style={styles.heroSubtitle}>
+            Share feedback, report a bug, or suggest a feature.
+          </Text>
+        </View>
+
+        <View style={styles.section}>
+          <Text style={formScreenStyles.groupTitle}>Type</Text>
+          <View style={styles.chipRow}>
+            <TypeChip label="Feedback" />
+            <TypeChip label="Bug" />
+            <TypeChip label="Feature request" />
+            <TypeChip label="Other" />
+          </View>
+        </View>
+
+        <View
+          style={styles.section}
+          onLayout={(e) => {
+            messageYRef.current = e.nativeEvent.layout.y;
+          }}
         >
-          <View style={styles.hero}>
-            <Text style={styles.heroTitle}>Help us build Synq</Text>
-            <Text style={styles.heroSubtitle}>
-              Share feedback, report a bug, or suggest a feature. This will open your email app and
-              send to <Text style={styles.bold}>synqapp@gmail.com</Text>.
-            </Text>
+          <Text style={formScreenStyles.groupTitle}>Message</Text>
+          <View style={styles.card}>
+            <TextInput
+              value={message}
+              onChangeText={setMessage}
+              placeholder="Tell us what you think…"
+              placeholderTextColor={MUTED3}
+              multiline
+              textAlignVertical="top"
+              style={[styles.input, styles.textarea]}
+              onFocus={keepMessageVisible}
+            />
           </View>
+        </View>
 
-          <View style={styles.section}>
-            <Text style={formScreenStyles.groupTitle}>Type</Text>
-            <View style={styles.chipRow}>
-              <TypeChip label="Feedback" />
-              <TypeChip label="Bug" />
-              <TypeChip label="Feature Request" />
-            </View>
-          </View>
-
-          <View style={styles.section}>
-            <Text style={formScreenStyles.groupTitle}>Your email (optional)</Text>
-            <View style={styles.card}>
-              <TextInput
-                value={email}
-                onChangeText={setEmail}
-                placeholder="you@example.com"
-                placeholderTextColor={MUTED3}
-                keyboardType="email-address"
-                autoCapitalize="none"
-                autoCorrect={false}
-                style={styles.input}
-              />
-            </View>
-          </View>
-
-          <View style={styles.section}>
-            <Text style={formScreenStyles.groupTitle}>Message</Text>
-            <View style={styles.card}>
-              <TextInput
-                value={message}
-                onChangeText={setMessage}
-                placeholder="Tell us what you think…"
-                placeholderTextColor={MUTED3}
-                multiline
-                textAlignVertical="top"
-                style={[styles.input, styles.textarea]}
-              />
-            </View>
-          </View>
-
-          <TouchableOpacity
-            onPress={submit}
-            activeOpacity={0.9}
-            style={[styles.submitBtn, !canSubmit && styles.submitBtnDisabled]}
+        <TouchableOpacity
+          onPress={() => void submit()}
+          activeOpacity={0.8}
+          disabled={!canSubmit}
+          style={[
+            synqOutlineAddBtn,
+            styles.submitBtn,
+            !canSubmit && synqOutlineAddBtnDisabled,
+          ]}
+          accessibilityRole="button"
+          accessibilityLabel="Submit feedback"
+        >
+          <Text
+            style={[
+              synqOutlineAddBtnText,
+              !canSubmit && synqOutlineAddBtnTextDisabled,
+            ]}
           >
-            <Text style={primaryButtonText}>Submit</Text>
-            <Ionicons name="send" size={18} color="black" />
-          </TouchableOpacity>
+            {submitting ? "Sending…" : "Submit"}
+          </Text>
+        </TouchableOpacity>
 
-          <View style={styles.footerSpace} />
-        </ScrollView>
-      </KeyboardAvoidingView>
+        <View style={styles.footerSpace} />
+      </KeyboardAwareScrollView>
 
       <AlertModal
         visible={alertVisible}
         title={alertConfig?.title}
         message={alertConfig?.message || ""}
-        onClose={() => setAlertVisible(false)}
+        onClose={() => {
+          const shouldGoBack = alertConfig?.goBack;
+          setAlertVisible(false);
+          if (shouldGoBack) router.back();
+        }}
       />
     </SafeAreaView>
   );
@@ -215,6 +220,7 @@ export default function FeedbackScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: BG },
+  flex: { flex: 1 },
 
   scrollContent: {
     paddingBottom: SPACE_6 + SPACE_3,
@@ -240,7 +246,6 @@ const styles = StyleSheet.create({
     color: MUTED,
     lineHeight: 22,
   },
-  bold: { fontFamily: fonts.heavy, color: TEXT },
 
   section: { marginTop: 2 },
 
@@ -292,19 +297,8 @@ const styles = StyleSheet.create({
   },
 
   submitBtn: {
+    alignSelf: "center",
     marginTop: SPACE_4 + 2,
-    marginHorizontal: SPACE_4 + SPACE_3,
-    backgroundColor: ACCENT,
-    borderRadius: BUTTON_RADIUS + 2,
-    paddingVertical: SPACE_4 - 2,
-    paddingHorizontal: SPACE_4,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: SPACE_3 - 2,
-  },
-  submitBtnDisabled: {
-    opacity: 0.5,
   },
 
   footerSpace: { height: SPACE_5 },

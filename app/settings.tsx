@@ -237,7 +237,7 @@ export default function SettingsScreen() {
             }
           />
           <SettingItem
-            label="Feedback"
+            label="Send feedback"
             onPress={() => router.push("/profile-settings/feedback")}
           />
           <StaticItem label="Version" value={appVersion} isLast />

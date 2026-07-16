@@ -13,23 +13,24 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import {
-  ACCENT,
+  ACCENT_FILL,
   BG,
-  BORDER,
+  GROUP_BORDER,
   MUTED,
   MUTED3,
-  ON_ACCENT_TEXT,
+  RADIUS_LG,
   RADIUS_MD,
+  SPACE_3,
   SPACE_4,
-  SURFACE,
+  SURFACE_RAISED,
   TEXT,
   TYPE_BODY,
   TYPE_BUTTON,
-  TYPE_CAPTION,
   fonts,
-  primaryButtonText,
-  BUTTON_RADIUS,
-  RADIUS_SM,
+  synqOutlineAddBtn,
+  synqOutlineAddBtnDisabled,
+  synqOutlineAddBtnText,
+  synqOutlineAddBtnTextDisabled,
 } from "../../constants/Variables";
 import { auth } from "../../src/lib/firebase";
 import { submitReport, type ReportReason } from "../../src/lib/moderation";
@@ -116,6 +117,8 @@ export default function SafetyReportScreen() {
     }
   };
 
+  const submitDisabled = submitting || !reason;
+
   return (
     <SafeAreaView style={styles.container} edges={["bottom", "left", "right"]}>
       <StatusBar barStyle="light-content" />
@@ -135,15 +138,22 @@ export default function SafetyReportScreen() {
             : "Describe the safety issue below. We review reports within 24 hours."}
         </Text>
 
-        {REASONS.map((r) => (
-          <TouchableOpacity
-            key={r.id}
-            style={[styles.reasonRow, reason === r.id && styles.reasonActive]}
-            onPress={() => setReason(r.id)}
-          >
-            <Text style={styles.reasonText}>{r.label}</Text>
-          </TouchableOpacity>
-        ))}
+        <View style={styles.optionsGroup}>
+          {REASONS.map((r, index) => (
+            <TouchableOpacity
+              key={r.id}
+              style={[
+                styles.reasonRow,
+                index < REASONS.length - 1 && styles.reasonRowBorder,
+                reason === r.id && styles.reasonActive,
+              ]}
+              onPress={() => setReason(r.id)}
+              activeOpacity={0.75}
+            >
+              <Text style={styles.reasonText}>{r.label}</Text>
+            </TouchableOpacity>
+          ))}
+        </View>
 
         <View
           onLayout={(e) => {
@@ -164,13 +174,22 @@ export default function SafetyReportScreen() {
 
         <TouchableOpacity
           style={[
+            synqOutlineAddBtn,
             styles.submit,
-            (submitting || !reason) && styles.submitDisabled,
+            submitDisabled && synqOutlineAddBtnDisabled,
           ]}
-          disabled={submitting || !reason}
+          disabled={submitDisabled}
           onPress={handleSubmit}
+          activeOpacity={0.8}
+          accessibilityRole="button"
+          accessibilityLabel="Submit report"
         >
-          <Text style={primaryButtonText}>
+          <Text
+            style={[
+              synqOutlineAddBtnText,
+              submitDisabled && synqOutlineAddBtnTextDisabled,
+            ]}
+          >
             {submitting ? "Submitting…" : "Submit report"}
           </Text>
         </TouchableOpacity>
@@ -199,39 +218,43 @@ const styles = StyleSheet.create({
     lineHeight: 22,
     marginBottom: 20,
   },
-  label: {
-    color: MUTED,
+  optionsGroup: {
+    backgroundColor: SURFACE_RAISED,
+    borderRadius: RADIUS_LG,
+    overflow: "hidden",
+    marginBottom: SPACE_4,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: GROUP_BORDER,
+  },
+  reasonRow: {
+    paddingVertical: 14,
+    paddingHorizontal: SPACE_4,
+  },
+  reasonRowBorder: {
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: GROUP_BORDER,
+  },
+  reasonActive: {
+    backgroundColor: ACCENT_FILL,
+  },
+  reasonText: {
+    color: TEXT,
     fontFamily: fonts.medium,
-    fontSize: TYPE_CAPTION,
-    marginBottom: 8,
+    fontSize: TYPE_BUTTON,
   },
   input: {
-    backgroundColor: SURFACE,
+    backgroundColor: SURFACE_RAISED,
     borderRadius: RADIUS_MD,
-    borderWidth: 1,
-    borderColor: BORDER,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: GROUP_BORDER,
     padding: 14,
     color: TEXT,
     fontFamily: fonts.medium,
     marginBottom: 16,
   },
   details: { minHeight: 100, textAlignVertical: "top" },
-  reasonRow: {
-    padding: 14,
-    borderRadius: RADIUS_SM,
-    marginBottom: 8,
-    backgroundColor: SURFACE,
-    borderWidth: 1,
-    borderColor: BORDER,
-  },
-  reasonActive: { borderColor: ACCENT },
-  reasonText: { color: TEXT, fontFamily: fonts.medium, fontSize: TYPE_BUTTON },
   submit: {
-    marginTop: 8,
-    backgroundColor: ACCENT,
-    borderRadius: BUTTON_RADIUS,
-    paddingVertical: 14,
-    alignItems: "center",
+    alignSelf: "center",
+    marginTop: SPACE_3,
   },
-  submitDisabled: { opacity: 0.45 },
 });

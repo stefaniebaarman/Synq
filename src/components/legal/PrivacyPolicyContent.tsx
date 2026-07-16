@@ -56,9 +56,9 @@ export default function PrivacyPolicyContent() {
           </Bullet>
           <Bullet>
             <Text style={styles.bold}>Feedback and support information:</Text>{" "}
-            if you use the feedback flow or email us, we may receive the
-            message contents, the optional contact email you provide, and basic
-            platform information included in the drafted email.
+            if you use the in-app feedback flow or email us, we may receive the
+            message contents, your account name and contact details associated
+            with your Synq account, and basic platform information.
           </Bullet>
           <Bullet>
             <Text style={styles.bold}>Contacts (optional):</Text> if you choose
@@ -149,7 +149,8 @@ export default function PrivacyPolicyContent() {
             <Text style={styles.bold}>To service providers:</Text> Firebase
             Authentication, Firestore, Storage, and Cloud Functions; Expo
             notifications; Google services used for venue suggestions; and
-            your email app/provider when you use the in-app feedback mail flow.
+            email delivery providers used to notify us of feedback and safety
+            reports.
           </Bullet>
           <Bullet>
             <Text style={styles.bold}>For legal, security, or compliance reasons:</Text>{" "}
