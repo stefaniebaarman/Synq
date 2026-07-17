@@ -643,6 +643,9 @@ export const IOS_APP_STORE_URL =
 export const ANDROID_PLAY_STORE_URL =
   "https://play.google.com/store/search?q=Synq&c=apps";
 
+export const INSTAGRAM_URL = "https://www.instagram.com/lets.synq/";
+export const TIKTOK_URL = "https://www.tiktok.com/@lets.synq";
+
 export const aiPrompts = [
     "Let Synq pick the move",
     "Find something fun nearby",

@@ -25,6 +25,7 @@ import {
   BORDER_SUBTLE_HEX,
   DESTRUCTIVE,
   GROUP_BORDER,
+  INSTAGRAM_URL,
   MUTED,
   MUTED2,
   RADIUS_LG,
@@ -36,6 +37,7 @@ import {
   SURFACE_RAISED,
   TEXT,
   TEXT_MUTED_HEX,
+  TIKTOK_URL,
   TYPE_BODY,
   TYPE_CAPTION,
   TYPE_CTA,
@@ -105,6 +107,19 @@ export default function SettingsScreen() {
       await Linking.openURL("app-settings:");
     } catch {
       showAlert("Unable to open Settings", "Please open your device Settings app.");
+    }
+  };
+
+  const openExternalUrl = async (url: string, label: string) => {
+    try {
+      const canOpen = await Linking.canOpenURL(url);
+      if (!canOpen) {
+        showAlert(`Unable to open ${label}`, "Please try again later.");
+        return;
+      }
+      await Linking.openURL(url);
+    } catch {
+      showAlert(`Unable to open ${label}`, "Please try again later.");
     }
   };
 
@@ -252,6 +267,28 @@ export default function SettingsScreen() {
             isLast
           />
         </View>
+
+        <Text style={formScreenStyles.groupTitle}>Follow us</Text>
+        <View style={styles.socialGroup}>
+          <TouchableOpacity
+            style={styles.socialButton}
+            onPress={() => openExternalUrl(INSTAGRAM_URL, "Instagram")}
+            activeOpacity={0.85}
+            accessibilityRole="link"
+            accessibilityLabel="Open Synq on Instagram"
+          >
+            <Ionicons name="logo-instagram" size={28} color={TEXT} />
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={styles.socialButton}
+            onPress={() => openExternalUrl(TIKTOK_URL, "TikTok")}
+            activeOpacity={0.85}
+            accessibilityRole="link"
+            accessibilityLabel="Open Synq on TikTok"
+          >
+            <Ionicons name="logo-tiktok" size={28} color={TEXT} />
+          </TouchableOpacity>
+        </View>
       </ScrollView>
 
       <ConfirmModal
@@ -333,5 +370,20 @@ const styles = StyleSheet.create({
   dangerText: {
     color: DESTRUCTIVE,
     fontFamily: fonts.medium,
+  },
+
+  socialGroup: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "flex-start",
+    gap: SPACE_3,
+    marginHorizontal: SPACE_4 + SPACE_1,
+    marginBottom: SPACE_5 + SPACE_1,
+  },
+  socialButton: {
+    width: 40,
+    height: 40,
+    alignItems: "center",
+    justifyContent: "center",
   },
 });
