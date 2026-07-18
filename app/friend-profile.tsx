@@ -87,6 +87,7 @@ import {
   collection,
   doc,
   getDoc,
+  getDocFromServer,
   getDocs,
   onSnapshot,
   serverTimestamp,
@@ -119,6 +120,7 @@ import {
   filterOutPastOpenPlans,
   sortOpenPlansByDateTime,
 } from "../src/lib/planEvents";
+import { planLooseMatch, collectJoinedIds } from "@/src/lib/planAttribution";
 import {
   communityGroupsCacheByUser,
   friendProfileCacheByUser,
@@ -267,7 +269,13 @@ export default function FriendProfile({
   const cachedMutualFriends =
     viewerId && friendKey ? getCachedMutualFriends(viewerId, friendKey) : undefined;
 
-  const [friend, setFriend] = useState<any>(cachedFriend);
+  // Never seed plan cards from social-cache events — those can retain a wrong
+  // planHostUid (e.g. William) long after Firestore was repaired.
+  const [friend, setFriend] = useState<any>(() => {
+    if (!cachedFriend) return null;
+    const { events: _cachedEvents, ...profile } = cachedFriend as any;
+    return { ...profile, events: [] };
+  });
   const [mutualFriends, setMutualFriends] = useState<any[]>(cachedMutualFriends ?? []);
   const [lastSynq, setLastSynq] = useState<Date | null>(cachedLastSynq);
   const [loading, setLoading] = useState(!cachedFriend);
@@ -464,13 +472,25 @@ export default function FriendProfile({
       setViewerEvents([]);
       return;
     }
+    let cancelled = false;
+    // Bypass IndexedDB persistence — stale offline copies kept William as host.
+    void getDocFromServer(doc(db, "users", viewerId))
+      .then((snap) => {
+        if (cancelled || !snap.exists()) return;
+        const events = ((snap.data() as any)?.events as any[] | undefined) ?? [];
+        setViewerEvents(Array.isArray(events) ? events : []);
+      })
+      .catch(() => {});
     const unsub = onSnapshot(doc(db, "users", viewerId), (snap) => {
       const events = snap.exists()
         ? ((snap.data() as any)?.events as any[] | undefined) ?? []
         : [];
       setViewerEvents(Array.isArray(events) ? events : []);
     });
-    return unsub;
+    return () => {
+      cancelled = true;
+      unsub();
+    };
   }, [viewerId]);
 
   useEffect(() => {
@@ -592,11 +612,9 @@ export default function FriendProfile({
         setRequestSent(rel.requestSent);
       });
       warmFriendsAndConnectionsCache(viewerId).then(() => {
-        const warmed = friendProfileCacheByUser[viewerId]?.[friendKey];
-        if (warmed) {
-          setFriend(warmed);
-          setLoading(false);
-        }
+        // Do not setFriend from cache here — onSnapshot owns the open profile.
+        // Overwriting with a TTL-cached profile reintroduces stale planHostUid
+        // (e.g. Blake's Happy Hour flipping back to William after a live fix).
         const rel = getCachedFriendRelationship(viewerId, friendKey);
         setIsFriend(rel.isFriend);
         setRequestSent(rel.requestSent);
@@ -627,6 +645,25 @@ export default function FriendProfile({
       },
       () => setLoading(false)
     );
+
+    // Force server truth for this profile's plans (ignore offline cache).
+    void getDocFromServer(doc(db, "users", friendKey))
+      .then((snap) => {
+        if (!snap.exists()) return;
+        const data = snap.data();
+        setFriend(data);
+        if (viewerId) {
+          if (!friendProfileCacheByUser[viewerId]) {
+            friendProfileCacheByUser[viewerId] = {};
+          }
+          friendProfileCacheByUser[viewerId][friendKey] = {
+            id: friendKey,
+            ...(data as any),
+          } as any;
+        }
+        setLoading(false);
+      })
+      .catch(() => {});
 
     return () => unsub();
   }, [viewerId, friendKey]);
@@ -891,13 +928,31 @@ export default function FriendProfile({
     }
   };
 
-  const planLooksJoined = (e: any) =>
-    !!(joinedPlanKeys[eventKey(e)] || joinedPlanKeys[eventKeyLoose(e)]);
+  const planLooksJoined = (e: any) => {
+    if (joinedPlanKeys[eventKey(e)] || joinedPlanKeys[eventKeyLoose(e)]) return true;
+    // Fallback: viewer calendar already has this plan with the friend on the roster.
+    if (!viewerId || !friendKey || !Array.isArray(viewerEvents)) return false;
+    return viewerEvents.some(
+      (row) =>
+        planLooseMatch(row, e) &&
+        collectJoinedIds(row).includes(String(friendKey).trim())
+    );
+  };
 
   const isViewerHostOfFriendsPlan = (event: any) => {
     if (!viewerId || !friendKey) return false;
     const vid = String(viewerId).trim();
     const fk = String(friendKey).trim();
+    // Prefer the viewer's own calendar — friend join copies can mis-label planHostUid.
+    if (
+      Array.isArray(viewerEvents) &&
+      viewerEvents.some(
+        (row) =>
+          planLooseMatch(row, event) && String(row?.planHostUid || "").trim() === vid
+      )
+    ) {
+      return true;
+    }
     if (String(event?.planHostUid || "").trim() === vid) return true;
     if (String(event?.joinedFromFriendUid || "").trim() === vid) return true;
     const jf = String(event?.joinedFromId || "").trim();

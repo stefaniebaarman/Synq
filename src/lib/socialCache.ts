@@ -31,7 +31,7 @@ const warmFriendsInFlight: Record<string, Promise<void> | undefined> = {};
 const warmOutgoingInFlight: Record<string, Promise<void> | undefined> = {};
 const warmSuggestedInFlight: Record<string, Promise<void> | undefined> = {};
 const hydrateInFlight: Record<string, Promise<void> | undefined> = {};
-const CACHE_VERSION = 2;
+const CACHE_VERSION = 5;
 const socialCacheKey = (userId: string) => `social-cache:${CACHE_VERSION}:${userId}`;
 
 /** How long before re-fetching a friend's full profile during warm. */

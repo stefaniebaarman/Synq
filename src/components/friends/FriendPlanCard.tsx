@@ -49,6 +49,8 @@ const PLAN_PILL_LAYOUT = {
   flexShrink: 0,
 };
 
+const PLAN_CARD_OWNER_LOGIC_VERSION = 5; // bump forces Metro to pick up owner-line fixes
+
 function parsePlanDate(s: string) {
   const [y, m, d] = s.split("-").map(Number);
   return new Date(y, m - 1, d);
@@ -84,18 +86,38 @@ export default function FriendPlanCard({
   onOpenPersonProfile,
   cardPressOpensGoing = false,
 }: Props) {
+  void PLAN_CARD_OWNER_LOGIC_VERSION;
   const [goingSheetOpen, setGoingSheetOpen] = useState(false);
   const d = parsePlanDate(item.event.date);
+  const viewerKey = String(viewerId || "").trim();
 
-  const viewerRow =
-    joined && Array.isArray(viewerEvents)
-      ? viewerEvents.find((row) => planLooseMatch(row, item.event))
-      : undefined;
-  const eventForAttribution = mergeEventsForGoingAttribution(
-    item.event,
-    viewerRow || undefined
+  // If the viewer's own calendar says they host this plan, that wins over everything
+  // else (friend-cache / offline persistence can still say William).
+  const viewerHostsThisPlan = !!(
+    viewerKey &&
+    Array.isArray(viewerEvents) &&
+    viewerEvents.some(
+      (row) =>
+        planLooseMatch(row, item.event) &&
+        String(row?.planHostUid || "").trim() === viewerKey
+    )
   );
-  const profileSubject = joined ? viewerId : item.sourceFriendId;
+
+  // Always prefer the viewer's calendar copy when present — don't gate on `joined`
+  // (join keys can lag; stale friend-cache rows may still have the wrong planHostUid).
+  const viewerRow = Array.isArray(viewerEvents)
+    ? viewerEvents.find((row) => planLooseMatch(row, item.event))
+    : undefined;
+  const baseEvent = viewerHostsThisPlan
+    ? { ...item.event, planHostUid: viewerKey }
+    : viewerRow && String(viewerRow.planHostUid || "").trim() === viewerKey
+      ? { ...item.event, planHostUid: viewerKey, joinedFromFriendUid: undefined }
+      : item.event;
+  const eventForAttribution = mergeEventsForGoingAttribution(
+    viewerRow || baseEvent,
+    viewerRow ? baseEvent : undefined
+  );
+  const profileSubject = item.sourceFriendId;
 
   const { primary: hostLine, secondary: goingLine, goingPeople } = resolvePlanAttribution(
     eventForAttribution,
@@ -105,9 +127,28 @@ export default function FriendPlanCard({
     viewerEvents
   );
   const friendFirstName = item.sourceFriendName.trim().split(/\s+/)[0] || "Friend";
-  const ownerLine =
-    hostLine ||
-    (isHost ? "Your plan" : `${friendFirstName}'s plan`);
+
+  // Owner label MUST match the going-sheet host (same goingPeople list). Separate
+  // heuristics were still showing "William's plan" while the sheet correctly marked
+  // Stefanie as Host.
+  const hostPerson =
+    goingPeople.find((p) => p.isHost) ||
+    (goingPeople.length > 0 ? goingPeople[0] : null);
+  const hostPersonId = String(hostPerson?.userId || "").trim();
+  const hostPersonFirst =
+    String(hostPerson?.displayName || "")
+      .trim()
+      .split(/\s+/)[0] || "";
+  const viewerOwnsPlan = !!(
+    viewerHostsThisPlan ||
+    (hostPersonId && viewerKey && hostPersonId === viewerKey) ||
+    isHost
+  );
+  const ownerLine = viewerOwnsPlan
+    ? "Your plan"
+    : hostPersonFirst
+      ? `${hostPersonFirst}'s plan`
+      : hostLine || `${friendFirstName}'s plan`;
   const peopleWithAvatars: PlanGoingPerson[] = goingPeople.map((person) => ({
     ...person,
     imageUrl: person.userId ? friendImageByUid[person.userId] ?? null : null,
@@ -150,7 +191,7 @@ export default function FriendPlanCard({
                 {item.event.title}
               </Text>
             </Pressable>
-            {joined && !isHost ? (
+            {joined && !viewerOwnsPlan ? (
               <TouchableOpacity
                 style={[styles.cardAction, busy && styles.actionBusy]}
                 disabled={busy}
@@ -171,7 +212,7 @@ export default function FriendPlanCard({
                 ? `${item.event.location}${item.event.time ? ` · ${item.event.time}` : ""}`
                 : item.event.time}
             </Text>
-            {!isHost ? (
+            {!viewerOwnsPlan ? (
               <Text style={styles.planOwnerLine} numberOfLines={1}>
                 {ownerLine}
               </Text>
@@ -199,7 +240,7 @@ export default function FriendPlanCard({
           ) : null}
         </View>
 
-        {isHost ? (
+        {viewerOwnsPlan ? (
           <View style={[styles.hostPill, styles.planSidePill]}>
             <Text numberOfLines={1} style={[styles.interestText, styles.hostPillText]}>
               Your plan

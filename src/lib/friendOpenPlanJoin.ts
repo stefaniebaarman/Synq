@@ -107,7 +107,7 @@ export function buildOptimisticJoinedViewerEvent(
   return {
     ...event,
     id: `optimistic-${String(event.id || "plan")}`,
-    planHostUid: String(event.planHostUid || "").trim() || friendKey,
+    planHostUid: resolvePlanHostUidForJoin(event, friendKey),
     joinedFromFriendUid: friendKey,
     joinedFromId: friendKey,
     joinedFromIds: sourceIds,

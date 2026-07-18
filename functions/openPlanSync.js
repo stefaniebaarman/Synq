@@ -20,11 +20,12 @@ function eventKeyLoose(e) {
 }
 
 function matchesPlanEvent(e, target, siblingEvents) {
-  if (eventKey(e) === eventKey(target)) return true;
-
   const hostE = String(e?.planHostUid || "").trim();
   const hostT = String(target?.planHostUid || "").trim();
+  // Same title/date/time/location can exist for different hosts — never collapse them.
   if (hostE && hostT && hostE !== hostT) return false;
+
+  if (eventKey(e) === eventKey(target)) return true;
 
   if (hostE && hostT && hostE === hostT && eventKeyLoose(e) === eventKeyLoose(target)) {
     const sameHostLoose = siblingEvents.filter(
@@ -87,13 +88,18 @@ function findHostPlanIndex(hostEvents, joinCopy, hostUid) {
 function findMatchingPlanIndex(events, planSnapshot, planHostUid) {
   if (!Array.isArray(events) || events.length === 0) return -1;
 
+  const host = String(planHostUid || planSnapshot?.planHostUid || "").trim();
   const id = String(planSnapshot?.id || "").trim();
   if (id) {
-    const byId = events.findIndex((e) => String(e?.id || "").trim() === id);
+    const byId = events.findIndex((e) => {
+      if (String(e?.id || "").trim() !== id) return false;
+      const rowHost = String(e?.planHostUid || "").trim();
+      if (host && rowHost && rowHost !== host) return false;
+      return true;
+    });
     if (byId >= 0) return byId;
   }
 
-  const host = String(planHostUid || planSnapshot?.planHostUid || "").trim();
   if (host) {
     const hostIdx = findHostPlanIndex(events, planSnapshot, host);
     if (hostIdx >= 0) return hostIdx;
@@ -199,7 +205,15 @@ async function mergeRosterOntoUser(db, targetUid, planSnapshot, allAttendeeIds, 
     .join("|");
   const nextNamesStr = otherNames.slice().sort().join("|");
   const prevHost = String(row.planHostUid || "").trim();
-  const nextHost = isHostDoc ? host || prevHost || undefined : host || prevHost || undefined;
+  // Never overwrite an existing host with a different uid (joiners can carry a wrong host).
+  let nextHost;
+  if (prevHost && host && prevHost !== host) {
+    nextHost = prevHost;
+  } else if (isHostDoc) {
+    nextHost = host || prevHost || undefined;
+  } else {
+    nextHost = host || prevHost || undefined;
+  }
   if (prevKey === nextKey && prevNamesStr === nextNamesStr && prevHost === String(nextHost || "")) {
     return false;
   }
@@ -444,17 +458,77 @@ async function syncHostPlanFieldUpdates(db, hostUid, beforeEvents, afterEvents) 
 }
 
 /**
+ * Resolve which user actually hosts this plan. Join copies can mis-label another
+ * attendee as planHostUid (e.g. rejoin from host profile when one friend is going).
+ * Prefer a candidate who has a matching hosted row on their calendar.
+ */
+async function resolveCanonicalPlanHostUid(db, joinCopy, joinerUid) {
+  const claimed = String(joinCopy?.planHostUid || "").trim();
+  const via = String(joinCopy?.joinedFromFriendUid || "").trim();
+  const candidates = [...new Set([claimed, via].filter((id) => id && id !== joinerUid))];
+  if (candidates.length === 0) return claimed;
+
+  for (const candidate of candidates) {
+    try {
+      const snap = await db.collection("users").doc(candidate).get();
+      if (!snap.exists) continue;
+      const events = Array.isArray(snap.data()?.events) ? snap.data().events : [];
+      if (findHostPlanIndex(events, joinCopy, candidate) >= 0) {
+        return candidate;
+      }
+    } catch (e) {
+      logError("openPlanSync_resolve_host", e, { candidate, joinerUid });
+    }
+  }
+
+  return claimed || via;
+}
+
+/**
+ * If the joiner stored the wrong planHostUid, rewrite it to the canonical host.
+ */
+async function correctJoinerPlanHostUid(db, joinerUid, joinCopy, hostUid) {
+  const claimed = String(joinCopy?.planHostUid || "").trim();
+  const host = String(hostUid || "").trim();
+  if (!host || claimed === host) return false;
+
+  const joinerRef = db.collection("users").doc(joinerUid);
+  const snap = await joinerRef.get();
+  if (!snap.exists) return false;
+
+  let events = Array.isArray(snap.data()?.events) ? [...snap.data().events] : [];
+  const idx = findMatchingPlanIndex(events, joinCopy, claimed || host);
+  if (idx < 0) return false;
+  if (String(events[idx]?.planHostUid || "").trim() === host) return false;
+
+  events[idx] = {
+    ...events[idx],
+    planHostUid: host,
+    joinedFromFriendUid:
+      String(events[idx]?.joinedFromFriendUid || "").trim() ||
+      String(joinCopy?.joinedFromFriendUid || "").trim() ||
+      host,
+  };
+  await joinerRef.update({ events });
+  return true;
+}
+
+/**
  * When a friend joins a plan, merge roster onto host + every listed attendee who has a copy.
  */
 async function syncJoinerInterestToAttendees(db, joinerUid, beforeEvents, afterEvents) {
   const joinCopies = afterEvents.filter((e) => {
     const host = String(e?.planHostUid || "").trim();
-    return host && host !== joinerUid;
+    const via = String(e?.joinedFromFriendUid || "").trim();
+    // Include rows that only have via set (mis-labeled host still needs sync).
+    return (host && host !== joinerUid) || (via && via !== joinerUid);
   });
   if (joinCopies.length === 0) return;
 
   for (const joinCopy of joinCopies) {
-    const hostUid = String(joinCopy.planHostUid).trim();
+    const hostUid = await resolveCanonicalPlanHostUid(db, joinCopy, joinerUid);
+    if (!hostUid || hostUid === joinerUid) continue;
+
     const joinerIds = collectJoinedIds(joinCopy);
     if (!joinerIds.has(joinerUid)) continue;
 
@@ -465,8 +539,18 @@ async function syncJoinerInterestToAttendees(db, joinerUid, beforeEvents, afterE
       if (prevLoose === eventKeyLoose(joinCopy)) {
         const prevIds = [...beforeJoinerIds].sort().join("|");
         const nextIds = [...joinerIds].sort().join("|");
-        if (prevIds === nextIds) continue;
+        const prevHost = String(beforeCopy?.planHostUid || "").trim();
+        if (prevIds === nextIds && prevHost === hostUid) continue;
       }
+    }
+
+    try {
+      const corrected = await correctJoinerPlanHostUid(db, joinerUid, joinCopy, hostUid);
+      if (corrected) {
+        logInfo("openPlanSync_host_corrected", { hostUid, joinerUid });
+      }
+    } catch (e) {
+      logError("openPlanSync_host_correct", e, { hostUid, joinerUid });
     }
 
     const allAttendeeIds = Array.from(
@@ -483,7 +567,7 @@ async function syncJoinerInterestToAttendees(db, joinerUid, beforeEvents, afterE
         const updated = await mergeRosterOntoUser(
           db,
           targetUid,
-          joinCopy,
+          { ...joinCopy, planHostUid: hostUid },
           allAttendeeIds,
           hostUid
         );

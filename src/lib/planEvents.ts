@@ -81,11 +81,12 @@ export function hostPlanRowWithIdentity(
 }
 
 export function matchesPlanEvent(e: any, target: any, siblingEvents: any[]): boolean {
-  if (eventKey(e) === eventKey(target)) return true;
-
   const hostE = String(e?.planHostUid || "").trim();
   const hostT = String(target?.planHostUid || "").trim();
+  // Same title/date/time/location can exist for different hosts — never collapse them.
   if (hostE && hostT && hostE !== hostT) return false;
+
+  if (eventKey(e) === eventKey(target)) return true;
 
   if (hostE && hostT && hostE === hostT && eventKeyLoose(e) === eventKeyLoose(target)) {
     const sameHostLoose = siblingEvents.filter(
