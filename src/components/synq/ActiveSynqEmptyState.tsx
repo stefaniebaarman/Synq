@@ -20,6 +20,7 @@ import {
   nudgeCooldownRemainingMs,
   nudgeSentStorageKey,
   persistNudgeSent,
+  clearNudgeSent,
   readNudgeSentState,
   sendSynqNudge,
   synqNudgeErrorMessage,
@@ -159,7 +160,7 @@ export default function ActiveSynqEmptyState({ viewerId, candidates }: Props) {
   }, [candidates]);
 
   const handleNudge = useCallback(
-    async (friend: Friend) => {
+    (friend: Friend) => {
       const friendId = friend.id;
       let blocked = false;
       setNudgeByFriendId((prev) => {
@@ -170,36 +171,39 @@ export default function ActiveSynqEmptyState({ viewerId, candidates }: Props) {
         }
         return {
           ...prev,
-          [friendId]: { loading: true, sent: row?.sent ?? false },
+          [friendId]: { loading: true, sent: true },
         };
       });
       if (blocked) return;
 
+      showAlert("Nudge sent", "They'll get a notification asking if they're free.");
       const storageKey = nudgeSentStorageKey(viewerId, friendId);
-      try {
-        await sendSynqNudge(friendId);
-        await persistNudgeSent(storageKey);
-        setNudgeByFriendId((prev) => ({
-          ...prev,
-          [friendId]: { loading: false, sent: true },
-        }));
-        showAlert("Nudge sent", "They'll get a notification asking if they're free.");
-      } catch (err) {
-        const msg = synqNudgeErrorMessage(err);
-        if (msg.includes("again in a few hours")) {
-          await persistNudgeSent(storageKey);
+      void persistNudgeSent(storageKey);
+
+      void sendSynqNudge(friendId)
+        .then(() => {
           setNudgeByFriendId((prev) => ({
             ...prev,
             [friendId]: { loading: false, sent: true },
           }));
-        } else {
+        })
+        .catch((err) => {
+          const msg = synqNudgeErrorMessage(err);
+          if (msg.includes("again in a few hours")) {
+            void persistNudgeSent(storageKey);
+            setNudgeByFriendId((prev) => ({
+              ...prev,
+              [friendId]: { loading: false, sent: true },
+            }));
+            return;
+          }
+          void clearNudgeSent(storageKey);
           setNudgeByFriendId((prev) => ({
             ...prev,
-            [friendId]: { loading: false, sent: prev[friendId]?.sent ?? false },
+            [friendId]: { loading: false, sent: false },
           }));
           showAlert("Couldn't nudge", msg);
-        }
-      }
+        });
     },
     [viewerId, showAlert]
   );

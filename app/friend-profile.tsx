@@ -70,6 +70,7 @@ import {
   nudgeSentStorageKey as buildNudgeSentStorageKey,
   nudgeCooldownRemainingMs,
   persistNudgeSent,
+  clearNudgeSent,
   readNudgeSentState,
   sendSynqNudge,
   synqNudgeErrorMessage,
@@ -85,6 +86,7 @@ import {
 } from "expo-router";
 import {
   collection,
+  deleteDoc,
   doc,
   getDoc,
   getDocFromServer,
@@ -281,6 +283,7 @@ export default function FriendProfile({
   const [loading, setLoading] = useState(!cachedFriend);
   const [isFriend, setIsFriend] = useState(cachedRelationship.isFriend);
   const [requestSent, setRequestSent] = useState(cachedRelationship.requestSent);
+  const [incomingRequest, setIncomingRequest] = useState(false);
   const [actionLoading, setActionLoading] = useState(false);
   const [showRemoveModal, setShowRemoveModal] = useState(false);
   const [removingFriend, setRemovingFriend] = useState(false);
@@ -579,27 +582,34 @@ export default function FriendProfile({
     warmSynqNudgeClient();
   }, [showNudgeCard, nudgeSent]);
 
-  const handleSynqNudge = async () => {
+  const handleSynqNudge = () => {
     if (!friendKey || nudgeLoading || nudgeSent || !canNudgeFriend) return;
     setNudgeLoading(true);
-    try {
-      await sendSynqNudge(friendKey);
-      if (nudgeSentStorageKey) {
-        await persistNudgeSent(nudgeSentStorageKey);
-      }
-      setNudgeSent(true);
-      showAlert("Nudge sent", "They'll get a notification asking if they're free.");
-    } catch (err) {
-      const msg = synqNudgeErrorMessage(err);
-      if (msg.includes("again in a few hours") && nudgeSentStorageKey) {
-        await persistNudgeSent(nudgeSentStorageKey);
-        setNudgeSent(true);
-      } else {
-        showAlert("Couldn't nudge", msg);
-      }
-    } finally {
-      setNudgeLoading(false);
+    setNudgeSent(true);
+    showAlert("Nudge sent", "They'll get a notification asking if they're free.");
+    if (nudgeSentStorageKey) {
+      void persistNudgeSent(nudgeSentStorageKey);
     }
+
+    void sendSynqNudge(friendKey)
+      .catch((err) => {
+        const msg = synqNudgeErrorMessage(err);
+        if (msg.includes("again in a few hours")) {
+          if (nudgeSentStorageKey) {
+            void persistNudgeSent(nudgeSentStorageKey);
+          }
+          setNudgeSent(true);
+          return;
+        }
+        setNudgeSent(false);
+        if (nudgeSentStorageKey) {
+          void clearNudgeSent(nudgeSentStorageKey);
+        }
+        showAlert("Couldn't nudge", msg);
+      })
+      .finally(() => {
+        setNudgeLoading(false);
+      });
   };
 
   useEffect(() => {
@@ -787,21 +797,43 @@ export default function FriendProfile({
         setIsFriend(nextIsFriend);
         if (nextIsFriend) {
           setRequestSent(false);
+          setIncomingRequest(false);
           setCachedOutgoingFriendRequest(myId, friendKey, false);
           return;
         }
-        const pendingSnap = await getDoc(
-          doc(db, "users", friendKey, "friendRequests", myId)
-        );
+        const [pendingSnap, incomingSnap] = await Promise.all([
+          getDoc(doc(db, "users", friendKey, "friendRequests", myId)),
+          getDoc(doc(db, "users", myId, "friendRequests", friendKey)),
+        ]);
         const nextPending = pendingSnap.exists();
-        setRequestSent(nextPending);
-        setCachedOutgoingFriendRequest(myId, friendKey, nextPending);
+        const nextIncoming = incomingSnap.exists();
+        setRequestSent(nextPending && !nextIncoming);
+        setIncomingRequest(nextIncoming);
+        setCachedOutgoingFriendRequest(myId, friendKey, nextPending && !nextIncoming);
       } catch {
         /* keep cached relationship state */
       }
     };
     void checkRelationship();
   }, [friendKey]);
+
+  // Keep incoming-request state live (e.g. they sent a request after you opened share).
+  useEffect(() => {
+    if (!viewerId || !friendKey || isFriend) {
+      setIncomingRequest(false);
+      return;
+    }
+    const unsub = onSnapshot(
+      doc(db, "users", viewerId, "friendRequests", friendKey),
+      (snap) => {
+        const exists = snap.exists();
+        setIncomingRequest(exists);
+        if (exists) setRequestSent(false);
+      },
+      () => {}
+    );
+    return () => unsub();
+  }, [viewerId, friendKey, isFriend]);
 
   if (isOwnProfile && !isEmbedded) {
     return (
@@ -898,6 +930,56 @@ export default function FriendProfile({
       setAlertTitle("Request failed");
       setAlertMessage("Could not send friend request. Please try again.");
       setAlertVisible(true);
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const acceptIncomingFriendRequest = async () => {
+    const user = auth.currentUser;
+    if (!user || !friendKey) return;
+    setActionLoading(true);
+    try {
+      const myId = user.uid;
+      const meSnap = await getDoc(doc(db, "users", myId));
+      const meData = meSnap.exists() ? (meSnap.data() as any) : {};
+      const myName = meData?.displayName || user.displayName || "User";
+      const myImageUrl = resolveAvatar(meData?.imageurl);
+      const theirName = String(friend?.displayName || "User").trim() || "User";
+      const theirImageUrl = resolveAvatar(friend?.imageurl);
+
+      const batch = writeBatch(db);
+      batch.set(doc(db, "users", myId, "friends", friendKey), {
+        synqCount: 0,
+        since: serverTimestamp(),
+        displayName: theirName,
+        imageurl: theirImageUrl,
+        notifyOnCreate: true,
+      });
+      batch.set(doc(db, "users", friendKey, "friends", myId), {
+        synqCount: 0,
+        since: serverTimestamp(),
+        displayName: myName,
+        imageurl: myImageUrl,
+      });
+      batch.delete(doc(db, "users", myId, "friendRequests", friendKey));
+      batch.delete(doc(db, "users", myId, "outgoingFriendRequests", friendKey));
+      batch.delete(doc(db, "users", friendKey, "outgoingFriendRequests", myId));
+      await batch.commit();
+
+      await deleteDoc(doc(db, "users", friendKey, "friendRequests", myId)).catch(() => {});
+
+      setIsFriend(true);
+      setIncomingRequest(false);
+      setRequestSent(false);
+      setCachedOutgoingFriendRequest(myId, friendKey, false);
+      showAlert(
+        "Success",
+        `You are now connected with ${theirName.split(/\s+/)[0] || theirName}!`
+      );
+    } catch (e) {
+      console.error("Failed to accept friend request", e);
+      showAlert("Error", "Could not accept friend request. Please try again.");
     } finally {
       setActionLoading(false);
     }
@@ -1043,7 +1125,6 @@ export default function FriendProfile({
 
             {!isFriend && communityContextLabel ? (
               <View style={styles.communityContextRow}>
-                <Ionicons name="people-outline" size={14} color={MUTED2} />
                 <Text style={styles.communityContextText} numberOfLines={2}>
                   {communityContextLabel}
                 </Text>
@@ -1076,18 +1157,33 @@ export default function FriendProfile({
           <View style={styles.profileActionWrap}>
             <TouchableOpacity
               activeOpacity={0.8}
-              style={[synqOutlineAddBtn, requestSent && synqOutlineAddBtnDisabled]}
-              onPress={addFriend}
-              disabled={requestSent || actionLoading}
+              style={[
+                synqOutlineAddBtn,
+                requestSent && !incomingRequest && synqOutlineAddBtnDisabled,
+              ]}
+              onPress={incomingRequest ? acceptIncomingFriendRequest : addFriend}
+              disabled={(!incomingRequest && requestSent) || actionLoading}
+              accessibilityRole="button"
+              accessibilityLabel={
+                incomingRequest
+                  ? "Accept friend request"
+                  : requestSent
+                    ? "Friend request pending"
+                    : "Add friend"
+              }
             >
               <Text
                 style={[
                   synqOutlineAddBtnText,
-                  requestSent && synqOutlineAddBtnTextDisabled,
+                  requestSent && !incomingRequest && synqOutlineAddBtnTextDisabled,
                   actionLoading && { opacity: 0.5 },
                 ]}
               >
-                {requestSent ? "Pending" : "Add friend"}
+                {incomingRequest
+                  ? "Accept friend request"
+                  : requestSent
+                    ? "Pending"
+                    : "Add friend"}
               </Text>
             </TouchableOpacity>
           </View>
