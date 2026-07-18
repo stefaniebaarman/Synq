@@ -57,6 +57,7 @@ import {
   deleteField,
   doc,
   getDoc,
+  getDocFromServer,
   limit,
   onSnapshot,
   orderBy,
@@ -1311,6 +1312,26 @@ export default function SynqScreen() {
     }
 
     let cancelled = false;
+    const sortByDisplayName = (list: typeof availableFriends) =>
+      [...list].sort((a, b) =>
+        String((a as any)?.displayName || "").localeCompare(
+          String((b as any)?.displayName || "")
+        )
+      );
+
+    const upsertAvailableFriend = (fid: string, data: Record<string, unknown>) => {
+      setAvailableFriends((prev) => {
+        const entry = { id: fid, ...data } as (typeof prev)[number];
+        const idx = prev.findIndex((f) => f.id === fid);
+        if (idx >= 0) {
+          const next = [...prev];
+          next[idx] = entry;
+          return next;
+        }
+        return sortByDisplayName([...prev, entry]);
+      });
+    };
+
     const refreshAvailable = async (force = false, fromUserId?: string) => {
       if (force) {
         invalidateSynqActiveFriendsPoll(myId, fromUserId);
@@ -1320,6 +1341,20 @@ export default function SynqScreen() {
         focusFriendId: fromUserId,
       });
       if (!cancelled) setAvailableFriends(next);
+    };
+
+    /** Immediately surface a newly activated friend (push / in-app notif), then reconcile. */
+    const absorbActivatedFriend = async (fromUserId: string) => {
+      if (!friendIds.includes(fromUserId)) return;
+      try {
+        const snap = await getDocFromServer(doc(db, "users", fromUserId));
+        if (cancelled || !snap.exists()) return;
+        const data = snap.data() as Record<string, unknown>;
+        if (!computeSynqActiveFromUserData(data)) return;
+        upsertAvailableFriend(fromUserId, data);
+      } catch {
+        // Fall through to force poll below.
+      }
     };
 
     void refreshAvailable(true);
@@ -1333,15 +1368,45 @@ export default function SynqScreen() {
         const fromUserId = payload?.fromUserId;
         if (payload?.inactive && fromUserId) {
           setAvailableFriends((prev) => prev.filter((f) => f.id !== fromUserId));
+        } else if (fromUserId) {
+          void absorbActivatedFriend(fromUserId);
         }
         void refreshAvailable(true, fromUserId);
       }
+    );
+
+    // Realtime discovery when CF writes friend_synq_active (works even if Expo push is delayed).
+    let notificationsReady = false;
+    const notifUnsub = onSnapshot(
+      query(
+        collection(db, "users", myId, "notifications"),
+        orderBy("createdAt", "desc"),
+        limit(30)
+      ),
+      (snap) => {
+        if (!notificationsReady) {
+          notificationsReady = true;
+          return;
+        }
+        for (const change of snap.docChanges()) {
+          if (change.type !== "added" && change.type !== "modified") continue;
+          const data = change.doc.data() as Record<string, unknown>;
+          if (data?.type !== "friend_synq_active") continue;
+          const fromUserId =
+            typeof data.fromUserId === "string" ? data.fromUserId.trim() : "";
+          if (!fromUserId) continue;
+          void absorbActivatedFriend(fromUserId);
+          void refreshAvailable(true, fromUserId);
+        }
+      },
+      ignoreSnapshotPermissionDenied
     );
 
     return () => {
       cancelled = true;
       clearInterval(interval);
       pushRefreshSub.remove();
+      notifUnsub();
     };
   }, [status, user?.uid, resolvedFriendIds]);
 
@@ -1365,18 +1430,30 @@ export default function SynqScreen() {
       onSnapshot(
         doc(db, "users", fid),
         (snap) => {
-          if (!snap.exists() || !computeSynqActiveFromUserData(snap.data())) {
+          const data = snap.exists() ? snap.data() : undefined;
+          const isActive = computeSynqActiveFromUserData(data);
+          if (!isActive) {
+            // Local cache often still has pre-activation status; removing here
+            // drops a just-added friend and the next server snap never re-adds.
+            if (snap.metadata.fromCache) return;
             invalidateSynqActiveFriendsPoll(myId, fid);
             setAvailableFriends((prev) => prev.filter((f) => f.id !== fid));
             return;
           }
-          const data = snap.data();
           setAvailableFriends((prev) => {
+            const entry = { id: fid, ...data } as (typeof prev)[number];
             const idx = prev.findIndex((f) => f.id === fid);
-            if (idx < 0) return prev;
-            const next = [...prev];
-            next[idx] = { id: fid, ...data };
-            return next;
+            if (idx >= 0) {
+              const next = [...prev];
+              next[idx] = entry;
+              return next;
+            }
+            // Re-add if a stale cached snap removed them before server confirmed active.
+            return [...prev, entry].sort((a, b) =>
+              String((a as any)?.displayName || "").localeCompare(
+                String((b as any)?.displayName || "")
+              )
+            );
           });
         },
         ignoreSnapshotPermissionDenied
