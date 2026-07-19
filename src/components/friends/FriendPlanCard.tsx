@@ -28,7 +28,8 @@ import PlanGoingPeopleSheet, {
 import type { FriendOpenPlanEvent } from "@/src/lib/friendOpenPlanJoin";
 import type { AggregatedFriendPlan } from "@/src/lib/useFriendPlansFeed";
 import { planLooseMatch, resolvePlanAttribution, mergeEventsForGoingAttribution } from "@/src/lib/planAttribution";
-import React, { useState } from "react";
+import { useFocusEffect } from "@react-navigation/native";
+import React, { useCallback, useRef, useState } from "react";
 import {
   Pressable,
   StyleSheet,
@@ -88,6 +89,17 @@ export default function FriendPlanCard({
 }: Props) {
   void PLAN_CARD_OWNER_LOGIC_VERSION;
   const [goingSheetOpen, setGoingSheetOpen] = useState(false);
+  const reopenGoingOnFocusRef = useRef(false);
+  const pendingProfileUidRef = useRef<string | null>(null);
+
+  useFocusEffect(
+    useCallback(() => {
+      if (!reopenGoingOnFocusRef.current) return;
+      reopenGoingOnFocusRef.current = false;
+      setGoingSheetOpen(true);
+    }, [])
+  );
+
   const d = parsePlanDate(item.event.date);
   const viewerKey = String(viewerId || "").trim();
 
@@ -164,8 +176,17 @@ export default function FriendPlanCard({
 
   return (
     <>
-      <View style={styles.card}>
-        <Pressable style={styles.dateBlock} onPress={handleCardPress}>
+      <Pressable
+        style={styles.card}
+        onPress={handleCardPress}
+        accessibilityRole="button"
+        accessibilityLabel={
+          cardPressOpensGoing
+            ? `See who's going to ${item.event.title}`
+            : `${ownerLine}, ${item.event.title}`
+        }
+      >
+        <View style={styles.dateBlock}>
           <Text style={styles.day}>
             {d.toLocaleDateString("en-US", { weekday: "short" }).toUpperCase()}
           </Text>
@@ -173,24 +194,13 @@ export default function FriendPlanCard({
           <Text style={styles.month}>
             {d.toLocaleDateString("en-US", { month: "short" }).toUpperCase()}
           </Text>
-        </Pressable>
+        </View>
 
         <View style={styles.planBody}>
           <View style={styles.planHeaderRow}>
-            <Pressable
-              style={styles.titlePress}
-              onPress={handleCardPress}
-              accessibilityRole="button"
-              accessibilityLabel={
-                cardPressOpensGoing
-                  ? `See who's going to ${item.event.title}`
-                  : `${ownerLine}, ${item.event.title}`
-              }
-            >
-              <Text style={styles.title} numberOfLines={2}>
-                {item.event.title}
-              </Text>
-            </Pressable>
+            <Text style={styles.title} numberOfLines={2}>
+              {item.event.title}
+            </Text>
             {joined && !viewerOwnsPlan ? (
               <TouchableOpacity
                 style={[styles.cardAction, busy && styles.actionBusy]}
@@ -206,37 +216,20 @@ export default function FriendPlanCard({
               </TouchableOpacity>
             ) : null}
           </View>
-          <Pressable onPress={handleCardPress}>
-            <Text style={styles.meta} numberOfLines={2}>
-              {item.event.location
-                ? `${item.event.location}${item.event.time ? ` · ${item.event.time}` : ""}`
-                : item.event.time}
+          <Text style={styles.meta} numberOfLines={2}>
+            {item.event.location
+              ? `${item.event.location}${item.event.time ? ` · ${item.event.time}` : ""}`
+              : item.event.time}
+          </Text>
+          {!viewerOwnsPlan ? (
+            <Text style={styles.planOwnerLine} numberOfLines={1}>
+              {ownerLine}
             </Text>
-            {!viewerOwnsPlan ? (
-              <Text style={styles.planOwnerLine} numberOfLines={1}>
-                {ownerLine}
-              </Text>
-            ) : null}
-          </Pressable>
+          ) : null}
           {goingLine ? (
-            peopleWithAvatars.length > 0 ? (
-              <TouchableOpacity
-                onPress={() => setGoingSheetOpen(true)}
-                hitSlop={{ top: 4, bottom: 4, left: 4, right: 4 }}
-                accessibilityRole="button"
-                accessibilityLabel="See everyone going to this plan"
-                style={styles.goingPressable}
-                activeOpacity={0.7}
-              >
-                <Text style={styles.goingText} numberOfLines={2}>
-                  {goingLine}
-                </Text>
-              </TouchableOpacity>
-            ) : (
-              <Text style={[styles.goingText, styles.goingStatic]} numberOfLines={2}>
-                {goingLine}
-              </Text>
-            )
+            <Text style={[styles.goingText, styles.goingStatic]} numberOfLines={2}>
+              {goingLine}
+            </Text>
           ) : null}
         </View>
 
@@ -263,19 +256,32 @@ export default function FriendPlanCard({
             <Text style={synqOutlineAddBtnTextCompact}>Join</Text>
           </TouchableOpacity>
         ) : null}
-      </View>
+      </Pressable>
 
       <PlanGoingPeopleSheet
         visible={goingSheetOpen}
         planTitle={item.event.title}
         people={peopleWithAvatars}
-        onClose={() => setGoingSheetOpen(false)}
+        viewerId={viewerId}
+        onClose={() => {
+          // Manual dismiss (X / backdrop) — do not navigate or reopen.
+          pendingProfileUidRef.current = null;
+          reopenGoingOnFocusRef.current = false;
+          setGoingSheetOpen(false);
+        }}
+        onClosed={() => {
+          const uid = pendingProfileUidRef.current;
+          pendingProfileUidRef.current = null;
+          if (uid && onOpenPersonProfile) onOpenPersonProfile(uid);
+        }}
         onPressPerson={
           onOpenPersonProfile
             ? (person) => {
-                if (!person.userId || person.userId === viewerId) return;
+                const uid = String(person.userId || "").trim();
+                if (!uid || uid === viewerId) return;
+                pendingProfileUidRef.current = uid;
+                reopenGoingOnFocusRef.current = true;
                 setGoingSheetOpen(false);
-                onOpenPersonProfile(person.userId);
               }
             : undefined
         }
@@ -322,10 +328,6 @@ const styles = StyleSheet.create({
     marginLeft: 4,
     flexShrink: 0,
   },
-  titlePress: {
-    flex: 1,
-    minWidth: 0,
-  },
   cardAction: {
     flexShrink: 0,
     paddingTop: 1,
@@ -364,10 +366,6 @@ const styles = StyleSheet.create({
     marginTop: 5,
     fontFamily: fonts.medium,
     letterSpacing: 0.1,
-  },
-  goingPressable: {
-    alignSelf: "flex-start",
-    marginTop: 4,
   },
   goingText: {
     color: ACCENT,

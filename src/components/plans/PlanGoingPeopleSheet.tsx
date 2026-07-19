@@ -22,15 +22,14 @@ import { resolveAvatar } from "@/src/lib/helpers";
 import { Ionicons } from "@expo/vector-icons";
 import { Image as ExpoImage } from "expo-image";
 import { doc, getDoc } from "firebase/firestore";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
-  FlatList,
-  Pressable,
   StyleSheet,
   Text,
   useWindowDimensions,
   View,
 } from "react-native";
+import { FlatList, Pressable } from "react-native-gesture-handler";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 export type PlanGoingPerson = {
@@ -45,7 +44,11 @@ type Props = {
   planTitle?: string | null;
   people: PlanGoingPerson[];
   onClose: () => void;
+  /** Fires after the sheet has fully dismissed (safe for follow-up navigation). */
+  onClosed?: () => void;
   onPressPerson?: (person: PlanGoingPerson) => void;
+  /** Viewer cannot open their own profile from this list. */
+  viewerId?: string | null;
 };
 
 function needsProfileHydration(person: PlanGoingPerson): boolean {
@@ -56,22 +59,40 @@ function needsProfileHydration(person: PlanGoingPerson): boolean {
   return generic || missingImage;
 }
 
+function peopleSignature(people: PlanGoingPerson[]): string {
+  return people
+    .map(
+      (p) =>
+        `${String(p.userId || "")}|${String(p.displayName || "")}|${String(p.imageUrl || "")}|${
+          p.isHost ? "1" : "0"
+        }`
+    )
+    .join(";");
+}
+
 export default function PlanGoingPeopleSheet({
   visible,
   planTitle,
   people,
   onClose,
+  onClosed,
   onPressPerson,
+  viewerId,
 }: Props) {
   const insets = useSafeAreaInsets();
   const { height: windowHeight } = useWindowDimensions();
   const sheetHeight = Math.round(windowHeight * 0.7);
   const title = String(planTitle || "").trim() || "this plan";
+  const viewerKey = String(viewerId || "").trim();
   const [hydratedPeople, setHydratedPeople] = useState<PlanGoingPerson[]>(people);
+  const peopleKey = useMemo(() => peopleSignature(people), [people]);
+  const lastPeopleKeyRef = useRef(peopleKey);
 
   useEffect(() => {
+    if (lastPeopleKeyRef.current === peopleKey) return;
+    lastPeopleKeyRef.current = peopleKey;
     setHydratedPeople(people);
-  }, [people]);
+  }, [people, peopleKey]);
 
   useEffect(() => {
     if (!visible) return;
@@ -119,12 +140,13 @@ export default function PlanGoingPeopleSheet({
     return () => {
       cancelled = true;
     };
-  }, [visible, people]);
+  }, [visible, peopleKey]);
 
   return (
     <SpringBottomSheet
       visible={visible}
       onClose={onClose}
+      onClosed={onClosed}
       cardStyle={[
         styles.sheet,
         { height: sheetHeight, paddingBottom: Math.max(28, insets.bottom + 12) },
@@ -138,8 +160,13 @@ export default function PlanGoingPeopleSheet({
         data={hydratedPeople}
         keyExtractor={(item, index) => item.userId || `person-${index}`}
         style={styles.list}
+        keyboardShouldPersistTaps="handled"
         renderItem={({ item }) => {
           const avatarUri = item.imageUrl || DEFAULT_AVATAR;
+          const uid = String(item.userId || "").trim();
+          const canOpen =
+            !!onPressPerson && !!uid && (!viewerKey || uid !== viewerKey);
+
           const row = (
             <View style={styles.row}>
               <View
@@ -171,10 +198,15 @@ export default function PlanGoingPeopleSheet({
             </View>
           );
 
-          if (!onPressPerson) return row;
+          if (!canOpen) return row;
 
           return (
-            <Pressable onPress={() => onPressPerson(item)} style={styles.rowPressable}>
+            <Pressable
+              onPress={() => onPressPerson?.(item)}
+              style={styles.rowPressable}
+              accessibilityRole="button"
+              accessibilityLabel={`Open ${item.displayName}'s profile`}
+            >
               {row}
             </Pressable>
           );

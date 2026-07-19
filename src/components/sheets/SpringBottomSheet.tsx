@@ -9,7 +9,7 @@ import {
   type StyleProp,
   type ViewStyle,
 } from "react-native";
-import { Gesture, GestureDetector } from "react-native-gesture-handler";
+import { Gesture, GestureDetector, GestureHandlerRootView } from "react-native-gesture-handler";
 import Animated, {
   Easing,
   cancelAnimation,
@@ -289,12 +289,15 @@ export default function SpringBottomSheet({
       onRequestClose={notifyParentClose}
       statusBarTranslucent
     >
-      {body}
+      <GestureHandlerRootView style={styles.gestureRoot}>{body}</GestureHandlerRootView>
     </Modal>
   );
 }
 
 const styles = StyleSheet.create({
+  gestureRoot: {
+    flex: 1,
+  },
   root: {
     flex: 1,
     justifyContent: "flex-end",

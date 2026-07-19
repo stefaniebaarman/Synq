@@ -118,6 +118,7 @@ const FriendsPlansPane = forwardRef<FriendsPlansPaneHandle, Props>(function Frie
             onPressCard={() => onOpenFriendProfile(item.sourceFriendId)}
             onPressAction={() => void handlePlanAction(item)}
             onOpenPersonProfile={onOpenFriendProfile}
+            cardPressOpensGoing
           />
         )}
         onScroll={onScroll}
