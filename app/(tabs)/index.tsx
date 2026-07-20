@@ -181,6 +181,7 @@ import {
 import {
   allParticipantsHaveCachedCitySuggestions,
   getCachedCitySuggestions,
+  suggestionBatchKey,
   hasCachedCitySuggestions,
 } from "../../src/lib/citySuggestions";
 import { auth, db } from '../../src/lib/firebase';
@@ -427,6 +428,8 @@ export default function SynqScreen() {
   const [showOptionsList, setShowOptionsList] = useState(false);
   const [currentCategory, setCurrentCategory] = useState('');
   const suggestionLocationRef = useRef<string | null>(null);
+  /** Recent suggestion-batch keys so shuffle does not flip between the same two sets. */
+  const recentSuggestionBatchKeysRef = useRef<string[]>([]);
   const flatListRef = useRef<FlatList>(null);
   const chatOpenGraceRef = useRef<Map<string, number>>(new Map());
   const chatsHydratedRef = useRef(false);
@@ -1694,6 +1697,7 @@ export default function SynqScreen() {
     setShowOptionsList(false);
     setSelectedOption(null);
     suggestionLocationRef.current = null;
+    recentSuggestionBatchKeysRef.current = [];
 
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
 
@@ -1743,6 +1747,10 @@ export default function SynqScreen() {
 
       if (suggestions.length > 0) {
         suggestionLocationRef.current = senderLocationLabel;
+        const batchKey = suggestionBatchKey(
+          suggestions.map((item) => String(item?.name || "").trim())
+        );
+        recentSuggestionBatchKeysRef.current = batchKey ? [batchKey] : [];
         setAiOptions(suggestions);
         setShowOptionsList(true);
         setAiExploreError(null);
@@ -1769,20 +1777,37 @@ export default function SynqScreen() {
     const locationLabel = suggestionLocationRef.current;
     if (!locationLabel || !currentCategory || isAILoading) return;
 
-    const excludeNames = aiOptions
+    const currentNames = aiOptions
       .map((item) => String(item?.name || "").trim())
       .filter(Boolean);
+    const currentKey = suggestionBatchKey(currentNames);
+    const recentKeys = currentKey
+      ? [
+          currentKey,
+          ...recentSuggestionBatchKeysRef.current.filter((key) => key !== currentKey),
+        ].slice(0, 12)
+      : recentSuggestionBatchKeysRef.current.slice(0, 12);
 
-    let suggestions =
-      getCachedCitySuggestions(locationLabel, currentCategory, excludeNames) ??
-      [];
-
-    if (suggestions.length === 0 && excludeNames.length > 0) {
-      suggestions =
-        getCachedCitySuggestions(locationLabel, currentCategory, []) ?? [];
-    }
+    // Prefer spots not on screen, and never return a recently shown exact set
+    // (small city catalogs only have ~9 venues, so excluding "all seen" just
+    // flips between two complementary halves).
+    const suggestions =
+      getCachedCitySuggestions(locationLabel, currentCategory, {
+        avoidNames: currentNames,
+        recentBatchKeys: recentKeys,
+      }) ?? [];
 
     if (suggestions.length === 0) return;
+
+    const nextKey = suggestionBatchKey(
+      suggestions.map((item) => String(item?.name || "").trim())
+    );
+    if (nextKey) {
+      recentSuggestionBatchKeysRef.current = [
+        nextKey,
+        ...recentKeys.filter((key) => key !== nextKey),
+      ].slice(0, 12);
+    }
 
     if (
       Platform.OS === "android" &&
@@ -2633,11 +2658,13 @@ export default function SynqScreen() {
                 setShowOptionsList(false);
                 setAiExploreError(null);
                 suggestionLocationRef.current = null;
+                recentSuggestionBatchKeysRef.current = [];
               }}
               onBack={() => {
                 setShowOptionsList(false);
                 setAiExploreError(null);
                 suggestionLocationRef.current = null;
+                recentSuggestionBatchKeysRef.current = [];
               }}
               onSelectVibe={(label: string) => {
                 void triggerAISuggestion(label);

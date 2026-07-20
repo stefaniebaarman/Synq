@@ -1,6 +1,6 @@
 import { Friend } from "@/constants/Variables";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { collection, doc, getDoc, getDocs } from "firebase/firestore";
+import { collection, doc, getDoc, getDocFromServer, getDocs } from "firebase/firestore";
 
 import { db } from "./firebase";
 import type { FriendGroup } from "./friendGroups";
@@ -780,7 +780,11 @@ export async function pollSynqActiveFriends(
         data = cachedProfile as unknown as Record<string, unknown>;
       } else {
         try {
-          const snap = await getDoc(doc(db, "users", fid));
+          // Force / focus refreshes must bypass the local Firestore cache so a
+          // just-activated friend isn't treated as still inactive.
+          const snap = mustRefresh
+            ? await getDocFromServer(doc(db, "users", fid))
+            : await getDoc(doc(db, "users", fid));
           if (!snap.exists()) return;
           data = snap.data() as Record<string, unknown>;
           profileCache[fid] = { id: fid, ...(data as object) } as Friend;

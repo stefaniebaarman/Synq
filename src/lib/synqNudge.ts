@@ -53,6 +53,10 @@ export async function persistNudgeSent(
   await AsyncStorage.setItem(storageKey, String(sentAtMs));
 }
 
+export async function clearNudgeSent(storageKey: string): Promise<void> {
+  await AsyncStorage.removeItem(storageKey);
+}
+
 export function synqNudgeErrorMessage(err: unknown): string {
   if (err instanceof FirebaseError) {
     switch (err.code) {

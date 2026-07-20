@@ -103,7 +103,18 @@ function enrichEventForFriendProfileAttribution(
   }
 
   const viewerRow = findMatchingViewerEvent(event, viewerEvents);
-  if (!viewerRow || !hasJoinMetadata(viewerRow)) return event;
+  if (!viewerRow) return event;
+
+  const viewerStoredHost = String(viewerRow?.planHostUid || "").trim();
+  // Viewer hosts this plan — always win over a friend's stale/wrong planHostUid.
+  if (viewerStoredHost && viewerStoredHost === viewer) {
+    return mergeEventsForGoingAttribution(
+      { ...viewerRow, planHostUid: viewer },
+      event
+    );
+  }
+
+  if (!hasJoinMetadata(viewerRow)) return event;
 
   const profileJoinedIds = collectJoinedIds(event);
   const profileHost = resolveEffectiveHostUid(
@@ -120,6 +131,14 @@ function enrichEventForFriendProfileAttribution(
   );
 
   if (!viewerHost || viewerHost === profileSubject) return event;
+
+  // Friend copy disagrees with viewer's known host (e.g. William vs Stefanie).
+  if (profileHost && profileHost !== viewerHost) {
+    return mergeEventsForGoingAttribution(
+      { ...viewerRow, planHostUid: viewerHost },
+      event
+    );
+  }
 
   if (!hasJoinMetadata(event, profileJoinedIds)) {
     return viewerRow;
@@ -166,6 +185,29 @@ function resolveEffectiveHostUid(event, viewerUid, joinedIds, profileSubjectUid)
     if (!storedHost) return profileSubject;
   }
 
+  // On a friend's profile, a host uid that isn't the profile owner is usually
+  // authoritative — unless joinedFromFriendUid points at a different real host
+  // (stale join copies often store another attendee as planHostUid, e.g. William,
+  // while via still correctly points at Stefanie).
+  if (
+    storedHost &&
+    profileSubject &&
+    profileSubject !== viewer &&
+    storedHost !== profileSubject
+  ) {
+    if (
+      joinedThrough &&
+      joinedThrough !== profileSubject &&
+      joinedThrough !== storedHost
+    ) {
+      return joinedThrough;
+    }
+    if (joinedThrough && joinedThrough === viewer) {
+      return joinedThrough;
+    }
+    return storedHost;
+  }
+
   // Friend profile with multiple attendees but no host metadata: profile owner joined.
   if (
     profileSubject &&
@@ -194,6 +236,21 @@ function resolveEffectiveHostUid(event, viewerUid, joinedIds, profileSubjectUid)
     if (hostCandidates.length === 1) return hostCandidates[0];
   }
 
+  // Normal join: planHostUid and via agree. Prefer that host when they lead the
+  // roster (server writes host first). Without this, Blake↔Sloane steal each
+  // other as host whenever exactly one other joiner exists.
+  if (
+    storedHost &&
+    joinedThrough &&
+    storedHost === joinedThrough &&
+    storedHost !== viewer
+  ) {
+    const rosterLead = String(joinedIds[0] || "").trim();
+    if (!rosterLead || rosterLead === storedHost) {
+      return storedHost;
+    }
+  }
+
   const othersExcludingHost = joinedIds.filter(
     (id) => id !== viewer && id !== storedHost && id !== joinedThrough
   );
@@ -210,6 +267,10 @@ function resolveEffectiveHostUid(event, viewerUid, joinedIds, profileSubjectUid)
     joinedIds.includes(viewer) &&
     othersExcludingHost.length >= 1
   ) {
+    const rosterLead = String(joinedIds[0] || "").trim();
+    if (rosterLead && rosterLead === storedHost) {
+      return storedHost;
+    }
     const candidate =
       othersExcludingHost.find((id) => id !== viewer) || othersExcludingHost[0];
     if (candidate && candidate !== joinedThrough) return candidate;
@@ -242,7 +303,12 @@ function resolveEffectiveHostUid(event, viewerUid, joinedIds, profileSubjectUid)
       ) {
         return storedHost;
       }
-      return anchorOthers[0];
+      // Only steal host to the other attendee when this profile wrongly claims to
+      // be the host (storedHost === profileSubject). Otherwise trust planHostUid.
+      if (storedHost && profileSubject && storedHost === profileSubject) {
+        return anchorOthers[0];
+      }
+      return storedHost;
     }
     // Profile owner wrongly stored as host and join anchor; another attendee is the host.
     if (
@@ -354,14 +420,14 @@ function resolvePlanAttribution(
     };
   };
 
-  // Sheet lists everyone going except the viewer-as-attendee; host is always first.
+  // Sheet lists everyone going (including the viewer when they joined). Host first.
   const goingPeople = [];
   if (hostKey) {
     goingPeople.push({ ...personFromUid(hostKey), isHost: true });
   }
   for (const id of joinedIds) {
-    if (id === viewerKey || id === hostKey) continue;
-    goingPeople.push(personFromUid(id));
+    if (id === hostKey) continue;
+    goingPeople.push({ ...personFromUid(id), isHost: false });
   }
 
   const hostFn =
@@ -392,16 +458,30 @@ function resolvePlanAttribution(
   const rawNames = (
     Array.isArray(effectiveEvent?.joinedFromNames) && effectiveEvent.joinedFromNames.length > 0
       ? effectiveEvent.joinedFromNames
-      : [effectiveEvent?.joinedFromName].filter(Boolean)
+      : String(effectiveEvent?.joinedFromName || "")
+          .split(",")
+          .map((n) => n.trim())
+          .filter(Boolean)
   )
     .map((n) => String(n || "").trim())
-    .filter(Boolean);
+    // Skip combined roster strings ("A, B") — those are not individual people.
+    .filter((n) => n && !n.includes(","));
 
   for (const name of rawNames) {
     const key = name.toLowerCase();
     if (!key || coveredNames.has(key)) continue;
     if (key === viewerName || key === hostName) continue;
     if (hostFn && firstNameFromDisplay(name).toLowerCase() === String(hostFn).toLowerCase()) {
+      continue;
+    }
+    // Skip if this name is already represented by first-name match on a uid row.
+    const first = firstNameFromDisplay(name).toLowerCase();
+    if (
+      first &&
+      goingPeople.some(
+        (p) => firstNameFromDisplay(p.displayName).toLowerCase() === first
+      )
+    ) {
       continue;
     }
     const someoneIdx = goingPeople.findIndex(
@@ -420,15 +500,29 @@ function resolvePlanAttribution(
       userId: null,
       displayName: name,
       imageUrl: null,
+      isHost: false,
     });
     coveredNames.add(key);
   }
 
-  // Card subtitle still omits the host (already shown as "X's plan").
+  // Card subtitle omits the host (shown as "X's plan") and the viewer ("You and …").
+  const viewerFirst = firstNameFromDisplay(
+    displayNameForUid(viewerKey, effectiveEvent, hostDisplayNameByUid)
+  ).toLowerCase();
   const othersFirsts = Array.from(
     new Set(
       goingPeople
-        .filter((p) => !p.isHost)
+        .filter((p) => {
+          if (p.isHost) return false;
+          if (viewerKey && String(p.userId || "").trim() === viewerKey) return false;
+          if (
+            viewerFirst &&
+            firstNameFromDisplay(p.displayName).toLowerCase() === viewerFirst
+          ) {
+            return false;
+          }
+          return true;
+        })
         .map((p) => firstNameFromDisplay(p.displayName))
         .filter(Boolean)
     )
@@ -459,12 +553,21 @@ function resolvePlanHostUidForJoin(event, profileFriendUid) {
   const stored = String(event?.planHostUid || "").trim();
   const joinedThrough = String(event?.joinedFromFriendUid || "").trim();
 
-  if (stored && stored !== fk) return stored;
+  // Joining from a joiner's profile that still points at the real host.
   if (joinedThrough && joinedThrough !== fk) return joinedThrough;
+
+  // Explicit host different from the profile friend.
+  if (stored && stored !== fk) return stored;
+
+  // Profile friend is stored as host — trust that (rejoin from host profile).
+  // Do NOT infer host from the only other attendee; that mis-labels William as host
+  // when rejoining Stefanie's plan that William already joined.
+  if (stored && stored === fk) return fk;
 
   const ids = collectJoinedIds(event);
   const otherIds = ids.filter((id) => id !== fk);
   if (otherIds.length === 1) return otherIds[0];
+  if (joinedThrough) return joinedThrough;
 
   return stored || fk;
 }
@@ -480,22 +583,35 @@ function mergeEventsForGoingAttribution(primary, secondary) {
   const ids = Array.from(
     new Set([...collectJoinedIds(primary), ...collectJoinedIds(secondary)])
   );
+  // Only use per-person joinedFromNames — never joinedFromName ("A, B"), which
+  // would show up as fake attendees in the going sheet.
   const names = Array.from(
     new Set(
       [
         ...(Array.isArray(primary?.joinedFromNames) ? primary.joinedFromNames : []),
         ...(Array.isArray(secondary?.joinedFromNames) ? secondary.joinedFromNames : []),
-        primary?.joinedFromName,
-        secondary?.joinedFromName,
       ]
         .map((n) => String(n || "").trim())
-        .filter(Boolean)
+        .filter((n) => n && !n.includes(","))
     )
   );
 
   return {
     ...primary,
-    planHostUid: primary.planHostUid || secondary.planHostUid,
+    // When copies disagree on host, prefer joinedFromFriendUid (join path) or the
+    // secondary copy (often the viewer's) over a stale primary planHostUid.
+    planHostUid: (() => {
+      const a = String(primary.planHostUid || "").trim();
+      const b = String(secondary.planHostUid || "").trim();
+      if (a && b && a !== b) {
+        const via = String(
+          primary.joinedFromFriendUid || secondary.joinedFromFriendUid || ""
+        ).trim();
+        if (via && (via === a || via === b)) return via;
+        return b || a;
+      }
+      return a || b || undefined;
+    })(),
     joinedFromFriendUid: primary.joinedFromFriendUid || secondary.joinedFromFriendUid,
     joinedFromIds: ids,
     joinedFromId: primary.joinedFromId || secondary.joinedFromId || ids[0] || "",

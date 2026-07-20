@@ -11,6 +11,8 @@ const {
   matchesWashingtonDcMetro,
   parseLocationLabels,
   pickRandomVenues,
+  pickSuggestionBatch,
+  suggestionBatchKey,
   allParticipantsHaveCachedCitySuggestions,
   getCachedCitySuggestions,
   resolveCityId,
@@ -230,6 +232,121 @@ describe("citySuggestions", () => {
       cityData,
       registry
     );
-    expect(suggestions).toHaveLength(3);
+    expect(suggestions).toHaveLength(4);
+  });
+
+  test("getCachedCitySuggestions prefers up to 5 venues when available", () => {
+    const richDinner = {
+      cityId: "washington-dc",
+      categories: {
+        Dinner: [
+          { name: "A", address: "1 St, Washington, DC", imageUrl: "https://a.test/1.jpg" },
+          { name: "B", address: "2 St, Washington, DC", imageUrl: "https://a.test/2.jpg" },
+          { name: "C", address: "3 St, Washington, DC", imageUrl: "https://a.test/3.jpg" },
+          { name: "D", address: "4 St, Washington, DC", imageUrl: "https://a.test/4.jpg" },
+          { name: "E", address: "5 St, Washington, DC", imageUrl: "https://a.test/5.jpg" },
+          { name: "F", address: "6 St, Washington, DC", imageUrl: "https://a.test/6.jpg" },
+        ],
+      },
+    };
+    const suggestions = getCachedCitySuggestions(
+      "Washington, DC",
+      "Dinner",
+      { "washington-dc": richDinner },
+      registry
+    );
+    expect(suggestions).toHaveLength(5);
+  });
+
+  test("getCachedCitySuggestions prefers unseen venues when avoiding a batch", () => {
+    const richDinner = {
+      cityId: "washington-dc",
+      categories: {
+        Dinner: [
+          { name: "A", address: "1 St, Washington, DC", imageUrl: "https://a.test/1.jpg" },
+          { name: "B", address: "2 St, Washington, DC", imageUrl: "https://a.test/2.jpg" },
+          { name: "C", address: "3 St, Washington, DC", imageUrl: "https://a.test/3.jpg" },
+          { name: "D", address: "4 St, Washington, DC", imageUrl: "https://a.test/4.jpg" },
+          { name: "E", address: "5 St, Washington, DC", imageUrl: "https://a.test/5.jpg" },
+          { name: "F", address: "6 St, Washington, DC", imageUrl: "https://a.test/6.jpg" },
+          { name: "G", address: "7 St, Washington, DC", imageUrl: "https://a.test/7.jpg" },
+          { name: "H", address: "8 St, Washington, DC", imageUrl: "https://a.test/8.jpg" },
+          { name: "I", address: "9 St, Washington, DC", imageUrl: "https://a.test/9.jpg" },
+        ],
+      },
+    };
+    const first = getCachedCitySuggestions(
+      "Washington, DC",
+      "Dinner",
+      { "washington-dc": richDinner },
+      registry
+    );
+    expect(first).toHaveLength(5);
+    const firstKey = suggestionBatchKey(first.map((row) => row.name));
+    const second = getCachedCitySuggestions(
+      "Washington, DC",
+      "Dinner",
+      { "washington-dc": richDinner },
+      registry,
+      {
+        avoidNames: first.map((row) => row.name),
+        recentBatchKeys: [firstKey],
+      }
+    );
+    expect(second).toHaveLength(5);
+    expect(suggestionBatchKey(second.map((row) => row.name))).not.toBe(firstKey);
+    const firstNames = new Set(first.map((row) => row.name));
+    const overlap = second.filter((row) => firstNames.has(row.name)).length;
+    // With 9 venues / 5 shown, at most 1 must be reused to fill a new batch of 5.
+    expect(overlap).toBeLessThanOrEqual(1);
+  });
+
+  test("pickSuggestionBatch avoids recently shown batch keys", () => {
+    const venues = [
+      { name: "A", address: "1", imageUrl: "" },
+      { name: "B", address: "2", imageUrl: "" },
+      { name: "C", address: "3", imageUrl: "" },
+      { name: "D", address: "4", imageUrl: "" },
+      { name: "E", address: "5", imageUrl: "" },
+      { name: "F", address: "6", imageUrl: "" },
+      { name: "G", address: "7", imageUrl: "" },
+      { name: "H", address: "8", imageUrl: "" },
+      { name: "I", address: "9", imageUrl: "" },
+    ];
+    const keys = new Set();
+    let avoid = [];
+    for (let i = 0; i < 6; i++) {
+      const batch = pickSuggestionBatch(venues, 5, {
+        avoidNames: avoid,
+        recentBatchKeys: [...keys],
+      });
+      const key = suggestionBatchKey(batch.map((row) => row.name));
+      expect(keys.has(key)).toBe(false);
+      keys.add(key);
+      avoid = batch.map((row) => row.name);
+    }
+    expect(keys.size).toBe(6);
+  });
+
+  test("pickRandomVenues excludes names case-insensitively across sessions", () => {
+    const venues = [
+      { name: "Alpha", address: "1 St", imageUrl: "" },
+      { name: "Beta", address: "2 St", imageUrl: "" },
+      { name: "Gamma", address: "3 St", imageUrl: "" },
+      { name: "Delta", address: "4 St", imageUrl: "" },
+      { name: "Epsilon", address: "5 St", imageUrl: "" },
+      { name: "Zeta", address: "6 St", imageUrl: "" },
+    ];
+    const first = pickRandomVenues(venues, 3, []);
+    const second = pickRandomVenues(
+      venues,
+      3,
+      first.map((row) => row.name.toUpperCase())
+    );
+    expect(second).toHaveLength(3);
+    const seen = new Set(first.map((row) => row.name.toLowerCase()));
+    expect(
+      second.every((row) => !seen.has(row.name.toLowerCase()))
+    ).toBe(true);
   });
 });
