@@ -177,6 +177,20 @@ export default function OpenPlans({
     planTitle: string;
     people: PlanGoingPerson[];
   } | null>(null);
+  const pendingGoingSheetRef = useRef<{
+    planTitle: string;
+    people: PlanGoingPerson[];
+  } | null>(null);
+  const pendingGoingProfileUidRef = useRef<string | null>(null);
+
+  useFocusEffect(
+    useCallback(() => {
+      const pending = pendingGoingSheetRef.current;
+      if (!pending) return;
+      pendingGoingSheetRef.current = null;
+      setGoingPeopleSheet(pending);
+    }, [])
+  );
   const [selectedDate, setSelectedDate] = useState(getInitialDate);
   const [activePicker, setActivePicker] = useState<"date" | "time" | null>(null);
   const [editingEvent, setEditingEvent] = useState<EventItem | null>(null);
@@ -592,7 +606,23 @@ export default function OpenPlans({
                   : `${hostLine || "Joined plan"}, ${p.title}`
               }
             >
-              <View style={styles.cardMain}>
+              <Pressable
+                style={styles.cardMain}
+                onPress={() => {
+                  if (goingPeople.length === 0) return;
+                  setGoingPeopleSheet({
+                    planTitle: p.title,
+                    people: goingPeople,
+                  });
+                }}
+                disabled={goingPeople.length === 0}
+                accessibilityRole={goingPeople.length > 0 ? "button" : undefined}
+                accessibilityLabel={
+                  goingPeople.length > 0
+                    ? `See who's going to ${p.title}`
+                    : undefined
+                }
+              >
                 <View style={styles.dateBlock}>
                   <Text style={styles.dateWeekday}>
                     {d
@@ -656,25 +686,12 @@ export default function OpenPlans({
                     </Text>
                   ) : null}
                   {othersLine && goingPeople.length > 0 ? (
-                    <Pressable
-                      onPress={() =>
-                        setGoingPeopleSheet({
-                          planTitle: p.title,
-                          people: goingPeople,
-                        })
-                      }
-                      hitSlop={{ top: 4, bottom: 4, left: 4, right: 4 }}
-                      accessibilityRole="button"
-                      accessibilityLabel="See everyone going to this plan"
-                      style={styles.goingPressable}
-                    >
-                      <Text style={styles.goingText}>
-                        {othersLine}
-                      </Text>
-                    </Pressable>
+                    <Text style={[styles.goingText, styles.goingStatic]}>
+                      {othersLine}
+                    </Text>
                   ) : null}
                 </View>
-              </View>
+              </Pressable>
             </View>
           );
         })}
@@ -920,14 +937,29 @@ export default function OpenPlans({
         visible={!!goingPeopleSheet}
         planTitle={goingPeopleSheet?.planTitle}
         people={goingPeopleSheet?.people ?? []}
-        onClose={() => setGoingPeopleSheet(null)}
-        onPressPerson={(person) => {
-          if (!person.userId || person.userId === viewerUid) return;
+        viewerId={viewerUid}
+        onClose={() => {
+          pendingGoingProfileUidRef.current = null;
+          pendingGoingSheetRef.current = null;
           setGoingPeopleSheet(null);
+        }}
+        onClosed={() => {
+          const uid = pendingGoingProfileUidRef.current;
+          pendingGoingProfileUidRef.current = null;
+          if (!uid) return;
           router.push({
             pathname: "/friend-profile",
-            params: { friendId: person.userId },
+            params: { friendId: uid },
           });
+        }}
+        onPressPerson={(person) => {
+          const uid = String(person.userId || "").trim();
+          if (!uid || uid === viewerUid) return;
+          if (goingPeopleSheet) {
+            pendingGoingSheetRef.current = goingPeopleSheet;
+          }
+          pendingGoingProfileUidRef.current = uid;
+          setGoingPeopleSheet(null);
         }}
       />
 
@@ -1116,7 +1148,7 @@ const styles = StyleSheet.create({
     fontFamily: fonts.medium,
     letterSpacing: 0.1,
   },
-  goingPressable: {
+  goingStatic: {
     alignSelf: "flex-start",
     marginTop: 6,
   },

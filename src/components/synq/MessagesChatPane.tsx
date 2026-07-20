@@ -94,8 +94,6 @@ const CHAT_HEADER_FADE_EXPANDED = 52;
 /** Avatar (44) + trailing gap (12) — aligns content with the title column. */
 const CHAT_HEADER_TITLE_INDENT = 56;
 const CHAT_MEMBER_TILE_WIDTH = 68;
-/** Counteract FlatList `inverted` transform on non-message chrome. */
-const INVERT_FLIP = { transform: [{ scaleY: -1 }] } as const;
 const THREAD_REVEAL_EASING = Easing.bezier(0.22, 1, 0.36, 1);
 
 /** Instagram-like: only surface a time divider after this idle gap. */
@@ -1470,26 +1468,7 @@ export default function MessagesChatPane({
                 </Pressable>
               ) : null
             }
-            ListEmptyComponent={
-              messagesReady ? (
-                <View style={[styles.chatEmptyWrap, INVERT_FLIP]}>
-                  <View style={styles.chatEmptyIconWrap}>
-                    <Ionicons name="chatbubble-ellipses-outline" size={26} color={ACCENT} />
-                  </View>
-                  <Text style={styles.chatEmptyTitle}>Start the conversation</Text>
-                  <Text style={styles.chatEmptyText}>
-                    Say hi to kick this Synq off.
-                  </Text>
-                </View>
-              ) : (
-                <View
-                  style={[styles.chatLoadingWrap, INVERT_FLIP]}
-                  accessibilityLabel="Loading messages"
-                >
-                  <ListRowsSkeleton count={4} withAvatar={false} />
-                </View>
-              )
-            }
+            ListEmptyComponent={null}
             keyboardDismissMode="interactive"
             keyboardShouldPersistTaps="handled"
             renderItem={renderMessage}
@@ -1513,6 +1492,36 @@ export default function MessagesChatPane({
             }}
             contentContainerStyle={listContentStyle}
           />
+          {listData.length === 0 ? (
+            <View
+              pointerEvents="none"
+              style={chatEmptyOverlayStyles.host}
+            >
+              {/* Outside inverted FlatList — avoids Android scaleY empty-state flip. */}
+              {messagesReady ? (
+                <View style={styles.chatEmptyWrap}>
+                  <View style={styles.chatEmptyIconWrap}>
+                    <Ionicons
+                      name="chatbubble-ellipses-outline"
+                      size={26}
+                      color={ACCENT}
+                    />
+                  </View>
+                  <Text style={styles.chatEmptyTitle}>Start the conversation</Text>
+                  <Text style={styles.chatEmptyText}>
+                    Say hi to kick this Synq off.
+                  </Text>
+                </View>
+              ) : (
+                <View
+                  style={styles.chatLoadingWrap}
+                  accessibilityLabel="Loading messages"
+                >
+                  <ListRowsSkeleton count={4} withAvatar={false} />
+                </View>
+              )}
+            </View>
+          ) : null}
             </Animated.View>
           </GestureDetector>
         </Animated.View>
@@ -1701,6 +1710,14 @@ export default function MessagesChatPane({
     </View>
   );
 }
+
+const chatEmptyOverlayStyles = RNStyleSheet.create({
+  host: {
+    ...RNStyleSheet.absoluteFillObject,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+});
 
 const chatHeaderOverlayStyles = RNStyleSheet.create({
   shell: {
