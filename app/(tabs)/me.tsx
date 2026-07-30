@@ -6,6 +6,9 @@ import {
   BORDER,
   BORDER_MUTED,
   BORDER_SOFT,
+  DESTRUCTIVE,
+  DESTRUCTIVE_BORDER_STRONG,
+  DESTRUCTIVE_FILL_SUBTLE,
   Friend,
   MODAL_RADIUS,
   MUTED,
@@ -1503,12 +1506,14 @@ export default function ProfileScreen() {
       <View style={[styles.section, styles.signOutSection]}>
         <TouchableOpacity
           onPress={() => setShowSignOutModal(true)}
-          style={styles.signOutBtn}
+          style={[synqOutlineAddBtn, styles.signOutBtn]}
           activeOpacity={0.85}
           accessibilityRole="button"
           accessibilityLabel="Sign out"
         >
-          <Text style={styles.signOutBtnText}>Sign out</Text>
+          <Text style={[synqOutlineAddBtnText, styles.signOutBtnText]}>
+            Sign out
+          </Text>
         </TouchableOpacity>
       </View>
 
@@ -2014,20 +2019,10 @@ const styles = StyleSheet.create({
   },
   signOutBtn: {
     marginTop: 4,
-    alignSelf: "center",
-    paddingVertical: 11,
-    paddingHorizontal: 32,
-    borderRadius: BUTTON_RADIUS,
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: SURFACE,
-    borderWidth: 1,
-    borderColor: BORDER,
+    borderColor: DESTRUCTIVE_BORDER_STRONG,
+    backgroundColor: DESTRUCTIVE_FILL_SUBTLE,
   },
   signOutBtnText: {
-    color: MUTED,
-    fontSize: TYPE_BUTTON,
-    fontFamily: fonts.medium,
-    letterSpacing: 0.1,
+    color: DESTRUCTIVE,
   },
 });

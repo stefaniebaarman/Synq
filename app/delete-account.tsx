@@ -1,8 +1,9 @@
 import StackScreenHeader from "@/src/components/StackScreenHeader";
 import {
   BG,
-  BUTTON_RADIUS,
   DESTRUCTIVE,
+  DESTRUCTIVE_BORDER_STRONG,
+  DESTRUCTIVE_FILL_SUBTLE,
   MUTED2,
   SPACE_3,
   SPACE_4,
@@ -11,6 +12,10 @@ import {
   heroTitleText,
   TYPE_BODY,
   fonts,
+  synqOutlineAddBtn,
+  synqOutlineAddBtnDisabled,
+  synqOutlineAddBtnText,
+  synqOutlineAddBtnTextDisabled,
 } from "@/constants/Variables";
 import { Ionicons } from "@expo/vector-icons";
 import { router } from "expo-router";
@@ -106,7 +111,11 @@ export default function DeleteAccountScreen() {
         <TouchableOpacity
           onPress={() => setShowConfirm(true)}
           activeOpacity={0.85}
-          style={[styles.deleteBtn, busy && styles.deleteBtnDisabled]}
+          style={[
+            synqOutlineAddBtn,
+            styles.deleteBtn,
+            busy && synqOutlineAddBtnDisabled,
+          ]}
           disabled={busy}
           accessibilityRole="button"
           accessibilityLabel="Delete my account"
@@ -118,7 +127,13 @@ export default function DeleteAccountScreen() {
               color={DESTRUCTIVE}
               style={busy ? { opacity: 0.5 } : undefined}
             />
-            <Text style={[styles.deleteBtnText, busy && { opacity: 0.5 }]}>
+            <Text
+              style={[
+                synqOutlineAddBtnText,
+                styles.deleteBtnText,
+                busy && synqOutlineAddBtnTextDisabled,
+              ]}
+            >
               Delete my account
             </Text>
           </>
@@ -173,23 +188,11 @@ const styles = StyleSheet.create({
   },
   deleteBtn: {
     flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    alignSelf: "center",
     gap: SPACE_3,
-    backgroundColor: "transparent",
-    borderWidth: 1,
-    borderColor: DESTRUCTIVE,
-    borderRadius: BUTTON_RADIUS,
-    paddingVertical: 14,
-    paddingHorizontal: SPACE_5,
-  },
-  deleteBtnDisabled: {
-    opacity: 0.7,
+    borderColor: DESTRUCTIVE_BORDER_STRONG,
+    backgroundColor: DESTRUCTIVE_FILL_SUBTLE,
   },
   deleteBtnText: {
     color: DESTRUCTIVE,
-    fontFamily: fonts.heavy,
-    fontSize: TYPE_BODY,
   },
 });

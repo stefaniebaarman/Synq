@@ -3,8 +3,12 @@ import {
   ACCENT,
   BUTTON_RADIUS,
   DESTRUCTIVE,
-  DESTRUCTIVE_FILL,
+  DESTRUCTIVE_BORDER_STRONG,
+  DESTRUCTIVE_FILL_SUBTLE,
+  SYNQ_OUTLINE_CTA_RADIUS,
+  TYPE_BUTTON,
   TYPE_LEAD,
+  fonts,
   primaryButtonText,
 } from "@/constants/Variables";
 import React from "react";
@@ -109,6 +113,7 @@ const styles = StyleSheet.create({
   actions: {
     flexDirection: "row",
     justifyContent: "flex-end",
+    alignItems: "center",
   },
   cancelBtn: {
     paddingVertical: 10,
@@ -128,11 +133,17 @@ const styles = StyleSheet.create({
     fontSize: TYPE_LEAD,
   },
   destructiveBtn: {
-    backgroundColor: DESTRUCTIVE_FILL,
+    backgroundColor: DESTRUCTIVE_FILL_SUBTLE,
     borderWidth: 1,
-    borderColor: DESTRUCTIVE,
+    borderColor: DESTRUCTIVE_BORDER_STRONG,
+    borderRadius: SYNQ_OUTLINE_CTA_RADIUS,
+    paddingVertical: 10,
+    paddingHorizontal: 16,
   },
   destructiveText: {
     color: DESTRUCTIVE,
+    fontFamily: fonts.medium,
+    fontSize: TYPE_BUTTON,
+    letterSpacing: 0.1,
   },
 });

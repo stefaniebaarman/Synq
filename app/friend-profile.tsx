@@ -3,9 +3,9 @@ import {
   BG,
   BORDER,
   BORDER_SOFT,
-  BUTTON_RADIUS,
   DESTRUCTIVE,
   DESTRUCTIVE_BORDER_STRONG,
+  DESTRUCTIVE_FILL_SUBTLE,
   FRIENDS_BORDER,
   GROUP_BORDER,
   MUTED2,
@@ -1306,13 +1306,25 @@ export default function FriendProfile({
           <View style={styles.friendActionsWrap}>
             <TouchableOpacity
               activeOpacity={0.8}
-              style={styles.removeFriendBtn}
+              style={[
+                synqOutlineAddBtn,
+                styles.removeFriendBtn,
+                removingFriend && synqOutlineAddBtnDisabled,
+              ]}
               onPress={() => setShowRemoveModal(true)}
               disabled={removingFriend}
               accessibilityRole="button"
               accessibilityLabel="Remove friend"
             >
-              <Text style={styles.removeFriendText}>Remove friend</Text>
+              <Text
+                style={[
+                  synqOutlineAddBtnText,
+                  styles.removeFriendText,
+                  removingFriend && synqOutlineAddBtnTextDisabled,
+                ]}
+              >
+                Remove friend
+              </Text>
             </TouchableOpacity>
           </View>
         ) : null}
@@ -1497,9 +1509,9 @@ export default function FriendProfile({
       />
       <ConfirmModal
         visible={showRemoveModal}
-        title="Remove Friend"
+        title="Remove friend"
         message={`Are you sure you want to remove ${friend.displayName} as a friend?`}
-        confirmText="Remove"
+        confirmText="Remove friend"
         destructive
         onCancel={() => setShowRemoveModal(false)}
         onConfirm={() => {
@@ -1649,15 +1661,8 @@ const styles = StyleSheet.create({
     fontSize: TYPE_BUTTON,
   },
   removeFriendBtn: {
-    alignSelf: "center",
-    minHeight: 44,
-    paddingHorizontal: 28,
-    borderWidth: StyleSheet.hairlineWidth,
     borderColor: DESTRUCTIVE_BORDER_STRONG,
-    borderRadius: BUTTON_RADIUS,
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: "transparent",
+    backgroundColor: DESTRUCTIVE_FILL_SUBTLE,
   },
   avatarGlowWrap: {
     borderRadius: 80,
@@ -1877,8 +1882,6 @@ const styles = StyleSheet.create({
   },
   removeFriendText: {
     color: DESTRUCTIVE,
-    fontFamily: fonts.heavy,
-    fontSize: TYPE_BUTTON,
   },
   memoCard: {
     backgroundColor: PROFILE_SURFACE_RAISED,

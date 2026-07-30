@@ -5,9 +5,8 @@ import {
   ACCENT,
   BG,
   BORDER,
-  BUTTON_RADIUS,
   DESTRUCTIVE,
-  DESTRUCTIVE_BORDER,
+  DESTRUCTIVE_BORDER_STRONG,
   DESTRUCTIVE_FILL_SUBTLE,
   Friend,
   HEADER_BLACK,
@@ -30,7 +29,8 @@ import {
   listSectionTitle,
   sheetTitleText,
   synqOutlineAddBtnCompact,
-  synqOutlineAddBtnText
+  synqOutlineAddBtnText,
+  synqOutlineAddBtnTextCompact,
 } from "@/constants/Variables";
 import AddMembersToGroupSheet from "@/src/components/friends/AddMembersToGroupSheet";
 import CreateGroupModal from "@/src/components/friends/CreateGroupModal";
@@ -356,9 +356,16 @@ export default function FriendGroupDetailScreen() {
                   hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
                   accessibilityRole="button"
                   accessibilityLabel={`Remove ${item.displayName} from group`}
-                  style={styles.removeMemberBtn}
+                  style={[synqOutlineAddBtnCompact, styles.removeMemberBtn]}
                 >
-                  <Text style={styles.removeMemberLabel}>Remove</Text>
+                  <Text
+                    style={[
+                      synqOutlineAddBtnTextCompact,
+                      styles.removeMemberLabel,
+                    ]}
+                  >
+                    Remove
+                  </Text>
                 </TouchableOpacity>
               </View>
             )}
@@ -583,20 +590,11 @@ const styles = StyleSheet.create({
     letterSpacing: 0.05,
   },
   removeMemberBtn: {
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: BUTTON_RADIUS,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: DESTRUCTIVE_BORDER,
+    borderColor: DESTRUCTIVE_BORDER_STRONG,
     backgroundColor: DESTRUCTIVE_FILL_SUBTLE,
-    alignItems: "center",
-    justifyContent: "center",
   },
   removeMemberLabel: {
-    fontFamily: fonts.medium,
-    fontSize: TYPE_CAPTION,
     color: DESTRUCTIVE,
-    letterSpacing: 0.15,
   },
   separator: {
     height: StyleSheet.hairlineWidth,

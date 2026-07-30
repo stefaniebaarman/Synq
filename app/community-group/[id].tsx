@@ -6,9 +6,8 @@ import {
   ACCENT_FILL,
   BG,
   BORDER,
-  BUTTON_RADIUS,
   DESTRUCTIVE,
-  DESTRUCTIVE_BORDER,
+  DESTRUCTIVE_BORDER_STRONG,
   DESTRUCTIVE_FILL_SUBTLE,
   Friend,
   HEADER_BLACK,
@@ -781,9 +780,14 @@ export default function CommunityGroupDetailScreen() {
                             ? `Leave ${group.name}`
                             : `Remove ${item.displayName} from group`
                         }
-                        style={styles.removeMemberBtn}
+                        style={[synqOutlineAddBtnCompact, styles.removeMemberBtn]}
                       >
-                        <Text style={styles.removeMemberLabel}>
+                        <Text
+                          style={[
+                            synqOutlineAddBtnTextCompact,
+                            styles.removeMemberLabel,
+                          ]}
+                        >
                           {item.id === uid ? "Leave" : "Remove"}
                         </Text>
                       </TouchableOpacity>
@@ -1262,20 +1266,11 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   removeMemberBtn: {
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: BUTTON_RADIUS,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: DESTRUCTIVE_BORDER,
+    borderColor: DESTRUCTIVE_BORDER_STRONG,
     backgroundColor: DESTRUCTIVE_FILL_SUBTLE,
-    alignItems: "center",
-    justifyContent: "center",
   },
   removeMemberLabel: {
-    fontFamily: fonts.medium,
-    fontSize: TYPE_CAPTION,
     color: DESTRUCTIVE,
-    letterSpacing: 0.15,
   },
   successOverlay: {
     flex: 1,
