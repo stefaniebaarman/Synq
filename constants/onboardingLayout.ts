@@ -1,18 +1,14 @@
 import { Dimensions, StyleSheet } from "react-native";
 import {
   ACCENT,
-  BORDER,
-  BUTTON_RADIUS,
   DIVIDER,
   MUTED,
-  PRIMARY_CTA_HEIGHT,
-  PRIMARY_CTA_WIDTH,
-  SURFACE,
   TEXT,
   TYPE_BODY,
-  TYPE_CTA,
   TYPE_DISPLAY,
   fonts,
+  synqOutlineAddBtn,
+  synqOutlineAddBtnText,
 } from "./Variables";
 
 const { height: WINDOW_HEIGHT } = Dimensions.get("window");
@@ -56,25 +52,17 @@ export const onboardingCarouselStyles = StyleSheet.create({
     alignItems: "center",
   },
   nextBtn: {
-    width: PRIMARY_CTA_WIDTH,
-    height: PRIMARY_CTA_HEIGHT,
-    borderRadius: BUTTON_RADIUS,
-    backgroundColor: SURFACE,
-    borderWidth: 1,
-    borderColor: BORDER,
-    justifyContent: "center",
-    alignItems: "center",
+    ...synqOutlineAddBtn,
+    minWidth: 168,
+    paddingHorizontal: 40,
   },
   nextText: {
-    color: ACCENT,
-    fontFamily: fonts.heavy,
-    fontSize: TYPE_CTA,
-    letterSpacing: 0.2,
+    ...synqOutlineAddBtnText,
   },
   dots: {
     flexDirection: "row",
     gap: 8,
-    marginTop: 14,
+    marginTop: 26,
     alignItems: "center",
     justifyContent: "center",
   },

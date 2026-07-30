@@ -16,22 +16,22 @@ import {
   BG,
   BORDER,
   BUTTON_RADIUS,
-  DISABLED_ACCENT,
   DISABLED_ACCENT_SUBTLE,
   MUTED,
   MUTED2,
   MUTED3,
-  ON_ACCENT_TEXT,
   PRIMARY_CTA_HEIGHT,
-  PRIMARY_CTA_WIDTH,
   SURFACE,
   TEXT,
   TYPE_BODY,
   TYPE_BUTTON,
   TYPE_CAPTION,
-  TYPE_CTA,
   TYPE_MODAL_TITLE,
   fonts,
+  synqOutlineAddBtn,
+  synqOutlineAddBtnDisabled,
+  synqOutlineAddBtnText,
+  synqOutlineAddBtnTextDisabled,
   synqSvg,
 } from "@/constants/Variables";
 import BackButton from "@/src/components/BackButton";
@@ -59,6 +59,7 @@ import { app, auth, firebaseConfig } from "../../src/lib/firebase";
 import { usePreAuthTermsGate } from "../../src/lib/usePreAuthTermsGate";
 
 const { width } = Dimensions.get("window");
+const CTA_WIDTH = "56%";
 
 function formatUsPhoneDisplay(digits: string): string {
   const d = digits.replace(/\D/g, "").slice(0, 10);
@@ -275,14 +276,25 @@ export default function Phone() {
               <TouchableOpacity
                 onPress={sendVerificationCode}
                 style={[
+                  synqOutlineAddBtn,
                   styles.primaryButton,
-                  (loading || phoneNumber.length < 10) && styles.disabledButton,
+                  (loading || phoneNumber.length < 10) &&
+                    synqOutlineAddBtnDisabled,
                 ]}
                 disabled={loading || phoneNumber.length < 10}
                 activeOpacity={0.85}
+                accessibilityRole="button"
+                accessibilityLabel="Send code"
               >
-                <Text style={[styles.primaryButtonText, loading && { opacity: 0.5 }]}>
-                  Send Code
+                <Text
+                  style={[
+                    synqOutlineAddBtnText,
+                    (loading || phoneNumber.length < 10) &&
+                      synqOutlineAddBtnTextDisabled,
+                    loading && { opacity: 0.5 },
+                  ]}
+                >
+                  Send code
                 </Text>
               </TouchableOpacity>
 
@@ -358,14 +370,22 @@ export default function Phone() {
               <TouchableOpacity
                 onPress={verifyCode}
                 style={[
+                  synqOutlineAddBtn,
                   styles.primaryButton,
-                  { marginTop: 26 },
-                  (loading || code.join("").length < 6) && styles.disabledButton,
+                  (loading || code.join("").length < 6) &&
+                    synqOutlineAddBtnDisabled,
                 ]}
                 disabled={loading || code.join("").length < 6}
                 activeOpacity={0.85}
               >
-                <Text style={[styles.primaryButtonText, loading && { opacity: 0.5 }]}>
+                <Text
+                  style={[
+                    synqOutlineAddBtnText,
+                    (loading || code.join("").length < 6) &&
+                      synqOutlineAddBtnTextDisabled,
+                    loading && { opacity: 0.5 },
+                  ]}
+                >
                   Continue
                 </Text>
               </TouchableOpacity>
@@ -464,21 +484,12 @@ const styles = StyleSheet.create({
   },
   primaryButton: {
     alignSelf: "center",
-    width: PRIMARY_CTA_WIDTH,
-    backgroundColor: ACCENT,
+    width: CTA_WIDTH,
     height: PRIMARY_CTA_HEIGHT,
-    borderRadius: BUTTON_RADIUS,
-    justifyContent: "center",
-    alignItems: "center",
+    paddingVertical: 0,
+    paddingHorizontal: 24,
     marginTop: 26,
   },
-  primaryButtonText: {
-    color: ON_ACCENT_TEXT,
-    fontSize: TYPE_CTA,
-    fontFamily: fonts.heavy,
-    letterSpacing: 0.2,
-  },
-  disabledButton: { backgroundColor: DISABLED_ACCENT },
   otpRow: {
     flexDirection: "row",
     justifyContent: "space-between",

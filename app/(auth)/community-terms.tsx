@@ -7,20 +7,21 @@ import {
   BG,
   BORDER_LIGHT,
   BORDER_SOFT,
-  BUTTON_RADIUS,
   MUTED,
   ON_ACCENT_TEXT,
   PRIMARY_CTA_HEIGHT,
   SURFACE,
   TEXT,
   TEXT_ON_BRIGHT,
-  TYPE_BODY,
-  TYPE_BUTTON,
-  TYPE_CTA,
-  TYPE_DISPLAY,
+  TYPE_CAPTION,
   TYPE_LEAD,
+  TYPE_TITLE,
   fonts,
   RADIUS_MD,
+  synqOutlineAddBtn,
+  synqOutlineAddBtnDisabled,
+  synqOutlineAddBtnText,
+  synqOutlineAddBtnTextDisabled,
 } from "@/constants/Variables";
 import { useAuthRefresh } from "../_layout";
 import { auth, db } from "@/src/lib/firebase";
@@ -49,6 +50,8 @@ import {
 } from "react-native";
 
 type NextRoute = "phone" | "login" | "email";
+
+const CTA_WIDTH = "72%";
 
 export default function CommunityTermsScreen() {
   const { markCommunityTermsOk } = useAuthRefresh();
@@ -119,6 +122,8 @@ export default function CommunityTermsScreen() {
     }
   };
 
+  const canContinue = checked && !submitting;
+
   return (
     <SafeAreaView style={styles.safe}>
       <StatusBar barStyle="light-content" />
@@ -130,7 +135,12 @@ export default function CommunityTermsScreen() {
         contentContainerStyle={styles.scroll}
         showsVerticalScrollIndicator={false}
       >
-        <Text style={[styles.title, { paddingTop: onboardingContentTopPadding() }]}>
+        <Text
+          style={[
+            styles.title,
+            { paddingTop: Math.max(72, onboardingContentTopPadding() - 40) },
+          ]}
+        >
           Community Standards
         </Text>
         <Text style={styles.sub}>
@@ -185,12 +195,26 @@ export default function CommunityTermsScreen() {
 
       <View style={styles.footer}>
         <TouchableOpacity
-          activeOpacity={0.9}
-          style={[styles.primaryBtn, (!checked || submitting) && styles.primaryBtnDisabled]}
-          disabled={!checked || submitting}
+          activeOpacity={0.85}
+          style={[
+            synqOutlineAddBtn,
+            styles.primaryBtn,
+            !canContinue && synqOutlineAddBtnDisabled,
+          ]}
+          disabled={!canContinue}
           onPress={handleContinue}
+          accessibilityRole="button"
+          accessibilityLabel={
+            isPostAuth ? "Continue to Synq" : "Agree and continue"
+          }
         >
-          <Text style={[styles.primaryText, submitting && { opacity: 0.5 }]}>
+          <Text
+            style={[
+              synqOutlineAddBtnText,
+              !canContinue && synqOutlineAddBtnTextDisabled,
+              submitting && { opacity: 0.5 },
+            ]}
+          >
             {isPostAuth ? "Continue to Synq" : "Agree and continue"}
           </Text>
         </TouchableOpacity>
@@ -229,20 +253,20 @@ const styles = StyleSheet.create({
   title: {
     color: TEXT,
     fontFamily: fonts.heavy,
-    fontSize: TYPE_DISPLAY,
-    letterSpacing: -0.5,
-    lineHeight: 38,
+    fontSize: TYPE_TITLE,
+    letterSpacing: -0.3,
+    lineHeight: 32,
   },
   sub: {
-    marginTop: 12,
+    marginTop: 10,
     color: TEXT_ON_BRIGHT,
-    fontFamily: fonts.medium,
-    fontSize: TYPE_BODY,
-    lineHeight: 24,
+    fontFamily: fonts.book,
+    fontSize: TYPE_LEAD,
+    lineHeight: 21,
   },
   card: {
-    marginTop: 24,
-    padding: 18,
+    marginTop: 20,
+    padding: 14,
     borderRadius: RADIUS_MD,
     backgroundColor: SURFACE,
     borderWidth: 1,
@@ -250,46 +274,46 @@ const styles = StyleSheet.create({
   },
   cardLead: {
     color: ACCENT,
-    fontFamily: fonts.heavy,
-    fontSize: TYPE_BODY,
-    lineHeight: 22,
-    marginBottom: 12,
+    fontFamily: fonts.medium,
+    fontSize: TYPE_LEAD,
+    lineHeight: 20,
+    marginBottom: 10,
   },
   cardBody: {
     color: TEXT,
-    fontFamily: fonts.medium,
-    fontSize: TYPE_BUTTON,
-    lineHeight: 22,
-    marginBottom: 10,
+    fontFamily: fonts.book,
+    fontSize: TYPE_CAPTION,
+    lineHeight: 19,
+    marginBottom: 8,
   },
   links: {
     flexDirection: "row",
     flexWrap: "wrap",
     alignItems: "center",
-    marginTop: 16,
+    marginTop: 14,
   },
   link: {
     color: ACCENT,
     fontFamily: fonts.medium,
-    fontSize: TYPE_BUTTON,
+    fontSize: TYPE_CAPTION,
     textDecorationLine: "underline",
   },
-  linkSep: { color: MUTED, fontFamily: fonts.medium },
+  linkSep: { color: MUTED, fontFamily: fonts.medium, fontSize: TYPE_CAPTION },
   checkRow: {
     flexDirection: "row",
     alignItems: "flex-start",
-    marginTop: 24,
+    marginTop: 20,
     gap: 12,
   },
   checkbox: {
-    width: 24,
-    height: 24,
+    width: 22,
+    height: 22,
     borderRadius: 6,
     borderWidth: 2,
     borderColor: BORDER_LIGHT,
     alignItems: "center",
     justifyContent: "center",
-    marginTop: 2,
+    marginTop: 1,
   },
   checkboxOn: {
     backgroundColor: ACCENT,
@@ -298,26 +322,21 @@ const styles = StyleSheet.create({
   checkLabel: {
     flex: 1,
     color: TEXT,
-    fontFamily: fonts.medium,
-    fontSize: TYPE_LEAD,
-    lineHeight: 20,
+    fontFamily: fonts.book,
+    fontSize: TYPE_CAPTION,
+    lineHeight: 18,
   },
   footer: {
     paddingHorizontal: ONBOARDING_H_PADDING,
-    paddingBottom: 28,
+    paddingBottom: 40,
     paddingTop: 8,
+    alignItems: "center",
   },
   primaryBtn: {
+    alignSelf: "center",
+    width: CTA_WIDTH,
     height: PRIMARY_CTA_HEIGHT,
-    borderRadius: BUTTON_RADIUS,
-    backgroundColor: ACCENT,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  primaryBtnDisabled: { opacity: 0.45 },
-  primaryText: {
-    color: ON_ACCENT_TEXT,
-    fontFamily: fonts.heavy,
-    fontSize: TYPE_CTA,
+    paddingVertical: 0,
+    paddingHorizontal: 24,
   },
 });

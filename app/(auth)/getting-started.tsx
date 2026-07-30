@@ -2,23 +2,19 @@ import { ONBOARDING_H_PADDING, onboardingContentTopPadding } from "@/constants/o
 import {
   ACCENT,
   BG,
-  BORDER_SOFT,
   BUTTON_RADIUS,
   MUTED,
   MUTED3,
-  ON_ACCENT_TEXT,
   OVERLAY_DARK,
   PRIMARY_CTA_HEIGHT,
-  SHADOW,
-  SURFACE,
   TEXT,
   TEXT_ON_BRIGHT,
   TYPE_BODY,
   TYPE_BUTTON,
-  TYPE_CTA,
   TYPE_DISPLAY,
-  TYPE_FINE,
   fonts,
+  synqOutlineAddBtn,
+  synqOutlineAddBtnText,
   synqSvg,
 } from "@/constants/Variables";
 import { router } from "expo-router";
@@ -32,7 +28,7 @@ import {
   View,
 } from "react-native";
 import { SvgXml } from "react-native-svg";
-const GET_STARTED_CTA_WIDTH = "84%";
+const CTA_WIDTH = "72%";
 
 export default function GetStartedScreen() {
   return (
@@ -58,23 +54,23 @@ export default function GetStartedScreen() {
         </View>
 
         <View style={styles.bottom}>
-          <View style={styles.ctaCard}>
-            <TouchableOpacity
-              activeOpacity={0.9}
-              style={styles.primaryBtn}
-              onPress={() => router.push("/(auth)/community-terms?next=phone")}
-            >
-              <Text style={styles.primaryText}>Get started</Text>
-            </TouchableOpacity>
+          <TouchableOpacity
+            activeOpacity={0.85}
+            style={[synqOutlineAddBtn, styles.primaryBtn]}
+            onPress={() => router.push("/(auth)/community-terms?next=phone")}
+            accessibilityRole="button"
+            accessibilityLabel="Get started"
+          >
+            <Text style={synqOutlineAddBtnText}>Get started</Text>
+          </TouchableOpacity>
 
-            <TouchableOpacity
-              activeOpacity={0.85}
-              style={styles.secondaryBtn}
-              onPress={() => router.push("/(auth)/phone?mode=signin")}
-            >
-              <Text style={styles.secondaryText}>I already have an account</Text>
-            </TouchableOpacity>
-          </View>
+          <TouchableOpacity
+            activeOpacity={0.85}
+            style={styles.secondaryBtn}
+            onPress={() => router.push("/(auth)/phone?mode=signin")}
+          >
+            <Text style={styles.secondaryText}>I already have an account</Text>
+          </TouchableOpacity>
         </View>
       </View>
     </SafeAreaView>
@@ -117,45 +113,23 @@ const styles = StyleSheet.create({
     position: "absolute",
     left: 0,
     right: 0,
-    bottom: 28,
+    bottom: 48,
     paddingHorizontal: ONBOARDING_H_PADDING,
-  },
-  ctaCard: {
-    borderRadius: 26,
-    padding: 16,
-    backgroundColor: SURFACE,
-    borderWidth: 1,
-    borderColor: BORDER_SOFT,
-    shadowColor: SHADOW,
-    shadowOpacity: 0.35,
-    shadowRadius: 18,
-    shadowOffset: { width: 0, height: 12 },
-    elevation: 8,
+    alignItems: "center",
   },
 
   primaryBtn: {
     alignSelf: "center",
-    width: GET_STARTED_CTA_WIDTH,
+    width: CTA_WIDTH,
     height: PRIMARY_CTA_HEIGHT,
-    borderRadius: BUTTON_RADIUS,
-    backgroundColor: ACCENT,
-    justifyContent: "center",
-    alignItems: "center",
-    flexDirection: "row",
-    gap: 10,
-  },
-
-  primaryText: {
-    color: ON_ACCENT_TEXT,
-    fontFamily: fonts.heavy,
-    fontSize: TYPE_CTA,
-    letterSpacing: 0.15,
+    paddingVertical: 0,
+    paddingHorizontal: 24,
   },
 
   secondaryBtn: {
     marginTop: 12,
     alignSelf: "center",
-    width: GET_STARTED_CTA_WIDTH,
+    width: CTA_WIDTH,
     height: PRIMARY_CTA_HEIGHT,
     borderRadius: BUTTON_RADIUS,
     backgroundColor: OVERLAY_DARK,
@@ -169,13 +143,5 @@ const styles = StyleSheet.create({
     color: TEXT_ON_BRIGHT,
     fontFamily: fonts.medium,
     fontSize: TYPE_BUTTON,
-  },
-
-  micro: {
-    marginTop: 12,
-    textAlign: "center",
-    color: MUTED3,
-    fontFamily: fonts.book,
-    fontSize: TYPE_FINE,
   },
 });
