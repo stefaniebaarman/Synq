@@ -1035,20 +1035,32 @@ export default function RootLayout() {
   ]);
 
   const synqBootReady = user == null || synqBoot !== null;
-  /** Splash only waits for profile gate; routing still waits on communityTermsOk. */
-  const authGateReady = !user || userProfileGate !== null;
-  const onOnboardingScreen =
+  /** Splash waits for the same gates routing uses before choosing tabs vs auth. */
+  const authGateReady =
+    !user || (userProfileGate !== null && communityTermsOk !== null);
+  const hasSettledName =
+    !!user?.displayName || userProfileGate?.hasDisplayName === true;
+  const termsAcceptedForSplash =
+    communityTermsOk === true || communityTermsOkRef.current === true;
+  const inAuthGroupForSplash = segments[0] === "(auth)";
+  const onLocationPageForSplash =
     segments[0] === "location" ||
-    (segments[0] === "(auth)" && segments[1] === "location") ||
-    segments[0] === "add-interests";
-  const holdSplashForStaleOnboarding =
+    (segments[0] === "(auth)" && segments[1] === "location");
+  const onInterestsPageForSplash = segments[0] === "add-interests";
+  const onCommunityTermsForSplash = segments[1] === "community-terms";
+  /** Keep splash up while a completed user is still on auth slides pending redirect to tabs. */
+  const holdSplashForPendingTabsRedirect =
     !!user &&
-    onOnboardingScreen &&
-    userProfileGate !== null &&
-    (((segments[0] === "location" ||
-      (segments[0] === "(auth)" && segments[1] === "location")) &&
-      userProfileGate.hasLocation) ||
-      (segments[0] === "add-interests" && userProfileGate.hasDisplayName));
+    authGateReady &&
+    hasSettledName &&
+    ((termsAcceptedForSplash &&
+      ((inAuthGroupForSplash &&
+        !onCommunityTermsForSplash &&
+        !(onLocationPageForSplash && !userProfileGate!.hasLocation) &&
+        !(onInterestsPageForSplash && !userProfileGate!.hasDisplayName)) ||
+        (onLocationPageForSplash && userProfileGate!.hasLocation) ||
+        (onInterestsPageForSplash && userProfileGate!.hasDisplayName))) ||
+      (communityTermsOk === false && !onCommunityTermsForSplash));
   const appReady =
     authReady && navReady && assetsReady && synqBootReady && authGateReady;
   const onSignupFlowScreen =
@@ -1060,9 +1072,13 @@ export default function RootLayout() {
     segments[0] === "add-interests";
   const hideBootSplashDuringSignup =
     appReady && !!user && onSignupFlowScreen;
+  // Keep splash while gates are unresolved or a completed user is mid-redirect
+  // off the default (auth) stack — including past the 6s force-dismiss.
+  const keepBootSplashForAuth =
+    holdSplashForPendingTabsRedirect || (!!user && !authGateReady);
   const shouldDismissBootSplash =
     !bootSplashDismissed &&
-    !holdSplashForStaleOnboarding &&
+    !keepBootSplashForAuth &&
     !hideBootSplashDuringSignup &&
     appReady &&
     minimumSplashElapsed;
@@ -1073,7 +1089,8 @@ export default function RootLayout() {
   }, [shouldDismissBootSplash]);
 
   const showBootSplashOverlay =
-    !bootSplashDismissed && !hideBootSplashDuringSignup;
+    (!bootSplashDismissed || keepBootSplashForAuth) &&
+    !hideBootSplashDuringSignup;
 
   useEffect(() => {
     if (showBootSplashOverlay) return;

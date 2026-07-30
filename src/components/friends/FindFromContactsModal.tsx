@@ -235,9 +235,6 @@ export default function FindFromContactsModal({
             <Text style={styles.name} numberOfLines={1}>
               {item.displayName || "User"}
             </Text>
-            <Text style={styles.subtitle} numberOfLines={1}>
-              On Synq
-            </Text>
           </View>
         </TouchableOpacity>
         <TouchableOpacity
@@ -268,9 +265,6 @@ export default function FindFromContactsModal({
         <View style={styles.rowText}>
           <Text style={styles.name} numberOfLines={1}>
             {item.name}
-          </Text>
-          <Text style={styles.subtitle} numberOfLines={1}>
-            Not on Synq yet
           </Text>
         </View>
       </View>
@@ -432,12 +426,6 @@ const styles = StyleSheet.create({
     color: TEXT,
     fontFamily: fonts.medium,
     fontSize: TYPE_BODY,
-  },
-  subtitle: {
-    color: MUTED2,
-    fontFamily: fonts.book,
-    fontSize: TYPE_CAPTION,
-    marginTop: 2,
   },
   separator: {
     height: StyleSheet.hairlineWidth,
