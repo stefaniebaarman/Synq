@@ -90,9 +90,11 @@ import {
   type NativeSyntheticEvent,
   type TextLayoutEventData
 } from 'react-native';
+import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import { KeyboardProvider } from "react-native-keyboard-controller";
 import Reanimated, {
   FadeOut,
+  runOnJS,
 } from 'react-native-reanimated';
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import {
@@ -172,6 +174,9 @@ import ActiveSynqSection from '../../src/components/synq/ActiveSynqSection';
 import MessagesChatPane from '../../src/components/synq/MessagesChatPane';
 import MessagesInboxPane from '../../src/components/synq/MessagesInboxPane';
 import MessagesModalStack from '../../src/components/synq/MessagesModalStack';
+import PlanGoingPeopleSheet, {
+  type PlanGoingPerson,
+} from '@/src/components/plans/PlanGoingPeopleSheet';
 import {
   buildLocationPrompt,
   formatUserLocationLabel,
@@ -247,6 +252,7 @@ function ChatMessageBubble({
   bubbleCap,
   isMe,
   onPress,
+  onLongPress,
   heartCount,
   sendStatus,
 }: {
@@ -254,6 +260,7 @@ function ChatMessageBubble({
   bubbleCap: number;
   isMe: boolean;
   onPress: () => void;
+  onLongPress?: () => void;
   heartCount: number;
   sendStatus?: "sending" | "failed";
 }) {
@@ -287,9 +294,38 @@ function ChatMessageBubble({
     [innerMax]
   );
 
+  const onPressRef = useRef(onPress);
+  const onLongPressRef = useRef(onLongPress);
+  onPressRef.current = onPress;
+  onLongPressRef.current = onLongPress;
+
+  const invokePress = useCallback(() => {
+    onPressRef.current();
+  }, []);
+  const invokeLongPress = useCallback(() => {
+    onLongPressRef.current?.();
+  }, []);
+
+  const bubbleGesture = useMemo(() => {
+    const tap = Gesture.Tap().onEnd(() => {
+      "worklet";
+      runOnJS(invokePress)();
+    });
+    const longPress = Gesture.LongPress()
+      .minDuration(400)
+      .maxDistance(14)
+      .onStart(() => {
+        "worklet";
+        runOnJS(invokeLongPress)();
+      });
+    // Long-press must win over tap when held; parent swipe pan waits on activeOffsetX.
+    return Gesture.Exclusive(longPress, tap);
+  }, [invokeLongPress, invokePress]);
+
   return (
-    <Pressable onPress={onPress}>
+    <GestureDetector gesture={bubbleGesture}>
       <View
+        collapsable={false}
         style={[
           styles.bubble,
           isMe ? styles.myBubble : styles.theirBubble,
@@ -350,7 +386,7 @@ function ChatMessageBubble({
           </View>
         ) : null}
       </View>
-    </Pressable>
+    </GestureDetector>
   );
 }
 
@@ -471,6 +507,9 @@ export default function SynqScreen() {
     messageId: string;
     chatId: string;
   } | null>(null);
+  const [messageLikersVisible, setMessageLikersVisible] = useState(false);
+  const [messageLikers, setMessageLikers] = useState<PlanGoingPerson[]>([]);
+  const pendingLikerProfileUidRef = useRef<string | null>(null);
   const { isBlocked } = useBlockedUsers();
 
   useEffect(() => {
@@ -2065,6 +2104,9 @@ export default function SynqScreen() {
     setIsEditModalVisible(false);
     setReportModalVisible(false);
     setReportTarget(null);
+    setMessageLikersVisible(false);
+    setMessageLikers([]);
+    pendingLikerProfileUidRef.current = null;
     setShowEndSynqModal(false);
     setChangeAudienceVisible(false);
     setContentAlertVisible(false);
@@ -2607,8 +2649,39 @@ export default function SynqScreen() {
                   setPendingScrollToMessageId={setPendingScrollToMessageId}
                   onMessageBubblePress={onMessageBubblePress}
                   onMessageLongPress={(item) => {
-                    if (item.senderId === auth.currentUser?.uid) return;
                     if (item.id.startsWith("pending-")) return;
+                    const reactions = item.reactions || {};
+                    const heartUids = Object.entries(reactions)
+                      .filter(([, type]) => type === "heart")
+                      .map(([uid]) => uid);
+                    if (heartUids.length > 0) {
+                      const names =
+                        (activeChatResolved?.participantNames as
+                          | Record<string, string>
+                          | undefined) || {};
+                      const images =
+                        (activeChatResolved?.participantImages as
+                          | Record<string, string>
+                          | undefined) || {};
+                      const myId = auth.currentUser?.uid;
+                      setMessageLikers(
+                        heartUids.map((uid) => ({
+                          userId: uid,
+                          displayName:
+                            uid === myId
+                              ? "You"
+                              : names[uid]?.trim() || "Someone",
+                          imageUrl:
+                            liveParticipantImages[uid] || images[uid] || null,
+                        }))
+                      );
+                      void Haptics.impactAsync(
+                        Haptics.ImpactFeedbackStyle.Light
+                      );
+                      setMessageLikersVisible(true);
+                      return;
+                    }
+                    if (item.senderId === auth.currentUser?.uid) return;
                     setReportTarget({
                       reportedUserId: item.senderId,
                       messageId: item.id,
@@ -2685,6 +2758,29 @@ export default function SynqScreen() {
               errorMessage={aiExploreError}
             />
           ) : null}
+          <PlanGoingPeopleSheet
+            visible={messageLikersVisible}
+            headerTitle="Liked by"
+            presentation="embedded"
+            compact
+            people={messageLikers}
+            viewerId={auth.currentUser?.uid}
+            onClose={() => {
+              pendingLikerProfileUidRef.current = null;
+              setMessageLikersVisible(false);
+            }}
+            onClosed={() => {
+              const uid = pendingLikerProfileUidRef.current;
+              pendingLikerProfileUidRef.current = null;
+              if (uid) openFriendProfileFromChat(uid);
+            }}
+            onPressPerson={(person) => {
+              const uid = String(person.userId || "").trim();
+              if (!uid || uid === auth.currentUser?.uid) return;
+              pendingLikerProfileUidRef.current = uid;
+              setMessageLikersVisible(false);
+            }}
+          />
           </View>
           </KeyboardProvider>
         </Modal>

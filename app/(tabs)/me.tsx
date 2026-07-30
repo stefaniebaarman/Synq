@@ -633,24 +633,29 @@ export default function ProfileScreen() {
         events: updatedEvents,
       });
 
-      await sendPlanInvitesWhenReady(
-        auth.currentUser.uid,
-        newItem.id,
-        newItem,
-        inviteFriendIds,
-        {
-          title: newItem.title,
-          date: newItem.date,
-          time: newItem.time,
-          location: newItem.location,
-        },
-        markPlanInvited,
-        showAlert,
-        "posted"
-      );
-
+      // Close immediately — invites are slow Cloud Function round-trips and the plan
+      // is already visible via the Firestore listener.
       setShowEventModal(false);
       setNewEvent({ title: "", date: "", time: "", location: "" });
+
+      if (inviteFriendIds.length > 0) {
+        void sendPlanInvitesWhenReady(
+          auth.currentUser.uid,
+          newItem.id,
+          newItem,
+          inviteFriendIds,
+          {
+            title: newItem.title,
+            date: newItem.date,
+            time: newItem.time,
+            location: newItem.location,
+          },
+          markPlanInvited,
+          showAlert,
+          "posted"
+        );
+      }
+
       return true;
     } catch (e) {
       showAlert("Error", "Could not save event.");
@@ -743,40 +748,47 @@ export default function ProfileScreen() {
           .filter(Boolean)
       : [];
 
-    if (uninviteFriendIds.length > 0) {
-      const revokeErrors: string[] = [];
-      let revokedCount = 0;
-      for (const friendId of uninviteFriendIds) {
-        try {
-          await revokePlanInvite(friendId, planId);
-          unmarkPlanInvited(planId, friendId);
-          revokedCount += 1;
-        } catch (err) {
-          revokeErrors.push(revokePlanInviteErrorMessage(err));
-        }
-      }
-      if (revokeErrors.length > 0) {
-        showAlert(
-          "Some invites not removed",
-          revokedCount > 0
-            ? "Your plan was saved, but some invites could not be removed."
-            : revokeErrors[0] || "Your plan was saved, but invites could not be removed."
-        );
-      }
-    }
-
-    await sendPlanInvitesWhenReady(
-      myUid,
-      planId,
-      oldSnapshot,
-      inviteFriendIds,
-      updatedPayload,
-      markPlanInvited,
-      showAlert
-    );
-
+    // Close immediately; invite/revoke Cloud Functions can take seconds.
     setShowEventModal(false);
     setNewEvent({ title: "", date: "", time: "", location: "" });
+
+    if (uninviteFriendIds.length > 0 || inviteFriendIds.length > 0) {
+      void (async () => {
+        if (uninviteFriendIds.length > 0) {
+          const revokeErrors: string[] = [];
+          let revokedCount = 0;
+          for (const friendId of uninviteFriendIds) {
+            try {
+              await revokePlanInvite(friendId, planId);
+              unmarkPlanInvited(planId, friendId);
+              revokedCount += 1;
+            } catch (err) {
+              revokeErrors.push(revokePlanInviteErrorMessage(err));
+            }
+          }
+          if (revokeErrors.length > 0) {
+            showAlert(
+              "Some invites not removed",
+              revokedCount > 0
+                ? "Your plan was saved, but some invites could not be removed."
+                : revokeErrors[0] ||
+                    "Your plan was saved, but invites could not be removed."
+            );
+          }
+        }
+
+        await sendPlanInvitesWhenReady(
+          myUid,
+          planId,
+          oldSnapshot,
+          inviteFriendIds,
+          updatedPayload,
+          markPlanInvited,
+          showAlert
+        );
+      })();
+    }
+
     return true;
   };
 
