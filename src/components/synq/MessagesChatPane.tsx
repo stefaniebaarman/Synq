@@ -304,6 +304,7 @@ type Props = {
     id: string;
     senderId: string;
     text: string;
+    reactions?: Record<string, string>;
   }) => void;
   onIdeaBubblePress: (
     item: { id: string; reactions?: Record<string, string> },
@@ -314,6 +315,7 @@ type Props = {
     bubbleCap: number;
     isMe: boolean;
     onPress: () => void;
+    onLongPress?: () => void;
     heartCount: number;
     sendStatus?: "sending" | "failed";
   }>;
@@ -441,8 +443,9 @@ export default function MessagesChatPane({
   const swipeRevealGesture = useMemo(
     () =>
       Gesture.Pan()
-        .activeOffsetX([-14, 14])
-        .failOffsetY([-12, 12])
+        // Stay out of the way of bubble long-press / tap until a clear horizontal swipe.
+        .activeOffsetX([-22, 22])
+        .failOffsetY([-16, 16])
         .onBegin(() => {
           swipeRevealStartX.value = swipeRevealX.value;
         })
@@ -1154,6 +1157,14 @@ export default function MessagesChatPane({
                         { name, address }
                       )
                     }
+                    onLongPress={() =>
+                      onMessageLongPress?.({
+                        id: item.id,
+                        senderId: item.senderId,
+                        text: item.text,
+                        reactions: item.reactions,
+                      })
+                    }
                   />
                 </View>
               </View>
@@ -1226,33 +1237,30 @@ export default function MessagesChatPane({
                       {senderLabel}
                     </Text>
                   ) : null}
-                  <Pressable
+                  <ChatMessageBubble
+                    text={item.text}
+                    bubbleCap={bubbleCap}
+                    isMe={isMe}
+                    heartCount={heartCount || 0}
+                    sendStatus={item.sendStatus}
+                    onPress={() =>
+                      onMessageBubblePress({
+                        id: item.id,
+                        clientId: item.clientId,
+                        text: item.text,
+                        sendStatus: item.sendStatus,
+                        reactions: item.reactions,
+                      })
+                    }
                     onLongPress={() =>
                       onMessageLongPress?.({
                         id: item.id,
                         senderId: item.senderId,
                         text: item.text,
+                        reactions: item.reactions,
                       })
                     }
-                    delayLongPress={400}
-                  >
-                    <ChatMessageBubble
-                      text={item.text}
-                      bubbleCap={bubbleCap}
-                      isMe={isMe}
-                      heartCount={heartCount || 0}
-                      sendStatus={item.sendStatus}
-                      onPress={() =>
-                        onMessageBubblePress({
-                          id: item.id,
-                          clientId: item.clientId,
-                          text: item.text,
-                          sendStatus: item.sendStatus,
-                          reactions: item.reactions,
-                        })
-                      }
-                    />
-                  </Pressable>
+                  />
                 </View>
               </View>
             </ChatSwipeRevealRow>

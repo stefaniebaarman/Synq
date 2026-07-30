@@ -42,6 +42,8 @@ export type PlanGoingPerson = {
 type Props = {
   visible: boolean;
   planTitle?: string | null;
+  /** When set, replaces the default "Going to …" header. */
+  headerTitle?: string | null;
   people: PlanGoingPerson[];
   onClose: () => void;
   /** Fires after the sheet has fully dismissed (safe for follow-up navigation). */
@@ -49,6 +51,10 @@ type Props = {
   onPressPerson?: (person: PlanGoingPerson) => void;
   /** Viewer cannot open their own profile from this list. */
   viewerId?: string | null;
+  /** Use `embedded` when already inside another Modal (e.g. chat). */
+  presentation?: "modal" | "embedded";
+  /** Shorter sheet for small lists (e.g. message likers). */
+  compact?: boolean;
 };
 
 function needsProfileHydration(person: PlanGoingPerson): boolean {
@@ -73,16 +79,40 @@ function peopleSignature(people: PlanGoingPerson[]): string {
 export default function PlanGoingPeopleSheet({
   visible,
   planTitle,
+  headerTitle,
   people,
   onClose,
   onClosed,
   onPressPerson,
   viewerId,
+  presentation = "modal",
+  compact = false,
 }: Props) {
   const insets = useSafeAreaInsets();
   const { height: windowHeight } = useWindowDimensions();
-  const sheetHeight = Math.round(windowHeight * 0.7);
-  const title = String(planTitle || "").trim() || "this plan";
+  const bottomPad = compact
+    ? Math.max(20, insets.bottom + 10)
+    : Math.max(28, insets.bottom + 12);
+  // Compact: room for grabber + title + ~5 name rows without clipping.
+  const COMPACT_GRABBER = 28;
+  const COMPACT_HEADER = 52;
+  const COMPACT_ROW = 72;
+  const sheetHeight = compact
+    ? Math.min(
+        Math.round(windowHeight * 0.5),
+        Math.max(
+          280,
+          COMPACT_GRABBER +
+            COMPACT_HEADER +
+            Math.max(people.length, 1) * COMPACT_ROW +
+            bottomPad
+        )
+      )
+    : Math.round(windowHeight * 0.7);
+  const customHeader = String(headerTitle || "").trim();
+  const title = customHeader
+    ? customHeader
+    : `Going to ${String(planTitle || "").trim() || "this plan"}`;
   const viewerKey = String(viewerId || "").trim();
   const [hydratedPeople, setHydratedPeople] = useState<PlanGoingPerson[]>(people);
   const peopleKey = useMemo(() => peopleSignature(people), [people]);
@@ -147,13 +177,17 @@ export default function PlanGoingPeopleSheet({
       visible={visible}
       onClose={onClose}
       onClosed={onClosed}
+      presentation={presentation}
       cardStyle={[
         styles.sheet,
-        { height: sheetHeight, paddingBottom: Math.max(28, insets.bottom + 12) },
+        {
+          height: sheetHeight,
+          paddingBottom: bottomPad,
+        },
       ]}
     >
       <View style={styles.header}>
-        <Text style={styles.title}>Going to {title}</Text>
+        <Text style={styles.title}>{title}</Text>
         <CloseButton onPress={onClose} />
       </View>
       <FlatList

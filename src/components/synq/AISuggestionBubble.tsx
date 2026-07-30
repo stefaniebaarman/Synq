@@ -15,14 +15,15 @@ import {
 } from "@/constants/Variables";
 import { formatVenueAddressDisplay, stripLegacyAiPrefix } from "@/src/lib/helpers";
 import { Ionicons } from "@expo/vector-icons";
-import React from "react";
+import React, { useCallback, useMemo, useRef } from "react";
 import {
   Platform,
-  Pressable,
   StyleSheet,
   Text,
   View,
 } from "react-native";
+import { Gesture, GestureDetector } from "react-native-gesture-handler";
+import { runOnJS } from "react-native-reanimated";
 
 const CARD_RADIUS = 16;
 
@@ -32,6 +33,7 @@ type Props = {
   name?: string;
   address?: string;
   onPress: () => void;
+  onLongPress?: () => void;
   heartCount?: number;
 };
 
@@ -41,6 +43,7 @@ export default function AISuggestionBubble({
   name,
   address,
   onPress,
+  onLongPress,
   heartCount = 0,
 }: Props) {
   const legacyBody = stripLegacyAiPrefix(text);
@@ -48,64 +51,93 @@ export default function AISuggestionBubble({
   const displayAddress = formatVenueAddressDisplay(address || "");
   const showVenue = !isLegacy && (displayName || displayAddress);
 
+  const onPressRef = useRef(onPress);
+  const onLongPressRef = useRef(onLongPress);
+  onPressRef.current = onPress;
+  onLongPressRef.current = onLongPress;
+
+  const invokePress = useCallback(() => {
+    onPressRef.current();
+  }, []);
+  const invokeLongPress = useCallback(() => {
+    onLongPressRef.current?.();
+  }, []);
+
+  const bubbleGesture = useMemo(() => {
+    const tap = Gesture.Tap().onEnd(() => {
+      "worklet";
+      runOnJS(invokePress)();
+    });
+    const longPress = Gesture.LongPress()
+      .minDuration(400)
+      .maxDistance(14)
+      .onStart(() => {
+        "worklet";
+        runOnJS(invokeLongPress)();
+      });
+    return Gesture.Exclusive(longPress, tap);
+  }, [invokeLongPress, invokePress]);
+
   return (
-    <Pressable
-      onPress={onPress}
-      accessibilityRole="button"
-      accessibilityLabel={
-        showVenue
-          ? `${displayName || displayAddress}. Tap to view on map.`
-          : "Tap to view suggestion."
-      }
-      style={({ pressed }) => [styles.pressable, pressed && styles.pressablePressed]}
-    >
-      <View style={styles.card}>
-        <View style={styles.body}>
-          {showVenue ? (
-            <>
-              {displayName ? (
-                <Text style={styles.venueName} numberOfLines={2}>
-                  {displayName}
-                </Text>
-              ) : null}
-              {displayAddress ? (
-                <View style={styles.addressRow}>
-                  <Ionicons
-                    name="location-outline"
-                    size={13}
-                    color={MUTED2}
-                    style={styles.addressIcon}
-                  />
-                  <Text style={styles.addressText} numberOfLines={2}>
-                    {displayAddress}
+    <GestureDetector gesture={bubbleGesture}>
+      <View
+        collapsable={false}
+        accessibilityRole="button"
+        accessibilityLabel={
+          showVenue
+            ? `${displayName || displayAddress}. Tap to view on map.`
+            : "Tap to view suggestion."
+        }
+        style={styles.pressable}
+      >
+        <View style={styles.card}>
+          <View style={styles.body}>
+            {showVenue ? (
+              <>
+                {displayName ? (
+                  <Text style={styles.venueName} numberOfLines={2}>
+                    {displayName}
                   </Text>
-                </View>
-              ) : null}
-            </>
-          ) : (
-            <Text style={styles.legacyBody}>{legacyBody || text}</Text>
-          )}
+                ) : null}
+                {displayAddress ? (
+                  <View style={styles.addressRow}>
+                    <Ionicons
+                      name="location-outline"
+                      size={13}
+                      color={MUTED2}
+                      style={styles.addressIcon}
+                    />
+                    <Text style={styles.addressText} numberOfLines={2}>
+                      {displayAddress}
+                    </Text>
+                  </View>
+                ) : null}
+              </>
+            ) : (
+              <Text style={styles.legacyBody}>{legacyBody || text}</Text>
+            )}
+          </View>
+
+          <View style={styles.footer}>
+            <Text style={styles.footerHint}>View on map</Text>
+            <Ionicons name="chevron-forward" size={12} color={MUTED3} />
+          </View>
         </View>
 
-        <View style={styles.footer}>
-          <Text style={styles.footerHint}>View on map</Text>
-          <Ionicons name="chevron-forward" size={12} color={MUTED3} />
-        </View>
+        {heartCount > 0 ? (
+          <View style={styles.heartReaction}>
+            {Array.from({ length: heartCount }, (_, i) => (
+              <View
+                key={i}
+                style={[styles.heartReactionBadge, i > 0 && styles.heartReactionOverlap]}
+              >
+                <Ionicons name="heart" size={12} color={HEART_LIKE} />
+              </View>
+            ))}
+          </View>
+        ) : null}
       </View>
-
-      {heartCount > 0 ? (
-        <View style={styles.heartReaction}>
-          {Array.from({ length: heartCount }, (_, i) => (
-            <View
-              key={i}
-              style={[styles.heartReactionBadge, i > 0 && styles.heartReactionOverlap]}
-            >
-              <Ionicons name="heart" size={12} color={HEART_LIKE} />
-            </View>
-          ))}
-        </View>
-      ) : null}
-    </Pressable>
+    </GestureDetector>
   );
 }
 
@@ -114,9 +146,6 @@ const styles = StyleSheet.create({
     width: "100%",
     position: "relative",
     overflow: "visible",
-  },
-  pressablePressed: {
-    opacity: 0.92,
   },
   card: {
     borderRadius: CARD_RADIUS,
