@@ -1,6 +1,5 @@
 import type { CitySuggestionData } from "./washington-dc";
 
-/** Curated Austin, TX venues — free static Unsplash images. */
 export const austinTxSuggestions: CitySuggestionData = {
   cityId: "austin-tx",
   displayName: "Austin, TX",

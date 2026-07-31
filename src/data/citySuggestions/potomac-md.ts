@@ -1,6 +1,5 @@
 import type { CitySuggestionData } from "./washington-dc";
 
-/** Curated Potomac, MD venues — free static Unsplash images. */
 export const potomacMdSuggestions: CitySuggestionData = {
   cityId: "potomac-md",
   displayName: "Potomac, MD",

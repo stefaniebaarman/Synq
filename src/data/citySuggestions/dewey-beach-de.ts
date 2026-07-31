@@ -1,6 +1,5 @@
 import type { CitySuggestionData } from "./washington-dc";
 
-/** Curated Dewey Beach, DE venues — free static Unsplash images. */
 export const deweyBeachDeSuggestions: CitySuggestionData = {
   cityId: "dewey-beach-de",
   displayName: "Dewey Beach, DE",

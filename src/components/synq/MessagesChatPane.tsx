@@ -1544,7 +1544,6 @@ export default function MessagesChatPane({
           styles.composerDock,
           {
             backgroundColor: BG,
-            // Static safe-area + gap — never driven by keyboard height.
             paddingBottom: composerClosedPad,
           },
           composerDockAnimStyle,

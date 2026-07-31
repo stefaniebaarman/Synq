@@ -1,6 +1,5 @@
 import type { CitySuggestionData } from "./washington-dc";
 
-/** Curated San Diego, CA venues — free static Unsplash images. */
 export const sanDiegoCaSuggestions: CitySuggestionData = {
   cityId: "san-diego-ca",
   displayName: "San Diego, CA",

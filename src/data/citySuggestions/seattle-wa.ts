@@ -1,6 +1,5 @@
 import type { CitySuggestionData } from "./washington-dc";
 
-/** Curated Seattle, WA venues — free static Unsplash images. */
 export const seattleWaSuggestions: CitySuggestionData = {
   cityId: "seattle-wa",
   displayName: "Seattle, WA",

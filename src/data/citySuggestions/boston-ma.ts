@@ -1,6 +1,5 @@
 import type { CitySuggestionData } from "./washington-dc";
 
-/** Curated Boston, MA venues — free static Unsplash images. */
 export const bostonMaSuggestions: CitySuggestionData = {
   cityId: "boston-ma",
   displayName: "Boston, MA",

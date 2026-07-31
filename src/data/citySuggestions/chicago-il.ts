@@ -1,6 +1,5 @@
 import type { CitySuggestionData } from "./washington-dc";
 
-/** Curated Chicago, IL venues — free static Unsplash images. */
 export const chicagoIlSuggestions: CitySuggestionData = {
   cityId: "chicago-il",
   displayName: "Chicago, IL",

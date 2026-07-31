@@ -1,6 +1,5 @@
 import type { CitySuggestionData } from "./washington-dc";
 
-/** Curated Arlington, VA venues — free static Unsplash images. */
 export const arlingtonVaSuggestions: CitySuggestionData = {
   cityId: "arlington-va",
   displayName: "Arlington, VA",

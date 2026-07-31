@@ -1,6 +1,5 @@
 import type { CitySuggestionData } from "./washington-dc";
 
-/** Curated New York City venues — free static Unsplash images. */
 export const newYorkNySuggestions: CitySuggestionData = {
   cityId: "new-york-ny",
   displayName: "New York, NY",

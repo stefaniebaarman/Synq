@@ -17,7 +17,6 @@ export type CitySuggestionData = {
   categories: Record<CityCategory, CachedVenue[]>;
 };
 
-/** Curated Washington, DC venues — free static Unsplash images. */
 export const washingtonDcSuggestions: CitySuggestionData = {
   cityId: "washington-dc",
   displayName: "Washington, DC",
