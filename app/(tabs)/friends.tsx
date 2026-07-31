@@ -7,7 +7,6 @@ import {
   BORDER,
   BUTTON_RADIUS,
   DESTRUCTIVE,
-  FRIENDS_BORDER,
   FRIENDS_SEARCH_BORDER,
   Friend,
   MODAL_RADIUS,
@@ -27,7 +26,6 @@ import {
   SURFACE,
   SURFACE_INPUT,
   SURFACE_MUTED,
-  SURFACE_RAISED,
   TAB_BAR_SCROLL_INSET,
   TEXT,
   TYPE_BODY,
@@ -36,6 +34,7 @@ import {
   TYPE_CTA,
   TYPE_DISPLAY,
   TYPE_LEAD,
+  TYPE_TITLE,
   cardMetaText,
   fonts,
   listRowTitleText,
@@ -2033,13 +2032,10 @@ function SearchModal({
             ]}
           >
             {addFriendsListEmpty ? (
-              <View style={styles.addFriendsEmpty}>
-                <View style={styles.addFriendsEmptyIcon}>
-                  <Ionicons name="people-outline" size={28} color={ACCENT} />
-                </View>
-                <Text style={styles.addFriendsEmptyTitle}>Find your people</Text>
-                <Text style={styles.addFriendsEmptyText}>
-                  Share your profile so friends can find you, or search by name above.
+              <View style={styles.addFriendsEmptyInvite}>
+                <Text style={styles.addFriendsEmptyInviteTitle}>No friends yet</Text>
+                <Text style={styles.addFriendsEmptyInviteText}>
+                  Share your profile so people can find you on Synq.
                 </Text>
                 <TouchableOpacity
                   style={[synqOutlineAddBtn, styles.addFriendsShareCta]}
@@ -2561,7 +2557,7 @@ const styles = StyleSheet.create({
   addFriendsListWrap: { flex: 1, minHeight: 0 },
   addFriendsListWrapEmpty: {
     justifyContent: "flex-start",
-    paddingTop: SPACE_5,
+    paddingTop: SPACE_6,
   },
   addFriendsListContent: {},
   addFriendsListContentEmpty: {
@@ -2635,17 +2631,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: SPACE_5,
     width: "100%",
   },
-  addFriendsEmptyIcon: {
-    width: 56,
-    height: 56,
-    borderRadius: RADIUS_2XL,
-    backgroundColor: SURFACE_RAISED,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: FRIENDS_BORDER,
-    alignItems: "center",
-    justifyContent: "center",
-    marginBottom: SPACE_4,
-  },
   addFriendsEmptyTitle: {
     color: TEXT,
     fontFamily: fonts.heavy,
@@ -2661,6 +2646,28 @@ const styles = StyleSheet.create({
     textAlign: "center",
     marginTop: SPACE_3,
     maxWidth: 300,
+  },
+  addFriendsEmptyInvite: {
+    alignItems: "center",
+    width: "100%",
+    paddingHorizontal: SPACE_5,
+  },
+  addFriendsEmptyInviteTitle: {
+    color: TEXT,
+    fontFamily: fonts.heavy,
+    fontSize: TYPE_TITLE,
+    lineHeight: 32,
+    letterSpacing: 0.15,
+    textAlign: "center",
+  },
+  addFriendsEmptyInviteText: {
+    color: MUTED,
+    fontFamily: fonts.book,
+    fontSize: TYPE_BODY,
+    lineHeight: 22,
+    textAlign: "center",
+    marginTop: SPACE_3,
+    maxWidth: 290,
   },
   addFriendsShareCta: {
     flexDirection: "row",
