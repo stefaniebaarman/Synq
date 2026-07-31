@@ -3,7 +3,6 @@ import * as ImageManipulator from "expo-image-manipulator";
 /** Max edge length while cropping; keeps preview math fast on camera originals. */
 export const PROFILE_PHOTO_CROP_PREP_MAX_DIMENSION = 2048;
 
-/** Uploaded avatar size — sharp through 64pt @3x list cells; keeps Storage egress low. */
 export const PROFILE_PHOTO_UPLOAD_SIZE = 384;
 
 export const PROFILE_PHOTO_UPLOAD_QUALITY = 0.85;
@@ -86,7 +85,6 @@ export async function prepareProfilePhotoForCrop(
     { compress: 0.92, format: ImageManipulator.SaveFormat.JPEG }
   );
 
-  // Always use the manipulator's actual output size — requested resize can differ by 1px.
   return {
     uri: downscaled.uri,
     width: downscaled.width,

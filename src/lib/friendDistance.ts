@@ -69,7 +69,7 @@ export async function geocodePlace(query: string): Promise<{ lat: number; lng: n
       return coords;
     }
   } catch {
-    // Geocoding unavailable or address not found — cache miss below.
+    // Geocoding unavailable or address not found, cache miss below.
   }
 
   geocodeCache.set(cacheKey, null);

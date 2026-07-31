@@ -1,3 +1,4 @@
+import { auth, db } from "@/src/lib/firebase";
 import { planLooseMatch, resolvePlanHostUidForJoin } from "@/src/lib/planAttribution";
 import {
   eventKey,
@@ -5,7 +6,6 @@ import {
   matchesPlanEvent,
   openPlanSortValue,
 } from "@/src/lib/planEvents";
-import { auth, db } from "@/src/lib/firebase";
 import { collection, doc, getDoc, getDocs, updateDoc } from "firebase/firestore";
 
 export type FriendOpenPlanEvent = {
@@ -230,10 +230,6 @@ export async function joinFriendOpenPlan(
   const planHostUid = resolvePlanHostUidForJoin(event, friendKey);
   const eventForMatch = { ...event, planHostUid: event.planHostUid || planHostUid };
 
-  // Only write our own user doc. Cross-user roster sync runs in
-  // functions/openPlanSync via syncOpenPlanEvents (admin) — clients cannot
-  // update other users' events under firestore.rules.
-
   const exists = existingEvents.some((row) => matchesPlanEvent(row, eventForMatch, existingEvents));
   if (exists) {
     const updatedExistingEvents = existingEvents.map((row) => {
@@ -309,7 +305,6 @@ export async function unjoinFriendOpenPlan(
     throw new Error("You aren't going to this plan together.");
   }
 
-  // Own calendar only — syncOpenPlanEvents removes us from others' copies.
   const idSet = new Set(
     [...(Array.isArray(myEvent.joinedFromIds) ? myEvent.joinedFromIds : []), myEvent.joinedFromId]
       .map((id) => String(id || "").trim())
