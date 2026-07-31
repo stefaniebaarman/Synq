@@ -1,18 +1,18 @@
-import OnboardingSlideShell from "@/src/components/onboarding/OnboardingSlideShell";
-import { GoLiveGraphic } from "@/src/components/onboarding/onboardingGraphics";
+import OnboardingImmersiveSlide from "@/src/components/onboarding/OnboardingImmersiveSlide";
+import { PulseHeroGraphic } from "@/src/components/onboarding/onboardingGraphics";
 import { router } from "expo-router";
 
 export default function MakePlansScreen() {
   return (
-    <OnboardingSlideShell
+    <OnboardingImmersiveSlide
       step={1}
-      title={"Your circle,\n"}
-      titleAccent="made simple."
-      subtitle="Keep your people close. One tap tells them you're free."
+      title={"Less scrolling.\n"}
+      titleAccent="More together."
+      subtitle="More time with the people you care about."
       ctaLabel="Next"
       onNext={() => router.push("/(auth)/welcome")}
     >
-      <GoLiveGraphic />
-    </OnboardingSlideShell>
+      <PulseHeroGraphic />
+    </OnboardingImmersiveSlide>
   );
 }

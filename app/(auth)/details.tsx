@@ -1,6 +1,11 @@
 import {
+  ONBOARDING_DIVIDER_MARGIN_TOP,
+  ONBOARDING_DIVIDER_WIDTH,
   ONBOARDING_H_PADDING,
   ONBOARDING_SCROLL_BOTTOM,
+  ONBOARDING_SUBTITLE_MARGIN_TOP,
+  ONBOARDING_SUBTITLE_SIZE,
+  ONBOARDING_TITLE_LINE_HEIGHT,
   ONBOARDING_TITLE_SIZE,
   onboardingContentTopPadding,
 } from "@/constants/onboardingLayout";
@@ -33,20 +38,19 @@ import {
   ACCENT,
   BG,
   BORDER,
-  BORDER_HAIRLINE,
-  BORDER_SOFT,
   BUTTON_RADIUS,
   MUTED,
   MUTED3,
-  ON_ACCENT_TEXT,
   PRIMARY_CTA_HEIGHT,
-  PRIMARY_CTA_WIDTH,
+  SURFACE,
   TEXT,
   TYPE_BODY,
-  TYPE_CTA,
   TYPE_FINE,
-  ctaButtonText,
   fonts,
+  synqOutlineAddBtn,
+  synqOutlineAddBtnDisabled,
+  synqOutlineAddBtnText,
+  synqOutlineAddBtnTextDisabled,
 } from "../../constants/Variables";
 import { auth, db } from "../../src/lib/firebase";
 import { syncMyPhoneHash } from "../../src/lib/matchContacts";
@@ -56,6 +60,8 @@ import {
 } from "@/src/lib/pendingProfilePhoto";
 import { uploadProfilePhoto } from "@/src/lib/uploadProfilePhoto";
 import AlertModal from "../alert-modal";
+
+const CTA_WIDTH = "56%";
 
 export default function Details() {
   const router = useRouter();
@@ -227,7 +233,9 @@ export default function Details() {
         >
         <View style={styles.innerContent}>
           <View style={styles.headerSection}>
-            <Text style={styles.title}>What’s your name?</Text>
+            <Text style={styles.title}>What's your name?</Text>
+            <View style={styles.divider} />
+            <Text style={styles.subtitle}>Add a photo and your name to get started</Text>
           </View>
 
           <View style={styles.avatarContainer}>
@@ -250,7 +258,7 @@ export default function Details() {
                   <View style={styles.placeholderIcon}>
                     <Icon name="camera-outline" size={28} color={MUTED} />
                     <Text style={styles.addPhotoText}>
-                      {isUploading ? "Uploading..." : "Add Photo"}
+                      {isUploading ? "Uploading..." : "Add photo"}
                     </Text>
                   </View>
                 )}
@@ -273,7 +281,7 @@ export default function Details() {
             <TextInput
               value={firstName}
               onChangeText={setFirstName}
-              placeholder="First Name"
+              placeholder="First name"
               placeholderTextColor={MUTED3}
               autoCapitalize="words"
               autoCorrect={false}
@@ -283,20 +291,35 @@ export default function Details() {
             <TextInput
               value={lastName}
               onChangeText={setLastName}
-              placeholder="Last Name"
+              placeholder="Last name"
               placeholderTextColor={MUTED3}
               autoCapitalize="words"
               autoCorrect={false}
-              style={[styles.input, { marginTop: 12 }]}
+              style={[styles.input, styles.lastNameInput]}
             />
           </View>
 
           <TouchableOpacity
             disabled={!canContinue}
             onPress={saveDetails}
-            style={[styles.button, !canContinue && { opacity: 0.5 }]}
+            activeOpacity={0.85}
+            style={[
+              synqOutlineAddBtn,
+              styles.button,
+              !canContinue && synqOutlineAddBtnDisabled,
+            ]}
+            accessibilityRole="button"
+            accessibilityLabel="Continue"
           >
-            <Text style={[ctaButtonText, loading && { opacity: 0.5 }]}>Continue</Text>
+            <Text
+              style={[
+                synqOutlineAddBtnText,
+                !canContinue && synqOutlineAddBtnTextDisabled,
+                loading && { opacity: 0.5 },
+              ]}
+            >
+              Continue
+            </Text>
           </TouchableOpacity>
           <AlertModal
             visible={alertVisible}
@@ -340,10 +363,22 @@ const styles = StyleSheet.create({
   title: {
     color: TEXT,
     fontSize: ONBOARDING_TITLE_SIZE,
-    // Single-line headline: slightly tighter than shared onboarding line height
-    lineHeight: 38,
+    lineHeight: ONBOARDING_TITLE_LINE_HEIGHT,
     fontFamily: fonts.heavy,
     letterSpacing: 0.2,
+  },
+  divider: {
+    marginTop: ONBOARDING_DIVIDER_MARGIN_TOP,
+    height: 1,
+    backgroundColor: BORDER,
+    width: ONBOARDING_DIVIDER_WIDTH,
+  },
+  subtitle: {
+    color: MUTED,
+    fontSize: ONBOARDING_SUBTITLE_SIZE,
+    marginTop: ONBOARDING_SUBTITLE_MARGIN_TOP,
+    fontFamily: fonts.book,
+    lineHeight: 22,
   },
   avatarContainer: {
     alignItems: "center",
@@ -358,11 +393,11 @@ const styles = StyleSheet.create({
     width: 132,
     height: 132,
     borderRadius: 66,
-    backgroundColor: BORDER_SOFT,
+    backgroundColor: SURFACE,
     justifyContent: "center",
     alignItems: "center",
     borderWidth: 1,
-    borderColor: MUTED3,
+    borderColor: BORDER,
     overflow: "hidden",
   },
   avatarImage: {
@@ -374,7 +409,7 @@ const styles = StyleSheet.create({
     color: MUTED3,
     fontSize: TYPE_FINE,
     marginTop: 4,
-    fontFamily: fonts.heavy,
+    fontFamily: fonts.medium,
   },
   plusBadge: {
     position: "absolute",
@@ -388,7 +423,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
     borderWidth: 3,
-    borderColor: "black",
+    borderColor: BG,
   },
   plusIcon: {
     marginTop: 1,
@@ -401,27 +436,30 @@ const styles = StyleSheet.create({
     fontFamily: fonts.book,
   },
   inputContainer: {
-    marginTop: 6,
+    marginTop: 10,
+    width: "78%",
+    alignSelf: "center",
   },
   input: {
     color: TEXT,
-    backgroundColor: BORDER,
-    height: 52,
+    backgroundColor: SURFACE,
+    height: 56,
     borderRadius: BUTTON_RADIUS,
-    paddingHorizontal: 14,
+    paddingHorizontal: 16,
     fontSize: TYPE_BODY,
     fontFamily: fonts.medium,
     borderWidth: 1,
-    borderColor: BORDER_HAIRLINE,
+    borderColor: BORDER,
+  },
+  lastNameInput: {
+    marginTop: 12,
   },
   button: {
-    marginTop: 32,
+    marginTop: 26,
     alignSelf: "center",
-    width: PRIMARY_CTA_WIDTH,
-    backgroundColor: ACCENT,
+    width: CTA_WIDTH,
     height: PRIMARY_CTA_HEIGHT,
-    borderRadius: BUTTON_RADIUS,
-    alignItems: "center",
-    justifyContent: "center",
+    paddingVertical: 0,
+    paddingHorizontal: 24,
   },
 });

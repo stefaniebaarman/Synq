@@ -16,9 +16,13 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { stateAbbreviations } from "../../assets/Mocks";
 import {
+  ONBOARDING_DIVIDER_MARGIN_TOP,
+  ONBOARDING_DIVIDER_WIDTH,
   ONBOARDING_H_PADDING,
   ONBOARDING_SCROLL_BOTTOM,
+  ONBOARDING_SUBTITLE_MARGIN_TOP,
   ONBOARDING_SUBTITLE_SIZE,
+  ONBOARDING_TITLE_LINE_HEIGHT,
   ONBOARDING_TITLE_SIZE,
   onboardingContentTopPadding,
 } from "@/constants/onboardingLayout";
@@ -28,22 +32,22 @@ import {
   ACCENT_FILL,
   BG,
   BORDER,
-  BORDER_HAIRLINE,
   BUTTON_RADIUS,
   MUTED,
   MUTED2,
   MUTED3,
-  ON_ACCENT_TEXT,
   PRIMARY_CTA_HEIGHT,
-  PRIMARY_CTA_WIDTH,
+  SURFACE,
   TEXT,
   TYPE_BODY,
   TYPE_CAPTION,
-  TYPE_CTA,
   TYPE_LEAD,
-  ctaButtonText,
   fonts,
   RADIUS_MD,
+  synqOutlineAddBtn,
+  synqOutlineAddBtnDisabled,
+  synqOutlineAddBtnText,
+  synqOutlineAddBtnTextDisabled,
 } from "../../constants/Variables";
 import { auth, db } from "../../src/lib/firebase";
 import { getCachedOwnProfile } from "../../src/lib/ownProfileCache";
@@ -60,6 +64,9 @@ import AlertModal from "../alert-modal";
 const US_STATE_ABBREV: Record<string, string> = stateAbbreviations;
 
 const VALID_US_STATE_ABBREVS = new Set(Object.values(stateAbbreviations));
+
+const CTA_WIDTH = "56%";
+const FIELD_WIDTH = "78%";
 
 function isValidStateAbbrev(abbrev: string): boolean {
   return VALID_US_STATE_ABBREVS.has(abbrev.trim().toUpperCase());
@@ -282,6 +289,7 @@ export default function LocationDetails() {
         <View style={styles.innerContent}>
           <View style={styles.headerSection}>
             <Text style={styles.title}>Where do you live?</Text>
+            <View style={styles.divider} />
             <Text style={styles.subtitle}>
               This helps friends see who is nearby for a quick Synq.
             </Text>
@@ -303,7 +311,7 @@ export default function LocationDetails() {
             placeholderTextColor={MUTED3}
             autoCapitalize="characters"
             maxLength={2}
-            style={[styles.input, { marginTop: 12 }]}
+            style={[styles.input, styles.stateInput]}
           />
 
           {!locationUsed && (
@@ -346,12 +354,24 @@ export default function LocationDetails() {
         <TouchableOpacity
           disabled={!canContinue}
           onPress={saveLocation}
+          activeOpacity={0.85}
           style={[
+            synqOutlineAddBtn,
             styles.button,
-            !canContinue && { opacity: 0.5 },
+            !canContinue && synqOutlineAddBtnDisabled,
           ]}
+          accessibilityRole="button"
+          accessibilityLabel="Continue"
         >
-          <Text style={[ctaButtonText, loading && { opacity: 0.5 }]}>Continue</Text>
+          <Text
+            style={[
+              synqOutlineAddBtnText,
+              !canContinue && synqOutlineAddBtnTextDisabled,
+              loading && { opacity: 0.5 },
+            ]}
+          >
+            Continue
+          </Text>
         </TouchableOpacity>
 
         <TouchableOpacity onPress={handleSkip} style={styles.skipButton}>
@@ -397,34 +417,44 @@ const styles = StyleSheet.create({
     marginBottom: 10,
   },
   formBlock: {
-    marginTop: 4,
+    marginTop: 10,
+    width: FIELD_WIDTH,
+    alignSelf: "center",
   },
   title: {
     color: TEXT,
     fontSize: ONBOARDING_TITLE_SIZE,
-    lineHeight: 38,
+    lineHeight: ONBOARDING_TITLE_LINE_HEIGHT,
     fontFamily: fonts.heavy,
     letterSpacing: 0.2,
+  },
+  divider: {
+    marginTop: ONBOARDING_DIVIDER_MARGIN_TOP,
+    height: 1,
+    backgroundColor: BORDER,
+    width: ONBOARDING_DIVIDER_WIDTH,
   },
   subtitle: {
     color: MUTED,
     fontSize: ONBOARDING_SUBTITLE_SIZE,
-    marginTop: 9,
-    marginBottom: 10,
+    marginTop: ONBOARDING_SUBTITLE_MARGIN_TOP,
     fontFamily: fonts.book,
     lineHeight: 22,
   },
 
   input: {
     color: TEXT,
-    backgroundColor: BORDER,
-    height: 52,
+    backgroundColor: SURFACE,
+    height: 56,
     borderRadius: BUTTON_RADIUS,
-    paddingHorizontal: 14,
+    paddingHorizontal: 16,
     fontSize: TYPE_BODY,
     fontFamily: fonts.medium,
     borderWidth: 1,
-    borderColor: BORDER_HAIRLINE,
+    borderColor: BORDER,
+  },
+  stateInput: {
+    marginTop: 12,
   },
 
   locationRow: {
@@ -432,9 +462,9 @@ const styles = StyleSheet.create({
     borderRadius: BUTTON_RADIUS,
     paddingVertical: 10,
     paddingHorizontal: 14,
-    backgroundColor: BORDER,
+    backgroundColor: SURFACE,
     borderWidth: 1,
-    borderColor: BORDER_HAIRLINE,
+    borderColor: BORDER,
     flexDirection: "row",
     alignItems: "center",
     gap: 12,
@@ -471,14 +501,12 @@ const styles = StyleSheet.create({
   },
 
   button: {
-    marginTop: 32,
+    marginTop: 26,
     alignSelf: "center",
-    width: PRIMARY_CTA_WIDTH,
-    backgroundColor: ACCENT,
+    width: CTA_WIDTH,
     height: PRIMARY_CTA_HEIGHT,
-    borderRadius: BUTTON_RADIUS,
-    alignItems: "center",
-    justifyContent: "center",
+    paddingVertical: 0,
+    paddingHorizontal: 24,
   },
 
   skipButton: { marginTop: 20, alignSelf: "center" },

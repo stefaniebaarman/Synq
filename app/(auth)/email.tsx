@@ -5,33 +5,32 @@ import {
   ONBOARDING_DIVIDER_WIDTH,
   ONBOARDING_H_PADDING,
   ONBOARDING_SCROLL_BOTTOM,
+  ONBOARDING_SUBTITLE_MARGIN_TOP,
+  ONBOARDING_SUBTITLE_SIZE,
   ONBOARDING_TITLE_LINE_HEIGHT,
   ONBOARDING_TITLE_SIZE,
   onboardingAuthInnerMarginTop,
 } from "@/constants/onboardingLayout";
 import {
-  ACCENT,
   BG,
   BORDER,
   BUTTON_RADIUS,
-  DISABLED_ACCENT,
   MUTED,
   MUTED2,
   MUTED3,
-  ON_ACCENT_TEXT,
   PRIMARY_CTA_HEIGHT,
-  PRIMARY_CTA_WIDTH,
   SURFACE,
   TEXT,
   TYPE_BODY,
-  TYPE_BUTTON,
   TYPE_CAPTION,
-  TYPE_CTA,
   fonts,
+  synqOutlineAddBtn,
+  synqOutlineAddBtnDisabled,
+  synqOutlineAddBtnText,
+  synqOutlineAddBtnTextDisabled,
   synqSvg,
 } from "@/constants/Variables";
 import BackButton from "@/src/components/BackButton";
-import { Ionicons } from "@expo/vector-icons";
 import { router } from "expo-router";
 import { createUserWithEmailAndPassword } from "firebase/auth";
 import React, { useState } from "react";
@@ -45,12 +44,14 @@ import {
   TextInput,
   TouchableOpacity,
   TouchableWithoutFeedback,
-  View
+  View,
 } from "react-native";
 import { SvgXml } from "react-native-svg";
 import { auth } from "../../src/lib/firebase";
 import { usePreAuthTermsGate } from "../../src/lib/usePreAuthTermsGate";
 import AlertModal from "../alert-modal";
+
+const CTA_WIDTH = "56%";
 
 export default function EmailSignup() {
   const termsReady = usePreAuthTermsGate("email");
@@ -80,7 +81,7 @@ export default function EmailSignup() {
       }
       showAlert(
         e?.message ?? "Please check your email and password and try again.",
-        "Couldn’t sign up"
+        "Couldn't sign up"
       );
       setLoading(false);
     }
@@ -110,48 +111,68 @@ export default function EmailSignup() {
             onScrollBeginDrag={Keyboard.dismiss}
             showsVerticalScrollIndicator={false}
           >
-          <View style={[styles.inner, { marginTop: onboardingAuthInnerMarginTop() }]}>
-            <Text style={styles.title}>Sign up with email</Text>
-            <View style={styles.divider} />
-            <View style={{ marginTop: 18 }}>
-              <TextInput
-                value={email}
-                onChangeText={setEmail}
-                placeholder="Email"
-                placeholderTextColor={MUTED3}
-                autoCapitalize="none"
-                autoCorrect={false}
-                keyboardType="email-address"
-                textContentType="emailAddress"
-                style={styles.input}
-              />
-
-              <TextInput
-                value={password}
-                onChangeText={setPassword}
-                placeholder="Password (6+ characters)"
-                placeholderTextColor={MUTED3}
-                secureTextEntry
-                textContentType="newPassword"
-                style={[styles.input, { marginTop: 12 }]}
-              />
-            </View>
-
-            <TouchableOpacity
-              disabled={!canContinue}
-              onPress={signUp}
-              activeOpacity={0.85}
-              style={[styles.primaryButton, !canContinue && styles.disabledButton]}
+            <View
+              style={[
+                styles.inner,
+                { marginTop: onboardingAuthInnerMarginTop() },
+              ]}
             >
-              <Text style={[styles.primaryButtonText, loading && { opacity: 0.5 }]}>
-                Continue
-              </Text>
-            </TouchableOpacity>
+              <Text style={styles.title}>Sign up with email</Text>
+              <View style={styles.divider} />
+              <Text style={styles.subtitle}>Create an account with your email</Text>
 
-            <Text style={styles.small}>
-              By continuing, you agree to receive account-related emails from Synq.
-            </Text>
-          </View>
+              <View style={styles.fields}>
+                <TextInput
+                  value={email}
+                  onChangeText={setEmail}
+                  placeholder="Email"
+                  placeholderTextColor={MUTED3}
+                  autoCapitalize="none"
+                  autoCorrect={false}
+                  keyboardType="email-address"
+                  textContentType="emailAddress"
+                  style={styles.input}
+                />
+
+                <TextInput
+                  value={password}
+                  onChangeText={setPassword}
+                  placeholder="Password (6+ characters)"
+                  placeholderTextColor={MUTED3}
+                  secureTextEntry
+                  textContentType="newPassword"
+                  style={[styles.input, styles.passwordInput]}
+                />
+              </View>
+
+              <TouchableOpacity
+                disabled={!canContinue}
+                onPress={signUp}
+                activeOpacity={0.85}
+                style={[
+                  synqOutlineAddBtn,
+                  styles.primaryButton,
+                  !canContinue && synqOutlineAddBtnDisabled,
+                ]}
+                accessibilityRole="button"
+                accessibilityLabel="Continue"
+              >
+                <Text
+                  style={[
+                    synqOutlineAddBtnText,
+                    !canContinue && synqOutlineAddBtnTextDisabled,
+                    loading && { opacity: 0.5 },
+                  ]}
+                >
+                  Continue
+                </Text>
+              </TouchableOpacity>
+
+              <Text style={styles.helper}>
+                By continuing, you agree to receive account-related emails from
+                Synq.
+              </Text>
+            </View>
           </ScrollView>
         </KeyboardAvoidingView>
         <AlertModal
@@ -201,10 +222,13 @@ const styles = StyleSheet.create({
   },
   subtitle: {
     color: MUTED,
-    fontSize: TYPE_BUTTON,
-    marginTop: 14,
+    fontSize: ONBOARDING_SUBTITLE_SIZE,
+    marginTop: ONBOARDING_SUBTITLE_MARGIN_TOP,
     fontFamily: fonts.book,
     lineHeight: 22,
+  },
+  fields: {
+    marginTop: 28,
   },
   input: {
     color: TEXT,
@@ -217,24 +241,18 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: BORDER,
   },
+  passwordInput: {
+    marginTop: 12,
+  },
   primaryButton: {
-    marginTop: 20,
+    marginTop: 26,
     alignSelf: "center",
-    width: PRIMARY_CTA_WIDTH,
-    backgroundColor: ACCENT,
+    width: CTA_WIDTH,
     height: PRIMARY_CTA_HEIGHT,
-    borderRadius: BUTTON_RADIUS,
-    alignItems: "center",
-    justifyContent: "center",
+    paddingVertical: 0,
+    paddingHorizontal: 24,
   },
-  primaryButtonText: {
-    color: ON_ACCENT_TEXT,
-    fontSize: TYPE_CTA,
-    fontFamily: fonts.heavy,
-    letterSpacing: 0.2,
-  },
-  disabledButton: { backgroundColor: DISABLED_ACCENT },
-  small: {
+  helper: {
     marginTop: 18,
     color: MUTED2,
     fontSize: TYPE_CAPTION,

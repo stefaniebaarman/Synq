@@ -4,22 +4,26 @@ import {
   MUTED2,
   MUTED3,
   ON_ACCENT_TEXT,
-  RADIUS_MD,
-  SURFACE_FAINT,
-  TEXT,
-  TYPE_BUTTON,
-  TYPE_CAPTION,
-  fonts,
   RADIUS_LG,
   RADIUS_XL,
+  SURFACE_FAINT,
+  TEXT,
+  TYPE_BODY,
+  TYPE_BUTTON,
+  TYPE_CAPTION,
+  TYPE_FINE,
+  fonts,
 } from "@/constants/Variables";
+import {
+  ONBOARDING_HERO_WIDTH,
+  ONBOARDING_PULSE_SIZE,
+} from "@/constants/onboardingLayout";
 import { Image as ExpoImage } from "expo-image";
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { StyleSheet, Text, View } from "react-native";
 import Animated, {
   Easing,
   interpolate,
-  runOnJS,
   useAnimatedStyle,
   useReducedMotion,
   useSharedValue,
@@ -31,61 +35,50 @@ import Animated, {
 
 const EASE_OUT = Easing.out(Easing.cubic);
 const SIN = Easing.inOut(Easing.sin);
-
-const MOODS = [
-  "What are you down for?",
-  "Drinks tonight?",
-  "Coffee nearby?",
-  "Quick bite?",
-];
+const GLOW_SIZE = ONBOARDING_PULSE_SIZE * 0.72;
+const GLOW_INSET = (ONBOARDING_PULSE_SIZE - GLOW_SIZE) / 2;
 
 /**
- * Step 1 — Go live.
- * Original Synq pulse + mood + TAP TO ACTIVATE.
+ * Step 1 — Immersive Synq pulse.
  */
-export function GoLiveGraphic() {
+export function PulseHeroGraphic() {
   const reduced = useReducedMotion();
-  const cta = useSharedValue(0.7);
-  const [moodIndex, setMoodIndex] = useState(0);
-  const moodOpacity = useSharedValue(1);
+  const glow = useSharedValue(0.14);
+  const ring = useSharedValue(0.85);
 
   useEffect(() => {
     if (reduced) return;
-    cta.value = withRepeat(
+    glow.value = withRepeat(
       withSequence(
-        withTiming(1, { duration: 2200, easing: SIN }),
-        withTiming(0.55, { duration: 2200, easing: SIN })
+        withTiming(0.22, { duration: 2400, easing: SIN }),
+        withTiming(0.1, { duration: 2400, easing: SIN })
       ),
       -1,
       true
     );
-  }, [cta, reduced]);
+    ring.value = withRepeat(
+      withSequence(
+        withTiming(1.08, { duration: 2800, easing: SIN }),
+        withTiming(0.9, { duration: 2800, easing: SIN })
+      ),
+      -1,
+      true
+    );
+  }, [glow, reduced, ring]);
 
-  useEffect(() => {
-    if (reduced) return;
-    const advance = () => setMoodIndex((i) => (i + 1) % MOODS.length);
-    const id = setInterval(() => {
-      moodOpacity.value = withTiming(0, { duration: 420 }, (done) => {
-        if (done) {
-          runOnJS(advance)();
-          moodOpacity.value = withTiming(1, { duration: 480 });
-        }
-      });
-    }, 3200);
-    return () => clearInterval(id);
-  }, [moodOpacity, reduced]);
-
-  const ctaStyle = useAnimatedStyle(() => ({ opacity: cta.value }));
-  const moodStyle = useAnimatedStyle(() => ({ opacity: moodOpacity.value }));
+  const glowStyle = useAnimatedStyle(() => ({
+    opacity: glow.value,
+    transform: [{ scale: ring.value }],
+  }));
 
   return (
-    <View style={styles.goLive} accessibilityLabel="Tap to activate Synq">
-      <View style={styles.moodPill}>
-        <Animated.Text style={[styles.moodText, moodStyle]} numberOfLines={1}>
-          {MOODS[moodIndex]}
-        </Animated.Text>
-      </View>
-
+    <View
+      style={styles.pulseCluster}
+      pointerEvents="none"
+      accessibilityElementsHidden
+      importantForAccessibility="no-hide-descendants"
+    >
+      <Animated.View style={[styles.glow, glowStyle]} />
       <ExpoImage
         source={require("../../../assets/pulse.gif")}
         style={styles.pulse}
@@ -93,10 +86,6 @@ export function GoLiveGraphic() {
         cachePolicy="memory-disk"
         transition={0}
       />
-
-      <Animated.Text style={[styles.tapCta, ctaStyle]}>
-        TAP TO ACTIVATE
-      </Animated.Text>
     </View>
   );
 }
@@ -109,7 +98,7 @@ const FREE_FRIENDS = [
 
 /**
  * Step 2 — Who's free.
- * Friends appear one by one as they Synq. Clear cause → effect.
+ * Friends appear one by one as they Synq.
  */
 export function WhosFreeGraphic() {
   const reduced = useReducedMotion();
@@ -133,15 +122,7 @@ export function WhosFreeGraphic() {
   }, [progress, reduced]);
 
   return (
-    <View style={styles.freeStage} accessibilityLabel="Friends becoming free">
-      <View style={styles.youRow}>
-        <View style={styles.youAvatar}>
-          <Text style={styles.youLetter}>Y</Text>
-        </View>
-        <Text style={styles.youLabel}>You · Synq is active</Text>
-        <View style={styles.youDot} />
-      </View>
-
+    <View style={styles.panel} accessibilityLabel="Friends becoming free">
       <View style={styles.freeList}>
         {FREE_FRIENDS.map((friend, index) => (
           <FreeFriendCard
@@ -216,144 +197,172 @@ function FreeFriendCard({
 }
 
 /**
- * Step 3 — Jump in.
- * Chat bubbles only — plan forms from the conversation.
+ * Step 3 — Connect.
+ * A short chat with a friend, including typing.
  */
 export function JumpInGraphic() {
   const reduced = useReducedMotion();
   const scene = useSharedValue(reduced ? 1 : 0);
+  const typing = useSharedValue(reduced ? 0 : 0);
 
   useEffect(() => {
     if (reduced) {
       scene.value = 1;
+      typing.value = 0;
       return;
     }
     scene.value = withRepeat(
       withSequence(
-        withTiming(1, { duration: 2600, easing: EASE_OUT }),
-        withTiming(1, { duration: 1600 }),
+        withTiming(1, { duration: 4200, easing: EASE_OUT }),
+        withTiming(1, { duration: 1400 }),
         withTiming(0, { duration: 0 }),
         withTiming(0, { duration: 500 })
       ),
       -1,
       false
     );
-  }, [reduced, scene]);
+    typing.value = withRepeat(
+      withSequence(
+        withTiming(1, { duration: 420, easing: SIN }),
+        withTiming(0.35, { duration: 420, easing: SIN })
+      ),
+      -1,
+      true
+    );
+  }, [reduced, scene, typing]);
 
-  const bubbleStyle = useAnimatedStyle(() => {
+  const headerStyle = useAnimatedStyle(() => {
     const t = reduced
       ? 1
-      : interpolate(scene.value, [0.08, 0.4], [0, 1], "clamp");
+      : interpolate(scene.value, [0, 0.12], [0, 1], "clamp");
+    return { opacity: t };
+  });
+
+  const m1 = useAnimatedStyle(() => {
+    const t = reduced
+      ? 1
+      : interpolate(scene.value, [0.1, 0.28], [0, 1], "clamp");
     return {
       opacity: t,
-      transform: [{ translateY: (1 - t) * 14 }, { scale: 0.94 + t * 0.06 }],
+      transform: [{ translateY: (1 - t) * 12 }, { scale: 0.96 + t * 0.04 }],
     };
   });
 
-  const replyStyle = useAnimatedStyle(() => {
+  const m2 = useAnimatedStyle(() => {
     const t = reduced
       ? 1
-      : interpolate(scene.value, [0.38, 0.7], [0, 1], "clamp");
+      : interpolate(scene.value, [0.28, 0.44], [0, 1], "clamp");
     return {
       opacity: t,
-      transform: [{ translateY: (1 - t) * 12 }, { scale: 0.94 + t * 0.06 }],
+      transform: [{ translateY: (1 - t) * 12 }, { scale: 0.96 + t * 0.04 }],
+    };
+  });
+
+  const typingWrap = useAnimatedStyle(() => {
+    const show = reduced
+      ? 0
+      : interpolate(scene.value, [0.46, 0.54, 0.68, 0.74], [0, 1, 1, 0], "clamp");
+    return {
+      opacity: show,
+      transform: [{ translateY: (1 - show) * 8 }],
+    };
+  });
+
+  const dot1 = useAnimatedStyle(() => ({
+    opacity: reduced ? 0.45 : 0.35 + typing.value * 0.65,
+    transform: [{ translateY: reduced ? 0 : -typing.value * 2.5 }],
+  }));
+  const dot2 = useAnimatedStyle(() => ({
+    opacity: reduced ? 0.55 : 0.45 + (1 - typing.value) * 0.4,
+    transform: [{ translateY: reduced ? 0 : -(1 - typing.value) * 2 }],
+  }));
+  const dot3 = useAnimatedStyle(() => ({
+    opacity: reduced ? 0.45 : 0.35 + (1 - typing.value) * 0.65,
+    transform: [{ translateY: reduced ? 0 : -(1 - typing.value) * 2.5 }],
+  }));
+
+  const m3 = useAnimatedStyle(() => {
+    const t = reduced
+      ? 1
+      : interpolate(scene.value, [0.72, 0.88], [0, 1], "clamp");
+    return {
+      opacity: t,
+      transform: [{ translateY: (1 - t) * 12 }, { scale: 0.96 + t * 0.04 }],
     };
   });
 
   return (
-    <View style={styles.jumpStage} accessibilityLabel="Message a free friend">
-      <Animated.View style={[styles.bubbleOut, bubbleStyle]}>
-        <Text style={styles.bubbleText}>Want to grab coffee?</Text>
-      </Animated.View>
+    <View style={styles.panel} accessibilityLabel="Chat with a friend">
+      <View style={styles.jumpStage}>
+        <Animated.View style={[styles.chatHeader, headerStyle]}>
+          <View style={styles.chatAvatar}>
+            <Text style={styles.chatAvatarLetter}>M</Text>
+          </View>
+          <View style={styles.chatHeaderCopy}>
+            <Text style={styles.chatName}>Maya</Text>
+            <Text style={styles.chatStatus}>Active now</Text>
+          </View>
+        </Animated.View>
 
-      <Animated.View style={[styles.bubbleIn, replyStyle]}>
-        <Text style={styles.bubbleTextDark}>Let&apos;s do it!</Text>
-      </Animated.View>
+        <Animated.View style={[styles.bubbleOut, m1]}>
+          <Text style={styles.bubbleText}>Want to grab coffee?</Text>
+        </Animated.View>
+
+        <Animated.View style={[styles.bubbleIn, m2]}>
+          <Text style={styles.bubbleTextDark}>Yeah, I&apos;m down</Text>
+        </Animated.View>
+
+        <Animated.View style={[styles.typingBubble, typingWrap]}>
+          <Animated.View style={[styles.typingDot, dot1]} />
+          <Animated.View style={[styles.typingDot, dot2]} />
+          <Animated.View style={[styles.typingDot, dot3]} />
+        </Animated.View>
+
+        <Animated.View style={[styles.bubbleOut, m3]}>
+          <Text style={styles.bubbleText}>Meet at the usual spot?</Text>
+        </Animated.View>
+      </View>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  goLive: {
-    width: "100%",
-    maxWidth: 320,
+  pulseCluster: {
+    width: ONBOARDING_PULSE_SIZE,
+    height: ONBOARDING_PULSE_SIZE,
     alignItems: "center",
-  },
-  moodPill: {
-    width: "100%",
-    minHeight: 44,
     justifyContent: "center",
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: MUTED3,
-    backgroundColor: SURFACE_FAINT,
-    borderRadius: RADIUS_MD,
-    paddingHorizontal: 16,
-    marginBottom: 18,
   },
-  moodText: {
-    color: MUTED3,
-    fontSize: TYPE_BUTTON,
-    fontFamily: fonts.book,
+  glow: {
+    position: "absolute",
+    top: GLOW_INSET,
+    left: GLOW_INSET,
+    width: GLOW_SIZE,
+    height: GLOW_SIZE,
+    borderRadius: GLOW_SIZE / 2,
+    backgroundColor: ACCENT,
   },
   pulse: {
-    width: 220,
-    height: 220,
+    width: ONBOARDING_PULSE_SIZE,
+    height: ONBOARDING_PULSE_SIZE,
   },
-  tapCta: {
-    marginTop: 4,
-    color: MUTED2,
-    fontSize: TYPE_CAPTION,
-    fontFamily: fonts.medium,
-    letterSpacing: 1.3,
-  },
-  freeStage: {
-    width: "100%",
-    maxWidth: 320,
-  },
-  youRow: {
-    flexDirection: "row",
+  panel: {
+    width: ONBOARDING_HERO_WIDTH,
     alignItems: "center",
-    gap: 10,
-    marginBottom: 18,
-    paddingHorizontal: 4,
-  },
-  youAvatar: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: ACCENT,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  youLetter: {
-    color: ON_ACCENT_TEXT,
-    fontFamily: fonts.heavy,
-    fontSize: 14,
-  },
-  youLabel: {
-    flex: 1,
-    color: TEXT,
-    fontFamily: fonts.medium,
-    fontSize: TYPE_CAPTION,
-  },
-  youDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    backgroundColor: ACCENT,
   },
   freeList: {
     gap: 12,
+    alignSelf: "stretch",
   },
   freeCard: {
     flexDirection: "row",
     alignItems: "center",
-    paddingVertical: 12,
+    paddingVertical: 14,
     paddingHorizontal: 14,
-    borderRadius: RADIUS_MD,
-    borderWidth: 1,
-    borderColor: "rgba(0,255,133,0.28)",
+    borderRadius: 18,
     backgroundColor: ACCENT_FILL_WHISPER,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: "rgba(0,255,133,0.22)",
   },
   freeAvatarWrap: {
     width: 48,
@@ -390,7 +399,7 @@ const styles = StyleSheet.create({
   freeName: {
     color: TEXT,
     fontFamily: fonts.heavy,
-    fontSize: 16,
+    fontSize: TYPE_BODY,
   },
   freeMemo: {
     marginTop: 2,
@@ -400,33 +409,83 @@ const styles = StyleSheet.create({
   },
   jumpStage: {
     width: "100%",
-    maxWidth: 320,
+    paddingTop: 8,
+    gap: 10,
+  },
+  chatHeader: {
+    flexDirection: "row",
     alignItems: "center",
-    paddingTop: 12,
+    gap: 12,
+    alignSelf: "stretch",
+    marginBottom: 8,
+    paddingHorizontal: 2,
+  },
+  chatAvatar: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: ACCENT,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  chatAvatarLetter: {
+    color: ON_ACCENT_TEXT,
+    fontFamily: fonts.heavy,
+    fontSize: 15,
+  },
+  chatHeaderCopy: {
+    flex: 1,
+    minWidth: 0,
+  },
+  chatName: {
+    color: TEXT,
+    fontFamily: fonts.heavy,
+    fontSize: TYPE_BODY,
+  },
+  chatStatus: {
+    marginTop: 1,
+    color: ACCENT,
+    fontFamily: fonts.book,
+    fontSize: TYPE_FINE,
   },
   bubbleOut: {
     alignSelf: "flex-start",
-    marginLeft: 8,
-    maxWidth: "86%",
+    maxWidth: "88%",
     backgroundColor: SURFACE_FAINT,
     borderWidth: StyleSheet.hairlineWidth,
     borderColor: MUTED3,
-    borderRadius: 18,
+    borderRadius: 22,
     borderBottomLeftRadius: 6,
-    paddingHorizontal: 14,
-    paddingVertical: 10,
-    marginBottom: 10,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
   },
   bubbleIn: {
     alignSelf: "flex-end",
-    marginRight: 8,
-    maxWidth: "86%",
+    maxWidth: "88%",
     backgroundColor: ACCENT,
-    borderRadius: 18,
+    borderRadius: 22,
     borderBottomRightRadius: 6,
-    paddingHorizontal: 14,
-    paddingVertical: 10,
-    marginBottom: 16,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+  },
+  typingBubble: {
+    alignSelf: "flex-start",
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 5,
+    backgroundColor: SURFACE_FAINT,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: MUTED3,
+    borderRadius: 22,
+    borderBottomLeftRadius: 6,
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+  },
+  typingDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: MUTED2,
   },
   bubbleText: {
     color: TEXT,

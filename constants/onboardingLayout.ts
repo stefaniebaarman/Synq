@@ -1,20 +1,31 @@
 import { Dimensions, StyleSheet } from "react-native";
 import {
   ACCENT,
+  ACCENT_BORDER,
+  ACCENT_FILL_SUBTLE,
+  BUTTON_RADIUS,
   DIVIDER,
   MUTED,
   TEXT,
   TYPE_BODY,
   TYPE_DISPLAY,
   fonts,
-  synqOutlineAddBtn,
-  synqOutlineAddBtnText,
 } from "./Variables";
 
-const { height: WINDOW_HEIGHT } = Dimensions.get("window");
+const { width: WINDOW_WIDTH, height: WINDOW_HEIGHT } = Dimensions.get("window");
 
 /** Carousel slide count (index / welcome / next). */
 export const ONBOARDING_CAROUSEL_STEPS = 3;
+
+/** Shared hero band for immersive carousel slides. */
+export const ONBOARDING_HERO_TOP = Math.round(WINDOW_HEIGHT * 0.2);
+/** Tighter top for taller hero content (friend list, chat). */
+export const ONBOARDING_HERO_TOP_COMPACT = Math.round(WINDOW_HEIGHT * 0.1);
+export const ONBOARDING_HERO_WIDTH = Math.min(
+  WINDOW_WIDTH - 44,
+  340
+);
+export const ONBOARDING_PULSE_SIZE = Math.min(WINDOW_WIDTH * 0.74, 290);
 
 /** Shared swipe thresholds for onboarding carousel screens. */
 export const ONBOARDING_SWIPE_DISTANCE = 60;
@@ -48,21 +59,30 @@ export const onboardingCarouselStyles = StyleSheet.create({
     maxWidth: 320,
   },
   bottom: {
-    paddingBottom: 26,
+    paddingBottom: 56,
     alignItems: "center",
   },
   nextBtn: {
-    ...synqOutlineAddBtn,
-    minWidth: 168,
-    paddingHorizontal: 40,
+    alignSelf: "center",
+    width: 200,
+    height: 52,
+    borderRadius: BUTTON_RADIUS,
+    borderWidth: 1,
+    borderColor: ACCENT_BORDER,
+    backgroundColor: ACCENT_FILL_SUBTLE,
+    alignItems: "center",
+    justifyContent: "center",
   },
   nextText: {
-    ...synqOutlineAddBtnText,
+    color: ACCENT,
+    fontFamily: fonts.medium,
+    fontSize: TYPE_BODY,
+    letterSpacing: 0.15,
   },
   dots: {
     flexDirection: "row",
     gap: 8,
-    marginTop: 26,
+    marginTop: 20,
     alignItems: "center",
     justifyContent: "center",
   },
