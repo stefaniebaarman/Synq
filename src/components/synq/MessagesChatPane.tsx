@@ -1,28 +1,34 @@
 import {
   ACCENT,
   BG,
-  BORDER_HAIRLINE,
-  BORDER_LIGHT,
   BG_TRANSPARENT,
+  BORDER_LIGHT,
   DESTRUCTIVE_IOS_FILL,
+  fonts,
+  heroTitleText,
   MUTED2,
   MUTED3,
   ON_ACCENT_TEXT,
   PROFILE_HEADER_TOP_OFFSET,
+  RADIUS_XL,
   SURFACE_ELEVATED,
   TEXT,
   TYPE_CAPTION,
   TYPE_FINE,
   TYPE_LEAD,
-  TYPE_MICRO,
-  TYPE_SECTION,
-  fonts,
-  heroTitleText,
-  RADIUS_XL,
+  TYPE_MICRO
 } from "@/constants/Variables";
 import CloseButton from "@/src/components/CloseButton";
 import CloseIcon from "@/src/components/CloseIcon";
 import { ListRowsSkeleton } from "@/src/components/loading/BrandSkeletons";
+import {
+  formatTime,
+  getOtherChatParticipants,
+  isAiSuggestionMessage,
+  isLegacyAiSuggestionText,
+  parseIdeaText,
+  resolveChatSenderAvatar
+} from "@/src/lib/helpers";
 import { Ionicons } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
 import { Image as ExpoImage } from "expo-image";
@@ -43,8 +49,8 @@ import {
   type NativeSyntheticEvent,
   Platform,
   Pressable,
-  ScrollView,
   StyleSheet as RNStyleSheet,
+  ScrollView,
   Text,
   TextInput,
   TouchableOpacity,
@@ -62,14 +68,6 @@ import Animated, {
   withTiming,
 } from "react-native-reanimated";
 import { initialWindowMetrics, useSafeAreaInsets } from "react-native-safe-area-context";
-import {
-  formatTime,
-  getOtherChatParticipants,
-  isAiSuggestionMessage,
-  isLegacyAiSuggestionText,
-  parseIdeaText,
-  resolveChatSenderAvatar
-} from "@/src/lib/helpers";
 import AISuggestionBubble from "./AISuggestionBubble";
 import { MESSAGES_STACK_DURATION_MS } from "./MessagesModalStack";
 
@@ -91,7 +89,6 @@ const CHAT_THREAD_REVEAL_MS = 160;
 /** Fade from black into the message list, starting just under the AI chip row. */
 const CHAT_HEADER_FADE_BELOW_AI = 44;
 const CHAT_HEADER_FADE_EXPANDED = 52;
-/** Avatar (44) + trailing gap (12) — aligns content with the title column. */
 const CHAT_HEADER_TITLE_INDENT = 56;
 const CHAT_MEMBER_TILE_WIDTH = 68;
 const THREAD_REVEAL_EASING = Easing.bezier(0.22, 1, 0.36, 1);
@@ -231,11 +228,9 @@ function ChatSwipeRevealRow({
 function participantFirstName(fullName: string) {
   return (fullName || "").trim().split(/\s+/)[0];
 }
-/** Space under the absolute header fade before the oldest messages (visual top). */
+
 const CHAT_LIST_HEADER_FADE_CLEARANCE = 10;
-/** Keep first paint small — uncapped initialNumToRender was forcing 50 rows on chat open. */
 const CHAT_LIST_INITIAL_RENDER_MIN = 10;
-/** Fade matches convo `BG` (#090A0B), not pure black. */
 const CHAT_HEADER_FADE_GRADIENT = [
   BG,
   "rgba(9,10,11,0.94)",
@@ -417,7 +412,7 @@ export default function MessagesChatPane({
   const swipeRevealX = useSharedValue(0);
   const swipeRevealStartX = useSharedValue(0);
   const threadVisibleRef = useRef(false);
-  /** Newest-first for inverted FlatList (latest stays at offset 0 — no open jump). */
+
   const listData = useMemo(
     () => (messages.length > 1 ? [...messages].reverse() : messages),
     [messages]
@@ -486,12 +481,6 @@ export default function MessagesChatPane({
     };
   });
 
-  /**
-   * Stick to keyboard via translateY only.
-   * paddingBottom stays fixed (safe area + gap) — animating it caused the remount jump.
-   * As the keyboard rises, reclaim the safe-area part of that padding so the field
-   * sits just above the keyboard.
-   */
   const composerDockAnimStyle = useAnimatedStyle(() => {
     const lift = keyboardHeight.value > -2 ? 0 : keyboardHeight.value;
     const absLift = -lift;
@@ -519,7 +508,6 @@ export default function MessagesChatPane({
       return;
     }
 
-    // Already anchoring this open — avoid resetting the settle window (double-fire flicker).
     if (pendingNormalScrollRef.current || layoutSettlingRef.current) {
       anchorBottomRef.current = true;
       return;
@@ -640,13 +628,12 @@ export default function MessagesChatPane({
       prevId === "__pending__" &&
       !!nextId &&
       nextId !== "__pending__";
-    // Pending cleared before the new chat lands in visibleChats — keep thread visible.
-    const pendingHandoffGap =
+
+      const pendingHandoffGap =
       chatChanged && prevId === "__pending__" && !nextId;
     const keepThreadThroughHandoff = pendingToReal || pendingHandoffGap;
 
     if (chatChanged) {
-      // First send creates the Firestore chat — keep the optimistic bubble visible.
       if (!keepThreadThroughHandoff) {
         hideThread();
         Keyboard.dismiss();
@@ -834,8 +821,7 @@ export default function MessagesChatPane({
   const handleChatScroll = useCallback(
     (event: NativeSyntheticEvent<NativeScrollEvent>) => {
       if (!listScrollableRef.current) return;
-      // Allow negative offsets (inverted list overscroll past latest) — clamping
-      // caused the shake when pulling past the bottom.
+
       const y = event.nativeEvent.contentOffset.y;
       scrollOffsetRef.current = y;
       syncAnchoredToLatest(y);
@@ -1087,8 +1073,6 @@ export default function MessagesChatPane({
               styles.msgContainer,
               {
                 alignItems: isMe ? "flex-end" : "flex-start",
-                // Same gap rules as text bubbles — prior message already owns
-                // the space above this card via its own marginBottom.
                 marginBottom: gapToNewer,
               },
             ]}
@@ -1441,8 +1425,6 @@ export default function MessagesChatPane({
             onContentSizeChange={(_width, height) => {
               contentHeightRef.current = height;
               syncListScrollable();
-              // Do not scroll here — keyboard spacer height changes every frame
-              // during interactive dismiss and would fight the gesture.
               anchorInitialScrollIfNeeded();
             }}
             scrollEventThrottle={16}
@@ -1505,7 +1487,6 @@ export default function MessagesChatPane({
               pointerEvents="none"
               style={chatEmptyOverlayStyles.host}
             >
-              {/* Outside inverted FlatList — avoids Android scaleY empty-state flip. */}
               {messagesReady ? (
                 <View style={styles.chatEmptyWrap}>
                   <View style={styles.chatEmptyIconWrap}>

@@ -1,3 +1,4 @@
+import AlertModal from "@/app/alert-modal";
 import type { Friend } from "@/constants/Variables";
 import {
   ACCENT,
@@ -11,23 +12,22 @@ import {
   synqOutlineAddBtn,
   synqOutlineAddBtnText,
 } from "@/constants/Variables";
-import AlertModal from "@/app/alert-modal";
 import SynqNudgeCard from "@/src/components/synq/SynqNudgeCard";
 import { fetchOrCreateInviteCode } from "@/src/lib/inviteCode";
 import { buildProfileShareWebUrl } from "@/src/lib/profileShareUrl";
 import { shareProfileLink } from "@/src/lib/shareProfileCard";
 import {
+  clearNudgeSent,
   nudgeCooldownRemainingMs,
   nudgeSentStorageKey,
   persistNudgeSent,
-  clearNudgeSent,
   readNudgeSentState,
   sendSynqNudge,
   synqNudgeErrorMessage,
   warmSynqNudgeClient,
 } from "@/src/lib/synqNudge";
 import { Ionicons } from "@expo/vector-icons";
-import React, { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
 
 const NUDGE_PAGE_SIZE = 3;
@@ -237,7 +237,7 @@ export default function ActiveSynqEmptyState({ viewerId, candidates }: Props) {
       <Text style={styles.subtitle}>
         {hasCandidates
           ? "Nudge your friends to see if they're free."
-          : "Check back soon — or share your profile to grow your circle."}
+          : "Check back soon or share your profile to grow your circle."}
       </Text>
 
       {hasCandidates ? (

@@ -7,32 +7,32 @@ import {
   BORDER_STRONG,
   BORDER_SUBTLE_HEX,
   DEFAULT_AVATAR,
+  fonts,
+  heroTitleText,
+  MODAL_RADIUS,
   MUTED2,
   PRIMARY_CTA_WIDTH,
-  TEXT,
-  TYPE_BODY,
-  TYPE_CAPTION,
-  heroTitleText,
-  fonts,
+  RADIUS_2XL,
+  RADIUS_SM,
   synqOutlineAddBtn,
   synqOutlineAddBtnCompact,
   synqOutlineAddBtnDisabled,
   synqOutlineAddBtnText,
   synqOutlineAddBtnTextCompact,
   synqOutlineAddBtnTextDisabled,
-  MODAL_RADIUS,
-  RADIUS_2XL,
-  RADIUS_SM,
+  TEXT,
+  TYPE_BODY,
+  TYPE_CAPTION,
 } from "@/constants/Variables";
 import CloseButton from "@/src/components/CloseButton";
 import SpringBottomSheet from "@/src/components/sheets/SpringBottomSheet";
+import { resolveAvatar } from "@/src/lib/helpers";
 import {
   planInviteErrorMessage,
   revokePlanInvite,
   revokePlanInviteErrorMessage,
   sendPlanInvites,
 } from "@/src/lib/planInvite";
-import { resolveAvatar } from "@/src/lib/helpers";
 import { Ionicons } from "@expo/vector-icons";
 import { Image as ExpoImage } from "expo-image";
 import { LinearGradient } from "expo-linear-gradient";
@@ -71,7 +71,6 @@ type Props = {
   onError?: (message: string) => void;
   /** When true, selection is stored locally until the plan is saved (create flow). */
   deferInviteSend?: boolean;
-  /** Use inside another modal — avoids a second RN Modal stacking behind the parent. */
   embedded?: boolean;
 };
 

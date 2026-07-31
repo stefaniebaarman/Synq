@@ -1,22 +1,21 @@
 import {
   ACCENT,
+  cardMetaText,
+  fonts,
+  listRowTitleText,
   MUTED,
-  MUTED2,
   MUTED3,
+  RADIUS_LG,
+  RADIUS_SM,
   SURFACE_SUBTLE,
+  synqOutlineAddBtnCompact,
+  synqOutlineAddBtnTextCompact,
   TEXT,
   TEXT_MUTED_DARK,
   TEXT_MUTED_DARKER,
   TYPE_BODY,
   TYPE_FINE,
-  TYPE_MICRO,
-  cardMetaText,
-  fonts,
-  listRowTitleText,
-  RADIUS_LG,
-  RADIUS_SM,
-  synqOutlineAddBtnCompact,
-  synqOutlineAddBtnTextCompact,
+  TYPE_MICRO
 } from "@/constants/Variables";
 import {
   GROUP_BORDER,
@@ -26,10 +25,10 @@ import PlanGoingPeopleSheet, {
   type PlanGoingPerson,
 } from "@/src/components/plans/PlanGoingPeopleSheet";
 import type { FriendOpenPlanEvent } from "@/src/lib/friendOpenPlanJoin";
+import { mergeEventsForGoingAttribution, planLooseMatch, resolvePlanAttribution } from "@/src/lib/planAttribution";
 import type { AggregatedFriendPlan } from "@/src/lib/useFriendPlansFeed";
-import { planLooseMatch, resolvePlanAttribution, mergeEventsForGoingAttribution } from "@/src/lib/planAttribution";
 import { useFocusEffect } from "@react-navigation/native";
-import React, { useCallback, useRef, useState } from "react";
+import { useCallback, useRef, useState } from "react";
 import {
   Pressable,
   StyleSheet,
@@ -115,7 +114,6 @@ export default function FriendPlanCard({
     )
   );
 
-  // Always prefer the viewer's calendar copy when present — don't gate on `joined`
   // (join keys can lag; stale friend-cache rows may still have the wrong planHostUid).
   const viewerRow = Array.isArray(viewerEvents)
     ? viewerEvents.find((row) => planLooseMatch(row, item.event))
@@ -264,7 +262,6 @@ export default function FriendPlanCard({
         people={peopleWithAvatars}
         viewerId={viewerId}
         onClose={() => {
-          // Manual dismiss (X / backdrop) — do not navigate or reopen.
           pendingProfileUidRef.current = null;
           reopenGoingOnFocusRef.current = false;
           setGoingSheetOpen(false);

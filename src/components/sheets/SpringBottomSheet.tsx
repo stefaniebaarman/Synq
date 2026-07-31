@@ -40,10 +40,6 @@ type Props = {
   header?: React.ReactNode;
   /** Enable grabber + drag-to-dismiss. Default true. */
   grabber?: boolean;
-  /**
-   * `modal` — RN Modal (default).
-   * `embedded` — absolute overlay for sheets already inside another modal.
-   */
   presentation?: "modal" | "embedded";
   /** Optional layer above the sheet (e.g. embedded ConfirmModal). */
   overlay?: React.ReactNode;
@@ -169,8 +165,7 @@ export default function SpringBottomSheet({
       if (height <= 0) return;
       const prev = sheetHeightSV.value;
       sheetHeightSV.value = height;
-      // Never write translateY while closing — that cancels withTiming and
-      // leaves the Modal mounted (frozen dim). Keyboard dismiss often relayouts.
+      
       if (closingRef.current) return;
       if (!visible) {
         translateY.value = height;

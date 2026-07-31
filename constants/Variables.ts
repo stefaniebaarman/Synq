@@ -622,7 +622,7 @@ export interface Friend {
     attendeeDisplayNames?: Record<string, string>;
   }[];
 }
-/** AI place suggestions in chat — shown when everyone in the chat has a location. */
+
 export const AI_PLACE_SUGGESTIONS_ENABLED = true;
 
 /** Native builds below this must update (also set Firestore appConfig/global via scripts/set-app-config.mjs). 1.0.9 = build 157. */

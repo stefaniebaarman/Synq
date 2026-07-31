@@ -19,6 +19,7 @@ import {
 } from "@/constants/Variables";
 import CloseButton from "@/src/components/CloseButton";
 import { SkeletonBlock } from "@/src/components/loading/BrandSkeletons";
+import { resolveAvatar } from "@/src/lib/helpers";
 import { fetchOrCreateInviteCode } from "@/src/lib/inviteCode";
 import {
   findFriendsFromContacts,
@@ -30,7 +31,6 @@ import {
 } from "@/src/lib/matchContacts";
 import { buildProfileShareWebUrl } from "@/src/lib/profileShareUrl";
 import { shareProfileLink } from "@/src/lib/shareProfileCard";
-import { resolveAvatar } from "@/src/lib/helpers";
 import { Ionicons } from "@expo/vector-icons";
 import { Image as ExpoImage } from "expo-image";
 import { useCallback, useEffect, useRef, useState } from "react";
@@ -111,7 +111,7 @@ export default function FindFromContactsModal({
       applyResult(result, { quiet: true });
       setError(null);
     } catch {
-      // Quiet refresh — leave cached list as-is.
+      // Quiet refresh, leave cached list as-is.
     }
   }, [applyResult]);
 

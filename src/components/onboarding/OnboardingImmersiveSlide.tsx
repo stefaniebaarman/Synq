@@ -59,7 +59,6 @@ type Props = {
   children: ReactNode;
 };
 
-/** Immersive onboarding chrome — full-bleed hero, bottom copy, text Next. */
 export default function OnboardingImmersiveSlide({
   step,
   totalSteps = ONBOARDING_CAROUSEL_STEPS,

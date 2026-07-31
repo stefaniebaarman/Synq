@@ -261,11 +261,11 @@ function FriendsEmptyMainContent({
         style={styles.emptyHeroBlock}
       >
         <Text style={styles.emptyHeroTitle}>
-          <Text style={styles.emptyHeroAccent}>Your friends.</Text>
-          {"\n"}Your plans.
+          <Text style={styles.emptyHeroAccent}>Your circle,</Text>
+          {"\n"}made simple
         </Text>
         <Text style={styles.emptyHeroSubtitle}>
-          {`Build your circle, then see who's free.`}
+          Add friends to see who&apos;s free.
         </Text>
       </Animated.View>
 
