@@ -1,3 +1,15 @@
+import {
+  activityNotificationId,
+  dismissActivityNotification,
+} from "@/src/lib/activityNotifications";
+import { requestDismissNavigationOverlays } from "@/src/lib/navigationOverlayEvents";
+import { setPendingChatOpen } from "@/src/lib/pendingChatOpen";
+import {
+  parseProfileShareCodeFromUrl,
+  resolveProfileShareCodeToFriendId,
+} from "@/src/lib/profileShareUrl";
+import { parsePushNotificationTap } from "@/src/lib/pushNotificationTapCore";
+import { SYNQ_ACTIVE_FRIENDS_REFRESH } from "@/src/lib/synqTabEvents";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Asset } from "expo-asset";
 import Constants from "expo-constants";
@@ -13,20 +25,8 @@ import {
 import * as SplashScreen from "expo-splash-screen";
 import { onAuthStateChanged, signOut, updateProfile, User } from "firebase/auth";
 import { doc, getDoc, updateDoc } from "firebase/firestore";
-import {
-  activityNotificationId,
-  dismissActivityNotification,
-} from "@/src/lib/activityNotifications";
-import { requestDismissNavigationOverlays } from "@/src/lib/navigationOverlayEvents";
-import { setPendingChatOpen } from "@/src/lib/pendingChatOpen";
-import { parsePushNotificationTap } from "@/src/lib/pushNotificationTapCore";
-import { SYNQ_ACTIVE_FRIENDS_REFRESH } from "@/src/lib/synqTabEvents";
-import {
-  parseProfileShareCodeFromUrl,
-  resolveProfileShareCodeToFriendId,
-} from "@/src/lib/profileShareUrl";
 import { getFunctions, httpsCallable } from "firebase/functions";
-import React, {
+import {
   createContext,
   useCallback,
   useContext,
@@ -47,8 +47,9 @@ import { KeyboardProvider } from "react-native-keyboard-controller";
 import { ErrorBoundary } from "../components/ErrorBoundary";
 import LocationUpdateModal from "../components/LocationUpdateModal";
 import RequiredUpdateBlocker from "../components/RequiredUpdateBlocker";
-import AlertModal from "./alert-modal";
 import { ACCENT, BG } from "../constants/Variables";
+import { initAnalytics } from "../src/lib/analytics";
+import { checkAppUpdateRequired } from "../src/lib/appUpdateGate";
 import { BlockedUsersProvider } from "../src/lib/blockedUsers";
 import {
   getPreAuthTermsAccepted,
@@ -56,14 +57,12 @@ import {
   userHasAcceptedCommunityTerms,
 } from "../src/lib/communityTerms";
 import { auth, db } from "../src/lib/firebase";
-import { checkAppUpdateRequired } from "../src/lib/appUpdateGate";
 import { LOCATION_PROMPT_CHECK_REQUEST } from "../src/lib/locationPromptEvents";
 import {
   hydrateOwnProfileFromDisk,
   prewarmMeTabScreen,
 } from "../src/lib/ownProfileCache";
 import { initSentry } from "../src/lib/sentryInit";
-import { initAnalytics } from "../src/lib/analytics";
 import {
   hydrateSocialCachesFromDisk,
   warmSocialCachesInBackground,
@@ -83,6 +82,7 @@ import {
   userHasDisplayName,
   userHasLocation,
 } from "../src/lib/userProfile";
+import AlertModal from "./alert-modal";
 
 initSentry();
 void initAnalytics();
@@ -1072,8 +1072,6 @@ export default function RootLayout() {
     segments[0] === "add-interests";
   const hideBootSplashDuringSignup =
     appReady && !!user && onSignupFlowScreen;
-  // Keep splash while gates are unresolved or a completed user is mid-redirect
-  // off the default (auth) stack — including past the 6s force-dismiss.
   const keepBootSplashForAuth =
     holdSplashForPendingTabsRedirect || (!!user && !authGateReady);
   const shouldDismissBootSplash =
@@ -1130,8 +1128,6 @@ export default function RootLayout() {
           >
             <BlockedUsersProvider>
             <View style={styles.root}>
-              {/* Always mount the navigator on first render — gating on navReady
-                  causes "navigate before mounting the Root Layout" on deep links. */}
               <Stack screenOptions={{ headerShown: false }}>
                 <Stack.Screen name="(auth)" />
                 <Stack.Screen name="(tabs)" />

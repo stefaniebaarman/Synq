@@ -3,7 +3,7 @@ import type { TextStyle, ViewStyle } from "react-native";
 export {
   SYNQ_OPEN_WEB_BASE,
   SYNQ_SHARE_HOST,
-  SYNQ_SHARE_WEB_BASE,
+  SYNQ_SHARE_WEB_BASE
 } from "@/src/lib/config";
 
 export const ACCENT = "#00FF85";
@@ -28,10 +28,7 @@ export const synqSvg = `
 `;
 
 export const BG = "#090A0B";
-/**
- * Canonical solid surface scale — prefer for new UI.
- * Translucent overlays (SURFACE_FAINT / SUBTLE / MUTED / SOFT) stay separate.
- */
+
 export const SURFACES = {
   page: BG,
   card: "#0E1012",

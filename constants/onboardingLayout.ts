@@ -94,7 +94,6 @@ export const onboardingCarouselStyles = StyleSheet.create({
 /** Top offset for absolute back controls (chevron). */
 export const ONBOARDING_BACK_TOP = 56;
 
-/** Left inset for back controls — lines up with form content. */
 export const ONBOARDING_BACK_LEFT = ONBOARDING_H_PADDING;
 
 /** Scroll bottom padding for keyboard clearance. */

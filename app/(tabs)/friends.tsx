@@ -10,12 +10,15 @@ import {
   FRIENDS_BORDER,
   FRIENDS_SEARCH_BORDER,
   Friend,
+  MODAL_RADIUS,
   MUTED,
   MUTED2,
   MUTED3,
   OVERLAY_HEAVY,
   OVERLAY_PANEL,
+  RADIUS_2XL,
   RADIUS_MD,
+  RADIUS_XL,
   SHADOW,
   SPACE_3,
   SPACE_4,
@@ -47,12 +50,11 @@ import {
   synqOutlineAddBtnTextCompact,
   synqOutlineAddBtnTextDisabled,
   tabScreenMainHeaderTitle,
-  MODAL_RADIUS,
-  RADIUS_2XL,
-  RADIUS_XL,
 } from "@/constants/Variables";
+import CheckmarkToast from "@/src/components/CheckmarkToast";
 import CloseButton from "@/src/components/CloseButton";
 import CloseIcon from "@/src/components/CloseIcon";
+import FindFromContactsModal from "@/src/components/friends/FindFromContactsModal";
 import FriendsGroupsHeaderTitle, {
   type FriendsTabMode,
 } from "@/src/components/friends/FriendsGroupsSegment";
@@ -64,8 +66,8 @@ import {
   type FriendsSortMode,
 } from "@/src/components/friends/FriendsSortControls";
 import GroupsListPane from "@/src/components/friends/GroupsListPane";
-import FindFromContactsModal from "@/src/components/friends/FindFromContactsModal";
 import ProfileQrScannerModal from "@/src/components/friends/ProfileQrScannerModal";
+import { ListRowsSkeleton } from "@/src/components/loading/BrandSkeletons";
 import ProfileTabHeaderOverlay, {
   useTabHeaderLayout,
 } from "@/src/components/ProfileTabHeaderOverlay";
@@ -75,6 +77,9 @@ import { useBlockedUsers } from "@/src/lib/blockedUsers";
 import { ignoreSnapshotPermissionDenied } from "@/src/lib/firestoreListeners";
 import { createFriendGroup } from "@/src/lib/friendGroups";
 import { friendLocationLine, resolveAvatar } from "@/src/lib/helpers";
+import { fetchOrCreateInviteCode } from "@/src/lib/inviteCode";
+import { buildProfileShareWebUrl } from "@/src/lib/profileShareUrl";
+import { shareProfileLink } from "@/src/lib/shareProfileCard";
 import { useFriendPlansFeed } from "@/src/lib/useFriendPlansFeed";
 import {
   fetchSuggestedFriends,
@@ -158,8 +163,6 @@ import {
 } from "../../src/lib/socialCache";
 import { useAuthRefresh } from "../_layout";
 import AlertModal from "../alert-modal";
-import CheckmarkToast from "@/src/components/CheckmarkToast";
-import { ListRowsSkeleton } from "@/src/components/loading/BrandSkeletons";
 import ConfirmModal from "../confirm-modal";
 
 const { width } = Dimensions.get("window");
@@ -263,7 +266,7 @@ function FriendsEmptyMainContent({
           {"\n"}Your plans.
         </Text>
         <Text style={styles.emptyHeroSubtitle}>
-          {`Build your circle — then see who's free.`}
+          {`Build your circle, then see who's free.`}
         </Text>
       </Animated.View>
 
@@ -1030,8 +1033,7 @@ function SearchModal({
       if (h <= 0) return;
       const prev = sheetHeightRef.current;
       sheetHeightRef.current = h;
-      // Never write translateY while closing — that cancels withTiming and
-      // leaves the Modal mounted (frozen dim). Keyboard dismiss often relayouts.
+
       if (closingRef.current) return;
       if (!visible) {
         translateY.value = h;
@@ -1102,6 +1104,7 @@ function SearchModal({
   const [pendingCancelTarget, setPendingCancelTarget] = useState<any | null>(null);
   const [qrScannerVisible, setQrScannerVisible] = useState(false);
   const [contactsFinderVisible, setContactsFinderVisible] = useState(false);
+  const [sharingProfile, setSharingProfile] = useState(false);
   const [mutualCountsByUserId, setMutualCountsByUserId] = useState<
     Record<string, number>
   >({});
@@ -1136,6 +1139,7 @@ function SearchModal({
       setMutualCountsByUserId({});
       setQrScannerVisible(false);
       setContactsFinderVisible(false);
+      setSharingProfile(false);
       return;
     }
     searchRequestIdRef.current += 1;
@@ -1796,6 +1800,34 @@ function SearchModal({
     setAlertVisible(true);
   };
 
+  const handleShareProfile = useCallback(async () => {
+    if (sharingProfile) return;
+    setSharingProfile(true);
+    void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    try {
+      const code = await fetchOrCreateInviteCode();
+      const shareUrl = buildProfileShareWebUrl(code);
+      if (!shareUrl) {
+        setAlertConfig({
+          title: "Share unavailable",
+          message:
+            "We couldn't generate your profile link yet. Please try again in a moment.",
+        });
+        setAlertVisible(true);
+        return;
+      }
+      await shareProfileLink(shareUrl);
+    } catch {
+      setAlertConfig({
+        title: "Share unavailable",
+        message: "Please try again in a moment.",
+      });
+      setAlertVisible(true);
+    } finally {
+      setSharingProfile(false);
+    }
+  }, [sharingProfile]);
+
   const renderAddActionButton = (
     item: any,
     label: string,
@@ -1994,7 +2026,12 @@ function SearchModal({
         </TouchableOpacity>
 
         {!queryText ? (
-          <View style={styles.addFriendsListWrap}>
+          <View
+            style={[
+              styles.addFriendsListWrap,
+              addFriendsListEmpty && styles.addFriendsListWrapEmpty,
+            ]}
+          >
             {addFriendsListEmpty ? (
               <View style={styles.addFriendsEmpty}>
                 <View style={styles.addFriendsEmptyIcon}>
@@ -2002,8 +2039,21 @@ function SearchModal({
                 </View>
                 <Text style={styles.addFriendsEmptyTitle}>Find your people</Text>
                 <Text style={styles.addFriendsEmptyText}>
-                  Search by name or check back soon for suggestions based on your network.
+                  Share your profile so friends can find you, or search by name above.
                 </Text>
+                <TouchableOpacity
+                  style={[synqOutlineAddBtn, styles.addFriendsShareCta]}
+                  onPress={() => void handleShareProfile()}
+                  disabled={sharingProfile}
+                  activeOpacity={0.85}
+                  accessibilityRole="button"
+                  accessibilityLabel="Share profile"
+                >
+                  <Ionicons name="share-social-outline" size={20} color={ACCENT} />
+                  <Text style={synqOutlineAddBtnText}>
+                    {sharingProfile ? "Preparing…" : "Share profile"}
+                  </Text>
+                </TouchableOpacity>
               </View>
             ) : (
               <SectionList
@@ -2508,9 +2558,16 @@ const styles = StyleSheet.create({
   addFriendsCloseBtn: {
     marginTop: -3,
   },
-  addFriendsListWrap: { flex: 1 },
+  addFriendsListWrap: { flex: 1, minHeight: 0 },
+  addFriendsListWrapEmpty: {
+    justifyContent: "flex-start",
+    paddingTop: SPACE_5,
+  },
   addFriendsListContent: {},
-  addFriendsListContentEmpty: { flexGrow: 1 },
+  addFriendsListContentEmpty: {
+    flexGrow: 1,
+    justifyContent: "center",
+  },
   addFriendsSectionLabel: {
     flex: 1,
     color: MUTED2,
@@ -2573,11 +2630,10 @@ const styles = StyleSheet.create({
     letterSpacing: 0.15,
   },
   addFriendsEmpty: {
-    flex: 1,
     alignItems: "center",
     justifyContent: "center",
     paddingHorizontal: SPACE_5,
-    paddingBottom: 48,
+    width: "100%",
   },
   addFriendsEmptyIcon: {
     width: 56,
@@ -2605,5 +2661,10 @@ const styles = StyleSheet.create({
     textAlign: "center",
     marginTop: SPACE_3,
     maxWidth: 300,
+  },
+  addFriendsShareCta: {
+    flexDirection: "row",
+    gap: 8,
+    marginTop: SPACE_5,
   },
 });

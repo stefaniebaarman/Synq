@@ -1,4 +1,7 @@
 import { SynqBootSkeleton } from '@/src/components/loading/BrandSkeletons';
+import PlanGoingPeopleSheet, {
+  type PlanGoingPerson,
+} from '@/src/components/plans/PlanGoingPeopleSheet';
 import ProfileTabHeaderOverlay from '@/src/components/ProfileTabHeaderOverlay';
 import { useChatMessages } from '@/src/hooks/useChatMessages';
 import { useSendMessage } from '@/src/hooks/useSendMessage';
@@ -7,7 +10,7 @@ import { trackEvent } from '@/src/lib/analytics';
 import { useBlockedUsers } from '@/src/lib/blockedUsers';
 import { mergeMessages, pendingMatchesServer, type ChatMessage } from '@/src/lib/chatMessages';
 import { deleteChat } from '@/src/lib/chats';
-import { filterOrReject, containsObjectionableContent } from '@/src/lib/contentFilter';
+import { containsObjectionableContent, filterOrReject } from '@/src/lib/contentFilter';
 import { ignoreSnapshotPermissionDenied } from '@/src/lib/firestoreListeners';
 import { subscribeFriendGroups, type FriendGroup } from '@/src/lib/friendGroups';
 import {
@@ -34,7 +37,6 @@ import {
   SYNQ_FRIEND_POLL_TTL_MS,
 } from '@/src/lib/socialCache';
 import { useSynqBoot } from '@/src/lib/synqBootContext';
-import { SYNQ_ACTIVE_FRIENDS_REFRESH } from '@/src/lib/synqTabEvents';
 import {
   buildSynqBroadcastFirestorePayload,
   filterActiveFriendsForInbound,
@@ -45,6 +47,7 @@ import {
   selectionFromUserBroadcastFields,
   type SynqAudienceSelection,
 } from '@/src/lib/synqBroadcast';
+import { SYNQ_ACTIVE_FRIENDS_REFRESH } from '@/src/lib/synqTabEvents';
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect, useIsFocused } from '@react-navigation/native';
 import * as Haptics from 'expo-haptics';
@@ -78,7 +81,6 @@ import {
   Modal,
   PixelRatio,
   Platform,
-  Pressable,
   StatusBar,
   StyleSheet,
   Text,
@@ -107,7 +109,6 @@ import {
   aiPrompts,
   BG,
   BORDER,
-  BORDER_LIGHT,
   BORDER_MUTED,
   BORDER_PANEL,
   BORDER_SOFT,
@@ -174,9 +175,6 @@ import ActiveSynqSection from '../../src/components/synq/ActiveSynqSection';
 import MessagesChatPane from '../../src/components/synq/MessagesChatPane';
 import MessagesInboxPane from '../../src/components/synq/MessagesInboxPane';
 import MessagesModalStack from '../../src/components/synq/MessagesModalStack';
-import PlanGoingPeopleSheet, {
-  type PlanGoingPerson,
-} from '@/src/components/plans/PlanGoingPeopleSheet';
 import {
   buildLocationPrompt,
   formatUserLocationLabel,
@@ -186,8 +184,8 @@ import {
 import {
   allParticipantsHaveCachedCitySuggestions,
   getCachedCitySuggestions,
-  suggestionBatchKey,
   hasCachedCitySuggestions,
+  suggestionBatchKey,
 } from "../../src/lib/citySuggestions";
 import { auth, db } from '../../src/lib/firebase';
 import { CHATS_LISTENER_LIMIT } from "../../src/lib/listenerLimits";
@@ -230,7 +228,6 @@ const IMESSAGE_REF_SCREEN_WIDTH = 375;
 const IMESSAGE_BUBBLE_MAX_WIDTH_PT = 252;
 const IMESSAGE_BUBBLE_FONT_SIZE = 17;
 const IMESSAGE_BUBBLE_LINE_HEIGHT = 22;
-/** MessageKit / Messages.app text insets — UIEdgeInsets(top: 7, left: 14, bottom: 7, right: 14). */
 const IMESSAGE_BUBBLE_PADDING_V = 7;
 const IMESSAGE_BUBBLE_PADDING_H = 14;
 const IMESSAGE_BUBBLE_CORNER_RADIUS = 18;
@@ -271,7 +268,6 @@ function ChatMessageBubble({
   const padH = Math.round(IMESSAGE_BUBBLE_PADDING_H * fontScale);
   const minHeight = padV * 2 + lineHeight;
   const innerMax = Math.max(1, bubbleCap - padH * 2);
-  // RN multi-line Text lays out at maxWidth even when lines are shorter — measure longest line.
   const [textWidth, setTextWidth] = useState<number | null>(null);
 
   useEffect(() => {
@@ -1117,7 +1113,6 @@ export default function SynqScreen() {
         return;
       }
 
-      // available + unresolved synqStartedAt: wait — do not tear down the session
       if (isSynqAvailablePendingStart(data)) {
         setAudienceSelection(selectionFromUserBroadcastFields(data));
         setSynq((s) => {
@@ -1452,7 +1447,6 @@ export default function SynqScreen() {
     };
   }, [status, user?.uid, resolvedFriendIds]);
 
-  // Live status for friends currently on the active list — drop them the moment they end Synq.
   const availableFriendIdsKey = useMemo(
     () =>
       availableFriends
@@ -2518,11 +2512,8 @@ export default function SynqScreen() {
           }}
           onDismiss={closeMessagesModal}
         >
-          {/* Nested provider: RN Modal is a separate window; root keyboard tracking desyncs after leave/return. */}
           <KeyboardProvider preload={false}>
           <View style={styles.messagesModalRoot}>
-          {/* No bottom safe-area here — it flickers 0↔inset on Modal remount and jumps the composer.
-              Chat/inbox apply a stable bottom inset themselves. */}
           <View style={styles.modalBg}>
           <MessagesModalStack
             visible={messagesModalVisible}

@@ -11,7 +11,6 @@ import {
   fonts,
   primaryButtonText,
 } from "@/constants/Variables";
-import React from "react";
 import {
   Modal,
   StyleSheet,
@@ -30,10 +29,6 @@ type Props = {
   onCancel: () => void;
   destructive?: boolean;
   confirmDisabled?: boolean;
-  /**
-   * Render inside an existing Modal (e.g. SpringBottomSheet) instead of
-   * stacking a second RN Modal — which often fails to present on device.
-   */
   embedded?: boolean;
 };
 

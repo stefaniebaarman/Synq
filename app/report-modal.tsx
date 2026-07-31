@@ -6,14 +6,14 @@ import {
   BORDER,
   BUTTON_RADIUS,
   DESTRUCTIVE,
+  fonts,
   MUTED,
   MUTED3,
+  primaryButtonText,
+  RADIUS_SM,
   TEXT,
   TYPE_BUTTON,
   TYPE_CAPTION,
-  fonts,
-  primaryButtonText,
-  RADIUS_SM,
 } from "@/constants/Variables";
 import { ReportReason, submitReport, type ReportContentType } from "@/src/lib/moderation";
 import { useEffect, useRef, useState } from "react";
@@ -139,7 +139,6 @@ export default function ReportModal({
   };
 
   const keyboardOpen = keyboardInset > 0;
-  // iOS modals don't resize for the keyboard; Android often does — don't double-lift.
   const sheetLift = Platform.OS === "ios" ? keyboardInset : 0;
   const paddingBottom = keyboardOpen ? 12 : Math.max(24, insets.bottom);
   const sheetHeight = Math.min(

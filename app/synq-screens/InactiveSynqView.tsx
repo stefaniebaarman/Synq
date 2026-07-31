@@ -30,7 +30,7 @@ import { formatAudienceSelectionLabel, type SynqAudienceSelection } from "@/src/
 import { Ionicons } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
 import { Image as ExpoImage } from "expo-image";
-import React, { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import {
   Platform,
   Pressable,
@@ -88,8 +88,6 @@ const MOOD_HINTS = [
 ];
 const MOOD_HINT_INTERVAL_MS = 9000;
 
-// ——— Mood hints ———
-
 function SlowMoodPlaceholder({ active }: { active: boolean }) {
   const reduced = useReducedMotion();
   const [index, setIndex] = useState(0);
@@ -128,8 +126,6 @@ function SlowMoodPlaceholder({ active }: { active: boolean }) {
     </Animated.Text>
   );
 }
-
-// ——— Orb effects ———
 
 function IdleSonarRing({ index, disabled }: { index: number; disabled: boolean }) {
   const scale = useSharedValue(0.84);
@@ -262,8 +258,6 @@ function ActivationOrb({
     </AnimatedPressable>
   );
 }
-
-// ——— Screen ———
 
 export default function InactiveSynqView({
   memo,

@@ -9,6 +9,7 @@ import {
   DESTRUCTIVE,
   DESTRUCTIVE_BORDER_STRONG,
   DESTRUCTIVE_FILL_SUBTLE,
+  fonts,
   Friend,
   MODAL_RADIUS,
   MUTED,
@@ -17,33 +18,30 @@ import {
   ON_ACCENT_TEXT,
   OVERLAY_FULL,
   OVERLAY_SCRIM,
-  SPACE_6,
-  SURFACE,
-  SURFACE_INPUT,
-  SURFACE_RAISED,
-  SURFACE_SUBTLE,
-  TAB_BAR_SCROLL_INSET,
-  TEXT,
-  TYPE_BUTTON,
-  TYPE_CAPTION,
-  BUTTON_RADIUS,
-  fonts,
   profileInterestPillText,
   profileInterestPillTextActive,
   profileLocationText,
   profileNameText,
   profileScreenSectionTitle,
-  tabScreenMainHeaderTitle,
+  SPACE_6,
+  SURFACE,
+  SURFACE_INPUT,
+  SURFACE_RAISED,
+  SURFACE_SUBTLE,
   synqOutlineAddBtn,
   synqOutlineAddBtnDisabled,
   synqOutlineAddBtnText,
   synqOutlineAddBtnTextDisabled,
+  TAB_BAR_SCROLL_INSET,
+  tabScreenMainHeaderTitle,
+  TEXT,
+  TYPE_CAPTION
 } from "@/constants/Variables";
 import CloseButton from "@/src/components/CloseButton";
 import HeaderIconButton from "@/src/components/HeaderIconButton";
+import { TopSynqsSkeleton } from "@/src/components/loading/BrandSkeletons";
 import NotificationBadge from "@/src/components/NotificationBadge";
 import ProfileShareCard from "@/src/components/profile/ProfileShareCard";
-import { TopSynqsSkeleton } from "@/src/components/loading/BrandSkeletons";
 import ProfilePhotoActionSheet from "@/src/components/ProfilePhotoActionSheet";
 import ProfileTabHeaderOverlay, {
   useTabHeaderLayout,
@@ -636,8 +634,6 @@ export default function ProfileScreen() {
         events: updatedEvents,
       });
 
-      // Close immediately — invites are slow Cloud Function round-trips and the plan
-      // is already visible via the Firestore listener.
       setShowEventModal(false);
       setNewEvent({ title: "", date: "", time: "", location: "" });
 
@@ -733,7 +729,6 @@ export default function ProfileScreen() {
     };
 
     try {
-      // Own calendar only — joined friends' copies are updated by syncOpenPlanEvents (admin).
       await patchHostCalendar();
     } catch {
       showAlert("Error", "Could not update event.");

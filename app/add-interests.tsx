@@ -18,22 +18,23 @@ import {
   ONBOARDING_TITLE_SIZE,
 } from "../constants/onboardingLayout";
 import {
-  ACCENT,
   ACCENT_BORDER,
   ACCENT_FILL,
   BG,
   BORDER,
-  BORDER_HAIRLINE,
-  BUTTON_RADIUS,
   MUTED,
-  ON_ACCENT_TEXT,
   PRIMARY_CTA_HEIGHT,
   PRIMARY_CTA_WIDTH,
+  SURFACE_INPUT,
   TEXT,
-  TYPE_CTA,
   TYPE_LEAD,
-  ctaButtonText,
   fonts,
+  profileInterestPillText,
+  profileInterestPillTextActive,
+  synqOutlineAddBtn,
+  synqOutlineAddBtnDisabled,
+  synqOutlineAddBtnText,
+  synqOutlineAddBtnTextDisabled,
 } from "../constants/Variables";
 import { auth, db } from "../src/lib/firebase";
 import AlertModal from "./alert-modal";
@@ -146,10 +147,23 @@ export default function InterestsOnboarding() {
             <TouchableOpacity
                 disabled={!canContinue}
                 onPress={saveInterests}
-                style={[styles.button, !canContinue && { opacity: 0.5 }]}
+                activeOpacity={0.85}
+                style={[
+                    synqOutlineAddBtn,
+                    styles.button,
+                    !canContinue && synqOutlineAddBtnDisabled,
+                ]}
+                accessibilityRole="button"
+                accessibilityLabel="Continue"
             >
-                <Text style={[ctaButtonText, loading && { opacity: 0.5 }]}>
-                    Continue{selected.length ? ` (${selected.length})` : ""}
+                <Text
+                    style={[
+                        synqOutlineAddBtnText,
+                        !canContinue && synqOutlineAddBtnTextDisabled,
+                        loading && { opacity: 0.5 },
+                    ]}
+                >
+                    Continue
                 </Text>
             </TouchableOpacity>
 
@@ -201,35 +215,29 @@ const styles = StyleSheet.create({
         paddingBottom: 6,
     },
     pill: {
-        paddingVertical: 10,
-        paddingHorizontal: 12,
-        borderRadius: 999,
-        marginRight: 10,
-        marginBottom: 10,
-        backgroundColor: BORDER,
+        backgroundColor: SURFACE_INPUT,
         borderWidth: 1,
-        borderColor: BORDER_HAIRLINE,
+        borderColor: BORDER,
+        borderRadius: 999,
+        paddingHorizontal: 14,
+        paddingVertical: 8,
+        marginRight: 8,
+        marginBottom: 8,
     },
     pillOn: {
         backgroundColor: ACCENT_FILL,
         borderColor: ACCENT_BORDER,
     },
-    pillText: {
-        color: TEXT,
-        fontSize: TYPE_LEAD,
-        fontFamily: fonts.heavy,
-    },
-    pillTextOn: { color: TEXT },
+    pillText: profileInterestPillText,
+    pillTextOn: profileInterestPillTextActive,
 
     button: {
         marginTop: 20,
         alignSelf: "center",
         width: PRIMARY_CTA_WIDTH,
-        backgroundColor: ACCENT,
         height: PRIMARY_CTA_HEIGHT,
-        borderRadius: BUTTON_RADIUS,
-        alignItems: "center",
-        justifyContent: "center",
+        paddingVertical: 0,
+        paddingHorizontal: 24,
     },
     skipButton: { marginTop: 20, alignSelf: "center" },
     skipText: {

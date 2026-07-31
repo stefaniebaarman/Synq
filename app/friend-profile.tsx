@@ -1,3 +1,4 @@
+import { sheetStyles } from "@/constants/sheetStyles";
 import {
   ACCENT,
   BG,
@@ -12,7 +13,6 @@ import {
   MUTED3,
   OVERLAY_SCRIM,
   RADIUS_MD,
-  SURFACE,
   SURFACE_ELEVATED,
   SURFACE_INPUT,
   SURFACE_RAISED,
@@ -28,24 +28,17 @@ import {
   synqOutlineAddBtn,
   synqOutlineAddBtnDisabled,
   synqOutlineAddBtnText,
-  synqOutlineAddBtnTextDisabled,
+  synqOutlineAddBtnTextDisabled
 } from "@/constants/Variables";
 import BackButton from "@/src/components/BackButton";
+import CheckmarkToast from "@/src/components/CheckmarkToast";
 import AddFriendToGroupSheet from "@/src/components/friends/AddFriendToGroupSheet";
 import FriendPlanCard from "@/src/components/friends/FriendPlanCard";
 import { ProfileSkeleton } from "@/src/components/loading/BrandSkeletons";
-import SpringBottomSheet from "@/src/components/sheets/SpringBottomSheet";
-import { sheetStyles } from "@/constants/sheetStyles";
-import {
-  appendOptimisticJoinedViewerEvent,
-  joinFriendOpenPlan,
-  removeJoinedViewerEvent,
-  unjoinFriendOpenPlan,
-  type FriendOpenPlanEvent,
-} from "@/src/lib/friendOpenPlanJoin";
 import ProfileTabHeaderOverlay, {
   useTabHeaderLayout,
 } from "@/src/components/ProfileTabHeaderOverlay";
+import SpringBottomSheet from "@/src/components/sheets/SpringBottomSheet";
 import { MESSAGES_STACK_DURATION_MS } from "@/src/components/synq/MessagesModalStack";
 import SynqNudgeCard from "@/src/components/synq/SynqNudgeCard";
 import { useBlockedUsers } from "@/src/lib/blockedUsers";
@@ -61,16 +54,24 @@ import {
   type FriendGroup,
 } from "@/src/lib/friendGroups";
 import {
+  appendOptimisticJoinedViewerEvent,
+  joinFriendOpenPlan,
+  removeJoinedViewerEvent,
+  unjoinFriendOpenPlan,
+  type FriendOpenPlanEvent,
+} from "@/src/lib/friendOpenPlanJoin";
+import {
   removeFriendMutual,
   removeFriendMutualErrorMessage,
 } from "@/src/lib/friends";
 import { formatLastSynq, resolveAvatar } from "@/src/lib/helpers";
 import { blockUser, unblockUser } from "@/src/lib/moderation";
+import { collectJoinedIds, planLooseMatch } from "@/src/lib/planAttribution";
 import {
   nudgeSentStorageKey as buildNudgeSentStorageKey,
+  clearNudgeSent,
   nudgeCooldownRemainingMs,
   persistNudgeSent,
-  clearNudgeSent,
   readNudgeSentState,
   sendSynqNudge,
   synqNudgeErrorMessage,
@@ -85,15 +86,12 @@ import {
   useRouter,
 } from "expo-router";
 import {
-  collection,
   deleteDoc,
   doc,
   getDoc,
   getDocFromServer,
-  getDocs,
   onSnapshot,
   serverTimestamp,
-  updateDoc,
   writeBatch
 } from "firebase/firestore";
 import React, {
@@ -122,7 +120,6 @@ import {
   filterOutPastOpenPlans,
   sortOpenPlansByDateTime,
 } from "../src/lib/planEvents";
-import { planLooseMatch, collectJoinedIds } from "@/src/lib/planAttribution";
 import {
   communityGroupsCacheByUser,
   friendProfileCacheByUser,
@@ -135,7 +132,6 @@ import {
   warmOutgoingFriendRequestsCache
 } from "../src/lib/socialCache";
 import AlertModal from "./alert-modal";
-import CheckmarkToast from "@/src/components/CheckmarkToast";
 import ConfirmModal from "./confirm-modal";
 import ReportModal from "./report-modal";
 
@@ -271,8 +267,6 @@ export default function FriendProfile({
   const cachedMutualFriends =
     viewerId && friendKey ? getCachedMutualFriends(viewerId, friendKey) : undefined;
 
-  // Never seed plan cards from social-cache events — those can retain a wrong
-  // planHostUid (e.g. William) long after Firestore was repaired.
   const [friend, setFriend] = useState<any>(() => {
     if (!cachedFriend) return null;
     const { events: _cachedEvents, ...profile } = cachedFriend as any;
@@ -476,7 +470,6 @@ export default function FriendProfile({
       return;
     }
     let cancelled = false;
-    // Bypass IndexedDB persistence — stale offline copies kept William as host.
     void getDocFromServer(doc(db, "users", viewerId))
       .then((snap) => {
         if (cancelled || !snap.exists()) return;
@@ -622,9 +615,6 @@ export default function FriendProfile({
         setRequestSent(rel.requestSent);
       });
       warmFriendsAndConnectionsCache(viewerId).then(() => {
-        // Do not setFriend from cache here — onSnapshot owns the open profile.
-        // Overwriting with a TTL-cached profile reintroduces stale planHostUid
-        // (e.g. Blake's Happy Hour flipping back to William after a live fix).
         const rel = getCachedFriendRelationship(viewerId, friendKey);
         setIsFriend(rel.isFriend);
         setRequestSent(rel.requestSent);
@@ -1025,7 +1015,6 @@ export default function FriendProfile({
     if (!viewerId || !friendKey) return false;
     const vid = String(viewerId).trim();
     const fk = String(friendKey).trim();
-    // Prefer the viewer's own calendar — friend join copies can mis-label planHostUid.
     if (
       Array.isArray(viewerEvents) &&
       viewerEvents.some(
