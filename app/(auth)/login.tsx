@@ -1,7 +1,7 @@
 import {
   onboardingAuthInnerMarginTop,
+  ONBOARDING_BACK_BELOW_INSET,
   ONBOARDING_BACK_LEFT,
-  ONBOARDING_BACK_TOP,
   ONBOARDING_DIVIDER_MARGIN_TOP,
   ONBOARDING_DIVIDER_WIDTH,
   ONBOARDING_H_PADDING,
@@ -33,6 +33,7 @@ import {
   TYPE_LEAD,
   modalTitleText,
   fonts,
+  stackNavigationBackBtn,
   synqSvg,
   MODAL_RADIUS,
 } from "@/constants/Variables";
@@ -121,7 +122,14 @@ export default function Login() {
         <View pointerEvents="none" style={styles.bgSvgWrap}>
           <SvgXml xml={synqSvg} width="120%" height="120%" />
         </View>
-        <BackButton onPress={() => router.back()} style={styles.backBtn} />
+        <BackButton
+          onPress={() => router.back()}
+          style={[
+            stackNavigationBackBtn,
+            styles.backBtn,
+            { top: insets.top + ONBOARDING_BACK_BELOW_INSET },
+          ]}
+        />
 
         <View style={styles.container}>
           <ScrollView
@@ -268,7 +276,6 @@ const styles = StyleSheet.create({
   },
   backBtn: {
     position: "absolute",
-    top: ONBOARDING_BACK_TOP,
     left: ONBOARDING_BACK_LEFT,
     zIndex: 10,
   },

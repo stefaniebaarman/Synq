@@ -5,7 +5,6 @@ function normalizeInviteCode(raw: string): string {
   return raw.trim().toUpperCase();
 }
 
-/** Branded share link — `/u/{inviteCode}` instead of exposing a Firebase user id. */
 export function buildProfileShareWebUrl(inviteCode: string): string {
   const code = normalizeInviteCode(inviteCode);
   if (!code) return "";

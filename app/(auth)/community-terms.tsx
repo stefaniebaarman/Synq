@@ -1,4 +1,6 @@
 import {
+  ONBOARDING_BACK_BELOW_INSET,
+  ONBOARDING_BACK_LEFT,
   ONBOARDING_H_PADDING,
   onboardingContentTopPadding,
 } from "@/constants/onboardingLayout";
@@ -10,14 +12,16 @@ import {
   MUTED,
   ON_ACCENT_TEXT,
   PRIMARY_CTA_HEIGHT,
+  SPACE_3,
+  SPACE_4,
+  SPACE_5,
   SURFACE,
   TEXT,
-  TEXT_ON_BRIGHT,
-  TYPE_CAPTION,
   TYPE_LEAD,
   TYPE_TITLE,
   fonts,
   RADIUS_MD,
+  stackNavigationBackBtn,
   synqOutlineAddBtn,
   synqOutlineAddBtnDisabled,
   synqOutlineAddBtnText,
@@ -48,12 +52,14 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 type NextRoute = "phone" | "login" | "email";
 
 const CTA_WIDTH = "72%";
 
 export default function CommunityTermsScreen() {
+  const insets = useSafeAreaInsets();
   const { markCommunityTermsOk } = useAuthRefresh();
   const { next, postAuth } = useLocalSearchParams<{
     next?: string;
@@ -128,7 +134,14 @@ export default function CommunityTermsScreen() {
     <SafeAreaView style={styles.safe}>
       <StatusBar barStyle="light-content" />
       {!isPostAuth ? (
-        <BackButton onPress={() => router.back()} style={styles.backBtn} />
+        <BackButton
+          onPress={() => router.back()}
+          style={[
+            stackNavigationBackBtn,
+            styles.backBtn,
+            { top: insets.top + ONBOARDING_BACK_BELOW_INSET },
+          ]}
+        />
       ) : null}
 
       <ScrollView
@@ -187,8 +200,7 @@ export default function CommunityTermsScreen() {
             {checked ? <Ionicons name="checkmark" size={16} color={ON_ACCENT_TEXT} /> : null}
           </View>
           <Text style={styles.checkLabel}>
-            I agree to the Terms & Community Standards and confirm there is no
-            tolerance for objectionable content or abusive behavior on Synq.
+            I agree to the Terms & Conditions and Privacy Policy
           </Text>
         </Pressable>
       </ScrollView>
@@ -205,7 +217,7 @@ export default function CommunityTermsScreen() {
           onPress={handleContinue}
           accessibilityRole="button"
           accessibilityLabel={
-            isPostAuth ? "Continue to Synq" : "Agree and continue"
+            isPostAuth ? "Continue to Synq" : "Continue"
           }
         >
           <Text
@@ -215,7 +227,7 @@ export default function CommunityTermsScreen() {
               submitting && { opacity: 0.5 },
             ]}
           >
-            {isPostAuth ? "Continue to Synq" : "Agree and continue"}
+            {isPostAuth ? "Continue to Synq" : "Continue"}
           </Text>
         </TouchableOpacity>
       </View>
@@ -242,13 +254,12 @@ const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: BG },
   backBtn: {
     position: "absolute",
-    top: 52,
-    left: 20,
+    left: ONBOARDING_BACK_LEFT,
     zIndex: 10,
   },
   scroll: {
     paddingHorizontal: ONBOARDING_H_PADDING,
-    paddingBottom: 24,
+    paddingBottom: SPACE_5,
   },
   title: {
     color: TEXT,
@@ -258,52 +269,52 @@ const styles = StyleSheet.create({
     lineHeight: 32,
   },
   sub: {
-    marginTop: 10,
-    color: TEXT_ON_BRIGHT,
+    marginTop: SPACE_3,
+    color: MUTED,
     fontFamily: fonts.book,
     fontSize: TYPE_LEAD,
     lineHeight: 21,
   },
   card: {
-    marginTop: 20,
-    padding: 14,
+    marginTop: SPACE_5,
+    paddingHorizontal: 16,
+    paddingVertical: 18,
     borderRadius: RADIUS_MD,
     backgroundColor: SURFACE,
     borderWidth: 1,
     borderColor: BORDER_SOFT,
+    gap: SPACE_3,
   },
   cardLead: {
     color: ACCENT,
     fontFamily: fonts.medium,
     fontSize: TYPE_LEAD,
-    lineHeight: 20,
-    marginBottom: 10,
+    lineHeight: 21,
   },
   cardBody: {
     color: TEXT,
     fontFamily: fonts.book,
-    fontSize: TYPE_CAPTION,
-    lineHeight: 19,
-    marginBottom: 8,
+    fontSize: TYPE_LEAD,
+    lineHeight: 21,
   },
   links: {
     flexDirection: "row",
     flexWrap: "wrap",
     alignItems: "center",
-    marginTop: 14,
+    marginTop: SPACE_4,
   },
   link: {
     color: ACCENT,
     fontFamily: fonts.medium,
-    fontSize: TYPE_CAPTION,
+    fontSize: TYPE_LEAD,
     textDecorationLine: "underline",
   },
-  linkSep: { color: MUTED, fontFamily: fonts.medium, fontSize: TYPE_CAPTION },
+  linkSep: { color: MUTED, fontFamily: fonts.medium, fontSize: TYPE_LEAD },
   checkRow: {
     flexDirection: "row",
     alignItems: "flex-start",
-    marginTop: 20,
-    gap: 12,
+    marginTop: SPACE_5,
+    gap: SPACE_3,
   },
   checkbox: {
     width: 22,
@@ -323,13 +334,13 @@ const styles = StyleSheet.create({
     flex: 1,
     color: TEXT,
     fontFamily: fonts.book,
-    fontSize: TYPE_CAPTION,
-    lineHeight: 18,
+    fontSize: TYPE_LEAD,
+    lineHeight: 20,
   },
   footer: {
     paddingHorizontal: ONBOARDING_H_PADDING,
     paddingBottom: 40,
-    paddingTop: 8,
+    paddingTop: SPACE_3,
     alignItems: "center",
   },
   primaryBtn: {

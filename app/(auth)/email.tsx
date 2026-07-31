@@ -1,6 +1,6 @@
 import {
+  ONBOARDING_BACK_BELOW_INSET,
   ONBOARDING_BACK_LEFT,
-  ONBOARDING_BACK_TOP,
   ONBOARDING_DIVIDER_MARGIN_TOP,
   ONBOARDING_DIVIDER_WIDTH,
   ONBOARDING_H_PADDING,
@@ -24,6 +24,7 @@ import {
   TYPE_BODY,
   TYPE_CAPTION,
   fonts,
+  stackNavigationBackBtn,
   synqOutlineAddBtn,
   synqOutlineAddBtnDisabled,
   synqOutlineAddBtnText,
@@ -33,7 +34,7 @@ import {
 import BackButton from "@/src/components/BackButton";
 import { router } from "expo-router";
 import { createUserWithEmailAndPassword } from "firebase/auth";
-import React, { useState } from "react";
+import { useState } from "react";
 import {
   Keyboard,
   KeyboardAvoidingView,
@@ -46,6 +47,7 @@ import {
   TouchableWithoutFeedback,
   View,
 } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { SvgXml } from "react-native-svg";
 import { auth } from "../../src/lib/firebase";
 import { usePreAuthTermsGate } from "../../src/lib/usePreAuthTermsGate";
@@ -54,6 +56,7 @@ import AlertModal from "../alert-modal";
 const CTA_WIDTH = "56%";
 
 export default function EmailSignup() {
+  const insets = useSafeAreaInsets();
   const termsReady = usePreAuthTermsGate("email");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -97,7 +100,14 @@ export default function EmailSignup() {
         <View pointerEvents="none" style={styles.bgSvgWrap}>
           <SvgXml xml={synqSvg} width="120%" height="120%" />
         </View>
-        <BackButton onPress={() => router.back()} style={styles.backBtn} />
+        <BackButton
+          onPress={() => router.back()}
+          style={[
+            stackNavigationBackBtn,
+            styles.backBtn,
+            { top: insets.top + ONBOARDING_BACK_BELOW_INSET },
+          ]}
+        />
 
         <KeyboardAvoidingView
           behavior={Platform.OS === "ios" ? "padding" : undefined}
@@ -167,11 +177,6 @@ export default function EmailSignup() {
                   Continue
                 </Text>
               </TouchableOpacity>
-
-              <Text style={styles.helper}>
-                By continuing, you agree to receive account-related emails from
-                Synq.
-              </Text>
             </View>
           </ScrollView>
         </KeyboardAvoidingView>
@@ -200,7 +205,6 @@ const styles = StyleSheet.create({
   },
   backBtn: {
     position: "absolute",
-    top: ONBOARDING_BACK_TOP,
     left: ONBOARDING_BACK_LEFT,
     zIndex: 10,
   },

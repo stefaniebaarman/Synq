@@ -229,7 +229,6 @@ export function getStackAvatarUris(
 const prefetchedAvatarUrls = new Set<string>();
 const PREFETCHED_AVATAR_URL_CAP = 64;
 
-/** Prefetch a single avatar URL once per session (own profile only — avoid bulk friend prefetch). */
 export const prefetchResolvedAvatar = (url?: unknown) => {
   if (!isCustomAvatar(url)) return;
   const resolved = url.trim();

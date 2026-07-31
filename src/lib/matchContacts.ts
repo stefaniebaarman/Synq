@@ -82,7 +82,6 @@ export function clearContactsMatchCache() {
   void AsyncStorage.removeItem(contactsMatchStorageKey(uid)).catch(() => {});
 }
 
-/** Synchronous peek — memory only (call hydrateContactsMatchCache after cold start). */
 export function getCachedContactsMatch(): ContactsMatchResult | null {
   const uid = currentUid();
   if (!contactsMatchCache || !uid || contactsMatchCache.uid !== uid) return null;
@@ -359,7 +358,6 @@ export async function findFriendsFromContacts(options?: {
     permission: permission.status,
     warning,
   };
-  // Only persist clean match runs — failed matching must not wipe prior "On Synq" hits.
   if (!warning) {
     writeContactsMatchCache(result);
   }

@@ -6,7 +6,6 @@ export const COMMUNITY_COVER_UPLOAD_MAX_DIMENSION = 1280;
 
 export const COMMUNITY_COVER_UPLOAD_QUALITY = 0.82;
 
-/** Square list avatar — 48pt @3x. */
 export const COMMUNITY_COVER_THUMB_SIZE = 144;
 
 export const COMMUNITY_COVER_THUMB_QUALITY = 0.8;

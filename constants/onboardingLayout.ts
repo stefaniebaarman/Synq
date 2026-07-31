@@ -91,10 +91,14 @@ export const onboardingCarouselStyles = StyleSheet.create({
   dotActive: { backgroundColor: ACCENT },
 });
 
-/** Top offset for absolute back controls (chevron). */
-export const ONBOARDING_BACK_TOP = 56;
+/** Padding below the status bar for absolute onboarding back controls. */
+export const ONBOARDING_BACK_BELOW_INSET = 6;
 
-export const ONBOARDING_BACK_LEFT = ONBOARDING_H_PADDING;
+/**
+ * Left edge for onboarding back. Matches stack headers (SPACE_3) so the
+ * left-aligned chevron sits cleanly under the status bar.
+ */
+export const ONBOARDING_BACK_LEFT = 12;
 
 /** Scroll bottom padding for keyboard clearance. */
 export const ONBOARDING_SCROLL_BOTTOM = 28;

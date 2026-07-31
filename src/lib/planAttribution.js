@@ -106,7 +106,6 @@ function enrichEventForFriendProfileAttribution(
   if (!viewerRow) return event;
 
   const viewerStoredHost = String(viewerRow?.planHostUid || "").trim();
-  // Viewer hosts this plan — always win over a friend's stale/wrong planHostUid.
   if (viewerStoredHost && viewerStoredHost === viewer) {
     return mergeEventsForGoingAttribution(
       { ...viewerRow, planHostUid: viewer },
@@ -185,10 +184,6 @@ function resolveEffectiveHostUid(event, viewerUid, joinedIds, profileSubjectUid)
     if (!storedHost) return profileSubject;
   }
 
-  // On a friend's profile, a host uid that isn't the profile owner is usually
-  // authoritative — unless joinedFromFriendUid points at a different real host
-  // (stale join copies often store another attendee as planHostUid, e.g. William,
-  // while via still correctly points at Stefanie).
   if (
     storedHost &&
     profileSubject &&
@@ -396,8 +391,7 @@ function resolvePlanAttribution(
     joinedIds,
     profileSubject
   );
-  // Solo hosted plans often have no join metadata — still treat the stored host
-  // (or profile owner) as the host so the going sheet is never empty.
+
   if (!hostUid && !hasMeta) {
     hostUid =
       String(effectiveEvent?.planHostUid || "").trim() || profileSubject || "";
@@ -464,7 +458,6 @@ function resolvePlanAttribution(
           .filter(Boolean)
   )
     .map((n) => String(n || "").trim())
-    // Skip combined roster strings ("A, B") — those are not individual people.
     .filter((n) => n && !n.includes(","));
 
   for (const name of rawNames) {

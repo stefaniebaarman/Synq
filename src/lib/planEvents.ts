@@ -83,7 +83,6 @@ export function hostPlanRowWithIdentity(
 export function matchesPlanEvent(e: any, target: any, siblingEvents: any[]): boolean {
   const hostE = String(e?.planHostUid || "").trim();
   const hostT = String(target?.planHostUid || "").trim();
-  // Same title/date/time/location can exist for different hosts — never collapse them.
   if (hostE && hostT && hostE !== hostT) return false;
 
   if (eventKey(e) === eventKey(target)) return true;
@@ -183,7 +182,6 @@ export function parseOpenPlanDateTime(dateStr: string, timeStr?: string): Date {
     return date;
   }
 
-  // Unrecognized format — keep on the calendar day instead of treating as midnight/past.
   date.setHours(23, 59, 59, 999);
   return date;
 }

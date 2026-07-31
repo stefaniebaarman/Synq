@@ -2,9 +2,9 @@ import { Friend } from "@/constants/Variables";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { collection, doc, getDoc, getDocFromServer, getDocs } from "firebase/firestore";
 
+import type { CommunityGroup } from "./communityGroups";
 import { db } from "./firebase";
 import type { FriendGroup } from "./friendGroups";
-import type { CommunityGroup } from "./communityGroups";
 import { computeSynqActiveFromUserData } from "./synqSession";
 
 export type Connection = {
@@ -672,7 +672,7 @@ export async function warmSuggestedCache(
             mutualCount,
           });
         } catch {
-          // Profile not readable — skip.
+          // Profile not readable, skip.
         }
       }
 

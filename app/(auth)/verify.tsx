@@ -15,11 +15,12 @@ import {
   TouchableWithoutFeedback,
   View,
 } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import {
   onboardingAuthInnerMarginTop,
+  ONBOARDING_BACK_BELOW_INSET,
   ONBOARDING_BACK_LEFT,
-  ONBOARDING_BACK_TOP,
   ONBOARDING_DIVIDER_MARGIN_TOP,
   ONBOARDING_DIVIDER_WIDTH,
   ONBOARDING_H_PADDING,
@@ -44,12 +45,14 @@ import {
   TEXT,
   TYPE_CTA,
   fonts,
+  stackNavigationBackBtn,
 } from "@/constants/Variables";
 import AlertModal from "../alert-modal";
 import { auth } from "../../src/lib/firebase";
 import { syncMyPhoneHash } from "../../src/lib/matchContacts";
 
 export default function Verify() {
+  const insets = useSafeAreaInsets();
   const { verificationId, phone } = useLocalSearchParams<{ verificationId?: string; phone?: string }>();
   const [code, setCode] = useState("");
   const [loading, setLoading] = useState(false);
@@ -95,7 +98,14 @@ export default function Verify() {
   return (
     <TouchableWithoutFeedback onPress={Keyboard.dismiss} accessible={false}>
       <KeyboardAvoidingView style={styles.container} behavior={Platform.OS === "ios" ? "padding" : undefined}>
-        <BackButton onPress={() => router.back()} style={styles.backBtn} />
+        <BackButton
+          onPress={() => router.back()}
+          style={[
+            stackNavigationBackBtn,
+            styles.backBtn,
+            { top: insets.top + ONBOARDING_BACK_BELOW_INSET },
+          ]}
+        />
         <ScrollView
           style={{ flex: 1 }}
           contentContainerStyle={[
@@ -208,7 +218,6 @@ const styles = StyleSheet.create({
   },
   backBtn: {
     position: "absolute",
-    top: ONBOARDING_BACK_TOP,
     left: ONBOARDING_BACK_LEFT,
     zIndex: 10,
   },

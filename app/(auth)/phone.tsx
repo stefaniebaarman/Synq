@@ -1,7 +1,7 @@
 import {
   onboardingAuthInnerMarginTop,
+  ONBOARDING_BACK_BELOW_INSET,
   ONBOARDING_BACK_LEFT,
-  ONBOARDING_BACK_TOP,
   ONBOARDING_DIVIDER_MARGIN_TOP,
   ONBOARDING_DIVIDER_WIDTH,
   ONBOARDING_H_PADDING,
@@ -28,6 +28,7 @@ import {
   TYPE_CAPTION,
   TYPE_MODAL_TITLE,
   fonts,
+  stackNavigationBackBtn,
   synqOutlineAddBtn,
   synqOutlineAddBtnDisabled,
   synqOutlineAddBtnText,
@@ -53,6 +54,7 @@ import {
   TouchableWithoutFeedback,
   View,
 } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { SvgXml } from "react-native-svg";
 import AlertModal from "../alert-modal";
 import { app, auth, firebaseConfig } from "../../src/lib/firebase";
@@ -69,6 +71,7 @@ function formatUsPhoneDisplay(digits: string): string {
 }
 
 export default function Phone() {
+  const insets = useSafeAreaInsets();
   const { mode } = useLocalSearchParams<{ mode?: string }>();
   const isSignIn = mode === "signin";
   const termsReady = usePreAuthTermsGate("phone", { enabled: !isSignIn });
@@ -218,7 +221,14 @@ export default function Phone() {
           attemptInvisibleVerification
         />
 
-        <BackButton onPress={() => router.back()} style={styles.backBtn} />
+        <BackButton
+          onPress={() => router.back()}
+          style={[
+            stackNavigationBackBtn,
+            styles.backBtn,
+            { top: insets.top + ONBOARDING_BACK_BELOW_INSET },
+          ]}
+        />
 
         <KeyboardAvoidingView
           behavior={Platform.OS === "ios" ? "padding" : undefined}
@@ -417,7 +427,6 @@ const styles = StyleSheet.create({
   },
   backBtn: {
     position: "absolute",
-    top: ONBOARDING_BACK_TOP,
     left: ONBOARDING_BACK_LEFT,
     zIndex: 10,
   },
