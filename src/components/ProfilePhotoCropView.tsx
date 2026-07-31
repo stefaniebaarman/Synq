@@ -9,9 +9,9 @@ import {
   TYPE_SUBHEAD,
   fonts,
 } from "@/constants/Variables";
-import { cropProfilePhoto } from "@/src/lib/cropProfilePhoto";
 import { SkeletonBlock } from "@/src/components/loading/BrandSkeletons";
-import React, { useCallback, useEffect, useMemo, useState } from "react";
+import { cropProfilePhoto } from "@/src/lib/cropProfilePhoto";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   Dimensions,
   Image,
@@ -288,7 +288,6 @@ export default function ProfilePhotoCropView({
               )}
             </View>
 
-            {/* RN SVG often ignores pointerEvents on Svg itself — wrap it. */}
             <View style={styles.cropOverlay} pointerEvents="none">
               <Svg width={stageSize.width} height={stageSize.height}>
                 <Defs>

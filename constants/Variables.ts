@@ -69,7 +69,6 @@ export function getTabHeaderLayout(insetsTop: number) {
   const iconRowBottom = top + PROFILE_HEADER_ICON_ROW_HEIGHT;
   const gradientHeight = iconRowBottom + PROFILE_HEADER_FADE_BELOW_ICONS;
   const contentPaddingTop = iconRowBottom + PROFILE_HEADER_CONTENT_GAP;
-  /** Gradient height for title/icon rows (Friends, Synq active) — ends at icon row bottom. */
   const titleGradientHeight = iconRowBottom + 16;
   return {
     top,
@@ -108,14 +107,12 @@ export const SURFACE = "rgba(255,255,255,0.06)";
 export const BORDER = "rgba(255,255,255,0.08)";
 export const MUTED2 = "rgba(255,255,255,0.45)";
 export const MUTED3 = "rgba(255,255,255,0.25)";
-/** Dismiss “X” — white glyph, no chrome (matches back). */
 export const CLOSE_ICON_NAME = "close" as const;
 export const CLOSE_ICON_COLOR = TEXT;
 export const CLOSE_ICON_SIZE = 24;
-/** Inline clear in search fields — smaller, muted. */
 export const CLOSE_ICON_COLOR_INLINE = MUTED2;
 export const CLOSE_ICON_SIZE_INLINE = 18;
-/** Touch target for header / sheet close; transparent background. */
+
 export const navigationCloseBtn: ViewStyle = {
   width: 44,
   height: 44,
@@ -123,7 +120,7 @@ export const navigationCloseBtn: ViewStyle = {
   justifyContent: "center",
   backgroundColor: "transparent",
 };
-/** Navigation back (“<”) — white glyph, no chrome. */
+
 export const BACK_ICON_NAME = "chevron-back" as const;
 export const BACK_ICON_COLOR = TEXT;
 export const BACK_ICON_SIZE = 24;
@@ -245,7 +242,6 @@ export const HEART_LIKE = "#FF2D55";
 export const TEXT_ON_BRIGHT = "rgba(255,255,255,0.85)";
 export const CHAT_FAILED_SELF = "#8B0000";
 export const CHAT_FAILED_OTHER = "#FFB4B4";
-/** Group list borders — slightly subtler than BORDER. */
 export const GROUP_BORDER = "rgba(255,255,255,0.06)";
 /** Hairline dividers and faint wells. */
 export const SURFACE_FAINT = "rgba(255,255,255,0.03)";
@@ -420,7 +416,6 @@ export const eyebrowLabel: TextStyle = {
   letterSpacing: 1.2,
 };
 
-/** Main tab headings: Friends, Synq active state — identical scale and weight. */
 export const tabScreenMainHeaderTitle: TextStyle = {
   color: TEXT,
   fontSize: TYPE_TAB_HEADER,
@@ -507,10 +502,7 @@ export const destructiveActionBtnText: TextStyle = {
   textTransform: "uppercase",
 };
 
-/**
- * Soft green outline CTA — matches Nudge (subtle fill, soft border, medium label).
- * Use for Add / Join / Nudge and other accent outline actions.
- */
+
 export const SYNQ_OUTLINE_CTA_RADIUS = 10;
 
 export const synqOutlineAddBtn: ViewStyle = {

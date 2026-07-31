@@ -8,13 +8,13 @@ import {
   OVERLAY_DARK,
   RADIUS_MD,
   SURFACE_SUBTLE,
-  TEXT,
-  TYPE_BODY,
-  TYPE_CTA,
   synqOutlineAddBtn,
   synqOutlineAddBtnDisabled,
   synqOutlineAddBtnText,
   synqOutlineAddBtnTextDisabled,
+  TEXT,
+  TYPE_BODY,
+  TYPE_CTA,
 } from "@/constants/Variables";
 import CloseButton from "@/src/components/CloseButton";
 import { useEffect, useState } from "react";
@@ -53,7 +53,7 @@ export default function CreateGroupModal({
   onClose,
   onCreate,
   title = "New group",
-  hint = "Name a list to organize friends — like Running buddies or Gym crew.",
+  hint = "Name a list to organize friends, like Running buddies or Gym crew.",
   submitLabel = "Create group",
   placeholder = "Group name",
   initialName = "",

@@ -98,7 +98,6 @@ export default function AddMembersToGroupSheet({
     };
   }, [visible]);
 
-  // Shrink the list for the keyboard only — no KeyboardAvoidingView (avoids double-counting).
   const listHeight = useMemo(() => {
     const sheetCap = WINDOW_HEIGHT * 0.88;
     const keyboardPad = keyboardInset > 0 ? Math.min(keyboardInset, WINDOW_HEIGHT * 0.45) : 0;
