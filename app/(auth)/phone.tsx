@@ -1,5 +1,4 @@
 import {
-  onboardingAuthInnerMarginTop,
   ONBOARDING_BACK_BELOW_INSET,
   ONBOARDING_BACK_LEFT,
   ONBOARDING_DIVIDER_MARGIN_TOP,
@@ -10,6 +9,7 @@ import {
   ONBOARDING_SUBTITLE_SIZE,
   ONBOARDING_TITLE_LINE_HEIGHT,
   ONBOARDING_TITLE_SIZE,
+  onboardingAuthInnerMarginTop,
 } from "@/constants/onboardingLayout";
 import {
   ACCENT,
@@ -36,11 +36,10 @@ import {
   synqSvg,
 } from "@/constants/Variables";
 import BackButton from "@/src/components/BackButton";
-import { Ionicons } from "@expo/vector-icons";
 import { FirebaseRecaptchaVerifierModal } from "expo-firebase-recaptcha";
 import { router, useLocalSearchParams } from "expo-router";
 import { signInWithPhoneNumber } from "firebase/auth";
-import React, { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   Dimensions,
   Keyboard,
@@ -56,9 +55,9 @@ import {
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { SvgXml } from "react-native-svg";
-import AlertModal from "../alert-modal";
 import { app, auth, firebaseConfig } from "../../src/lib/firebase";
 import { usePreAuthTermsGate } from "../../src/lib/usePreAuthTermsGate";
+import AlertModal from "../alert-modal";
 
 const { width } = Dimensions.get("window");
 const CTA_WIDTH = "56%";
@@ -248,10 +247,6 @@ export default function Phone() {
                 {isSignIn ? "Welcome back" : "What’s your\nnumber?"}
               </Text>
               <View style={styles.divider} />
-              {isSignIn ? (
-                <Text style={styles.subtitle}>Sign in with your phone number</Text>
-              ) : null}
-
               <View style={styles.inputRow}>
                 <View style={styles.countryWrapper}>
                   <TextInput

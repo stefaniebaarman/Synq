@@ -349,6 +349,14 @@ export const searchPlaceholderText: TextStyle = {
   letterSpacing: 0.02,
 };
 
+/** Typed text and placeholders in form TextInputs. */
+export const formInputText: TextStyle = {
+  color: TEXT,
+  fontFamily: fonts.medium,
+  fontSize: TYPE_BODY,
+  letterSpacing: 0.02,
+};
+
 /** Section headings on Me, Friends, and plan lists. */
 export const profileScreenSectionTitle: TextStyle = {
   ...listSectionTitle,

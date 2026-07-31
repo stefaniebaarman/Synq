@@ -16,8 +16,6 @@ import {
   TEXT,
   TEXT_MUTED_DARK,
   TEXT_MUTED_LIGHT,
-  TYPE_BODY,
-  TYPE_BUTTON,
   TYPE_CAPTION,
   TYPE_FINE,
   TYPE_LEAD,
@@ -27,6 +25,7 @@ import {
   cardMetaText,
   cardTitleText,
   fonts,
+  formInputText,
   modalTitleText,
   profileScreenSectionTitle,
   synqOutlineAddBtn,
@@ -766,18 +765,26 @@ export default function OpenPlans({
                 accessible={false}
               >
               <View>
-              <TextInput
-                placeholder="What's the plan?"
-                placeholderTextColor={PLACEHOLDER_DARK}
-                style={styles.planInput}
-                value={newEvent.title}
-                onFocus={dismissPickers}
-                onChangeText={(t) =>
-                  setNewEvent((p: any) => ({ ...p, title: t }))
-                }
-                returnKeyType="next"
-                blurOnSubmit={false}
-              />
+              <View style={styles.planInputShell}>
+                {!String(newEvent.title || "").trim() ? (
+                  <Text style={styles.planInputPlaceholder} pointerEvents="none">
+                    What's the plan?
+                  </Text>
+                ) : null}
+                <TextInput
+                  placeholder=""
+                  placeholderTextColor={PLACEHOLDER_DARK}
+                  style={styles.planInput}
+                  value={newEvent.title}
+                  onFocus={dismissPickers}
+                  onChangeText={(t) =>
+                    setNewEvent((p: any) => ({ ...p, title: t }))
+                  }
+                  returnKeyType="next"
+                  blurOnSubmit={false}
+                  accessibilityLabel="What's the plan?"
+                />
+              </View>
 
               <View style={styles.scheduleBlock}>
                 <TouchableWithoutFeedback onPress={collapseActivePicker}>
@@ -845,18 +852,26 @@ export default function OpenPlans({
               ) : null}
 
               <View style={styles.locationFieldWrap}>
-                <TextInput
-                  ref={locationInputRef}
-                  placeholder="Add location"
-                  placeholderTextColor={PLACEHOLDER_DARK}
-                  style={styles.planInputSecondary}
-                  value={newEvent.location}
-                  onFocus={dismissPickers}
-                  onChangeText={(t) =>
-                    setNewEvent((p: any) => ({ ...p, location: t }))
-                  }
-                  returnKeyType="done"
-                />
+                <View style={styles.planInputShellSecondary}>
+                  {!String(newEvent.location || "").trim() ? (
+                    <Text style={styles.planInputPlaceholder} pointerEvents="none">
+                      Add location
+                    </Text>
+                  ) : null}
+                  <TextInput
+                    ref={locationInputRef}
+                    placeholder=""
+                    placeholderTextColor={PLACEHOLDER_DARK}
+                    style={styles.planInputSecondary}
+                    value={newEvent.location}
+                    onFocus={dismissPickers}
+                    onChangeText={(t) =>
+                      setNewEvent((p: any) => ({ ...p, location: t }))
+                    }
+                    returnKeyType="done"
+                    accessibilityLabel="Add location"
+                  />
+                </View>
               </View>
 
               {canInviteToPlan ? (
@@ -1216,16 +1231,29 @@ const styles = StyleSheet.create({
     marginBottom: 8,
     paddingHorizontal: 2,
   },
+  planInputShell: {
+    marginBottom: 10,
+  },
+  planInputShellSecondary: {
+    marginBottom: 0,
+  },
+  planInputPlaceholder: {
+    ...formInputText,
+    position: "absolute",
+    left: 14,
+    top: 14,
+    right: 14,
+    color: PLACEHOLDER_DARK,
+    zIndex: 1,
+  },
   planInput: {
+    ...formInputText,
     backgroundColor: SURFACE_INPUT,
     borderWidth: 1,
     borderColor: GROUP_BORDER,
     padding: 14,
     borderRadius: BUTTON_RADIUS,
-    color: TEXT,
-    fontSize: TYPE_BODY,
-    fontFamily: fonts.medium,
-    marginBottom: 10,
+    marginBottom: 0,
   },
   locationFieldWrap: {
     marginTop: 10,
@@ -1242,14 +1270,12 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   planInputSecondary: {
+    ...formInputText,
     backgroundColor: SURFACE_INPUT,
     borderWidth: 1,
     borderColor: GROUP_BORDER,
-    padding: 12,
+    padding: 14,
     borderRadius: BUTTON_RADIUS,
-    color: TEXT,
-    fontSize: TYPE_BUTTON,
-    fontFamily: fonts.medium,
     marginBottom: 0,
   },
   scheduleBlock: {
@@ -1288,9 +1314,7 @@ const styles = StyleSheet.create({
   },
   dateTimeTextWrap: { flex: 1 },
   dateTimeValue: {
-    color: TEXT,
-    fontSize: TYPE_BUTTON,
-    fontFamily: fonts.heavy,
+    ...formInputText,
   },
   dateBtn: {
     flex: 1,

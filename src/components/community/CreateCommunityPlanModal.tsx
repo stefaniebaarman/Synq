@@ -17,9 +17,9 @@ import {
   TEXT,
   TEXT_MUTED_LIGHT,
   TYPE_BODY,
-  TYPE_BUTTON,
   TYPE_FINE,
   TYPE_LEAD,
+  formInputText,
   modalTitleText,
   fonts,
 } from "@/constants/Variables";
@@ -263,17 +263,25 @@ export default function CreateCommunityPlanModal({ visible, busy, onClose, onCre
               >
                 <TouchableWithoutFeedback onPress={dismissKeyboard} accessible={false}>
                   <View>
-                    <TextInput
-                      placeholder="What's the plan?"
-                      placeholderTextColor={PLACEHOLDER_DARK}
-                      style={styles.planInput}
-                      value={title}
-                      onFocus={() => setTimePickerOpen(false)}
-                      onChangeText={setTitle}
-                      maxLength={80}
-                      returnKeyType="next"
-                      blurOnSubmit={false}
-                    />
+                    <View style={styles.planInputShell}>
+                      {!title.trim() ? (
+                        <Text style={styles.planInputPlaceholder} pointerEvents="none">
+                          What's the plan?
+                        </Text>
+                      ) : null}
+                      <TextInput
+                        placeholder=""
+                        placeholderTextColor={PLACEHOLDER_DARK}
+                        style={styles.planInput}
+                        value={title}
+                        onFocus={() => setTimePickerOpen(false)}
+                        onChangeText={setTitle}
+                        maxLength={80}
+                        returnKeyType="next"
+                        blurOnSubmit={false}
+                        accessibilityLabel="What's the plan?"
+                      />
+                    </View>
 
                     <View style={styles.scheduleBlock}>
                       <View style={styles.quickDateRow}>
@@ -329,16 +337,24 @@ export default function CreateCommunityPlanModal({ visible, busy, onClose, onCre
                     ) : null}
 
                     <View style={styles.locationFieldWrap}>
-                      <TextInput
-                        placeholder="Add location (optional)"
-                        placeholderTextColor={PLACEHOLDER_DARK}
-                        style={styles.planInputSecondary}
-                        value={location}
-                        onFocus={() => setTimePickerOpen(false)}
-                        onChangeText={setLocation}
-                        maxLength={120}
-                        returnKeyType="done"
-                      />
+                      <View style={styles.planInputShellSecondary}>
+                        {!location.trim() ? (
+                          <Text style={styles.planInputPlaceholder} pointerEvents="none">
+                            Add location (optional)
+                          </Text>
+                        ) : null}
+                        <TextInput
+                          placeholder=""
+                          placeholderTextColor={PLACEHOLDER_DARK}
+                          style={styles.planInputSecondary}
+                          value={location}
+                          onFocus={() => setTimePickerOpen(false)}
+                          onChangeText={setLocation}
+                          maxLength={120}
+                          returnKeyType="done"
+                          accessibilityLabel="Add location"
+                        />
+                      </View>
                     </View>
 
                     <TouchableOpacity
@@ -426,29 +442,40 @@ const styles = StyleSheet.create({
     fontFamily: fonts.heavy,
     fontSize: TYPE_BODY,
   },
+  planInputShell: {
+    marginBottom: 10,
+  },
+  planInputShellSecondary: {
+    marginBottom: 0,
+  },
+  planInputPlaceholder: {
+    ...formInputText,
+    position: "absolute",
+    left: 14,
+    top: 14,
+    right: 14,
+    color: PLACEHOLDER_DARK,
+    zIndex: 1,
+  },
   planInput: {
+    ...formInputText,
     backgroundColor: SURFACE_INPUT,
     borderWidth: 1,
     borderColor: GROUP_BORDER,
     padding: 14,
     borderRadius: BUTTON_RADIUS,
-    color: TEXT,
-    fontSize: TYPE_BODY,
-    fontFamily: fonts.medium,
-    marginBottom: 10,
+    marginBottom: 0,
   },
   locationFieldWrap: {
     marginTop: 10,
   },
   planInputSecondary: {
+    ...formInputText,
     backgroundColor: SURFACE_INPUT,
     borderWidth: 1,
     borderColor: GROUP_BORDER,
-    padding: 12,
+    padding: 14,
     borderRadius: BUTTON_RADIUS,
-    color: TEXT,
-    fontSize: TYPE_BUTTON,
-    fontFamily: fonts.medium,
     marginBottom: 0,
   },
   scheduleBlock: {
@@ -489,9 +516,7 @@ const styles = StyleSheet.create({
     fontFamily: fonts.book,
   },
   timeFieldValue: {
-    color: TEXT,
-    fontSize: TYPE_BUTTON,
-    fontFamily: fonts.heavy,
+    ...formInputText,
   },
   dateBtn: {
     flex: 1,
