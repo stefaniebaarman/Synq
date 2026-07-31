@@ -47,6 +47,13 @@ function createPendingMessage(params) {
 }
 
 function pendingMatchesServer(pending, server, windowMs = 120000) {
+  if (
+    pending.clientId &&
+    server.clientId &&
+    pending.clientId === server.clientId
+  ) {
+    return true;
+  }
   if (pending.senderId !== server.senderId) return false;
   if (pending.text.trim() !== server.text.trim()) return false;
   const serverMs = rawMessageTimestampMs(server);

@@ -26,6 +26,7 @@ import {
   matchesSeattleWa,
   matchesWashingtonDcMetro,
   resolveCityId,
+  suggestionBatchKey as suggestionBatchKeyCore,
 } from "./citySuggestionsCore";
 
 const cityRegistry = [
@@ -87,15 +88,24 @@ const cityDataById = {
 export function getCachedCitySuggestions(
   senderLocationLabel: string,
   category: string,
-  excludeNames: string[] = []
+  excludeOrOptions: string[] | {
+    avoidNames?: string[];
+    excludeNames?: string[];
+    recentBatchKeys?: string[];
+    count?: number;
+  } = []
 ): SynqSuggestion[] | null {
   return getCachedCitySuggestionsCore(
     senderLocationLabel,
     category,
     cityDataById,
     cityRegistry,
-    excludeNames
+    excludeOrOptions
   );
+}
+
+export function suggestionBatchKey(names: string[]): string {
+  return suggestionBatchKeyCore(names);
 }
 
 export function hasCachedCitySuggestions(senderLocationLabel: string): boolean {

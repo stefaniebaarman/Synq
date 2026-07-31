@@ -98,7 +98,6 @@ function looksLikeLegacyJoinedNonFriendPlan(event, friendId, friendIdSet, viewer
   if (nonUidAttendees.length > 0) return true;
 
   const nonFriendAttendees = joinedIds.filter((id) => id !== fid && !friendIdSet.has(id));
-  // The viewer joining a friend's hosted plan is expected — don't treat them as a
   // "non-friend host" signal that should hide the plan from Upcoming.
   const foreignAttendees = viewer
     ? nonFriendAttendees.filter((id) => id !== viewer)
@@ -209,7 +208,6 @@ function referencesNonFriendHost(event, friendId, friendIdSet, viewerId) {
   if (storedHost && storedHost !== fid && !friendIdSet.has(storedHost)) return true;
   if (joinedThrough && joinedThrough !== fid && !friendIdSet.has(joinedThrough)) return true;
 
-  // Joined through themselves while a non-friend leads the attendee list — they joined
   // that person's plan. Host-first lists with the viewer as a guest are fine.
   if (nonFriendAttendees.length > 0 && joinedThrough === fid) {
     const first = String(joinedIds[0] || "").trim();
@@ -269,7 +267,6 @@ function aggregateFriendPlans(friends, options = {}) {
 
       const hostUid = resolveOpenPlanHostUid(event, friend.id);
 
-      // Only show plans this friend created — skip rows where they are attending.
       if (hostUid !== friend.id) continue;
 
       if (referencesNonFriendHost(event, friend.id, friendIdSet, options.viewerId)) {

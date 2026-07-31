@@ -166,19 +166,119 @@ function resolveCityId(senderLocationLabel, registry) {
   return null;
 }
 
-/** @param {CachedVenue[]} venues @param {number} count @param {string[]} excludeNames */
-function pickRandomVenues(venues, count = 3, excludeNames = []) {
+/** @param {string} name */
+function normalizeVenueName(name) {
+  return String(name || "")
+    .trim()
+    .toLowerCase();
+}
+
+/** Stable key for a suggestion batch so shuffle can avoid recently shown sets. */
+function suggestionBatchKey(names) {
+  return (Array.isArray(names) ? names : [])
+    .map(normalizeVenueName)
+    .filter(Boolean)
+    .sort()
+    .join("|");
+}
+
+/** @param {unknown[]} list */
+function shuffleInPlace(list) {
+  for (let i = list.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [list[i], list[j]] = [list[j], list[i]];
+  }
+  return list;
+}
+
+/**
+ * Pick a suggestion batch.
+ * Prefers venues not in `avoidNames`, and skips batches whose key is in
+ * `recentBatchKeys` so shuffle does not flip between the same two halves.
+ *
+ * @param {CachedVenue[]} venues
+ * @param {number} count
+ * @param {{ avoidNames?: string[], recentBatchKeys?: string[] }} [options]
+ */
+function pickSuggestionBatch(venues, count = 5, options = {}) {
   if (!Array.isArray(venues) || venues.length === 0) return [];
-  const exclude = new Set(excludeNames);
-  const eligible = venues.filter((venue) => !exclude.has(venue.name));
+
+  const avoid = new Set(
+    (options.avoidNames || []).map(normalizeVenueName).filter(Boolean)
+  );
+  const recent = new Set(
+    (options.recentBatchKeys || []).map((key) => String(key || "").trim()).filter(Boolean)
+  );
+  const pickCount = Math.min(count, venues.length);
+
+  const toSuggestion = (venue) => ({
+    name: venue.name,
+    address: venue.address,
+    location: venue.address,
+    rating: "4.5",
+  });
+
+  const overlapScore = (picked) =>
+    picked.reduce(
+      (n, venue) => n + (avoid.has(normalizeVenueName(venue.name)) ? 1 : 0),
+      0
+    );
+
+  /** @type {CachedVenue[] | null} */
+  let best = null;
+  let bestScore = Infinity;
+
+  for (let attempt = 0; attempt < 48; attempt++) {
+    const preferred = [];
+    const rest = [];
+    for (const venue of venues) {
+      if (avoid.has(normalizeVenueName(venue.name))) rest.push(venue);
+      else preferred.push(venue);
+    }
+
+    let pool;
+    if (attempt < 20) {
+      pool = [...shuffleInPlace(preferred), ...shuffleInPlace(rest)];
+    } else {
+      // Explore other combinations once preferred-first pools are exhausted.
+      pool = shuffleInPlace([...venues]);
+    }
+
+    const picked = pool.slice(0, pickCount);
+    const key = suggestionBatchKey(picked.map((venue) => venue.name));
+    if (recent.has(key)) continue;
+
+    const score = overlapScore(picked);
+    if (score < bestScore) {
+      best = picked;
+      bestScore = score;
+      // Entirely new vs the avoided set, and not a recent batch.
+      if (score === 0) break;
+    }
+  }
+
+  if (!best) {
+    best = shuffleInPlace([...venues]).slice(0, pickCount);
+  }
+
+  return best.map(toSuggestion);
+}
+
+/** @param {CachedVenue[]} venues @param {number} count @param {string[]} excludeNames */
+function pickRandomVenues(venues, count = 5, excludeNames = []) {
+  if (!Array.isArray(venues) || venues.length === 0) return [];
+  const exclude = new Set(
+    (Array.isArray(excludeNames) ? excludeNames : [])
+      .map(normalizeVenueName)
+      .filter(Boolean)
+  );
+  const eligible = venues.filter(
+    (venue) => !exclude.has(normalizeVenueName(venue.name))
+  );
   if (eligible.length === 0) return [];
 
   const pickCount = Math.min(count, eligible.length);
-  const pool = [...eligible];
-  for (let i = pool.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [pool[i], pool[j]] = [pool[j], pool[i]];
-  }
+  const pool = shuffleInPlace([...eligible]);
   return pool.slice(0, pickCount).map((venue) => ({
     name: venue.name,
     address: venue.address,
@@ -212,7 +312,7 @@ function getCachedCitySuggestions(
   category,
   cityDataById,
   registry,
-  excludeNames = []
+  excludeOrOptions = []
 ) {
   const cityId = resolveCityId(senderLocationLabel, registry);
   if (!cityId) return null;
@@ -226,7 +326,16 @@ function getCachedCitySuggestions(
   const venues = cityData.categories[normalizedCategory];
   if (!Array.isArray(venues) || venues.length === 0) return null;
 
-  const suggestions = pickRandomVenues(venues, 3, excludeNames);
+  const options = Array.isArray(excludeOrOptions)
+    ? { avoidNames: excludeOrOptions }
+    : excludeOrOptions && typeof excludeOrOptions === "object"
+      ? excludeOrOptions
+      : {};
+
+  const suggestions = pickSuggestionBatch(venues, options.count || 5, {
+    avoidNames: options.avoidNames || options.excludeNames || [],
+    recentBatchKeys: options.recentBatchKeys || [],
+  });
   return suggestions.length > 0 ? suggestions : null;
 }
 
@@ -255,6 +364,9 @@ module.exports = {
   matchesPotomacMd,
   matchesWashingtonDcMetro,
   resolveCityId,
+  normalizeVenueName,
+  suggestionBatchKey,
+  pickSuggestionBatch,
   pickRandomVenues,
   allParticipantsHaveCachedCitySuggestions,
   getCachedCitySuggestions,
