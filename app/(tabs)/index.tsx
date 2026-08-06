@@ -2,7 +2,6 @@ import { SynqBootSkeleton } from '@/src/components/loading/BrandSkeletons';
 import PlanGoingPeopleSheet, {
   type PlanGoingPerson,
 } from '@/src/components/plans/PlanGoingPeopleSheet';
-import ProfileTabHeaderOverlay from '@/src/components/ProfileTabHeaderOverlay';
 import { useChatMessages } from '@/src/hooks/useChatMessages';
 import { useSendMessage } from '@/src/hooks/useSendMessage';
 import { useTypingIndicator } from '@/src/hooks/useTypingIndicator';
@@ -55,6 +54,7 @@ import { Image as ExpoImage } from "expo-image";
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import {
   addDoc,
+  arrayRemove,
   arrayUnion,
   collection,
   deleteField,
@@ -540,6 +540,35 @@ export default function SynqScreen() {
     );
   }, [allChats, isBlocked, hiddenChatIds]);
 
+  const unhideChat = useCallback(async (chatId: string) => {
+    const id = String(chatId || "").trim();
+    if (!id || !auth.currentUser) return;
+    const myId = auth.currentUser.uid;
+    const currentHidden = Array.isArray(userProfile?.hiddenChatIds)
+      ? (userProfile.hiddenChatIds as string[]).filter(Boolean)
+      : [];
+    if (!currentHidden.includes(id)) return;
+
+    setUserProfile((prev: any) => {
+      const hidden = Array.isArray(prev?.hiddenChatIds)
+        ? prev.hiddenChatIds.filter(Boolean)
+        : [];
+      if (!hidden.includes(id)) return prev;
+      return {
+        ...prev,
+        hiddenChatIds: hidden.filter((x: string) => x !== id),
+      };
+    });
+
+    try {
+      await updateDoc(doc(db, "users", myId), {
+        hiddenChatIds: arrayRemove(id),
+      });
+    } catch {
+      // Best-effort; profile snapshot will reconcile.
+    }
+  }, [userProfile?.hiddenChatIds]);
+
   useEffect(() => {
     if (!seededActiveChat) return;
     if (!activeChatId || seededActiveChat.id !== activeChatId) {
@@ -859,14 +888,33 @@ export default function SynqScreen() {
       bumpChatOpenAnchor();
       navigateMessagesPane("chat");
       void markChatRead(chatId);
+      void unhideChat(chatId);
     },
     [
       prepareChatSync,
       bumpChatOpenAnchor,
       navigateMessagesPane,
       markChatRead,
+      unhideChat,
     ]
   );
+
+  const refreshUserProfileFromServer = useCallback(async () => {
+    const uid = auth.currentUser?.uid;
+    if (!uid) return;
+    try {
+      const snap = await getDocFromServer(doc(db, "users", uid));
+      if (!snap.exists()) return;
+      setUserProfile(snap.data());
+    } catch {
+      // Offline / permission — live listener remains source of truth.
+    }
+  }, []);
+
+  const openMessagesInbox = useCallback(() => {
+    void refreshUserProfileFromServer();
+    setMessagesModalVisible(true);
+  }, [refreshUserProfileFromServer]);
 
   const openChatById = useCallback(
     async (
@@ -2003,6 +2051,7 @@ export default function SynqScreen() {
         prepareChatSync(existing.id);
         setActiveChatId(existing.id);
         void markChatRead(existing.id);
+        void unhideChat(existing.id);
       } else {
         const nameMap: Record<string, string> = {};
         const imgMap: Record<string, string> = {};
@@ -2443,7 +2492,6 @@ export default function SynqScreen() {
         <StatusBar barStyle="light-content" />
         {status === "active" && (
           <View style={styles.activeSynqLayer}>
-            <ProfileTabHeaderOverlay variant="title" />
             <ActiveSynqSection
               styles={styles}
               unreadCount={unreadInboxCount}
@@ -2451,14 +2499,12 @@ export default function SynqScreen() {
               selectedFriends={selectedFriends}
               setSelectedFriends={setSelectedFriends}
               handleConnect={handleConnect}
+              memo={memo}
               isConnecting={isConnecting}
               endSynq={endSynq}
-              insetsBottom={insets.bottom}
               audienceLabel={synqAudienceLabel}
               openChangeAudience={() => setChangeAudienceVisible(true)}
-              openMessagesInbox={() => {
-                setMessagesModalVisible(true);
-              }}
+              openMessagesInbox={openMessagesInbox}
               openEditModal={() => setIsEditModalVisible(true)}
               userProfile={userProfile}
               viewerId={uid}
@@ -2819,9 +2865,11 @@ export default function SynqScreen() {
         <ConfirmModal
           visible={showEndSynqModal}
           title="End Synq?"
-          message="You will no longer be visible as available."
+          message="Your friends will no longer see that you're free right now."
           confirmText="End Synq"
+          cancelText="Keep Synqing"
           destructive
+          stacked
           confirmDisabled={endingSynq}
           onCancel={() => setShowEndSynqModal(false)}
           onConfirm={async () => {
@@ -3485,7 +3533,11 @@ const styles = StyleSheet.create({
     marginHorizontal: 20,
   },
   modalTitle: modalTitleText,
-  messagesInboxTitle: tabScreenMainHeaderTitle,
+  messagesInboxTitle: {
+    ...tabScreenMainHeaderTitle,
+    fontSize: 22,
+    letterSpacing: 0.1,
+  },
   deleteAction: {
     backgroundColor: DESTRUCTIVE,
     justifyContent: "center",

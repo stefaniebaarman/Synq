@@ -1,13 +1,6 @@
 import type { Friend } from "@/constants/Variables";
-import {
-  FriendsSortMenu,
-  type FriendsSortMode,
-} from "@/src/components/friends/FriendsSortControls";
-import HeaderIconButton from "@/src/components/HeaderIconButton";
-import NotificationBadge from "@/src/components/NotificationBadge";
-import { useTabHeaderLayout } from "@/src/components/ProfileTabHeaderOverlay";
 import ActiveSynqEmptyState from "@/src/components/synq/ActiveSynqEmptyState";
-import TabHeaderIconRow from "@/src/components/TabHeaderIconRow";
+import NotificationBadge from "@/src/components/NotificationBadge";
 import { friendLocationWithDistance } from "@/src/lib/friendDistance";
 import { friendLocationLine, resolveAvatar } from "@/src/lib/helpers";
 import { SYNQ_TAB_LONG_PRESS } from "@/src/lib/synqTabEvents";
@@ -23,85 +16,58 @@ import {
   DeviceEventEmitter,
   FlatList,
   Pressable,
+  StyleSheet,
   Text,
   TouchableOpacity,
   View,
 } from "react-native";
 import Animated, {
+  Easing,
   FadeIn,
   useAnimatedStyle,
   useReducedMotion,
   useSharedValue,
   withRepeat,
-  withSequence,
   withTiming,
 } from "react-native-reanimated";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+import Svg, { Defs, RadialGradient, Rect, Stop } from "react-native-svg";
 import SynqOptionsSheet from "../../../app/synq-screens/SynqOptionsSheet";
 import {
   ACCENT,
-  ACCENT_FILL_MUTED,
+  ACCENT_BORDER,
+  ACCENT_FILL_SUBTLE,
   BG,
   BG_TRANSPARENT,
+  MUTED,
   MUTED2,
-  synqOutlineAddBtn,
-  synqOutlineAddBtnText,
+  MUTED3,
+  RADIUS_MD,
   TAB_BAR_SCROLL_INSET,
+  TEXT,
+  TYPE_BODY,
+  TYPE_BUTTON,
+  TYPE_CAPTION,
+  fonts,
+  synqOutlineAddBtn,
+  synqOutlineAddBtnDisabled,
+  synqOutlineAddBtnText,
+  synqOutlineAddBtnTextDisabled,
 } from "../../../constants/Variables";
 
-/** Fade strip sitting just above the Start chat dock. */
-const ACTIVE_LIST_BOTTOM_FADE_HEIGHT = 72;
-/** Extra lift for the Start chat CTA above the tab bar. */
-const ACTIVE_CTA_BOTTOM_NUDGE = 64;
-/** Approximate height of {@link synqOutlineAddBtn} (padding + label). */
-const ACTIVE_CTA_HEIGHT = 48;
 const LIVE_PULSE_SIZE = 8;
-/** Tighter dock when few friends so the CTA doesn't float in empty space. */
+const MEMO_PLACEHOLDER = "Add a status…";
+const STATUS_DIVIDER = "rgba(255,255,255,0.08)";
+const ACTIVE_LIST_BOTTOM_FADE_HEIGHT = 72;
+const ACTIVE_CTA_BOTTOM_NUDGE = 64;
+const ACTIVE_CTA_HEIGHT = 48;
 const SHORT_LIST_MAX = 3;
 const ACTIVE_CTA_BOTTOM_NUDGE_SHORT = 44;
 
-function ActiveLivePulse({ reduced }: { reduced: boolean }) {
-  const coreOpacity = useSharedValue(1);
-  const ringScale = useSharedValue(1);
-  const ringOpacity = useSharedValue(0.45);
-
-  useEffect(() => {
-    if (reduced) {
-      coreOpacity.value = 1;
-      ringScale.value = 1;
-      ringOpacity.value = 0;
-      return;
-    }
-    coreOpacity.value = withRepeat(withTiming(0.4, { duration: 1100 }), -1, true);
-    ringScale.value = withRepeat(
-      withSequence(
-        withTiming(1, { duration: 0 }),
-        withTiming(2.2, { duration: 1600 })
-      ),
-      -1,
-      false
-    );
-    ringOpacity.value = withRepeat(
-      withSequence(
-        withTiming(0.5, { duration: 0 }),
-        withTiming(0, { duration: 1600 })
-      ),
-      -1,
-      false
-    );
-  }, [reduced, coreOpacity, ringScale, ringOpacity]);
-
-  const coreStyle = useAnimatedStyle(() => ({
-    opacity: coreOpacity.value,
-  }));
-  const ringStyle = useAnimatedStyle(() => ({
-    opacity: ringOpacity.value,
-    transform: [{ scale: ringScale.value }],
-  }));
-
+function ActiveLiveDot() {
   return (
     <View style={pulseStyles.wrap} accessibilityElementsHidden>
-      <Animated.View style={[pulseStyles.ring, ringStyle]} />
-      <Animated.View style={[pulseStyles.core, coreStyle]} />
+      <View style={pulseStyles.core} />
     </View>
   );
 }
@@ -119,16 +85,72 @@ const pulseStyles = {
     borderRadius: LIVE_PULSE_SIZE / 2,
     backgroundColor: ACCENT,
   },
-  ring: {
-    position: "absolute" as const,
-    width: LIVE_PULSE_SIZE,
-    height: LIVE_PULSE_SIZE,
-    borderRadius: LIVE_PULSE_SIZE / 2,
-    backgroundColor: ACCENT_FILL_MUTED,
-    borderWidth: 1,
-    borderColor: ACCENT,
-  },
 };
+
+function AmbientGlow({ reduced }: { reduced: boolean }) {
+  const pulse = useSharedValue(0);
+
+  useEffect(() => {
+    if (reduced) {
+      pulse.value = 0.5;
+      return;
+    }
+    pulse.value = withRepeat(
+      withTiming(1, { duration: 3200, easing: Easing.inOut(Easing.sin) }),
+      -1,
+      true
+    );
+  }, [reduced, pulse]);
+
+  const style = useAnimatedStyle(() => {
+    const t = pulse.value;
+    return {
+      opacity: 0.35 + t * 0.3,
+      transform: [{ scale: 1 + t * 0.03 }],
+    };
+  });
+
+  return (
+    <Animated.View style={styles.glowWrap} pointerEvents="none">
+      <Animated.View style={[styles.glowPulse, style]}>
+        <Svg
+          width="100%"
+          height="100%"
+          viewBox="0 0 390 844"
+          preserveAspectRatio="xMidYMid slice"
+        >
+          <Defs>
+            <RadialGradient
+              id="activeGlowTop"
+              cx="50%"
+              cy="12%"
+              rx="95%"
+              ry="55%"
+            >
+              <Stop offset="0%" stopColor={ACCENT} stopOpacity="0.07" />
+              <Stop offset="40%" stopColor={ACCENT} stopOpacity="0.03" />
+              <Stop offset="75%" stopColor={ACCENT} stopOpacity="0.01" />
+              <Stop offset="100%" stopColor={ACCENT} stopOpacity="0" />
+            </RadialGradient>
+            <RadialGradient
+              id="activeGlowWash"
+              cx="50%"
+              cy="42%"
+              rx="85%"
+              ry="75%"
+            >
+              <Stop offset="0%" stopColor={ACCENT} stopOpacity="0.025" />
+              <Stop offset="55%" stopColor={ACCENT} stopOpacity="0.008" />
+              <Stop offset="100%" stopColor={ACCENT} stopOpacity="0" />
+            </RadialGradient>
+          </Defs>
+          <Rect x="0" y="0" width="390" height="844" fill="url(#activeGlowTop)" />
+          <Rect x="0" y="0" width="390" height="844" fill="url(#activeGlowWash)" />
+        </Svg>
+      </Animated.View>
+    </Animated.View>
+  );
+}
 
 type Props = {
   styles: any;
@@ -137,9 +159,9 @@ type Props = {
   selectedFriends: string[];
   setSelectedFriends: React.Dispatch<React.SetStateAction<string[]>>;
   handleConnect: () => void;
+  memo?: string;
   isConnecting?: boolean;
   endSynq: () => void;
-  insetsBottom: number;
   openMessagesInbox: () => void;
   openEditModal: () => void;
   openChangeAudience?: () => void;
@@ -150,15 +172,15 @@ type Props = {
 };
 
 export default function ActiveSynqSection({
-  styles,
+  styles: parentStyles,
   unreadCount,
   availableFriends,
   selectedFriends,
   setSelectedFriends,
   handleConnect,
+  memo = "",
   isConnecting = false,
   endSynq,
-  insetsBottom,
   openMessagesInbox,
   openEditModal,
   openChangeAudience,
@@ -167,29 +189,10 @@ export default function ActiveSynqSection({
   viewerId,
   nudgeCandidates = [],
 }: Props) {
+  const insets = useSafeAreaInsets();
   const [optionsVisible, setOptionsVisible] = useState(false);
-  const [sortMode, setSortMode] = useState<FriendsSortMode>("distance");
-  const [sortMenuVisible, setSortMenuVisible] = useState(false);
-  const headerLayout = useTabHeaderLayout();
   const listRef = useRef<FlatList>(null);
   const reducedMotion = useReducedMotion();
-  const audienceIconOpacity = useSharedValue(1);
-
-  useEffect(() => {
-    if (reducedMotion) {
-      audienceIconOpacity.value = 1;
-      return;
-    }
-    audienceIconOpacity.value = withRepeat(
-      withTiming(0.55, { duration: 1400 }),
-      -1,
-      true
-    );
-  }, [reducedMotion, audienceIconOpacity]);
-
-  const audienceIconStyle = useAnimatedStyle(() => ({
-    opacity: audienceIconOpacity.value,
-  }));
 
   useEffect(() => {
     const subscription = DeviceEventEmitter.addListener(SYNQ_TAB_LONG_PRESS, () => {
@@ -206,16 +209,17 @@ export default function ActiveSynqSection({
 
   const { friends: sortedAvailableFriends, distancesKm } = useSortedFriendsList(
     availableFriends as Friend[],
-    sortMode,
+    "distance",
     userProfile
   );
 
+  const freeCount = sortedAvailableFriends.length;
   const selectedCount = selectedFriends.length;
   const showCta = selectedCount > 0;
-  const freeCount = sortedAvailableFriends.length;
-  /** Reserve dock + elevated fade whenever anyone is free. */
   const showDock = freeCount > 0;
   const isShortList = freeCount > 0 && freeCount <= SHORT_LIST_MAX;
+  const memoText = memo.trim();
+  const sharingLabel = audienceLabel?.trim() || "All friends";
 
   const footerLayout = useMemo(() => {
     const ctaPadTop = 10;
@@ -231,150 +235,151 @@ export default function ActiveSynqSection({
     };
   }, [isShortList]);
 
-  const renderStartChatButton = () => (
-    <TouchableOpacity
-      style={[
-        synqOutlineAddBtn,
-        styles.activeStartChatBtn,
-        !showCta && styles.activeStartChatBtnIdle,
-        isConnecting && { opacity: 0.5 },
-      ]}
-      onPress={handleConnect}
-      disabled={!showCta || isConnecting}
-      activeOpacity={showCta ? 0.85 : 1}
-      accessibilityRole="button"
-      accessibilityLabel={
-        isConnecting
-          ? "Opening chat"
-          : !showCta
-            ? "Select friends who are free to chat"
-            : `Start chat with ${selectedCount} friend${
-                selectedCount === 1 ? "" : "s"
-              }`
-      }
-    >
-      {isConnecting ? (
-        <ActivityIndicator color={ACCENT} />
-      ) : (
-        <Text
-          style={[
-            synqOutlineAddBtnText,
-            !showCta && styles.activeStartChatLabelIdle,
-          ]}
-        >
-          {showCta ? "Start chat" : "Select friends"}
-        </Text>
-      )}
-    </TouchableOpacity>
-  );
+  const toggleFriend = (friendId: string) => {
+    void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    setSelectedFriends((prev) =>
+      prev.includes(friendId)
+        ? prev.filter((id) => id !== friendId)
+        : [...prev, friendId]
+    );
+  };
 
   return (
-    <View style={styles.activeSynqRoot}>
-      <TabHeaderIconRow>
-        <View style={styles.synqHeaderSide}>
-          <HeaderIconButton
-            name="chatbubbles-outline"
-            onPress={openMessagesInbox}
-            accessibilityLabel={
-              unreadCount > 0
-                ? `Open messages, ${unreadCount} unread`
-                : "Open messages"
-            }
-            badge={
-              unreadCount > 0 ? (
-                <NotificationBadge variant="count" count={unreadCount} tone="accent" />
-              ) : undefined
-            }
-          />
-        </View>
-        <View style={styles.synqHeaderTitleCenter}>
+    <View style={parentStyles.activeSynqRoot}>
+      <AmbientGlow reduced={!!reducedMotion} />
+      <View style={[styles.body, { paddingTop: insets.top + 8 }]}>
+        <View style={styles.statusPanel}>
           <Animated.View
             entering={reducedMotion ? undefined : FadeIn.duration(380)}
-            style={styles.activeTitleRow}
           >
-            <ActiveLivePulse reduced={!!reducedMotion} />
-            <Text style={styles.headerTitle} numberOfLines={1}>
-              Synq is active
-            </Text>
-          </Animated.View>
-        </View>
-        <View style={styles.synqHeaderSide}>
-          <HeaderIconButton
-            name="ellipsis-horizontal"
-            onPress={() => setOptionsVisible(true)}
-            accessibilityLabel="Synq options"
-          />
-        </View>
-      </TabHeaderIconRow>
-      <View
-        style={[
-          styles.activeBody,
-          { paddingTop: headerLayout.iconRowBottom + 18, zIndex: 1 },
-        ]}
-      >
-        <View style={styles.activeContentPad}>
-          {audienceLabel ? (
-            <Animated.View
-              entering={
-                reducedMotion ? undefined : FadeIn.delay(80).duration(420)
-              }
-              style={styles.activeAudienceBlock}
-            >
-              <Text style={styles.activeAudienceEyebrow}>Visible to</Text>
+            <View style={styles.statusRow}>
               <Pressable
-                onPress={openChangeAudience}
-                disabled={!openChangeAudience}
+                onPress={endSynq}
                 style={({ pressed }) => [
-                  styles.audienceRow,
-                  openChangeAudience && pressed && styles.audienceRowPressed,
+                  styles.statusRowLead,
+                  pressed && styles.statusRowPressed,
                 ]}
                 accessibilityRole="button"
-                accessibilityLabel={`Visible to ${audienceLabel}`}
-                accessibilityHint={
-                  openChangeAudience ? "Change who can see you" : undefined
+                accessibilityLabel="Synq is active"
+                accessibilityHint="Double tap to end Synq"
+              >
+                <ActiveLiveDot />
+                <Text style={styles.activeTitle} numberOfLines={1}>
+                  Synq is active
+                </Text>
+              </Pressable>
+              <TouchableOpacity
+                onPress={openMessagesInbox}
+                hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                style={styles.messagesBtn}
+                accessibilityRole="button"
+                accessibilityLabel={
+                  unreadCount > 0
+                    ? `Open messages, ${unreadCount} unread`
+                    : "Open messages"
                 }
               >
-                <Animated.View style={audienceIconStyle}>
-                  <Ionicons
-                    name="people-outline"
-                    size={20}
-                    color={ACCENT}
-                    style={styles.activeSynqLeadIcon}
-                  />
-                </Animated.View>
-                <Text style={styles.audienceValue} numberOfLines={1}>
-                  {audienceLabel}
-                </Text>
-                {openChangeAudience ? (
-                  <Ionicons
-                    name="chevron-down"
-                    size={16}
-                    color={MUTED2}
-                    style={styles.audienceChevron}
+                <Ionicons name="chatbubble-outline" size={22} color={TEXT} />
+                {unreadCount > 0 ? (
+                  <NotificationBadge
+                    variant="count"
+                    count={unreadCount}
+                    tone="accent"
                   />
                 ) : null}
-              </Pressable>
-            </Animated.View>
-          ) : null}
+              </TouchableOpacity>
+            </View>
+          </Animated.View>
 
-          {freeCount > 0 ? (
-            <Text style={styles.activeFriendsEyebrow}>Available now</Text>
-          ) : null}
+          <View style={styles.statusDivider} />
 
+          <Animated.View
+            entering={
+              reducedMotion ? undefined : FadeIn.delay(60).duration(400)
+            }
+          >
+            <Pressable
+              onPress={openEditModal}
+              style={({ pressed }) => [
+                styles.statusRow,
+                pressed && styles.statusRowPressed,
+              ]}
+              accessibilityRole="button"
+              accessibilityLabel={
+                memoText ? `Status: ${memoText}` : "Add a status"
+              }
+              accessibilityHint="Edit your status"
+            >
+              <Text
+                style={[
+                  styles.statusMemo,
+                  !memoText && styles.statusMemoPlaceholder,
+                ]}
+                numberOfLines={2}
+              >
+                {memoText || MEMO_PLACEHOLDER}
+              </Text>
+              <Ionicons
+                name="create-outline"
+                size={18}
+                color={MUTED2}
+                style={styles.statusRowIcon}
+              />
+            </Pressable>
+          </Animated.View>
+
+          {audienceLabel || openChangeAudience ? (
+            <>
+              <View style={styles.statusDivider} />
+              <Animated.View
+                entering={
+                  reducedMotion ? undefined : FadeIn.delay(110).duration(400)
+                }
+              >
+                <Pressable
+                  onPress={openChangeAudience}
+                  disabled={!openChangeAudience}
+                  style={({ pressed }) => [
+                    styles.statusRow,
+                    openChangeAudience && pressed && styles.statusRowPressed,
+                  ]}
+                  accessibilityRole="button"
+                  accessibilityLabel={`Sharing with ${sharingLabel}`}
+                  accessibilityHint={
+                    openChangeAudience ? "Change who can see you" : undefined
+                  }
+                >
+                  <Text style={styles.sharingText} numberOfLines={1}>
+                    Sharing with{" "}
+                    <Text style={styles.sharingAccent}>{sharingLabel}</Text>
+                  </Text>
+                  <Ionicons
+                    name="people"
+                    size={18}
+                    color={MUTED2}
+                    style={styles.statusRowIcon}
+                  />
+                </Pressable>
+              </Animated.View>
+            </>
+          ) : null}
+        </View>
+
+        <View style={styles.listPad}>
           <FlatList
             ref={listRef}
-            style={styles.activeFriendsList}
+            style={styles.friendsList}
             data={sortedAvailableFriends}
             keyExtractor={(item) => item.id}
             showsVerticalScrollIndicator={false}
-            ItemSeparatorComponent={null}
             ListEmptyComponent={
               viewerId ? (
-                <ActiveSynqEmptyState viewerId={viewerId} candidates={nudgeCandidates} />
+                <ActiveSynqEmptyState
+                  viewerId={viewerId}
+                  candidates={nudgeCandidates}
+                />
               ) : null
             }
-            ListHeaderComponent={null}
-            ListFooterComponent={null}
             renderItem={({ item }) => {
               const friendMemo = item.memo?.trim();
               const locationLine = friendLocationWithDistance(
@@ -384,144 +389,308 @@ export default function ActiveSynqSection({
               const selected = selectedFriends.includes(item.id);
               return (
                 <TouchableOpacity
-                  onPress={() => {
-                    void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                    setSelectedFriends((prev) =>
-                      prev.includes(item.id)
-                        ? prev.filter((id) => id !== item.id)
-                        : [...prev, item.id]
-                    );
-                  }}
+                  onPress={() => toggleFriend(item.id)}
                   style={[
-                    styles.activeFriendTile,
-                    selected && styles.activeFriendTileSelected,
+                    styles.friendCard,
+                    selected && styles.friendCardSelected,
                   ]}
+                  activeOpacity={0.85}
                   accessibilityRole="button"
                   accessibilityState={{ selected }}
                   accessibilityLabel={item.displayName}
                 >
-                  <View
-                    style={[
-                      styles.activeFriendAvatarRing,
-                      selected && styles.activeFriendAvatarRingSelected,
-                    ]}
-                  >
+                  <View style={styles.friendAvatarWrap}>
                     <ExpoImage
                       source={{ uri: resolveAvatar(item.imageurl) }}
-                      style={styles.activeFriendAvatar}
+                      style={styles.friendAvatar}
                       cachePolicy="memory-disk"
                       transition={0}
                     />
+                    <View style={styles.friendAvailDot} />
                   </View>
-
-                  <View style={styles.activeFriendCopy}>
-                    <Text style={styles.activeFriendName} numberOfLines={1}>
+                  <View style={styles.friendCopy}>
+                    <Text style={styles.friendName} numberOfLines={1}>
                       {item.displayName}
                     </Text>
                     {friendMemo ? (
-                      <Text style={styles.activeFriendMemo} numberOfLines={1}>
+                      <Text style={styles.friendMemo} numberOfLines={1}>
                         {friendMemo}
                       </Text>
                     ) : null}
                     {locationLine ? (
-                      <View style={styles.activeFriendMetaRow}>
+                      <View style={styles.friendMetaRow}>
                         <Ionicons
                           name="location-outline"
                           size={12}
                           color={MUTED2}
-                          style={styles.activeFriendMetaIcon}
+                          style={styles.friendMetaIcon}
                         />
-                        <Text style={styles.activeFriendMeta} numberOfLines={1}>
+                        <Text style={styles.friendMeta} numberOfLines={1}>
                           {locationLine}
                         </Text>
                       </View>
                     ) : null}
                   </View>
-
-                  <View style={styles.activeFriendSelectSlot}>
-                    {selected ? (
-                      <Ionicons
-                        name="checkmark-circle"
-                        size={24}
-                        color={ACCENT}
-                      />
-                    ) : (
-                      <View style={styles.activeFriendSelectIdle} />
-                    )}
-                  </View>
                 </TouchableOpacity>
               );
             }}
             contentContainerStyle={[
-              styles.activeListContent,
+              styles.listContent,
               {
-                paddingTop: 4,
+                paddingTop: 10,
                 paddingBottom: showDock
                   ? footerLayout.listBottomPad
                   : TAB_BAR_SCROLL_INSET,
+                flexGrow: freeCount === 0 ? 1 : undefined,
               },
             ]}
           />
         </View>
 
-          {showDock ? (
-            <>
-              <LinearGradient
-                pointerEvents="none"
-                colors={[
-                  BG_TRANSPARENT,
-                  "rgba(9,10,11,0.06)",
-                  "rgba(9,10,11,0.18)",
-                  "rgba(9,10,11,0.42)",
-                  "rgba(9,10,11,0.72)",
-                  BG,
-                ]}
-                locations={[0, 0.2, 0.4, 0.62, 0.82, 1]}
-                start={{ x: 0.5, y: 0 }}
-                end={{ x: 0.5, y: 1 }}
+        {showDock ? (
+          <>
+            <LinearGradient
+              pointerEvents="none"
+              colors={[
+                BG_TRANSPARENT,
+                "rgba(9,10,11,0.06)",
+                "rgba(9,10,11,0.18)",
+                "rgba(9,10,11,0.42)",
+                "rgba(9,10,11,0.72)",
+                BG,
+              ]}
+              locations={[0, 0.2, 0.4, 0.62, 0.82, 1]}
+              start={{ x: 0.5, y: 0 }}
+              end={{ x: 0.5, y: 1 }}
+              style={[
+                parentStyles.activeListBottomFade,
+                {
+                  height: ACTIVE_LIST_BOTTOM_FADE_HEIGHT,
+                  bottom: footerLayout.dockHeight,
+                },
+              ]}
+            />
+            <View
+              style={[
+                parentStyles.activeFooterDock,
+                {
+                  height: footerLayout.dockHeight,
+                  paddingTop: footerLayout.ctaPadTop,
+                  paddingBottom: footerLayout.ctaBottomPad,
+                },
+              ]}
+            >
+              <TouchableOpacity
                 style={[
-                  styles.activeListBottomFade,
-                  {
-                    height: ACTIVE_LIST_BOTTOM_FADE_HEIGHT,
-                    bottom: footerLayout.dockHeight,
-                  },
+                  synqOutlineAddBtn,
+                  parentStyles.activeStartChatBtn,
+                  !showCta && synqOutlineAddBtnDisabled,
+                  isConnecting && { opacity: 0.5 },
                 ]}
-              />
-              <View
-                style={[
-                  styles.activeFooterDock,
-                  {
-                    height: footerLayout.dockHeight,
-                    paddingTop: footerLayout.ctaPadTop,
-                    paddingBottom: footerLayout.ctaBottomPad,
-                  },
-                ]}
+                onPress={handleConnect}
+                disabled={!showCta || isConnecting}
+                activeOpacity={showCta ? 0.85 : 1}
+                accessibilityRole="button"
+                accessibilityLabel={
+                  isConnecting
+                    ? "Opening chat"
+                    : !showCta
+                      ? "Select friends who are free to chat"
+                      : `Start chat with ${selectedCount} friend${
+                          selectedCount === 1 ? "" : "s"
+                        }`
+                }
               >
-                {renderStartChatButton()}
-              </View>
-            </>
-          ) : null}
+                {isConnecting ? (
+                  <ActivityIndicator color={ACCENT} />
+                ) : (
+                  <Text
+                    style={[
+                      synqOutlineAddBtnText,
+                      !showCta && synqOutlineAddBtnTextDisabled,
+                    ]}
+                  >
+                    {showCta ? "Start chat" : "Select friends"}
+                  </Text>
+                )}
+              </TouchableOpacity>
+            </View>
+          </>
+        ) : null}
       </View>
-
-      <FriendsSortMenu
-        visible={sortMenuVisible}
-        sortMode={sortMode}
-        onSelect={setSortMode}
-        onClose={() => setSortMenuVisible(false)}
-      />
 
       <SynqOptionsSheet
         visible={optionsVisible}
         onClose={() => setOptionsVisible(false)}
         onEditMemo={openEditModal}
         onChangeAudience={openChangeAudience}
-        onSortFriends={
-          availableFriends.length > 0
-            ? () => setSortMenuVisible(true)
-            : undefined
-        }
         onEndSynq={endSynq}
       />
     </View>
   );
 }
+
+const styles = StyleSheet.create({
+  body: {
+    flex: 1,
+    minHeight: 0,
+    zIndex: 1,
+  },
+  statusPanel: {
+    position: "relative",
+    paddingHorizontal: 22,
+    paddingBottom: 6,
+  },
+  glowWrap: {
+    ...StyleSheet.absoluteFillObject,
+    zIndex: 0,
+    overflow: "hidden",
+  },
+  glowPulse: {
+    ...StyleSheet.absoluteFillObject,
+  },
+  statusRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingVertical: 14,
+    gap: 12,
+  },
+  statusRowPressed: {
+    opacity: 0.72,
+  },
+  statusRowLead: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    minWidth: 0,
+  },
+  activeTitle: {
+    color: TEXT,
+    fontFamily: fonts.heavy,
+    fontSize: 22,
+    letterSpacing: 0.1,
+    includeFontPadding: false,
+  },
+  messagesBtn: {
+    position: "relative",
+    width: 40,
+    height: 40,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  statusDivider: {
+    height: StyleSheet.hairlineWidth,
+    backgroundColor: STATUS_DIVIDER,
+  },
+  statusMemo: {
+    flex: 1,
+    color: TEXT,
+    fontFamily: fonts.book,
+    fontSize: TYPE_BODY,
+    lineHeight: 22,
+  },
+  statusMemoPlaceholder: {
+    color: MUTED3,
+  },
+  statusRowIcon: {
+    flexShrink: 0,
+  },
+  sharingText: {
+    flex: 1,
+    color: MUTED,
+    fontFamily: fonts.book,
+    fontSize: TYPE_BUTTON,
+    lineHeight: 21,
+  },
+  sharingAccent: {
+    color: ACCENT,
+    fontFamily: fonts.medium,
+  },
+  listPad: {
+    flex: 1,
+    minHeight: 0,
+    paddingHorizontal: 22,
+  },
+  friendsList: {
+    flex: 1,
+    backgroundColor: "transparent",
+  },
+  listContent: {
+    paddingHorizontal: 0,
+    backgroundColor: "transparent",
+  },
+  friendCard: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingVertical: 12,
+    paddingHorizontal: 12,
+    gap: 12,
+    marginBottom: 10,
+    borderRadius: RADIUS_MD,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: "rgba(255,255,255,0.06)",
+    backgroundColor: "rgba(255,255,255,0.03)",
+  },
+  friendCardSelected: {
+    borderColor: ACCENT_BORDER,
+    backgroundColor: ACCENT_FILL_SUBTLE,
+  },
+  friendAvatarWrap: {
+    width: 48,
+    height: 48,
+    position: "relative",
+  },
+  friendAvatar: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+  },
+  friendAvailDot: {
+    position: "absolute",
+    right: 0,
+    bottom: 1,
+    width: 12,
+    height: 12,
+    borderRadius: 6,
+    backgroundColor: ACCENT,
+    borderWidth: 2,
+    borderColor: BG,
+  },
+  friendCopy: {
+    flex: 1,
+    minWidth: 0,
+    justifyContent: "center",
+    paddingRight: 4,
+  },
+  friendName: {
+    color: TEXT,
+    fontFamily: fonts.heavy,
+    fontSize: TYPE_BODY,
+    lineHeight: 20,
+    letterSpacing: 0.05,
+  },
+  friendMemo: {
+    marginTop: 3,
+    color: MUTED,
+    fontSize: TYPE_CAPTION,
+    lineHeight: 18,
+    fontFamily: fonts.book,
+  },
+  friendMetaRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginTop: 4,
+  },
+  friendMetaIcon: {
+    marginRight: 4,
+  },
+  friendMeta: {
+    flex: 1,
+    color: MUTED2,
+    fontSize: 11,
+    fontFamily: fonts.book,
+    letterSpacing: 0.2,
+  },
+});

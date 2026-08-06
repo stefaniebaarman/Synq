@@ -1,14 +1,15 @@
 import { DIALOG_ANIMATION } from "@/constants/sheetStyles";
 import {
-  MUTED,
+  MUTED2,
   MUTED3,
+  TYPE_BUTTON,
+  TYPE_MICRO,
+  fonts,
   synqOutlineAddBtn,
   synqOutlineAddBtnDisabled,
   synqOutlineAddBtnText,
   synqOutlineAddBtnTextDisabled,
 } from "@/constants/Variables";
-import CloseButton from "@/src/components/CloseButton";
-import { Ionicons } from "@expo/vector-icons";
 import { useEffect, useState } from "react";
 import {
   Keyboard,
@@ -21,6 +22,8 @@ import {
   View,
 } from "react-native";
 
+const MEMO_MAX = 60;
+
 type Props = {
   visible: boolean;
   onClose: () => void;
@@ -31,21 +34,6 @@ type Props = {
   styles: any;
 };
 
-const SUGGESTIONS = [
-  "Down for drinks",
-  "Happy hour?",
-  "Coffee?",
-  "Down for something chill",
-  "Quick bite?",
-  "Down for a walk",
-  "Gym?",
-  "Going for a run",
-  "Movie night?",
-  "Game night?",
-  "Down for something fun",
-  "What's the move?",
-];
-
 export default function EditSynqModal({
   visible,
   onClose,
@@ -55,72 +43,37 @@ export default function EditSynqModal({
   saving = false,
   styles,
 }: Props) {
-  const [visibleSuggestions, setVisibleSuggestions] = useState<string[]>([]);
-
-  const pickSuggestions = () => {
-    const exclude = memo.trim().toLowerCase();
-    const shuffled = [...SUGGESTIONS]
-      .sort(() => 0.5 - Math.random())
-      .filter((s) => s.toLowerCase() !== exclude);
-    setVisibleSuggestions(shuffled.slice(0, 4));
-  };
+  const [draft, setDraft] = useState(memo);
 
   useEffect(() => {
     if (!visible) return;
-    pickSuggestions();
-  }, [visible]);
+    setDraft(memo);
+  }, [visible, memo]);
 
   return (
     <Modal visible={visible} transparent animationType={DIALOG_ANIMATION}>
       <TouchableWithoutFeedback onPress={onClose}>
-        <View style={styles.centeredModalOverlay}>
+        <View style={[styles.centeredModalOverlay, localStyles.overlay]}>
           <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
             <View style={styles.editPanel}>
-              <View style={localStyles.headerRow}>
-                <Text style={styles.panelTitle}>Edit status</Text>
-                <CloseButton onPress={onClose} style={localStyles.headerClose} />
-              </View>
+              <Text style={localStyles.eyebrow}>YOUR STATUS</Text>
 
               <TextInput
-                style={styles.panelInput}
-                value={memo}
-                onChangeText={setMemo}
-                placeholder="e.g. let's grab drinks"
+                style={[styles.panelInput, localStyles.input]}
+                value={draft}
+                onChangeText={(t) => {
+                  const next = t.slice(0, MEMO_MAX);
+                  setDraft(next);
+                  setMemo(next);
+                }}
+                placeholder="e.g. down for a walk or matcha"
                 placeholderTextColor={MUTED3}
                 multiline
+                maxLength={MEMO_MAX}
                 submitBehavior="blurAndSubmit"
                 returnKeyType="done"
+                autoFocus
               />
-
-              <View style={localStyles.suggestionHeaderRow}>
-                <Text style={styles.suggestionSectionTitle}>Suggested ideas</Text>
-                <TouchableOpacity
-                  onPress={pickSuggestions}
-                  style={localStyles.shuffleBtn}
-                  hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-                  accessibilityRole="button"
-                  accessibilityLabel="Shuffle suggested ideas"
-                >
-                  <Ionicons
-                    name="shuffle-outline"
-                    size={24}
-                    color={MUTED}
-                  />
-                </TouchableOpacity>
-              </View>
-
-              <View style={styles.suggestionWrap}>
-                {visibleSuggestions.map((s, i) => (
-                  <TouchableOpacity
-                    key={i}
-                    style={styles.suggestionChip}
-                    onPress={() => setMemo(s)}
-                    activeOpacity={0.8}
-                  >
-                    <Text style={styles.suggestionText}>{s}</Text>
-                  </TouchableOpacity>
-                ))}
-              </View>
 
               <TouchableOpacity
                 style={[
@@ -132,7 +85,7 @@ export default function EditSynqModal({
                 disabled={saving}
                 activeOpacity={0.85}
                 accessibilityRole="button"
-                accessibilityLabel="Update status"
+                accessibilityLabel="Save changes"
               >
                 <Text
                   style={[
@@ -140,8 +93,18 @@ export default function EditSynqModal({
                     saving && synqOutlineAddBtnTextDisabled,
                   ]}
                 >
-                  Update
+                  Save changes
                 </Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                onPress={onClose}
+                style={localStyles.cancelBtn}
+                activeOpacity={0.8}
+                accessibilityRole="button"
+                accessibilityLabel="Cancel"
+              >
+                <Text style={localStyles.cancelText}>Cancel</Text>
               </TouchableOpacity>
             </View>
           </TouchableWithoutFeedback>
@@ -152,32 +115,34 @@ export default function EditSynqModal({
 }
 
 const localStyles = StyleSheet.create({
-  headerRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    marginBottom: 4,
-    minHeight: 44,
+  overlay: {
+    paddingBottom: 120,
   },
-  headerClose: {
-    marginRight: -10,
-    marginTop: -2,
-  },
-  suggestionHeaderRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
+  eyebrow: {
+    color: MUTED2,
+    fontSize: TYPE_MICRO,
+    fontFamily: fonts.medium,
+    letterSpacing: 1.6,
+    textTransform: "uppercase",
     marginBottom: 8,
-    minHeight: 40,
   },
-  shuffleBtn: {
-    minWidth: 44,
-    minHeight: 44,
-    alignItems: "center",
-    justifyContent: "center",
-    marginRight: -6,
+  input: {
+    minHeight: 48,
+    maxHeight: 72,
+    paddingVertical: 14,
+    textAlignVertical: "center",
   },
   saveBtn: {
-    marginTop: 20,
+    marginTop: 8,
+  },
+  cancelBtn: {
+    marginTop: 14,
+    alignItems: "center",
+    paddingVertical: 6,
+  },
+  cancelText: {
+    color: MUTED2,
+    fontFamily: fonts.medium,
+    fontSize: TYPE_BUTTON,
   },
 });
