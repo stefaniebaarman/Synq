@@ -37,7 +37,7 @@ export default function SynqAudienceSheet({
       cardStyle={sheetStyles.sheetCard}
     >
       <Text style={[sheetStyles.sheetTitle, styles.sheetTitlePad]}>
-        Sharing with
+        Visible to
       </Text>
       <View style={styles.pickerSection}>
         <SynqAudiencePicker

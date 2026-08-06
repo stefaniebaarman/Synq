@@ -9,24 +9,24 @@ import {
 } from "@/src/lib/friendDistance";
 import { useEffect, useMemo, useState } from "react";
 
+export type SortedFriendsListResult = {
+  friends: Friend[];
+  distancesKm: Record<string, number>;
+};
+
 export function useSortedFriendsList(
   friends: Friend[],
   sortMode: FriendsSortMode,
   userProfile: Record<string, unknown> | null | undefined
-): Friend[] {
+): SortedFriendsListResult {
   const { myCoords, myCityLabel } = useMemo(
     () => userOriginFromProfile(userProfile),
     [userProfile]
   );
   const [friendDistancesKm, setFriendDistancesKm] = useState<Record<string, number>>({});
-  const [distanceSortReady, setDistanceSortReady] = useState(sortMode !== "distance");
+  const [distanceSortReady, setDistanceSortReady] = useState(false);
 
   useEffect(() => {
-    if (sortMode !== "distance") {
-      setDistanceSortReady(true);
-      return;
-    }
-
     let cancelled = false;
     setDistanceSortReady(false);
 
@@ -50,12 +50,14 @@ export function useSortedFriendsList(
     return () => {
       cancelled = true;
     };
-  }, [sortMode, friends, myCoords, myCityLabel]);
+  }, [friends, myCoords, myCityLabel]);
 
-  return useMemo(() => {
+  const sortedFriends = useMemo(() => {
     if (sortMode === "distance" && distanceSortReady) {
       return sortFriendsByDistanceKm(friends, friendDistancesKm);
     }
     return sortFriendsByName(friends);
   }, [friends, sortMode, distanceSortReady, friendDistancesKm]);
+
+  return { friends: sortedFriends, distancesKm: friendDistancesKm };
 }

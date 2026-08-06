@@ -8,6 +8,7 @@ import NotificationBadge from "@/src/components/NotificationBadge";
 import { useTabHeaderLayout } from "@/src/components/ProfileTabHeaderOverlay";
 import ActiveSynqEmptyState from "@/src/components/synq/ActiveSynqEmptyState";
 import TabHeaderIconRow from "@/src/components/TabHeaderIconRow";
+import { friendLocationWithDistance } from "@/src/lib/friendDistance";
 import { friendLocationLine, resolveAvatar } from "@/src/lib/helpers";
 import { SYNQ_TAB_LONG_PRESS } from "@/src/lib/synqTabEvents";
 import { useSortedFriendsList } from "@/src/lib/useSortedFriendsList";
@@ -26,23 +27,108 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
+import Animated, {
+  FadeIn,
+  useAnimatedStyle,
+  useReducedMotion,
+  useSharedValue,
+  withRepeat,
+  withSequence,
+  withTiming,
+} from "react-native-reanimated";
 import SynqOptionsSheet from "../../../app/synq-screens/SynqOptionsSheet";
 import {
   ACCENT,
+  ACCENT_FILL_MUTED,
   BG,
-  BG_FADE_MID,
   BG_TRANSPARENT,
   MUTED2,
+  synqOutlineAddBtn,
+  synqOutlineAddBtnText,
   TAB_BAR_SCROLL_INSET,
 } from "../../../constants/Variables";
 
-/** Matches audience lead icon on the active Synq screen. */
-const ACTIVE_LEAD_ICON_SIZE = 20;
 /** Fade strip sitting just above the Start chat dock. */
-const ACTIVE_LIST_BOTTOM_FADE_HEIGHT = 52;
+const ACTIVE_LIST_BOTTOM_FADE_HEIGHT = 72;
 /** Extra lift for the Start chat CTA above the tab bar. */
-const ACTIVE_CTA_BOTTOM_NUDGE = 48;
-const ACTIVE_CTA_HEIGHT = 52;
+const ACTIVE_CTA_BOTTOM_NUDGE = 64;
+/** Approximate height of {@link synqOutlineAddBtn} (padding + label). */
+const ACTIVE_CTA_HEIGHT = 48;
+const LIVE_PULSE_SIZE = 8;
+/** Tighter dock when few friends so the CTA doesn't float in empty space. */
+const SHORT_LIST_MAX = 3;
+const ACTIVE_CTA_BOTTOM_NUDGE_SHORT = 44;
+
+function ActiveLivePulse({ reduced }: { reduced: boolean }) {
+  const coreOpacity = useSharedValue(1);
+  const ringScale = useSharedValue(1);
+  const ringOpacity = useSharedValue(0.45);
+
+  useEffect(() => {
+    if (reduced) {
+      coreOpacity.value = 1;
+      ringScale.value = 1;
+      ringOpacity.value = 0;
+      return;
+    }
+    coreOpacity.value = withRepeat(withTiming(0.4, { duration: 1100 }), -1, true);
+    ringScale.value = withRepeat(
+      withSequence(
+        withTiming(1, { duration: 0 }),
+        withTiming(2.2, { duration: 1600 })
+      ),
+      -1,
+      false
+    );
+    ringOpacity.value = withRepeat(
+      withSequence(
+        withTiming(0.5, { duration: 0 }),
+        withTiming(0, { duration: 1600 })
+      ),
+      -1,
+      false
+    );
+  }, [reduced, coreOpacity, ringScale, ringOpacity]);
+
+  const coreStyle = useAnimatedStyle(() => ({
+    opacity: coreOpacity.value,
+  }));
+  const ringStyle = useAnimatedStyle(() => ({
+    opacity: ringOpacity.value,
+    transform: [{ scale: ringScale.value }],
+  }));
+
+  return (
+    <View style={pulseStyles.wrap} accessibilityElementsHidden>
+      <Animated.View style={[pulseStyles.ring, ringStyle]} />
+      <Animated.View style={[pulseStyles.core, coreStyle]} />
+    </View>
+  );
+}
+
+const pulseStyles = {
+  wrap: {
+    width: LIVE_PULSE_SIZE + 10,
+    height: LIVE_PULSE_SIZE + 10,
+    alignItems: "center" as const,
+    justifyContent: "center" as const,
+  },
+  core: {
+    width: LIVE_PULSE_SIZE,
+    height: LIVE_PULSE_SIZE,
+    borderRadius: LIVE_PULSE_SIZE / 2,
+    backgroundColor: ACCENT,
+  },
+  ring: {
+    position: "absolute" as const,
+    width: LIVE_PULSE_SIZE,
+    height: LIVE_PULSE_SIZE,
+    borderRadius: LIVE_PULSE_SIZE / 2,
+    backgroundColor: ACCENT_FILL_MUTED,
+    borderWidth: 1,
+    borderColor: ACCENT,
+  },
+};
 
 type Props = {
   styles: any;
@@ -86,6 +172,24 @@ export default function ActiveSynqSection({
   const [sortMenuVisible, setSortMenuVisible] = useState(false);
   const headerLayout = useTabHeaderLayout();
   const listRef = useRef<FlatList>(null);
+  const reducedMotion = useReducedMotion();
+  const audienceIconOpacity = useSharedValue(1);
+
+  useEffect(() => {
+    if (reducedMotion) {
+      audienceIconOpacity.value = 1;
+      return;
+    }
+    audienceIconOpacity.value = withRepeat(
+      withTiming(0.55, { duration: 1400 }),
+      -1,
+      true
+    );
+  }, [reducedMotion, audienceIconOpacity]);
+
+  const audienceIconStyle = useAnimatedStyle(() => ({
+    opacity: audienceIconOpacity.value,
+  }));
 
   useEffect(() => {
     const subscription = DeviceEventEmitter.addListener(SYNQ_TAB_LONG_PRESS, () => {
@@ -100,7 +204,7 @@ export default function ActiveSynqSection({
     }, [])
   );
 
-  const sortedAvailableFriends = useSortedFriendsList(
+  const { friends: sortedAvailableFriends, distancesKm } = useSortedFriendsList(
     availableFriends as Friend[],
     sortMode,
     userProfile
@@ -108,10 +212,16 @@ export default function ActiveSynqSection({
 
   const selectedCount = selectedFriends.length;
   const showCta = selectedCount > 0;
+  const freeCount = sortedAvailableFriends.length;
+  /** Reserve dock + elevated fade whenever anyone is free. */
+  const showDock = freeCount > 0;
+  const isShortList = freeCount > 0 && freeCount <= SHORT_LIST_MAX;
 
   const footerLayout = useMemo(() => {
     const ctaPadTop = 10;
-    const ctaBottomPad = TAB_BAR_SCROLL_INSET + ACTIVE_CTA_BOTTOM_NUDGE;
+    const ctaBottomPad =
+      TAB_BAR_SCROLL_INSET +
+      (isShortList ? ACTIVE_CTA_BOTTOM_NUDGE_SHORT : ACTIVE_CTA_BOTTOM_NUDGE);
     const dockHeight = ctaPadTop + ACTIVE_CTA_HEIGHT + ctaBottomPad;
     return {
       ctaPadTop,
@@ -119,7 +229,44 @@ export default function ActiveSynqSection({
       dockHeight,
       listBottomPad: dockHeight + ACTIVE_LIST_BOTTOM_FADE_HEIGHT,
     };
-  }, []);
+  }, [isShortList]);
+
+  const renderStartChatButton = () => (
+    <TouchableOpacity
+      style={[
+        synqOutlineAddBtn,
+        styles.activeStartChatBtn,
+        !showCta && styles.activeStartChatBtnIdle,
+        isConnecting && { opacity: 0.5 },
+      ]}
+      onPress={handleConnect}
+      disabled={!showCta || isConnecting}
+      activeOpacity={showCta ? 0.85 : 1}
+      accessibilityRole="button"
+      accessibilityLabel={
+        isConnecting
+          ? "Opening chat"
+          : !showCta
+            ? "Select friends who are free to chat"
+            : `Start chat with ${selectedCount} friend${
+                selectedCount === 1 ? "" : "s"
+              }`
+      }
+    >
+      {isConnecting ? (
+        <ActivityIndicator color={ACCENT} />
+      ) : (
+        <Text
+          style={[
+            synqOutlineAddBtnText,
+            !showCta && styles.activeStartChatLabelIdle,
+          ]}
+        >
+          {showCta ? "Start chat" : "Select friends"}
+        </Text>
+      )}
+    </TouchableOpacity>
+  );
 
   return (
     <View style={styles.activeSynqRoot}>
@@ -141,9 +288,15 @@ export default function ActiveSynqSection({
           />
         </View>
         <View style={styles.synqHeaderTitleCenter}>
-          <Text style={styles.headerTitle} numberOfLines={1}>
-            Synq is active
-          </Text>
+          <Animated.View
+            entering={reducedMotion ? undefined : FadeIn.duration(380)}
+            style={styles.activeTitleRow}
+          >
+            <ActiveLivePulse reduced={!!reducedMotion} />
+            <Text style={styles.headerTitle} numberOfLines={1}>
+              Synq is active
+            </Text>
+          </Animated.View>
         </View>
         <View style={styles.synqHeaderSide}>
           <HeaderIconButton
@@ -156,40 +309,56 @@ export default function ActiveSynqSection({
       <View
         style={[
           styles.activeBody,
-          { paddingTop: headerLayout.iconRowBottom + 14 },
+          { paddingTop: headerLayout.iconRowBottom + 18, zIndex: 1 },
         ]}
       >
-        <View style={styles.headerDivider} />
-
-        <View style={styles.activeListFooterDock}>
+        <View style={styles.activeContentPad}>
           {audienceLabel ? (
-            <Pressable
-              onPress={openChangeAudience}
-              disabled={!openChangeAudience}
-              style={({ pressed }) => [
-                styles.audienceRow,
-                openChangeAudience && pressed && styles.audienceRowPressed,
-              ]}
-              accessibilityRole="button"
-              accessibilityLabel={`Sharing with ${audienceLabel}`}
-              accessibilityHint={
-                openChangeAudience ? "Opens sharing with" : undefined
+            <Animated.View
+              entering={
+                reducedMotion ? undefined : FadeIn.delay(80).duration(420)
               }
+              style={styles.activeAudienceBlock}
             >
-              <Ionicons
-                name="people-outline"
-                size={ACTIVE_LEAD_ICON_SIZE}
-                color={ACCENT}
-                style={styles.activeSynqLeadIcon}
-              />
-              <Text style={styles.audienceText} numberOfLines={1}>
-                Sharing with{" "}
-                <Text style={styles.audienceValue}>{audienceLabel}</Text>
-              </Text>
-              {openChangeAudience ? (
-                <Ionicons name="chevron-forward" size={14} color={MUTED2} />
-              ) : null}
-            </Pressable>
+              <Text style={styles.activeAudienceEyebrow}>Visible to</Text>
+              <Pressable
+                onPress={openChangeAudience}
+                disabled={!openChangeAudience}
+                style={({ pressed }) => [
+                  styles.audienceRow,
+                  openChangeAudience && pressed && styles.audienceRowPressed,
+                ]}
+                accessibilityRole="button"
+                accessibilityLabel={`Visible to ${audienceLabel}`}
+                accessibilityHint={
+                  openChangeAudience ? "Change who can see you" : undefined
+                }
+              >
+                <Animated.View style={audienceIconStyle}>
+                  <Ionicons
+                    name="people-outline"
+                    size={20}
+                    color={ACCENT}
+                    style={styles.activeSynqLeadIcon}
+                  />
+                </Animated.View>
+                <Text style={styles.audienceValue} numberOfLines={1}>
+                  {audienceLabel}
+                </Text>
+                {openChangeAudience ? (
+                  <Ionicons
+                    name="chevron-down"
+                    size={16}
+                    color={MUTED2}
+                    style={styles.audienceChevron}
+                  />
+                ) : null}
+              </Pressable>
+            </Animated.View>
+          ) : null}
+
+          {freeCount > 0 ? (
+            <Text style={styles.activeFriendsEyebrow}>Available now</Text>
           ) : null}
 
           <FlatList
@@ -204,9 +373,14 @@ export default function ActiveSynqSection({
                 <ActiveSynqEmptyState viewerId={viewerId} candidates={nudgeCandidates} />
               ) : null
             }
+            ListHeaderComponent={null}
+            ListFooterComponent={null}
             renderItem={({ item }) => {
               const friendMemo = item.memo?.trim();
-              const locationLine = friendLocationLine(item);
+              const locationLine = friendLocationWithDistance(
+                friendLocationLine(item),
+                distancesKm[item.id]
+              );
               const selected = selectedFriends.includes(item.id);
               return (
                 <TouchableOpacity
@@ -245,7 +419,7 @@ export default function ActiveSynqSection({
                       {item.displayName}
                     </Text>
                     {friendMemo ? (
-                      <Text style={styles.activeFriendMemo} numberOfLines={2}>
+                      <Text style={styles.activeFriendMemo} numberOfLines={1}>
                         {friendMemo}
                       </Text>
                     ) : null}
@@ -271,7 +445,9 @@ export default function ActiveSynqSection({
                         size={24}
                         color={ACCENT}
                       />
-                    ) : null}
+                    ) : (
+                      <View style={styles.activeFriendSelectIdle} />
+                    )}
                   </View>
                 </TouchableOpacity>
               );
@@ -279,21 +455,28 @@ export default function ActiveSynqSection({
             contentContainerStyle={[
               styles.activeListContent,
               {
-                paddingTop: audienceLabel ? 6 : 8,
-                paddingBottom:
-                  availableFriends.length > 0
-                    ? footerLayout.listBottomPad
-                    : TAB_BAR_SCROLL_INSET,
+                paddingTop: 4,
+                paddingBottom: showDock
+                  ? footerLayout.listBottomPad
+                  : TAB_BAR_SCROLL_INSET,
               },
             ]}
           />
+        </View>
 
-          {availableFriends.length > 0 ? (
+          {showDock ? (
             <>
               <LinearGradient
                 pointerEvents="none"
-                colors={[BG_TRANSPARENT, BG_FADE_MID, BG]}
-                locations={[0, 0.55, 1]}
+                colors={[
+                  BG_TRANSPARENT,
+                  "rgba(9,10,11,0.06)",
+                  "rgba(9,10,11,0.18)",
+                  "rgba(9,10,11,0.42)",
+                  "rgba(9,10,11,0.72)",
+                  BG,
+                ]}
+                locations={[0, 0.2, 0.4, 0.62, 0.82, 1]}
                 start={{ x: 0.5, y: 0 }}
                 end={{ x: 0.5, y: 1 }}
                 style={[
@@ -314,43 +497,10 @@ export default function ActiveSynqSection({
                   },
                 ]}
               >
-                <TouchableOpacity
-                  style={[
-                    styles.activeStartChatBtn,
-                    !showCta && styles.activeStartChatBtnIdle,
-                    isConnecting && { opacity: 0.5 },
-                  ]}
-                  onPress={handleConnect}
-                  disabled={!showCta || isConnecting}
-                  activeOpacity={showCta ? 0.88 : 1}
-                  accessibilityRole="button"
-                  accessibilityLabel={
-                    isConnecting
-                      ? "Opening chat"
-                      : !showCta
-                      ? "Select friends who are free to chat"
-                      : `Start chat with ${selectedCount} friend${
-                          selectedCount === 1 ? "" : "s"
-                        }`
-                  }
-                >
-                  {isConnecting ? (
-                    <ActivityIndicator color={ACCENT} />
-                  ) : (
-                    <Text
-                      style={[
-                        styles.activeStartChatLabel,
-                        !showCta && styles.activeStartChatLabelIdle,
-                      ]}
-                    >
-                      {showCta ? "Start chat" : "Select friends"}
-                    </Text>
-                  )}
-                </TouchableOpacity>
+                {renderStartChatButton()}
               </View>
             </>
           ) : null}
-        </View>
       </View>
 
       <FriendsSortMenu

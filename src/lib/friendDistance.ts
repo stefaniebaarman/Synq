@@ -167,3 +167,24 @@ export function sortFriendsByDistanceKm(
     return (a.displayName || "").localeCompare(b.displayName || "");
   });
 }
+
+/** US-facing distance label from km; null when unknown or too coarse to show. */
+export function formatDistanceKmLabel(km: number): string | null {
+  if (!Number.isFinite(km)) return null;
+  const miles = km * 0.621371;
+  if (miles < 1) return "Nearby";
+  if (miles < 100) return `${Math.round(miles)} mi`;
+  // Far city-center geocodes look falsely precise — omit distance.
+  return null;
+}
+
+/** Prefer "Nearby · City" / "12 mi · City" when distance is useful; else city only. */
+export function friendLocationWithDistance(
+  locationLine: string | null,
+  distanceKm?: number
+): string | null {
+  const dist =
+    typeof distanceKm === "number" ? formatDistanceKmLabel(distanceKm) : null;
+  if (dist && locationLine) return `${dist} · ${locationLine}`;
+  return dist || locationLine;
+}
