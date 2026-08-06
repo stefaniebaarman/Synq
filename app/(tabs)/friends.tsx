@@ -659,7 +659,11 @@ export default function FriendsScreen() {
     [friends, searchText, isBlocked]
   );
 
-  const displayFriends = useSortedFriendsList(filteredFriends, sortMode, userProfileForSort);
+  const { friends: displayFriends } = useSortedFriendsList(
+    filteredFriends,
+    sortMode,
+    userProfileForSort
+  );
 
   const listIsEmpty = displayFriends.length === 0;
 

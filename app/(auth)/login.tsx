@@ -1,5 +1,4 @@
 import {
-  onboardingAuthInnerMarginTop,
   ONBOARDING_BACK_BELOW_INSET,
   ONBOARDING_BACK_LEFT,
   ONBOARDING_DIVIDER_MARGIN_TOP,
@@ -10,38 +9,37 @@ import {
   ONBOARDING_SUBTITLE_SIZE,
   ONBOARDING_TITLE_LINE_HEIGHT,
   ONBOARDING_TITLE_SIZE,
+  onboardingAuthInnerMarginTop,
 } from "@/constants/onboardingLayout";
 import {
-  ACCENT,
   BG,
   BORDER,
   BUTTON_RADIUS,
-  DISABLED_ACCENT,
+  MODAL_RADIUS,
   MUTED,
   MUTED2,
   MUTED3,
-  ON_ACCENT_TEXT,
   OVERLAY_HEAVY,
   OVERLAY_PANEL,
   PRIMARY_CTA_HEIGHT,
-  PRIMARY_CTA_WIDTH,
   SURFACE,
   TEXT,
   TYPE_BODY,
   TYPE_CAPTION,
-  TYPE_CTA,
   TYPE_LEAD,
-  modalTitleText,
   fonts,
+  modalTitleText,
   stackNavigationBackBtn,
+  synqOutlineAddBtn,
+  synqOutlineAddBtnDisabled,
+  synqOutlineAddBtnText,
+  synqOutlineAddBtnTextDisabled,
   synqSvg,
-  MODAL_RADIUS,
 } from "@/constants/Variables";
 import BackButton from "@/src/components/BackButton";
-import { Ionicons } from "@expo/vector-icons";
 import { router } from "expo-router";
 import { sendPasswordResetEmail, signInWithEmailAndPassword } from "firebase/auth";
-import React, { useState } from "react";
+import { useState } from "react";
 import {
   Keyboard,
   Modal,
@@ -54,10 +52,12 @@ import {
   TouchableWithoutFeedback,
   View
 } from "react-native";
-import { SvgXml } from "react-native-svg";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import AlertModal from "../alert-modal";
+import { SvgXml } from "react-native-svg";
 import { auth } from "../../src/lib/firebase";
+import AlertModal from "../alert-modal";
+
+const CTA_WIDTH = "56%";
 
 export default function Login() {
   const insets = useSafeAreaInsets();
@@ -191,15 +191,25 @@ export default function Login() {
 
             <TouchableOpacity
               style={[
+                synqOutlineAddBtn,
                 styles.primaryButton,
-                (loading || !email || !password) && styles.disabledButton,
+                (loading || !email || !password) && synqOutlineAddBtnDisabled,
               ]}
               onPress={handleLogin}
               disabled={loading || !email || !password}
               activeOpacity={0.85}
+              accessibilityRole="button"
+              accessibilityLabel="Sign In"
             >
-              <Text style={[styles.primaryButtonText, loading && { opacity: 0.5 }]}>
-                Sign In
+              <Text
+                style={[
+                  synqOutlineAddBtnText,
+                  (loading || !email || !password) &&
+                    synqOutlineAddBtnTextDisabled,
+                  loading && { opacity: 0.5 },
+                ]}
+              >
+                Sign in
               </Text>
             </TouchableOpacity>
           </View>
@@ -233,11 +243,17 @@ export default function Login() {
                 />
 
                 <TouchableOpacity
-                  style={[styles.primaryButton, { marginTop: 14 }]}
+                  style={[
+                    synqOutlineAddBtn,
+                    styles.primaryButton,
+                    styles.modalPrimaryButton,
+                  ]}
                   onPress={handleSendReset}
                   activeOpacity={0.85}
+                  accessibilityRole="button"
+                  accessibilityLabel="Send Link"
                 >
-                  <Text style={styles.primaryButtonText}>Send Link</Text>
+                  <Text style={synqOutlineAddBtnText}>Send Link</Text>
                 </TouchableOpacity>
 
                 <TouchableOpacity
@@ -322,22 +338,16 @@ const styles = StyleSheet.create({
     fontFamily: fonts.book,
   },
   primaryButton: {
+    marginTop: 26,
     alignSelf: "center",
-    width: PRIMARY_CTA_WIDTH,
-    backgroundColor: ACCENT,
+    width: CTA_WIDTH,
     height: PRIMARY_CTA_HEIGHT,
-    borderRadius: BUTTON_RADIUS,
-    justifyContent: "center",
-    alignItems: "center",
-    marginTop: 18,
+    paddingVertical: 0,
+    paddingHorizontal: 24,
   },
-  primaryButtonText: {
-    color: ON_ACCENT_TEXT,
-    fontSize: TYPE_CTA,
-    fontFamily: fonts.heavy,
-    letterSpacing: 0.2,
+  modalPrimaryButton: {
+    marginTop: 14,
   },
-  disabledButton: { backgroundColor: DISABLED_ACCENT },
   modalOverlay: {
     flex: 1,
     backgroundColor: OVERLAY_HEAVY,
