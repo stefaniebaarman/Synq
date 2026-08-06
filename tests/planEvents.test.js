@@ -12,6 +12,21 @@ describe("openPlan matchesPlanEvent", () => {
     expect(matchesPlanEvent(a, b, [a, b])).toBe(true);
   });
 
+  test("does not match identical content from different hosts", () => {
+    const hostA = {
+      title: "Happy Hour",
+      date: "2026-07-17",
+      time: "5:00 PM",
+      location: "Wood & Iron",
+      planHostUid: "stefanie",
+    };
+    const hostB = {
+      ...hostA,
+      planHostUid: "blake",
+    };
+    expect(matchesPlanEvent(hostA, hostB, [hostA, hostB])).toBe(false);
+  });
+
   test("does not match same title and date from different hosts", () => {
     const hostA = {
       title: "Dinner",

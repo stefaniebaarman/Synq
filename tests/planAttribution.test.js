@@ -2,6 +2,7 @@ const {
   resolveEffectiveHostUid,
   resolvePlanAttribution,
   resolvePlanHostUidForJoin,
+  mergeEventsForGoingAttribution,
 } = require("../src/lib/planAttribution.js");
 
 describe("planAttribution", () => {
@@ -17,6 +18,18 @@ describe("planAttribution", () => {
     ).toBe("shawn");
   });
 
+  test("resolvePlanHostUidForJoin keeps host when rejoining from host profile with another attendee", () => {
+    expect(
+      resolvePlanHostUidForJoin(
+        {
+          planHostUid: "stefanie",
+          joinedFromIds: ["stefanie", "william"],
+        },
+        "stefanie"
+      )
+    ).toBe("stefanie");
+  });
+
   test("resolveEffectiveHostUid fixes host stored as profile anchor", () => {
     expect(
       resolveEffectiveHostUid(
@@ -30,6 +43,38 @@ describe("planAttribution", () => {
         "viewer"
       )
     ).toBe("shawn");
+  });
+
+  test("Blake and Sloane both keep Stefanie as host when both joined her plan", () => {
+    const event = {
+      planHostUid: "stefanie",
+      joinedFromFriendUid: "stefanie",
+      joinedFromId: "stefanie",
+      joinedFromIds: ["stefanie", "sloane", "blake"],
+      attendeeDisplayNames: {
+        stefanie: "Stefanie Baarman",
+        sloane: "Sloane Whitaker",
+        blake: "Blake Reilly",
+      },
+    };
+    const ids = ["stefanie", "sloane", "blake"];
+    const names = {
+      stefanie: "Stefanie Baarman",
+      sloane: "Sloane Whitaker",
+      blake: "Blake Reilly",
+    };
+
+    expect(resolveEffectiveHostUid(event, "blake", ids, "blake")).toBe("stefanie");
+    expect(resolveEffectiveHostUid(event, "sloane", ids, "sloane")).toBe("stefanie");
+    expect(resolveEffectiveHostUid(event, "blake", ids, "sloane")).toBe("stefanie");
+    expect(resolveEffectiveHostUid(event, "sloane", ids, "blake")).toBe("stefanie");
+
+    expect(resolvePlanAttribution(event, "blake", names, "blake").primary).toBe(
+      "Stefanie's plan"
+    );
+    expect(resolvePlanAttribution(event, "sloane", names, "sloane").primary).toBe(
+      "Stefanie's plan"
+    );
   });
 
   test("keeps Shawn as host on Elliott profile when Elliott is attending", () => {
@@ -68,7 +113,11 @@ describe("planAttribution", () => {
 
     expect(result.primary).toBe("Shawn's plan");
     expect(result.secondary).toBe("You and Elliott are going");
-    expect(result.goingPeople.map((p) => p.displayName)).toEqual(["Shawn", "Elliott"]);
+    expect(result.goingPeople.map((p) => p.displayName)).toEqual([
+      "Shawn",
+      "Elliott",
+      "Me",
+    ]);
     expect(result.goingPeople[0].isHost).toBe(true);
     expect(result.goingPeople[1].isHost).toBeFalsy();
   });
@@ -247,6 +296,160 @@ describe("planAttribution", () => {
     expect(result.secondary).toBe("Elliott is going");
   });
 
+  test("does not steal host to the only other attendee when planHostUid is set", () => {
+    const result = resolvePlanAttribution(
+      {
+        planHostUid: "stefanie",
+        joinedFromFriendUid: "stefanie",
+        joinedFromId: "stefanie",
+        joinedFromIds: ["stefanie", "william"],
+        joinedFromNames: ["Stefanie Baarman", "William Waller"],
+        attendeeDisplayNames: {
+          stefanie: "Stefanie Baarman",
+          william: "William Waller",
+          blake: "Blake Reilly",
+        },
+      },
+      "stefanie",
+      {
+        stefanie: "Stefanie Baarman",
+        william: "William Waller",
+        blake: "Blake Reilly",
+      },
+      "blake"
+    );
+
+    expect(result.primary).toBeNull();
+    expect(resolveEffectiveHostUid(
+      {
+        planHostUid: "stefanie",
+        joinedFromFriendUid: "stefanie",
+        joinedFromIds: ["stefanie", "william"],
+      },
+      "stefanie",
+      ["stefanie", "william"],
+      "blake"
+    )).toBe("stefanie");
+  });
+
+  test("mergeEventsForGoingAttribution prefers via when hosts disagree", () => {
+    const merged = mergeEventsForGoingAttribution(
+      {
+        planHostUid: "william",
+        joinedFromFriendUid: "stefanie",
+        joinedFromIds: ["stefanie", "william", "blake"],
+      },
+      {
+        planHostUid: "stefanie",
+        joinedFromIds: ["stefanie", "william", "blake"],
+      }
+    );
+    expect(merged.planHostUid).toBe("stefanie");
+  });
+
+  test("going sheet does not list combined joinedFromName strings as people", () => {
+    const result = resolvePlanAttribution(
+      mergeEventsForGoingAttribution(
+        {
+          planHostUid: "stefanie",
+          joinedFromFriendUid: "stefanie",
+          joinedFromIds: ["stefanie", "william", "blake"],
+          joinedFromNames: ["Stefanie Baarman", "William Waller"],
+          joinedFromName: "Stefanie Baarman, William Waller",
+          attendeeDisplayNames: {
+            stefanie: "Stefanie Baarman",
+            william: "William Waller",
+            blake: "Blake Reilly",
+          },
+        },
+        {
+          planHostUid: "stefanie",
+          joinedFromIds: ["stefanie", "william", "blake"],
+          joinedFromNames: ["William Waller", "Blake Reilly"],
+          joinedFromName: "William Waller, Blake Reilly",
+          attendeeDisplayNames: {
+            stefanie: "Stefanie Baarman",
+            william: "William Waller",
+            blake: "Blake Reilly",
+          },
+        }
+      ),
+      "stefanie",
+      {
+        stefanie: "Stefanie Baarman",
+        william: "William Waller",
+        blake: "Blake Reilly",
+      },
+      "blake"
+    );
+
+    expect(result.goingPeople.map((p) => p.displayName)).toEqual([
+      "Stefanie Baarman",
+      "William Waller",
+      "Blake Reilly",
+    ]);
+    expect(result.goingPeople.every((p) => p.userId)).toBe(true);
+  });
+
+  test("Blake stale host=William still attributes to Stefanie via joinedFromFriendUid", () => {
+    expect(
+      resolveEffectiveHostUid(
+        {
+          planHostUid: "william",
+          joinedFromFriendUid: "stefanie",
+          joinedFromIds: ["stefanie", "william", "blake"],
+        },
+        "stefanie",
+        ["stefanie", "william", "blake"],
+        "blake"
+      )
+    ).toBe("stefanie");
+  });
+
+  test("viewer host calendar wins over Blake copy that names William as host", () => {
+    const result = resolvePlanAttribution(
+      {
+        planHostUid: "william",
+        joinedFromFriendUid: "stefanie",
+        joinedFromIds: ["stefanie", "william", "blake"],
+        title: "Happy Hour",
+        date: "2026-07-17",
+        attendeeDisplayNames: {
+          stefanie: "Stefanie Baarman",
+          william: "William Waller",
+          blake: "Blake Reilly",
+        },
+      },
+      "stefanie",
+      {
+        stefanie: "Stefanie Baarman",
+        william: "William Waller",
+        blake: "Blake Reilly",
+      },
+      "blake",
+      [
+        {
+          planHostUid: "stefanie",
+          joinedFromIds: ["stefanie", "william", "blake"],
+          title: "Happy Hour",
+          date: "2026-07-17",
+          attendeeDisplayNames: {
+            stefanie: "Stefanie Baarman",
+            william: "William Waller",
+            blake: "Blake Reilly",
+          },
+        },
+      ]
+    );
+
+    expect(result.primary).toBeNull();
+    expect(result.goingPeople[0]).toMatchObject({
+      userId: "stefanie",
+      displayName: "Stefanie Baarman",
+      isHost: true,
+    });
+  });
+
   test("shows Shawns plan on Elliott profile from solo-shaped row via viewer copy", () => {
     const result = resolvePlanAttribution(
       {
@@ -277,6 +480,35 @@ describe("planAttribution", () => {
 
     expect(result.primary).toBe("Shawn's plan");
     expect(result.secondary).toBe("You and Elliott are going");
+  });
+
+  test("going sheet includes the viewer when they joined someone else's plan", () => {
+    const result = resolvePlanAttribution(
+      {
+        planHostUid: "stefanie",
+        joinedFromFriendUid: "stefanie",
+        joinedFromIds: ["stefanie", "blake", "viewer"],
+        attendeeDisplayNames: {
+          stefanie: "Stefanie Baarman",
+          blake: "Blake Reilly",
+          viewer: "Alex Joiner",
+        },
+      },
+      "viewer",
+      {
+        stefanie: "Stefanie Baarman",
+        blake: "Blake Reilly",
+        viewer: "Alex Joiner",
+      },
+      "blake"
+    );
+
+    expect(result.goingPeople.map((p) => p.displayName)).toEqual([
+      "Stefanie Baarman",
+      "Blake Reilly",
+      "Alex Joiner",
+    ]);
+    expect(result.secondary).toBe("You and Blake are going");
   });
 
   test("solo friend plan with no joiners still lists the host in goingPeople", () => {
