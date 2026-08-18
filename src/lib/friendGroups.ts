@@ -3,8 +3,6 @@ import {
   deleteDoc,
   doc,
   getDocs,
-  onSnapshot,
-  query,
   serverTimestamp,
   setDoc,
   updateDoc,
@@ -46,29 +44,15 @@ export function subscribeFriendGroups(
   onData: (groups: FriendGroup[]) => void,
   onError?: (err: unknown) => void
 ): Unsubscribe {
-  const q = query(friendGroupsCollection(uid));
-  return onSnapshot(
-    q,
-    (snap) => {
-      const groups = snap.docs
-        .map((d) => {
-          const data = d.data();
-          return {
-            id: d.id,
-            name: String(data.name || "").trim() || "Group",
-            memberIds: normalizeMemberIds(
-              Array.isArray(data.memberIds) ? (data.memberIds as string[]) : []
-            ),
-            sortOrder: typeof data.sortOrder === "number" ? data.sortOrder : 0,
-            createdAt: data.createdAt,
-            updatedAt: data.updatedAt,
-          } satisfies FriendGroup;
-        })
-        .sort((a, b) => a.sortOrder - b.sortOrder || a.name.localeCompare(b.name));
-      onData(groups);
-    },
-    (err) => onError?.(err)
-  );
+  // Lazy require avoids circular imports with socialListenerHub.
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  const { subscribeFriendGroupsMultiplexed } =
+    require("./socialListenerHub") as typeof import("./socialListenerHub");
+  const unsub = subscribeFriendGroupsMultiplexed(uid, onData);
+  return () => {
+    unsub();
+    void onError;
+  };
 }
 
 export async function createFriendGroup(

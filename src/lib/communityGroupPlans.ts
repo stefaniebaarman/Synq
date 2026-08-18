@@ -3,9 +3,11 @@ import {
   deleteDoc,
   doc,
   onSnapshot,
+  query,
   runTransaction,
   serverTimestamp,
   setDoc,
+  where,
   type Unsubscribe,
 } from "firebase/firestore";
 import { db } from "./firebase";
@@ -59,13 +61,25 @@ function mapPlanDoc(groupId: string, id: string, data: Record<string, unknown>):
   };
 }
 
+function todayDateKey(d = new Date()): string {
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${y}-${m}-${day}`;
+}
+
 export function subscribeCommunityGroupPlans(
   groupId: string,
   onData: (plans: CommunityGroupPlan[]) => void,
   onError?: (err: unknown) => void
 ): Unsubscribe {
-  return onSnapshot(
+  // date is stored as YYYY-MM-DD — bound the listener to upcoming/today plans.
+  const q = query(
     communityPlansCollection(groupId),
+    where("date", ">=", todayDateKey())
+  );
+  return onSnapshot(
+    q,
     (snap) => {
       const plans = snap.docs.map((d) =>
         mapPlanDoc(groupId, d.id, d.data() as Record<string, unknown>)

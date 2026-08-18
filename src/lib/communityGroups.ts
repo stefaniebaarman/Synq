@@ -5,7 +5,6 @@ import {
   getDoc,
   getDocs,
   limit,
-  onSnapshot,
   orderBy,
   query,
   runTransaction,
@@ -16,7 +15,7 @@ import {
   type Unsubscribe,
 } from "firebase/firestore";
 
-import { db } from "./firebase";
+import { db, auth } from "./firebase";
 import {
   MAX_COMMUNITY_GROUP_MEMBERS as MAX_MEMBERS,
   mergeCommunityGroupMemberIds as mergeMemberIdsCore,
@@ -35,6 +34,8 @@ export type CommunityGroup = {
   nameLower: string;
   creatorId: string;
   memberIds: string[];
+  /** Lightweight member cards to avoid N getDoc(user) on group open. */
+  memberPreviews?: Record<string, { displayName?: string; imageurl?: string }>;
   category?: string;
   location?: string;
   about?: string;
@@ -93,6 +94,10 @@ export function mapCommunityGroupDoc(id: string, data: Record<string, unknown>):
   const about = optionalTrimmed(data.about, 500);
   const coverPhotoUrl = optionalTrimmed(data.coverPhotoUrl, 2048);
   const coverPhotoThumbUrl = optionalTrimmed(data.coverPhotoThumbUrl, 2048);
+  const rawPreviews =
+    data.memberPreviews && typeof data.memberPreviews === "object"
+      ? (data.memberPreviews as Record<string, { displayName?: string; imageurl?: string }>)
+      : undefined;
 
   return {
     id,
@@ -102,6 +107,7 @@ export function mapCommunityGroupDoc(id: string, data: Record<string, unknown>):
     memberIds: normalizeMemberIds(
       Array.isArray(data.memberIds) ? (data.memberIds as string[]) : []
     ),
+    ...(rawPreviews ? { memberPreviews: rawPreviews } : {}),
     ...(category ? { category } : {}),
     ...(location ? { location } : {}),
     ...(about ? { about } : {}),
@@ -117,17 +123,17 @@ export function subscribeJoinedCommunityGroups(
   onData: (groups: CommunityGroup[]) => void,
   onError?: (err: unknown) => void
 ): Unsubscribe {
-  const q = query(communityGroupsCollection(), where("memberIds", "array-contains", uid));
-  return onSnapshot(
-    q,
-    (snap) => {
-      const groups = snap.docs
-        .map((d) => mapCommunityGroupDoc(d.id, d.data() as Record<string, unknown>))
-        .sort((a, b) => a.name.localeCompare(b.name));
-      onData(groups);
-    },
-    (err) => onError?.(err)
-  );
+  // Lazy require avoids a circular import with socialListenerHub.
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  const { subscribeJoinedCommunityGroupsMultiplexed } =
+    require("./socialListenerHub") as typeof import("./socialListenerHub");
+  const unsub = subscribeJoinedCommunityGroupsMultiplexed(uid, (groups) => {
+    onData(groups as CommunityGroup[]);
+  });
+  return () => {
+    unsub();
+    void onError;
+  };
 }
 
 export async function searchCommunityGroups(searchText: string): Promise<CommunityGroup[]> {
@@ -242,12 +248,19 @@ export async function createCommunityGroup(
   }
 
   const ref = doc(communityGroupsCollection());
+  const displayName =
+    auth.currentUser?.uid === uid
+      ? String(auth.currentUser.displayName || "").trim() || "Member"
+      : "Member";
 
   await setDoc(ref, {
     name: trimmed,
     nameLower: normalizeNameLower(trimmed),
     creatorId: uid,
     memberIds: [uid],
+    memberPreviews: {
+      [uid]: { displayName },
+    },
     ...(category ? { category } : {}),
     ...(location ? { location } : {}),
     ...(about ? { about } : {}),
@@ -338,8 +351,18 @@ export async function joinCommunityGroup(
       throw new Error("This group is full.");
     }
     const next = normalizeMemberIds([...currentMemberIds, uid]);
+    const displayName =
+      auth.currentUser?.uid === uid
+        ? String(auth.currentUser.displayName || "").trim() || "Member"
+        : "Member";
+    const existingPreviews =
+      data.memberPreviews && typeof data.memberPreviews === "object"
+        ? { ...(data.memberPreviews as Record<string, unknown>) }
+        : {};
+    existingPreviews[uid] = { displayName };
     transaction.update(ref, {
       memberIds: next,
+      memberPreviews: existingPreviews,
       updatedAt: serverTimestamp(),
     });
     return next;
@@ -364,8 +387,14 @@ export async function leaveCommunityGroup(
       transaction.delete(ref);
       return;
     }
+    const existingPreviews =
+      data.memberPreviews && typeof data.memberPreviews === "object"
+        ? { ...(data.memberPreviews as Record<string, unknown>) }
+        : {};
+    delete existingPreviews[uid];
     transaction.update(ref, {
       memberIds: next,
+      memberPreviews: existingPreviews,
       updatedAt: serverTimestamp(),
     });
   });

@@ -1,7 +1,5 @@
 import type { Friend } from "@/constants/Variables";
 import { aggregateFriendPlans } from "@/src/lib/aggregateFriendPlans.js";
-import { db } from "@/src/lib/firebase";
-import { ignoreSnapshotPermissionDenied } from "@/src/lib/firestoreListeners";
 import {
   appendOptimisticJoinedViewerEvent,
   buildJoinedPlanKeysForFriend,
@@ -12,11 +10,25 @@ import {
   unjoinFriendOpenPlan,
   type FriendOpenPlanEvent,
 } from "@/src/lib/friendOpenPlanJoin";
+import { filterOutPastOpenPlans } from "@/src/lib/planEvents";
 import { friendProfileCacheByUser } from "@/src/lib/socialCache";
-import { doc, onSnapshot } from "firebase/firestore";
+import { subscribeUserDocMultiplexed } from "@/src/lib/socialListenerHub";
 import { useCallback, useEffect, useMemo, useState } from "react";
 
 const viewerEventsCacheByUser: Record<string, FriendOpenPlanEvent[]> = {};
+
+function friendHasUpcomingHostedPlans(
+  friendId: string,
+  events: FriendOpenPlanEvent[] | undefined
+): boolean {
+  const upcoming = filterOutPastOpenPlans(Array.isArray(events) ? events : []);
+  return upcoming.some((event) => {
+    const host =
+      String((event as { planHostUid?: string })?.planHostUid || "").trim() ||
+      friendId;
+    return host === friendId && !!event?.id && !!event?.date && !!event?.title;
+  });
+}
 
 function seedFriendEventsById(
   userId: string,
@@ -88,23 +100,19 @@ export function useFriendPlansFeed({ userId, friends, isBlocked }: Options) {
 
   useEffect(() => {
     if (!userId) return;
-    const unsub = onSnapshot(
-      doc(db, "users", userId),
-      (snap) => {
-        const events = snap.exists()
-          ? ((snap.data()?.events as FriendOpenPlanEvent[] | undefined) ?? [])
-          : [];
-        const nextEvents = Array.isArray(events) ? events : [];
-        viewerEventsCacheByUser[userId] = nextEvents;
-        setViewerEvents(nextEvents);
-      },
-      ignoreSnapshotPermissionDenied
-    );
+    const unsub = subscribeUserDocMultiplexed(userId, (data) => {
+      const events = (data?.events as FriendOpenPlanEvent[] | undefined) ?? [];
+      const nextEvents = Array.isArray(events) ? events : [];
+      viewerEventsCacheByUser[userId] = nextEvents;
+      setViewerEvents(nextEvents);
+    });
     return unsub;
   }, [userId]);
 
   const seededEventsById = useMemo(
     () => seedFriendEventsById(userId, visibleFriends),
+    // friendIdsKey intentionally tracks friend-set changes for reseeding
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     [userId, friendIdsKey, visibleFriends]
   );
 
@@ -116,48 +124,61 @@ export function useFriendPlansFeed({ userId, friends, isBlocked }: Options) {
     return merged;
   }, [seededEventsById, liveEventsById]);
 
+  // Only live-listen to friends that already show upcoming hosted plans (not N for every friend).
+  const liveFriendIdsKey = useMemo(() => {
+    return visibleFriends
+      .filter((friend) =>
+        friendHasUpcomingHostedPlans(friend.id, seededEventsById[friend.id])
+      )
+      .map((friend) => friend.id)
+      .sort()
+      .join("|");
+  }, [visibleFriends, seededEventsById]);
+
   useEffect(() => {
-    if (!userId || visibleFriends.length === 0) {
+    if (!userId) {
+      setLiveEventsById({});
+      setEventsHydrated(true);
+      return;
+    }
+
+    const liveIds = liveFriendIdsKey ? liveFriendIdsKey.split("|").filter(Boolean) : [];
+    if (liveIds.length === 0) {
       setLiveEventsById({});
       setEventsHydrated(true);
       return;
     }
 
     const hydratedIds = new Set<string>();
-    const unsubs = visibleFriends.map((friend) =>
-      onSnapshot(
-        doc(db, "users", friend.id),
-        (snap) => {
-          const events = snap.exists()
-            ? ((snap.data()?.events as FriendOpenPlanEvent[] | undefined) ?? [])
-            : [];
-          const nextEvents = Array.isArray(events) ? events : [];
-          setLiveEventsById((prev) => ({ ...prev, [friend.id]: nextEvents }));
-          if (!friendProfileCacheByUser[userId]) {
-            friendProfileCacheByUser[userId] = {};
+    const unsubs = liveIds.map((friendId) => {
+      const friend = visibleFriends.find((f) => f.id === friendId);
+      return subscribeUserDocMultiplexed(friendId, (data) => {
+        const events = (data?.events as FriendOpenPlanEvent[] | undefined) ?? [];
+        const nextEvents = Array.isArray(events) ? events : [];
+        setLiveEventsById((prev) => ({ ...prev, [friendId]: nextEvents }));
+        if (!friendProfileCacheByUser[userId]) {
+          friendProfileCacheByUser[userId] = {};
+        }
+        friendProfileCacheByUser[userId][friendId] = {
+          id: friendId,
+          ...(data || {}),
+          displayName: friend?.displayName,
+        } as Friend;
+        if (!hydratedIds.has(friendId)) {
+          hydratedIds.add(friendId);
+          if (hydratedIds.size >= liveIds.length) {
+            setEventsHydrated(true);
           }
-          friendProfileCacheByUser[userId][friend.id] = {
-            id: friend.id,
-            ...(snap.exists() ? (snap.data() as object) : {}),
-            displayName: friend.displayName,
-          } as Friend;
-          if (!hydratedIds.has(friend.id)) {
-            hydratedIds.add(friend.id);
-            if (hydratedIds.size >= visibleFriends.length) {
-              setEventsHydrated(true);
-            }
-          }
-        },
-        ignoreSnapshotPermissionDenied
-      )
-    );
+        }
+      });
+    });
 
     const timeout = setTimeout(() => setEventsHydrated(true), 1200);
     return () => {
       clearTimeout(timeout);
       unsubs.forEach((unsub) => unsub());
     };
-  }, [userId, friendIdsKey, visibleFriends]);
+  }, [userId, liveFriendIdsKey, visibleFriends]);
 
   const friendsWithPlans = useMemo(
     () =>
@@ -237,7 +258,6 @@ export function useFriendPlansFeed({ userId, friends, isBlocked }: Options) {
     if (!item || !userId) return;
     const planKey = `${item.sourceFriendId}|${item.event.id}`;
 
-    // Flip the card immediately as the confirm closes — don't wait on Firestore.
     setViewerEvents((prev) => {
       const next = appendOptimisticJoinedViewerEvent(
         prev,

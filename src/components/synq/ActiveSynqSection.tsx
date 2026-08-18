@@ -670,9 +670,9 @@ const styles = StyleSheet.create({
   friendCard: {
     flexDirection: "row",
     alignItems: "center",
-    paddingVertical: 12,
-    paddingHorizontal: 12,
-    gap: 12,
+    paddingVertical: 14,
+    paddingHorizontal: 16,
+    gap: 16,
     marginBottom: 10,
     borderRadius: RADIUS_MD,
     borderWidth: StyleSheet.hairlineWidth,
@@ -684,14 +684,14 @@ const styles = StyleSheet.create({
     backgroundColor: ACCENT_FILL_SUBTLE,
   },
   friendAvatarWrap: {
-    width: 48,
-    height: 48,
+    width: 52,
+    height: 52,
     position: "relative",
   },
   friendAvatar: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
+    width: 52,
+    height: 52,
+    borderRadius: 26,
   },
   friendAvailDot: {
     position: "absolute",
@@ -708,7 +708,7 @@ const styles = StyleSheet.create({
     flex: 1,
     minWidth: 0,
     justifyContent: "center",
-    paddingRight: 4,
+    paddingRight: 8,
   },
   friendName: {
     color: TEXT,
