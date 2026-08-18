@@ -1497,60 +1497,7 @@ export default function SynqScreen() {
     };
   }, [status, user?.uid, resolvedFriendIds]);
 
-  const availableFriendIdsKey = useMemo(
-    () =>
-      availableFriends
-        .map((f) => String(f?.id || "").trim())
-        .filter(Boolean)
-        .sort()
-        .join("|"),
-    [availableFriends]
-  );
-
-  useEffect(() => {
-    const myId = user?.uid;
-    if (!myId || status !== "active" || !availableFriendIdsKey) return;
-
-    const friendIds = availableFriendIdsKey.split("|").filter(Boolean);
-    const unsubs = friendIds.map((fid) =>
-      onSnapshot(
-        doc(db, "users", fid),
-        (snap) => {
-          const data = snap.exists() ? snap.data() : undefined;
-          const isActive = computeSynqActiveFromUserData(data);
-          if (!isActive) {
-            // Local cache often still has pre-activation status; removing here
-            // drops a just-added friend and the next server snap never re-adds.
-            if (snap.metadata.fromCache) return;
-            invalidateSynqActiveFriendsPoll(myId, fid);
-            setAvailableFriends((prev) => prev.filter((f) => f.id !== fid));
-            return;
-          }
-          setAvailableFriends((prev) => {
-            const entry = { id: fid, ...data } as (typeof prev)[number];
-            const idx = prev.findIndex((f) => f.id === fid);
-            if (idx >= 0) {
-              const next = [...prev];
-              next[idx] = entry;
-              return next;
-            }
-            // Re-add if a stale cached snap removed them before server confirmed active.
-            return [...prev, entry].sort((a, b) =>
-              String((a as any)?.displayName || "").localeCompare(
-                String((b as any)?.displayName || "")
-              )
-            );
-          });
-        },
-        ignoreSnapshotPermissionDenied
-      )
-    );
-
-    return () => {
-      unsubs.forEach((u) => u());
-    };
-  }, [status, user?.uid, availableFriendIdsKey]);
-
+  // Per-friend user-doc listeners removed — poll + friend_synq_active notifications are enough.
   useEffect(() => {
     if (activeChatId) {
       chatOpenGraceRef.current.set(activeChatId, Date.now());

@@ -160,6 +160,7 @@ import {
   warmOutgoingFriendRequestsCache,
   warmSuggestedCache,
 } from "../../src/lib/socialCache";
+import { subscribeFriendsIdsMultiplexed } from "../../src/lib/socialListenerHub";
 import { useAuthRefresh } from "../_layout";
 import AlertModal from "../alert-modal";
 import ConfirmModal from "../confirm-modal";
@@ -468,14 +469,10 @@ export default function FriendsScreen() {
     if (!friendProfileCacheByUser[myId]) {
       friendProfileCacheByUser[myId] = {};
     }
-    const friendsRef = collection(db, "users", myId, "friends");
 
     let cancelled = false;
-    const unsubFriends = onSnapshot(
-      friendsRef,
-      async (snapshot) => {
+    const unsubFriends = subscribeFriendsIdsMultiplexed(myId, async (friendIds) => {
       if (cancelled) return;
-      const friendIds = snapshot.docs.map((d) => d.id);
       const profileCache = friendProfileCacheByUser[myId];
 
       try {
@@ -525,9 +522,7 @@ export default function FriendsScreen() {
       } finally {
         setIsFriendsInitialLoading(false);
       }
-    },
-      ignoreSnapshotPermissionDenied
-    );
+    });
 
     return () => {
       cancelled = true;

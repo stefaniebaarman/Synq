@@ -36,6 +36,7 @@ import {
   synqSvg,
 } from "@/constants/Variables";
 import BackButton from "@/src/components/BackButton";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { FirebaseRecaptchaVerifierModal } from "expo-firebase-recaptcha";
 import { router, useLocalSearchParams } from "expo-router";
 import { signInWithPhoneNumber } from "firebase/auth";
@@ -61,6 +62,47 @@ import AlertModal from "../alert-modal";
 
 const { width } = Dimensions.get("window");
 const CTA_WIDTH = "56%";
+/** Fixed to US/Canada — free-text country codes invite SMS abuse. */
+const LOCKED_COUNTRY_CODE = "+1";
+const SMS_RESEND_COOLDOWN_MS = 45_000;
+const SMS_DAILY_LIMIT = 5;
+const SMS_DAILY_KEY = "synq:sms-send-day";
+
+type SmsDayBucket = { day: string; count: number };
+
+function utcDayKey(d = new Date()): string {
+  return d.toISOString().slice(0, 10);
+}
+
+async function readSmsDayBucket(): Promise<SmsDayBucket> {
+  try {
+    const raw = await AsyncStorage.getItem(SMS_DAILY_KEY);
+    if (!raw) return { day: utcDayKey(), count: 0 };
+    const parsed = JSON.parse(raw) as SmsDayBucket;
+    if (!parsed?.day || typeof parsed.count !== "number") {
+      return { day: utcDayKey(), count: 0 };
+    }
+    if (parsed.day !== utcDayKey()) return { day: utcDayKey(), count: 0 };
+    return parsed;
+  } catch {
+    return { day: utcDayKey(), count: 0 };
+  }
+}
+
+async function assertSmsDailyAllowance(): Promise<void> {
+  const bucket = await readSmsDayBucket();
+  if (bucket.count >= SMS_DAILY_LIMIT) {
+    throw new Error(
+      "Daily SMS limit reached on this device. Try again tomorrow or sign in with email."
+    );
+  }
+}
+
+async function recordSmsSend(): Promise<void> {
+  const bucket = await readSmsDayBucket();
+  const next = { day: utcDayKey(), count: bucket.count + 1 };
+  await AsyncStorage.setItem(SMS_DAILY_KEY, JSON.stringify(next));
+}
 
 function formatUsPhoneDisplay(digits: string): string {
   const d = digits.replace(/\D/g, "").slice(0, 10);
@@ -75,7 +117,7 @@ export default function Phone() {
   const isSignIn = mode === "signin";
   const termsReady = usePreAuthTermsGate("phone", { enabled: !isSignIn });
   const [phoneNumber, setPhoneNumber] = useState("");
-  const [countryCode, setCountryCode] = useState("+1");
+  const countryCode = LOCKED_COUNTRY_CODE;
   const [confirm, setConfirm] = useState<any>(null);
   const [isCodeSent, setIsCodeSent] = useState(false);
   const [code, setCode] = useState(["", "", "", "", "", ""]);
@@ -83,6 +125,8 @@ export default function Phone() {
   const recaptchaVerifier = useRef<FirebaseRecaptchaVerifierModal>(null);
   const [loading, setLoading] = useState(false);
   const [resending, setResending] = useState(false);
+  const [resendCooldownSec, setResendCooldownSec] = useState(0);
+  const lastSmsSentAtRef = useRef(0);
   const [alertVisible, setAlertVisible] = useState(false);
   const [alertTitle, setAlertTitle] = useState<string | undefined>();
   const [alertMessage, setAlertMessage] = useState("");
@@ -105,6 +149,14 @@ export default function Phone() {
     }, 350);
     return () => clearTimeout(timer);
   }, [isCodeSent]);
+
+  useEffect(() => {
+    if (resendCooldownSec <= 0) return;
+    const timer = setTimeout(() => {
+      setResendCooldownSec((s) => Math.max(0, s - 1));
+    }, 1000);
+    return () => clearTimeout(timer);
+  }, [resendCooldownSec]);
 
   const applyOtpDigits = (text: string) => {
     const digits = text.replace(/\D/g, "").slice(0, 6);
@@ -138,11 +190,23 @@ export default function Phone() {
       return null;
     }
 
+    const sinceLast = Date.now() - lastSmsSentAtRef.current;
+    if (lastSmsSentAtRef.current > 0 && sinceLast < SMS_RESEND_COOLDOWN_MS) {
+      const waitSec = Math.ceil((SMS_RESEND_COOLDOWN_MS - sinceLast) / 1000);
+      showAlert(`Wait ${waitSec}s before requesting another code.`, "Slow down");
+      return null;
+    }
+
+    await assertSmsDailyAllowance();
+
     const confirmation = await signInWithPhoneNumber(
       auth,
       formattedPhoneNumber,
       recaptchaVerifier.current as any
     );
+    await recordSmsSend();
+    lastSmsSentAtRef.current = Date.now();
+    setResendCooldownSec(Math.ceil(SMS_RESEND_COOLDOWN_MS / 1000));
     setConfirm(confirmation);
     setIsCodeSent(true);
     setCode(["", "", "", "", "", ""]);
@@ -162,12 +226,14 @@ export default function Phone() {
   };
 
   const resendVerificationCode = async () => {
-    if (resending || loading) return;
+    if (resending || loading || resendCooldownSec > 0) return;
 
     try {
       setResending(true);
-      await requestVerificationCode();
-      showAlert("We sent you a new code.", "Code resent");
+      const confirmation = await requestVerificationCode();
+      if (confirmation) {
+        showAlert("We sent you a new code.", "Code resent");
+      }
     } catch (error: any) {
       showAlert(error?.message ?? "Please try again.", "Could not resend");
     } finally {
@@ -249,14 +315,7 @@ export default function Phone() {
               <View style={styles.divider} />
               <View style={styles.inputRow}>
                 <View style={styles.countryWrapper}>
-                  <TextInput
-                    value={countryCode}
-                    onChangeText={setCountryCode}
-                    style={styles.countryInput}
-                    keyboardType="phone-pad"
-                    placeholder="+1"
-                    placeholderTextColor={MUTED3}
-                  />
+                  <Text style={styles.countryInput}>{countryCode}</Text>
                 </View>
 
                 <View style={styles.phoneWrapper}>
@@ -357,17 +416,20 @@ export default function Phone() {
                 <Text style={styles.linkDivider}>·</Text>
                 <TouchableOpacity
                   onPress={resendVerificationCode}
-                  disabled={loading || resending}
+                  disabled={loading || resending || resendCooldownSec > 0}
                   style={styles.linkBtnInline}
                 >
                   <Text
                     style={[
                       styles.linkText,
-                      (loading || resending) && styles.linkTextDisabled,
+                      (loading || resending || resendCooldownSec > 0) &&
+                        styles.linkTextDisabled,
                       resending && { opacity: 0.5 },
                     ]}
                   >
-                    Resend code
+                    {resendCooldownSec > 0
+                      ? `Resend in ${resendCooldownSec}s`
+                      : "Resend code"}
                   </Text>
                 </TouchableOpacity>
               </View>
@@ -463,6 +525,7 @@ const styles = StyleSheet.create({
     textAlign: "center",
     fontSize: TYPE_BODY,
     fontFamily: fonts.medium,
+    paddingVertical: 16,
   },
   phoneWrapper: {
     flex: 1,

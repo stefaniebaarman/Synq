@@ -565,16 +565,7 @@ export async function warmFriendsAndConnectionsCache(
       hasMutualIndex;
 
     if (!mutualFresh) {
-      const mutualIndex = await buildMutualFriendsIndex(
-        userId,
-        sortedFriends.map((f) => f.id),
-        profileCache,
-        force
-      );
-      if (!mutualFriendsCacheByUser[userId]) {
-        mutualFriendsCacheByUser[userId] = {};
-      }
-      Object.assign(mutualFriendsCacheByUser[userId], mutualIndex);
+      // Skip FoF fan-out on warm — mutuals resolve on demand via resolveMutualFriendsForTarget.
       setWarmMeta(userId, { mutualIndexKey: mutualKey, mutualIndexAt: now });
     }
 
@@ -641,42 +632,15 @@ export async function warmSuggestedCache(
         return;
       }
 
-      const myFriendIds =
-        friendsListCacheByUser[userId]?.map((f) => f.id) ??
-        (await getDocs(collection(db, "users", userId, "friends"))).docs.map((d) => d.id);
-      const exclude = new Set([userId, ...myFriendIds]);
-      const mutualCounts = new Map<string, number>();
-
-      await Promise.all(
-        myFriendIds.map(async (friendId) => {
-          const theirFriends = await loadFriendsOfFriendSet(userId, friendId, force);
-          theirFriends.forEach((candidateId) => {
-            if (exclude.has(candidateId)) return;
-            mutualCounts.set(candidateId, (mutualCounts.get(candidateId) || 0) + 1);
-          });
-        })
-      );
-
-      const ranked = [...mutualCounts.entries()]
-        .sort((a, b) => b[1] - a[1])
-        .slice(0, 8);
-
-      const nextSuggested: Record<string, unknown>[] = [];
-      for (const [candidateId, mutualCount] of ranked) {
-        try {
-          const profileSnap = await getDoc(doc(db, "users", candidateId));
-          if (!profileSnap.exists()) continue;
-          nextSuggested.push({
-            id: candidateId,
-            ...(profileSnap.data() as object),
-            mutualCount,
-          });
-        } catch {
-          // Profile not readable, skip.
-        }
-      }
-
-      suggestedCacheByUser[userId] = nextSuggested;
+      // Server-side FoF ranking — avoids N client reads of each friend's friends list.
+      const { fetchSuggestedFriends } = await import("./userSearch");
+      const users = await fetchSuggestedFriends();
+      suggestedCacheByUser[userId] = users.map((u) => ({
+        id: u.id,
+        displayName: u.displayName,
+        imageurl: u.imageurl,
+        mutualCount: u.mutualCount ?? 0,
+      }));
       setWarmMeta(userId, { suggestedAt: now });
       await persistSocialCache(userId);
     } catch (err) {

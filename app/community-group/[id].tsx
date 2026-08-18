@@ -232,43 +232,74 @@ export default function CommunityGroupDetailScreen() {
     if (!group) return;
 
     let cancelled = false;
-    void Promise.all(
-      group.memberIds.map(async (memberId) => {
-        const friend = friends.find((f) => f.id === memberId);
-        let displayName = friend?.displayName?.trim() || "Member";
-        let imageurl = (friend as { imageurl?: string } | undefined)?.imageurl;
-        let synqActive = false;
+    const MAX_REMOTE_PROFILE_FETCHES = 40;
 
-        try {
-          const snap = await getDoc(doc(db, "users", memberId));
-          if (snap.exists()) {
+    void (async () => {
+      const next: Record<string, MemberRow> = {};
+      const needsFetch: string[] = [];
+
+      for (const memberId of group.memberIds) {
+        const friend = friends.find((f) => f.id === memberId);
+        const preview = group.memberPreviews?.[memberId];
+        const displayName =
+          friend?.displayName?.trim() ||
+          preview?.displayName?.trim() ||
+          "Member";
+        const imageurl =
+          (friend as { imageurl?: string } | undefined)?.imageurl ||
+          preview?.imageurl;
+
+        if (friend) {
+          next[memberId] = {
+            id: memberId,
+            displayName,
+            imageurl,
+            synqActive: computeSynqActiveFromUserData(
+              friend as unknown as Record<string, unknown>
+            ),
+          };
+        } else if (preview?.displayName) {
+          next[memberId] = {
+            id: memberId,
+            displayName,
+            imageurl,
+            synqActive: false,
+          };
+        } else {
+          next[memberId] = {
+            id: memberId,
+            displayName: "Member",
+            imageurl: undefined,
+            synqActive: false,
+          };
+          needsFetch.push(memberId);
+        }
+      }
+
+      const toFetch = needsFetch.slice(0, MAX_REMOTE_PROFILE_FETCHES);
+      await Promise.all(
+        toFetch.map(async (memberId) => {
+          try {
+            const snap = await getDoc(doc(db, "users", memberId));
+            if (!snap.exists()) return;
             const data = snap.data() as {
               displayName?: string;
               imageurl?: string;
             };
-            displayName = String(data.displayName || "").trim() || displayName;
-            imageurl = data.imageurl || imageurl;
-            synqActive = computeSynqActiveFromUserData(snap.data());
+            next[memberId] = {
+              id: memberId,
+              displayName: String(data.displayName || "").trim() || "Member",
+              imageurl: data.imageurl,
+              synqActive: computeSynqActiveFromUserData(snap.data()),
+            };
+          } catch {
+            // keep placeholder
           }
-        } catch {
-          // keep cached friend fallback
-        }
+        })
+      );
 
-        return {
-          id: memberId,
-          displayName,
-          imageurl,
-          synqActive,
-        } satisfies MemberRow;
-      })
-    ).then((rows) => {
-      if (cancelled) return;
-      const next: Record<string, MemberRow> = {};
-      rows.forEach((row) => {
-        next[row.id] = row;
-      });
-      setMemberProfiles(next);
-    });
+      if (!cancelled) setMemberProfiles({ ...next });
+    })();
 
     return () => {
       cancelled = true;
