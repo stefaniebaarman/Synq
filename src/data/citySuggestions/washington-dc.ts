@@ -14,7 +14,10 @@ export type CityCategory =
 export type CitySuggestionData = {
   cityId: string;
   displayName: string;
-  categories: Record<CityCategory, CachedVenue[]>;
+  categories: Record<CityCategory, CachedVenue[]> & {
+    "Night out"?: CachedVenue[];
+    Shopping?: CachedVenue[];
+  };
 };
 
 export const washingtonDcSuggestions: CitySuggestionData = {
@@ -75,6 +78,62 @@ export const washingtonDcSuggestions: CitySuggestionData = {
         address: "1359 Okie St NE, Washington, DC 20002",
         imageUrl:
           "https://images.unsplash.com/photo-1551218808-94e220e084d2?w=400&h=400&fit=crop",
+      },
+    ],
+    "Night out": [
+      {
+        name: "Flash",
+        address: "645 Florida Ave NW, Washington, DC 20001",
+        imageUrl:
+          "https://images.unsplash.com/photo-1566417713940-fe7c737a9ef2?w=400&h=400&fit=crop",
+      },
+      {
+        name: "Eighteenth Street Lounge",
+        address: "1212 18th St NW, Washington, DC 20009",
+        imageUrl:
+          "https://images.unsplash.com/photo-1470225620780-dba8ba36b745?w=400&h=400&fit=crop",
+      },
+      {
+        name: "9:30 Club",
+        address: "815 V St NW, Washington, DC 20001",
+        imageUrl:
+          "https://images.unsplash.com/photo-1516450360452-9312f5e86fc7?w=400&h=400&fit=crop",
+      },
+      {
+        name: "Black Cat",
+        address: "1811 14th St NW, Washington, DC 20009",
+        imageUrl:
+          "https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=400&h=400&fit=crop",
+      },
+      {
+        name: "Songbyrd Music House",
+        address: "2477 18th St NW, Washington, DC 20009",
+        imageUrl:
+          "https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=400&h=400&fit=crop",
+      },
+      {
+        name: "DC9 Nightclub",
+        address: "1940 9th St NW, Washington, DC 20001",
+        imageUrl:
+          "https://images.unsplash.com/photo-1566737236500-c8ac43014e67?w=400&h=400&fit=crop",
+      },
+      {
+        name: "Echostage",
+        address: "2135 Queens Chapel Rd NE, Washington, DC 20018",
+        imageUrl:
+          "https://images.unsplash.com/photo-1516450360452-9312f5e86fc7?w=400&h=400&fit=crop",
+      },
+      {
+        name: "Wonderland Ballroom",
+        address: "1101 Kenyon St NW, Washington, DC 20010",
+        imageUrl:
+          "https://images.unsplash.com/photo-1545128485-c400e7702796?w=400&h=400&fit=crop",
+      },
+      {
+        name: "The Howard Theatre",
+        address: "620 T St NW, Washington, DC 20001",
+        imageUrl:
+          "https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=400&h=400&fit=crop",
       },
     ],
     Dinner: [
@@ -243,6 +302,62 @@ export const washingtonDcSuggestions: CitySuggestionData = {
         address: "National Mall, Washington, DC 20024",
         imageUrl:
           "https://images.unsplash.com/photo-1475924156734-496f6cac6ec1?w=400&h=400&fit=crop",
+      },
+    ],
+    Shopping: [
+      {
+        name: "CityCenterDC",
+        address: "975 F St NW, Washington, DC 20004",
+        imageUrl:
+          "https://images.unsplash.com/photo-1441986300917-64674bd600d8?w=400&h=400&fit=crop",
+      },
+      {
+        name: "Union Market",
+        address: "1280 4th St NE, Washington, DC 20002",
+        imageUrl:
+          "https://images.unsplash.com/photo-1555396273-367ea4eb4db5?w=400&h=400&fit=crop",
+      },
+      {
+        name: "Eastern Market",
+        address: "225 7th St SE, Washington, DC 20003",
+        imageUrl:
+          "https://images.unsplash.com/photo-1555396273-367ea4eb4db5?w=400&h=400&fit=crop",
+      },
+      {
+        name: "M Street Georgetown",
+        address: "M St NW & Wisconsin Ave NW, Washington, DC 20007",
+        imageUrl:
+          "https://images.unsplash.com/photo-1441986300917-64674bd600d8?w=400&h=400&fit=crop",
+      },
+      {
+        name: "The Wharf",
+        address: "760 Maine Ave SW, Washington, DC 20024",
+        imageUrl:
+          "https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=400&h=400&fit=crop",
+      },
+      {
+        name: "Gallery Place",
+        address: "707 7th St NW, Washington, DC 20001",
+        imageUrl:
+          "https://images.unsplash.com/photo-1441986300917-64674bd600d8?w=400&h=400&fit=crop",
+      },
+      {
+        name: "Union Station",
+        address: "50 Massachusetts Ave NE, Washington, DC 20002",
+        imageUrl:
+          "https://images.unsplash.com/photo-1441986300917-64674bd600d8?w=400&h=400&fit=crop",
+      },
+      {
+        name: "Pentagon City Mall",
+        address: "1100 S Hayes St, Arlington, VA 22202",
+        imageUrl:
+          "https://images.unsplash.com/photo-1441986300917-64674bd600d8?w=400&h=400&fit=crop",
+      },
+      {
+        name: "Friendship Heights",
+        address: "Wisconsin Ave & Western Ave NW, Washington, DC 20015",
+        imageUrl:
+          "https://images.unsplash.com/photo-1441986300917-64674bd600d8?w=400&h=400&fit=crop",
       },
     ],
     "Surprise Me": [

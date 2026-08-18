@@ -106,7 +106,7 @@ import {
   ACCENT_FILL_MUTED,
   ACCENT_FILL_SUBTLE,
   AI_PLACE_SUGGESTIONS_ENABLED,
-  aiPrompts,
+  synqMovePrompts,
   BG,
   BORDER,
   BORDER_MUTED,
@@ -183,12 +183,13 @@ import {
   uniqueLocationLabels,
   type ChatAiLocationStatus,
 } from "../../src/lib/chatAiLocation";
+import { suggestionBatchKey } from "../../src/lib/citySuggestions";
 import {
-  allParticipantsHaveCachedCitySuggestions,
-  getCachedCitySuggestions,
-  hasCachedCitySuggestions,
-  suggestionBatchKey,
-} from "../../src/lib/citySuggestions";
+  loadSynqPlaceSuggestions,
+  reshuffleSynqPlaceSuggestions,
+  warmupLiveSuggestionOrigin,
+  type LiveSuggestionContext,
+} from "../../src/lib/liveSuggestions";
 import { auth, db } from '../../src/lib/firebase';
 import { CHATS_LISTENER_LIMIT } from "../../src/lib/listenerLimits";
 import { registerDismissNavigationOverlaysHandler } from "../../src/lib/navigationOverlayEvents";
@@ -417,6 +418,8 @@ export default function SynqScreen() {
   }));
   const { status, hydrated } = synq;
   const [availableFriends, setAvailableFriends] = useState<any[]>([]);
+  const [availableFriendsReady, setAvailableFriendsReady] = useState(false);
+  const [friendIdsHydrated, setFriendIdsHydrated] = useState(false);
   const [selectedFriends, setSelectedFriends] = useState<string[]>([]);
   const [userProfile, setUserProfile] = useState<any>(null);
   const [isEditModalVisible, setIsEditModalVisible] = useState(false);
@@ -462,6 +465,13 @@ export default function SynqScreen() {
   const [showOptionsList, setShowOptionsList] = useState(false);
   const [currentCategory, setCurrentCategory] = useState('');
   const suggestionLocationRef = useRef<string | null>(null);
+  const suggestionContextRef = useRef<LiveSuggestionContext | null>(null);
+  const shuffleGenRef = useRef(0);
+  const suggestionLoadGenRef = useRef(0);
+  const chatSuggestionPeopleRef = useRef<{
+    key: string;
+    people: { uid: string; data: Record<string, unknown> }[];
+  } | null>(null);
   /** Recent suggestion-batch keys so shuffle does not flip between the same two sets. */
   const recentSuggestionBatchKeysRef = useRef<string[]>([]);
   const flatListRef = useRef<FlatList>(null);
@@ -480,6 +490,7 @@ export default function SynqScreen() {
     groupIds: [],
   });
   const [changeAudienceVisible, setChangeAudienceVisible] = useState(false);
+  const [audienceUpdating, setAudienceUpdating] = useState(false);
   const [friendIds, setFriendIds] = useState<string[]>([]);
   const [nudgeCandidates, setNudgeCandidates] = useState<any[]>([]);
   const [showDeleteChatModal, setShowDeleteChatModal] = useState(false);
@@ -489,7 +500,7 @@ export default function SynqScreen() {
   const [showMergeConfirmModal, setShowMergeConfirmModal] = useState(false);
   const [isMergingChats, setIsMergingChats] = useState(false);
   const [inboxActionChat, setInboxActionChat] = useState<any | null>(null);
-  const [rotatingAIText, setRotatingAIText] = useState(aiPrompts[0]);
+  const [rotatingAIText, setRotatingAIText] = useState(() => synqMovePrompts()[0]);
   const [aiExploreError, setAiExploreError] = useState<string | null>(null);
   const activeParticipantIdsRef = useRef<string[]>([]);
   const [isStartingSynq, setIsStartingSynq] = useState(false);
@@ -981,11 +992,13 @@ export default function SynqScreen() {
 
   useEffect(() => {
     if (!AI_PLACE_SUGGESTIONS_ENABLED) return;
+    const prompts = synqMovePrompts();
     let index = 0;
+    setRotatingAIText(prompts[0]);
 
     const interval = setInterval(() => {
-      index = (index + 1) % aiPrompts.length;
-      setRotatingAIText(aiPrompts[index]);
+      index = (index + 1) % prompts.length;
+      setRotatingAIText(prompts[index]);
     }, 15000);
 
     return () => clearInterval(interval);
@@ -1140,9 +1153,14 @@ export default function SynqScreen() {
 
   useEffect(() => {
     const uid = user?.uid;
-    if (!uid) return;
+    if (!uid) {
+      setFriendIds([]);
+      setFriendIdsHydrated(false);
+      return;
+    }
     return subscribeFriendsIdsMultiplexed(uid, (ids) => {
       setFriendIds(ids);
+      setFriendIdsHydrated(true);
     });
   }, [user?.uid]);
 
@@ -1264,7 +1282,12 @@ export default function SynqScreen() {
 
   useEffect(() => {
     const uid = user?.uid;
-    if (!uid || status !== "active" || visibleAvailableFriends.length > 0) {
+    if (
+      !uid ||
+      status !== "active" ||
+      !availableFriendsReady ||
+      visibleAvailableFriends.length > 0
+    ) {
       setNudgeCandidates([]);
       return;
     }
@@ -1280,6 +1303,7 @@ export default function SynqScreen() {
     availableFriends,
     isBlocked,
     resolvedFriendIds,
+    availableFriendsReady,
   ]);
 
   const synqAudienceLabel = useMemo(
@@ -1385,16 +1409,21 @@ export default function SynqScreen() {
     };
   }, [user?.uid]);
 
+  const shouldLoadAvailableFriends =
+    status === "active" || status === "activating";
+
   useEffect(() => {
     const myId = user?.uid;
-    if (!myId || status !== "active") {
+    if (!myId || !shouldLoadAvailableFriends) {
       setAvailableFriends([]);
+      setAvailableFriendsReady(false);
       return;
     }
 
     const friendIds = resolvedFriendIds;
     if (!friendIds.length) {
       setAvailableFriends([]);
+      if (friendIdsHydrated) setAvailableFriendsReady(true);
       return;
     }
 
@@ -1427,7 +1456,10 @@ export default function SynqScreen() {
         force,
         focusFriendId: fromUserId,
       });
-      if (!cancelled) setAvailableFriends(next);
+      if (!cancelled) {
+        setAvailableFriends(next);
+        setAvailableFriendsReady(true);
+      }
     };
 
     /** Immediately surface a newly activated friend (push / in-app notif), then reconcile. */
@@ -1495,7 +1527,7 @@ export default function SynqScreen() {
       pushRefreshSub.remove();
       notifUnsub();
     };
-  }, [status, user?.uid, resolvedFriendIds]);
+  }, [shouldLoadAvailableFriends, user?.uid, resolvedFriendIds, friendIdsHydrated]);
 
   // Per-friend user-doc listeners removed — poll + friend_synq_active notifications are enough.
   useEffect(() => {
@@ -1633,15 +1665,12 @@ export default function SynqScreen() {
   const [chatAiLocationStatus, setChatAiLocationStatus] =
     useState<ChatAiLocationStatus>("loading");
   const [chatAiLocationPrompt, setChatAiLocationPrompt] = useState("");
-  const [chatParticipantsHaveCachedCity, setChatParticipantsHaveCachedCity] =
-    useState(false);
   const chatAiParticipantsKeyRef = useRef("");
 
   useEffect(() => {
     if (messagesPane !== "chat" || activeParticipantIds.length === 0) {
       setChatAiLocationStatus("loading");
       setChatAiLocationPrompt("");
-      setChatParticipantsHaveCachedCity(false);
       return;
     }
 
@@ -1651,7 +1680,6 @@ export default function SynqScreen() {
     chatAiParticipantsKeyRef.current = activeParticipantIdsKey;
     if (participantsChanged) {
       setChatAiLocationStatus("loading");
-      setChatParticipantsHaveCachedCity(false);
     }
     void (async () => {
       try {
@@ -1659,12 +1687,19 @@ export default function SynqScreen() {
           activeParticipantIds.map((uid: string) => getDoc(doc(db, "users", uid)))
         );
         if (cancelled) return;
-        const participantData = snaps
+        const people = snaps
           .filter((snap) => snap.exists())
-          .map((snap) => snap.data() as Record<string, unknown>);
-        const allHaveCachedCity =
-          allParticipantsHaveCachedCitySuggestions(participantData);
-        setChatParticipantsHaveCachedCity(allHaveCachedCity);
+          .map((snap) => ({
+            uid: snap.id,
+            data: snap.data() as Record<string, unknown>,
+          }));
+        const participantData = people.map((row) => row.data);
+        chatSuggestionPeopleRef.current = {
+          key: activeParticipantIdsKey,
+          people,
+        };
+        const senderRow = people.find((row) => row.uid === auth.currentUser?.uid);
+        warmupLiveSuggestionOrigin(participantData, senderRow?.data);
 
         if (!participantData.every((data) => userHasLocation(data))) {
           setChatAiLocationStatus("missing_location");
@@ -1680,7 +1715,6 @@ export default function SynqScreen() {
         if (!cancelled) {
           setChatAiLocationStatus("missing_location");
           setChatAiLocationPrompt("");
-          setChatParticipantsHaveCachedCity(false);
         }
       }
     })();
@@ -1692,13 +1726,8 @@ export default function SynqScreen() {
 
   const showAISuggestions =
     AI_PLACE_SUGGESTIONS_ENABLED &&
-    chatParticipantsHaveCachedCity &&
     chatAiLocationStatus !== "loading" &&
     chatAiLocationStatus !== "missing_location";
-  const showAIUnavailableMessage =
-    AI_PLACE_SUGGESTIONS_ENABLED &&
-    chatParticipantsHaveCachedCity &&
-    chatAiLocationStatus === "missing_location";
 
   const openAISuggestions = useCallback(() => {
     if (!showAISuggestions) return;
@@ -1724,10 +1753,13 @@ export default function SynqScreen() {
     setIsAILoading(true);
     setCurrentCategory(category);
     setAiExploreError(null);
-    setShowOptionsList(false);
+    setShowOptionsList(true);
+    setAiOptions([]);
     setSelectedOption(null);
     suggestionLocationRef.current = null;
+    suggestionContextRef.current = null;
     recentSuggestionBatchKeysRef.current = [];
+    const loadGen = ++suggestionLoadGenRef.current;
 
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
 
@@ -1737,75 +1769,86 @@ export default function SynqScreen() {
         : allChats.find((c) => c.id === activeChatId);
 
       if (!currentChat) {
+        if (loadGen !== suggestionLoadGenRef.current) return;
+        setShowOptionsList(false);
         setAiExploreError("Could not find this chat. Please try again.");
         return;
       }
 
-      const participantSnaps = await Promise.all(
-        currentChat.participants
-          .filter(Boolean)
-          .map((uid: string) => getDoc(doc(db, "users", uid)))
-      );
-      const participantData = participantSnaps
-        .filter((snap) => snap.exists())
-        .map((snap) => snap.data() as Record<string, unknown>);
+      const cachedPeople =
+        chatSuggestionPeopleRef.current?.key === activeParticipantIdsKey
+          ? chatSuggestionPeopleRef.current.people
+          : null;
+      let people = cachedPeople;
+      if (!people) {
+        const participantSnaps = await Promise.all(
+          currentChat.participants
+            .filter(Boolean)
+            .map((uid: string) => getDoc(doc(db, "users", uid)))
+        );
+        if (loadGen !== suggestionLoadGenRef.current) return;
+        people = participantSnaps
+          .filter((snap) => snap.exists())
+          .map((snap) => ({
+            uid: snap.id,
+            data: snap.data() as Record<string, unknown>,
+          }));
+      }
 
+      const participantData = people.map((row) => row.data);
       const myId = auth.currentUser?.uid;
-      const mySnap = participantSnaps.find((snap) => snap.id === myId);
-      const senderLocationLabel = formatUserLocationLabel(
-        mySnap?.exists()
-          ? (mySnap.data() as Record<string, unknown>)
-          : userProfile
-      );
+      const senderData =
+        people.find((row) => row.uid === myId)?.data ??
+        (userProfile as Record<string, unknown> | undefined);
+      const senderLocationLabel = formatUserLocationLabel(senderData);
       if (!senderLocationLabel) {
+        if (loadGen !== suggestionLoadGenRef.current) return;
+        setShowOptionsList(false);
         setAiExploreError("Add your city in profile to use Synq suggestions.");
         return;
       }
-      if (!hasCachedCitySuggestions(senderLocationLabel)) {
-        setAiExploreError("Synq suggestions aren't available for your city yet.");
-        return;
-      }
-      if (!allParticipantsHaveCachedCitySuggestions(participantData)) {
-        setAiExploreError(
-          "Synq suggestions are only available when everyone in the chat is in a supported city."
-        );
-        return;
-      }
 
-      const suggestions =
-        getCachedCitySuggestions(senderLocationLabel, category) ?? [];
+      const loaded = await loadSynqPlaceSuggestions({
+        category,
+        participantData,
+        senderData,
+      });
+      if (loadGen !== suggestionLoadGenRef.current) return;
 
-      if (suggestions.length > 0) {
-        suggestionLocationRef.current = senderLocationLabel;
+      if (loaded && loaded.suggestions.length > 0) {
+        suggestionLocationRef.current = loaded.context.locationLabel;
+        suggestionContextRef.current = loaded.context;
         const batchKey = suggestionBatchKey(
-          suggestions.map((item) => String(item?.name || "").trim())
+          loaded.suggestions.map((item) => String(item?.name || "").trim())
         );
         recentSuggestionBatchKeysRef.current = batchKey ? [batchKey] : [];
-        setAiOptions(suggestions);
+        setAiOptions(loaded.suggestions);
+        setSelectedOption(loaded.suggestions[0] ?? null);
         setShowOptionsList(true);
         setAiExploreError(null);
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       } else {
-        setAiExploreError(
-          hasCachedCitySuggestions(senderLocationLabel)
-            ? "No spots found for this vibe. Try another."
-            : "Synq suggestions aren't available for your city yet."
-        );
+        setShowOptionsList(false);
+        setAiExploreError("No spots found for this vibe. Try another.");
       }
     } catch (err: unknown) {
+      if (loadGen !== suggestionLoadGenRef.current) return;
+      setShowOptionsList(false);
       setAiExploreError(
         err instanceof Error && err.message
           ? err.message
           : "Could not load suggestions. Please try again."
       );
     } finally {
-      setIsAILoading(false);
+      if (loadGen === suggestionLoadGenRef.current) {
+        setIsAILoading(false);
+      }
     }
   };
 
   const shuffleAISuggestions = useCallback(() => {
-    const locationLabel = suggestionLocationRef.current;
-    if (!locationLabel || !currentCategory || isAILoading) return;
+    const context = suggestionContextRef.current;
+    if (!context || !currentCategory || isAILoading) return;
 
     const currentNames = aiOptions
       .map((item) => String(item?.name || "").trim())
@@ -1818,43 +1861,43 @@ export default function SynqScreen() {
         ].slice(0, 12)
       : recentSuggestionBatchKeysRef.current.slice(0, 12);
 
-    // Prefer spots not on screen, and never return a recently shown exact set
-    // (small city catalogs only have ~9 venues, so excluding "all seen" just
-    // flips between two complementary halves).
-    const suggestions =
-      getCachedCitySuggestions(locationLabel, currentCategory, {
+    const gen = ++shuffleGenRef.current;
+    void (async () => {
+      const suggestions = await reshuffleSynqPlaceSuggestions({
+        context,
         avoidNames: currentNames,
         recentBatchKeys: recentKeys,
-      }) ?? [];
+      });
+      if (gen !== shuffleGenRef.current) return;
+      if (suggestions.length === 0) return;
 
-    if (suggestions.length === 0) return;
+      const nextKey = suggestionBatchKey(
+        suggestions.map((item) => String(item?.name || "").trim())
+      );
+      if (nextKey) {
+        recentSuggestionBatchKeysRef.current = [
+          nextKey,
+          ...recentKeys.filter((key) => key !== nextKey),
+        ].slice(0, 12);
+      }
 
-    const nextKey = suggestionBatchKey(
-      suggestions.map((item) => String(item?.name || "").trim())
-    );
-    if (nextKey) {
-      recentSuggestionBatchKeysRef.current = [
-        nextKey,
-        ...recentKeys.filter((key) => key !== nextKey),
-      ].slice(0, 12);
-    }
+      if (
+        Platform.OS === "android" &&
+        UIManager.setLayoutAnimationEnabledExperimental
+      ) {
+        UIManager.setLayoutAnimationEnabledExperimental(true);
+      }
+      LayoutAnimation.configureNext({
+        duration: 220,
+        create: { type: LayoutAnimation.Types.easeInEaseOut, property: LayoutAnimation.Properties.opacity },
+        update: { type: LayoutAnimation.Types.easeInEaseOut },
+        delete: { type: LayoutAnimation.Types.easeInEaseOut, property: LayoutAnimation.Properties.opacity },
+      });
 
-    if (
-      Platform.OS === "android" &&
-      UIManager.setLayoutAnimationEnabledExperimental
-    ) {
-      UIManager.setLayoutAnimationEnabledExperimental(true);
-    }
-    LayoutAnimation.configureNext({
-      duration: 220,
-      create: { type: LayoutAnimation.Types.easeInEaseOut, property: LayoutAnimation.Properties.opacity },
-      update: { type: LayoutAnimation.Types.easeInEaseOut },
-      delete: { type: LayoutAnimation.Types.easeInEaseOut, property: LayoutAnimation.Properties.opacity },
-    });
-
-    setSelectedOption(null);
-    setAiOptions(suggestions);
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
+      setAiOptions(suggestions);
+      setSelectedOption(suggestions[0] ?? null);
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
+    })();
   }, [aiOptions, currentCategory, isAILoading]);
 
   const sendAISuggestionToChat = async () => {
@@ -1881,11 +1924,13 @@ export default function SynqScreen() {
         type: 'aiSuggestion',
         senderId: auth.currentUser.uid,
         imageurl: myAvatar,
-        createdAt: serverTimestamp()
+        createdAt: serverTimestamp(),
+        ...(selectedOption?.why ? { why: String(selectedOption.why) } : {}),
+        ...(currentCategory ? { category: String(currentCategory) } : {}),
       });
 
       await updateDoc(doc(db, 'chats', chatId), {
-        lastMessage: selectedOption ? `Shared: ${selectedOption.name}` : 'AI Suggestion shared',
+        lastMessage: selectedOption ? `Shared a spot: ${selectedOption.name}` : 'Shared a spot',
         lastMessageSenderId: auth.currentUser.uid,
         updatedAt: serverTimestamp(),
         [`participantImages.${auth.currentUser.uid}`]: myAvatar,
@@ -1903,17 +1948,22 @@ export default function SynqScreen() {
   const applySynqAudience = async (selection: SynqAudienceSelection) => {
     if (!auth.currentUser) return;
     const uid = auth.currentUser.uid;
-    const broadcast = buildSynqBroadcastFirestorePayload(
-      selection,
-      friendGroups,
-      resolvedFriendIds
-    );
-    await updateDoc(doc(db, "users", uid), broadcast);
-    await saveSynqAudiencePreference(uid, selection);
-    setAudienceSelection(selection);
-    setUserProfile((prev: Record<string, unknown> | null) =>
-      prev ? { ...prev, ...broadcast } : prev
-    );
+    setAudienceUpdating(true);
+    try {
+      const broadcast = buildSynqBroadcastFirestorePayload(
+        selection,
+        friendGroups,
+        resolvedFriendIds
+      );
+      await updateDoc(doc(db, "users", uid), broadcast);
+      await saveSynqAudiencePreference(uid, selection);
+      setAudienceSelection(selection);
+      setUserProfile((prev: Record<string, unknown> | null) =>
+        prev ? { ...prev, ...broadcast } : prev
+      );
+    } finally {
+      setAudienceUpdating(false);
+    }
   };
 
   const startSynq = async () => {
@@ -2456,6 +2506,11 @@ export default function SynqScreen() {
               userProfile={userProfile}
               viewerId={uid}
               nudgeCandidates={nudgeCandidates}
+              friendsLoading={
+                !availableFriendsReady ||
+                changeAudienceVisible ||
+                audienceUpdating
+              }
             />
           </View>
         )}
@@ -2482,7 +2537,7 @@ export default function SynqScreen() {
         )}
         {launchOverlay && (
           <Reanimated.View
-            exiting={FadeOut.duration(680)}
+            exiting={FadeOut.duration(240)}
             style={styles.launchOverlay}
             pointerEvents={status === "active" ? "none" : "auto"}
           >
@@ -2626,7 +2681,6 @@ export default function SynqScreen() {
                   setShowOptionsList={setShowOptionsList}
                   setPendingNewChat={setPendingNewChat}
                   showAISuggestions={showAISuggestions}
-                  showAIUnavailableMessage={showAIUnavailableMessage}
                   onOpenAISuggestions={openAISuggestions}
                   onOpenFriendProfile={openFriendProfileFromChat}
                   isSending={isSending}
@@ -2713,16 +2767,22 @@ export default function SynqScreen() {
             <ExploreModal
               visible={isExploreVisible}
               onClose={() => {
+                suggestionLoadGenRef.current += 1;
+                setIsAILoading(false);
                 setIsExploreVisible(false);
                 setShowOptionsList(false);
                 setAiExploreError(null);
                 suggestionLocationRef.current = null;
+                suggestionContextRef.current = null;
                 recentSuggestionBatchKeysRef.current = [];
               }}
               onBack={() => {
+                suggestionLoadGenRef.current += 1;
+                setIsAILoading(false);
                 setShowOptionsList(false);
                 setAiExploreError(null);
                 suggestionLocationRef.current = null;
+                suggestionContextRef.current = null;
                 recentSuggestionBatchKeysRef.current = [];
               }}
               onSelectVibe={(label: string) => {
@@ -3994,17 +4054,6 @@ const styles = StyleSheet.create({
     fontSize: TYPE_MICRO,
     fontFamily: fonts.medium,
     letterSpacing: 0.1,
-  },
-  aiUnavailableHint: {
-    color: MUTED2,
-    fontSize: TYPE_FINE,
-    fontFamily: fonts.book,
-    lineHeight: 16,
-    paddingRight: 8,
-  },
-  chatHeaderUnavailableHint: {
-    marginLeft: 56,
-    marginTop: 2,
   },
   suggestionSectionTitle: {
     color: MUTED,

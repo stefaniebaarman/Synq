@@ -644,12 +644,25 @@ export const INSTAGRAM_URL = "https://www.instagram.com/lets.synq/";
 export const TIKTOK_URL = "https://www.tiktok.com/@lets.synq";
 
 export const aiPrompts = [
-    "Let Synq pick the move",
-    "Find something fun nearby",
-    "Not sure what to do?",
-    "Let Synq pick the vibe",
-    "Discover something new",
-  ];
+  "What's the move?",
+  "Let Synq pick a spot",
+  "Something for this group",
+  "Find a place nearby",
+  "Not sure where to go?",
+];
+
+export function synqMovePrompts(hour = new Date().getHours()): string[] {
+  if (hour < 5 || hour >= 22) {
+    return ["Late-night spots nearby", "What's still open?", "Let Synq pick"];
+  }
+  if (hour < 11) {
+    return ["Coffee or a walk?", "What's the morning move?", "Let Synq pick"];
+  }
+  if (hour < 16) {
+    return ["What's the move?", "Lunch nearby?", "Let Synq pick a spot"];
+  }
+  return ["Tonight's move", "Where should we go?", "Let Synq pick"];
+}
   
 export const popularNow = [
   { label: "Farmers Market", image: require("./farmers-market.jpeg") },

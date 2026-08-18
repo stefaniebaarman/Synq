@@ -282,7 +282,6 @@ type Props = {
   setShowOptionsList: (value: boolean) => void;
   setPendingNewChat: (value: any) => void;
   showAISuggestions: boolean;
-  showAIUnavailableMessage?: boolean;
   onOpenAISuggestions: () => void;
   onOpenFriendProfile?: (friendId: string) => void;
   isSending?: boolean;
@@ -354,7 +353,6 @@ export default function MessagesChatPane({
   setShowOptionsList,
   setPendingNewChat,
   showAISuggestions,
-  showAIUnavailableMessage = false,
   onOpenAISuggestions,
   onOpenFriendProfile,
   isSending = false,
@@ -596,7 +594,7 @@ export default function MessagesChatPane({
         ]}
         activeOpacity={0.82}
         accessibilityRole="button"
-        accessibilityLabel="Open Synq AI place suggestions"
+        accessibilityLabel="Find a spot for this chat"
       >
         <Ionicons name="sparkles" size={11} color={ACCENT} />
         <Text style={styles.aiChipTextPremium} numberOfLines={1}>
@@ -1134,6 +1132,10 @@ export default function MessagesChatPane({
                     isLegacy={isLegacyAiSuggestion}
                     name={name}
                     address={address}
+                    why={typeof item.why === "string" ? item.why : undefined}
+                    category={
+                      typeof item.category === "string" ? item.category : undefined
+                    }
                     heartCount={ideaHeartCount || 0}
                     onPress={() =>
                       onIdeaBubblePress(
@@ -1675,15 +1677,6 @@ export default function MessagesChatPane({
             <View style={chatHeaderOverlayStyles.aiSubtitleSlotExpanded}>
               {renderAiChip(0)}
             </View>
-          ) : null}
-          {showAIUnavailableMessage ? (
-            <Text
-              style={[styles.aiUnavailableHint, styles.chatHeaderUnavailableHint]}
-              numberOfLines={2}
-            >
-              AI isn't available for this chat until everyone enters their
-              locations.
-            </Text>
           ) : null}
         </View>
         <LinearGradient

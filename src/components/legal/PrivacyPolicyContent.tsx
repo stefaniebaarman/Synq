@@ -130,10 +130,10 @@ export default function PrivacyPolicyContent() {
           state, reactions, and notification previews.
         </P>
         <P>
-          If you use the suggestion feature, Synq sends your selected category,
-          your city/state, and shared interests to backend services that call
-          Google Generative AI and Google Places APIs to return venue
-          suggestions. Those suggestions may be incomplete or inaccurate.
+          If you use the suggestion feature, Synq uses your city/state (and
+          saved coordinates when present), the selected vibe, and shared
+          interests to look up nearby places from OpenStreetMap. Ranking happens
+          on device. Those suggestions may be incomplete or inaccurate.
         </P>
       </Section>
 
@@ -148,7 +148,7 @@ export default function PrivacyPolicyContent() {
           <Bullet>
             <Text style={styles.bold}>To service providers:</Text> Firebase
             Authentication, Firestore, Storage, and Cloud Functions; Expo
-            notifications; Google services used for venue suggestions; and
+            notifications; OpenStreetMap for nearby venue lookup; and
             email delivery providers used to notify us of feedback and safety
             reports.
           </Bullet>

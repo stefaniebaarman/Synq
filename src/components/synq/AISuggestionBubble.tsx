@@ -1,5 +1,7 @@
 import {
-  BORDER,
+  ACCENT,
+  ACCENT_BORDER,
+  ACCENT_FILL_SUBTLE,
   HEART_LIKE,
   MUTED2,
   MUTED3,
@@ -8,11 +10,14 @@ import {
   SURFACE_ELEVATED,
   TEXT,
   TYPE_BUTTON,
+  TYPE_CAPTION,
   TYPE_CTA,
   TYPE_FINE,
   TYPE_LEAD,
+  TYPE_MICRO,
   fonts,
 } from "@/constants/Variables";
+import { vibeDisplayLabel } from "@/src/data/vibeCategoryImages";
 import { formatVenueAddressDisplay, stripLegacyAiPrefix } from "@/src/lib/helpers";
 import { Ionicons } from "@expo/vector-icons";
 import React, { useCallback, useMemo, useRef } from "react";
@@ -25,13 +30,15 @@ import {
 import { Gesture, GestureDetector } from "react-native-gesture-handler";
 import { runOnJS } from "react-native-reanimated";
 
-const CARD_RADIUS = 16;
+const CARD_RADIUS = 18;
 
 type Props = {
   text: string;
   isLegacy: boolean;
   name?: string;
   address?: string;
+  why?: string;
+  category?: string;
   onPress: () => void;
   onLongPress?: () => void;
   heartCount?: number;
@@ -42,6 +49,8 @@ export default function AISuggestionBubble({
   isLegacy,
   name,
   address,
+  why,
+  category,
   onPress,
   onLongPress,
   heartCount = 0,
@@ -49,6 +58,8 @@ export default function AISuggestionBubble({
   const legacyBody = stripLegacyAiPrefix(text);
   const displayName = name?.trim() || "";
   const displayAddress = formatVenueAddressDisplay(address || "");
+  const displayWhy = why?.trim() || "";
+  const displayCategory = vibeDisplayLabel(category || "") || "Spot";
   const showVenue = !isLegacy && (displayName || displayAddress);
 
   const onPressRef = useRef(onPress);
@@ -91,26 +102,28 @@ export default function AISuggestionBubble({
         style={styles.pressable}
       >
         <View style={styles.card}>
+          <View style={styles.accentBar} />
           <View style={styles.body}>
             {showVenue ? (
               <>
+                <View style={styles.badge}>
+                  <Ionicons name="sparkles" size={10} color={ACCENT} />
+                  <Text style={styles.badgeText}>{displayCategory}</Text>
+                </View>
                 {displayName ? (
                   <Text style={styles.venueName} numberOfLines={2}>
                     {displayName}
                   </Text>
                 ) : null}
+                {displayWhy ? (
+                  <Text style={styles.whyText} numberOfLines={1}>
+                    {displayWhy}
+                  </Text>
+                ) : null}
                 {displayAddress ? (
-                  <View style={styles.addressRow}>
-                    <Ionicons
-                      name="location-outline"
-                      size={13}
-                      color={MUTED2}
-                      style={styles.addressIcon}
-                    />
-                    <Text style={styles.addressText} numberOfLines={2}>
-                      {displayAddress}
-                    </Text>
-                  </View>
+                  <Text style={styles.addressText} numberOfLines={2}>
+                    {displayAddress}
+                  </Text>
                 ) : null}
               </>
             ) : (
@@ -119,8 +132,8 @@ export default function AISuggestionBubble({
           </View>
 
           <View style={styles.footer}>
-            <Text style={styles.footerHint}>View on map</Text>
-            <Ionicons name="chevron-forward" size={12} color={MUTED3} />
+            <Text style={styles.footerHint}>Open in Maps</Text>
+            <Ionicons name="arrow-forward" size={13} color={ACCENT} />
           </View>
         </View>
 
@@ -151,14 +164,36 @@ const styles = StyleSheet.create({
     borderRadius: CARD_RADIUS,
     backgroundColor: SURFACE,
     borderWidth: 1,
-    borderColor: BORDER,
+    borderColor: ACCENT_BORDER,
     overflow: "hidden",
+  },
+  accentBar: {
+    height: 3,
+    backgroundColor: ACCENT,
   },
   body: {
     paddingHorizontal: 16,
     paddingTop: 14,
     paddingBottom: 12,
-    gap: 8,
+    gap: 6,
+  },
+  badge: {
+    alignSelf: "flex-start",
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 5,
+    backgroundColor: ACCENT_FILL_SUBTLE,
+    borderRadius: 999,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    marginBottom: 4,
+  },
+  badgeText: {
+    color: ACCENT,
+    fontFamily: fonts.heavy,
+    fontSize: TYPE_MICRO,
+    letterSpacing: 0.7,
+    textTransform: "uppercase",
   },
   venueName: {
     color: TEXT,
@@ -167,16 +202,13 @@ const styles = StyleSheet.create({
     fontFamily: fonts.heavy,
     letterSpacing: 0.1,
   },
-  addressRow: {
-    flexDirection: "row",
-    alignItems: "flex-start",
-    gap: 4,
-  },
-  addressIcon: {
-    marginTop: 2,
+  whyText: {
+    color: ACCENT,
+    fontSize: TYPE_CAPTION,
+    lineHeight: 18,
+    fontFamily: fonts.medium,
   },
   addressText: {
-    flex: 1,
     color: MUTED2,
     fontSize: TYPE_LEAD,
     lineHeight: 20,
@@ -194,14 +226,13 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     paddingHorizontal: 16,
     paddingVertical: 11,
-    borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: BORDER,
+    backgroundColor: ACCENT_FILL_SUBTLE,
   },
   footerHint: {
-    color: MUTED3,
+    color: ACCENT,
     fontSize: TYPE_FINE,
-    fontFamily: fonts.medium,
-    letterSpacing: 0.15,
+    fontFamily: fonts.heavy,
+    letterSpacing: 0.2,
   },
   heartReaction: {
     position: "absolute",
