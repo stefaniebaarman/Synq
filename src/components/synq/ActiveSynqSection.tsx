@@ -629,9 +629,9 @@ const styles = StyleSheet.create({
   activeTitle: {
     color: ACCENT,
     fontFamily: fonts.heavy,
-    fontSize: TYPE_BODY,
+    fontSize: TYPE_BUTTON,
     lineHeight: 22,
-    letterSpacing: 1.1,
+    letterSpacing: 1.2,
     textTransform: "uppercase",
     includeFontPadding: false,
     textAlignVertical: "center",

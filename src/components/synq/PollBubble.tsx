@@ -51,16 +51,24 @@ export default function PollBubble({
       ? parsedVotes[currentUserId]
       : null;
 
+  const displayQuestion = question.trim();
+
   return (
     <View
       style={styles.card}
       accessibilityRole="summary"
-      accessibilityLabel={`Poll. ${question}. ${total} ${total === 1 ? "vote" : "votes"}.`}
+      accessibilityLabel={
+        displayQuestion
+          ? `Poll. ${displayQuestion}. ${total} ${total === 1 ? "vote" : "votes"}.`
+          : `Poll. ${total} ${total === 1 ? "vote" : "votes"}.`
+      }
     >
       <View style={styles.badge}>
         <Text style={styles.badgeText}>Poll</Text>
       </View>
-      <Text style={styles.question}>{question}</Text>
+      {displayQuestion ? (
+        <Text style={styles.question}>{displayQuestion}</Text>
+      ) : null}
       <View style={styles.options}>
         {options.map((option, index) => {
           const count = counts[index] ?? 0;
@@ -77,18 +85,22 @@ export default function PollBubble({
               accessibilityLabel={`${option}. ${count} ${count === 1 ? "vote" : "votes"}.`}
               style={[styles.option, selected && styles.optionSelected]}
             >
-              <View
-                pointerEvents="none"
-                style={[styles.optionFill, { width: `${pct}%` }]}
-              />
-              <Text style={styles.optionLabel} numberOfLines={2}>
-                {option}
-              </Text>
-              <View style={styles.optionMeta}>
-                {selected ? (
-                  <Ionicons name="checkmark-circle" size={16} color={ACCENT} />
-                ) : null}
-                <Text style={styles.optionCount}>{total > 0 ? `${pct}%` : ""}</Text>
+              {pct > 0 ? (
+                <View
+                  pointerEvents="none"
+                  style={[styles.optionFill, { width: `${pct}%` }]}
+                />
+              ) : null}
+              <View style={styles.optionContent}>
+                <Text style={styles.optionLabel} numberOfLines={2}>
+                  {option}
+                </Text>
+                <View style={styles.optionMeta}>
+                  {selected ? (
+                    <Ionicons name="checkmark-circle" size={16} color={ACCENT} />
+                  ) : null}
+                  <Text style={styles.optionCount}>{total > 0 ? `${pct}%` : ""}</Text>
+                </View>
               </View>
             </Pressable>
           );
@@ -138,15 +150,10 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   option: {
-    minHeight: 42,
     borderRadius: 12,
     borderWidth: 1,
     borderColor: SURFACE_SUBTLE,
     backgroundColor: SURFACE_SUBTLE,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    flexDirection: "row",
-    alignItems: "center",
     overflow: "hidden",
   },
   optionSelected: {
@@ -158,6 +165,13 @@ const styles = StyleSheet.create({
     top: 0,
     bottom: 0,
     backgroundColor: ACCENT_FILL,
+  },
+  optionContent: {
+    minHeight: 42,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    flexDirection: "row",
+    alignItems: "center",
   },
   optionLabel: {
     flex: 1,

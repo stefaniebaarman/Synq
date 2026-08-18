@@ -124,8 +124,8 @@ export default function CreatePollSheet({ visible, onClose, onSend }: Props) {
         styles.sheetGroup,
         {
           paddingBottom:
-            Math.max(insets.bottom, 12) +
-            8 +
+            Math.max(insets.bottom, 20) +
+            20 +
             (keyboardInset > 0 ? Math.min(keyboardInset, 280) : 0),
         },
       ]}
@@ -149,7 +149,7 @@ export default function CreatePollSheet({ visible, onClose, onSend }: Props) {
             setQuestion(value);
             if (error) setError("");
           }}
-          placeholder="Ask a question"
+          placeholder="Question (optional)"
           placeholderTextColor={MUTED3}
           maxLength={MAX_POLL_QUESTION_LENGTH}
           autoFocus={visible}
@@ -223,7 +223,7 @@ const styles = StyleSheet.create({
   body: {
     paddingHorizontal: 18,
     paddingTop: 6,
-    paddingBottom: 18,
+    paddingBottom: 28,
     gap: 10,
   },
   title: {
@@ -277,6 +277,8 @@ const styles = StyleSheet.create({
   },
   sendBtn: {
     marginTop: 8,
-    alignSelf: "stretch",
+    marginBottom: 8,
+    alignSelf: "center",
+    minWidth: 148,
   },
 });

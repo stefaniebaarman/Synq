@@ -1239,7 +1239,7 @@ export default function MessagesChatPane({
                     </Text>
                   ) : null}
                   <PollBubble
-                    question={String(item.text || "Poll")}
+                    question={String(item.text || "")}
                     options={pollOptions}
                     votes={item.pollVotes}
                     currentUserId={currentUserId}
@@ -1680,7 +1680,7 @@ export default function MessagesChatPane({
               accessibilityRole="button"
               accessibilityLabel="Create poll"
             >
-              <Ionicons name="add" size={22} color={ACCENT} />
+              <Ionicons name="add" size={22} color={MUTED2} />
             </TouchableOpacity>
           ) : null}
           <TextInput
@@ -2011,7 +2011,7 @@ const chatComposerStyles = RNStyleSheet.create({
     borderRadius: 18,
     alignItems: "center",
     justifyContent: "center",
-    marginBottom: 2,
+    alignSelf: "center",
     flexShrink: 0,
   },
 });
