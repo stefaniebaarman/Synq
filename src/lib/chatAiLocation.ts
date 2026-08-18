@@ -8,6 +8,7 @@ import { userHasLocation } from "./userProfile";
 
 import {
   buildLocationPrompt,
+  CHAT_AI_MAX_DISTANCE_KM,
   CHAT_AI_MAX_DISTANCE_MILES,
   maxPairwiseDistanceKm,
   participantsWithinAiRange,
@@ -16,6 +17,7 @@ import {
 
 export {
   buildLocationPrompt,
+  CHAT_AI_MAX_DISTANCE_KM,
   CHAT_AI_MAX_DISTANCE_MILES,
   maxPairwiseDistanceKm,
   participantsWithinAiRange,

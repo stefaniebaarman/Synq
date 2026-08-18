@@ -21,6 +21,7 @@ import {
 import CloseButton from "@/src/components/CloseButton";
 import CloseIcon from "@/src/components/CloseIcon";
 import { ListRowsSkeleton } from "@/src/components/loading/BrandSkeletons";
+import { isPollMessage } from "@/src/lib/chatPoll";
 import {
   formatTime,
   getOtherChatParticipants,
@@ -69,7 +70,9 @@ import Animated, {
 } from "react-native-reanimated";
 import { initialWindowMetrics, useSafeAreaInsets } from "react-native-safe-area-context";
 import AISuggestionBubble from "./AISuggestionBubble";
+import CreatePollSheet from "./CreatePollSheet";
 import { MESSAGES_STACK_DURATION_MS } from "./MessagesModalStack";
+import PollBubble from "./PollBubble";
 
 const COMPOSER_KEYBOARD_GAP = 10;
 /** Extra lift while the keyboard is open so the field isn’t covered. */
@@ -119,7 +122,9 @@ function isChatBurstNeighbor(
     a.type === "system" ||
     b.type === "system" ||
     isAiSuggestionMessage(a) ||
-    isAiSuggestionMessage(b)
+    isAiSuggestionMessage(b) ||
+    isPollMessage(a) ||
+    isPollMessage(b)
   ) {
     return false;
   }
@@ -304,6 +309,8 @@ type Props = {
     item: { id: string; reactions?: Record<string, string> },
     mapsPayload: { name: string; address: string }
   ) => void;
+  onSendPoll?: (question: string, options: string[]) => boolean | Promise<boolean>;
+  onPollVote?: (messageId: string, optionIndex: number, currentVote?: number) => void;
   ChatMessageBubble: ComponentType<{
     text: string;
     bubbleCap: number;
@@ -361,6 +368,8 @@ export default function MessagesChatPane({
   onMessageBubblePress,
   onMessageLongPress,
   onIdeaBubblePress,
+  onSendPoll,
+  onPollVote,
   ChatMessageBubble,
   iMessageBubbleColumnMaxWidth,
   windowWidth,
@@ -370,6 +379,8 @@ export default function MessagesChatPane({
 }: Props) {
   const insets = useSafeAreaInsets();
   const canSend = inputText.trim().length > 0 && !isSending;
+  const [pollSheetVisible, setPollSheetVisible] = useState(false);
+  const canCreatePoll = typeof onSendPoll === "function";
   const listHeightRef = useRef(0);
   const contentHeightRef = useRef(0);
   const scrollOffsetRef = useRef(0);
@@ -1159,6 +1170,105 @@ export default function MessagesChatPane({
         );
       }
 
+      if (isPollMessage(item)) {
+        const pollOptions = Array.isArray(item.pollOptions)
+          ? item.pollOptions.map((option: unknown) => String(option || "").trim()).filter(Boolean)
+          : [];
+        const pollCap = Math.min(
+          iMessageBubbleColumnMaxWidth(windowWidth, isMe) + 24,
+          Math.round(windowWidth * (isMe ? 0.72 : 0.78))
+        );
+
+        return (
+          <View
+            style={[
+              styles.msgContainer,
+              {
+                alignItems: isMe ? "flex-end" : "flex-start",
+                marginBottom: gapToNewer,
+              },
+            ]}
+          >
+            {timeDividerLabel ? (
+              <Text style={styles.chatTimeDivider}>{timeDividerLabel}</Text>
+            ) : null}
+            <ChatSwipeRevealRow
+              revealX={swipeRevealX}
+              timeLabel={swipeTimeLabel}
+            >
+              <View
+                style={{
+                  flexDirection: "row",
+                  alignItems: "flex-end",
+                  alignSelf: "stretch",
+                  justifyContent: isMe ? "flex-end" : "flex-start",
+                  width: "100%",
+                }}
+              >
+                {!isMe ? (
+                  <Pressable
+                    onPress={() => handleOpenFriendProfile(item.senderId)}
+                    accessibilityRole="button"
+                    accessibilityLabel="View profile"
+                    hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
+                  >
+                    <ExpoImage
+                      source={{ uri: senderAvatar }}
+                      style={styles.chatAvatar}
+                      cachePolicy="memory-disk"
+                      transition={0}
+                      recyclingKey={`${item.senderId}-${senderAvatar}`}
+                    />
+                  </Pressable>
+                ) : null}
+                <View
+                  style={[
+                    styles.messageBubbleColumn,
+                    styles.ideaCardSlot,
+                    {
+                      maxWidth: pollCap,
+                      width: pollCap,
+                      alignSelf: isMe ? "flex-end" : "flex-start",
+                      alignItems: isMe ? "flex-end" : "flex-start",
+                    },
+                  ]}
+                >
+                  {!isMe ? (
+                    <Text style={styles.chatSenderName} numberOfLines={1}>
+                      {senderName}
+                    </Text>
+                  ) : null}
+                  <PollBubble
+                    question={String(item.text || "Poll")}
+                    options={pollOptions}
+                    votes={item.pollVotes}
+                    currentUserId={currentUserId}
+                    onVote={(optionIndex) => {
+                      if (String(item.id).startsWith("pending-")) return;
+                      onPollVote?.(
+                        item.id,
+                        optionIndex,
+                        typeof item.pollVotes?.[currentUserId || ""] === "number"
+                          ? item.pollVotes[currentUserId || ""]
+                          : undefined
+                      );
+                    }}
+                    onLongPress={() =>
+                      onMessageLongPress?.({
+                        id: item.id,
+                        senderId: item.senderId,
+                        text: item.text,
+                        reactions: item.reactions,
+                      })
+                    }
+                  />
+                </View>
+              </View>
+            </ChatSwipeRevealRow>
+          </View>
+        );
+      }
+
       const bubbleCap = iMessageBubbleColumnMaxWidth(windowWidth, isMe);
       const heartCount = countHeartReactions(item.reactions);
 
@@ -1262,6 +1372,7 @@ export default function MessagesChatPane({
       onIdeaBubblePress,
       onMessageBubblePress,
       onMessageLongPress,
+      onPollVote,
       shouldAnimateMessage,
       styles,
       swipeRevealX,
@@ -1552,7 +1663,26 @@ export default function MessagesChatPane({
           composerDockAnimStyle,
         ]}
       >
-        <View style={styles.composerShell}>
+        <View
+          style={[
+            styles.composerShell,
+            canCreatePoll ? chatComposerStyles.shellWithPoll : null,
+          ]}
+        >
+          {canCreatePoll ? (
+            <TouchableOpacity
+              onPress={() => {
+                Keyboard.dismiss();
+                setPollSheetVisible(true);
+              }}
+              style={chatComposerStyles.pollBtn}
+              activeOpacity={0.8}
+              accessibilityRole="button"
+              accessibilityLabel="Create poll"
+            >
+              <Ionicons name="add" size={22} color={ACCENT} />
+            </TouchableOpacity>
+          ) : null}
           <TextInput
             style={styles.composerInput}
             value={inputText}
@@ -1689,6 +1819,18 @@ export default function MessagesChatPane({
           style={[chatHeaderOverlayStyles.fadeBelowAi, { height: headerFadeHeight }]}
         />
       </View>
+
+      {typeof onSendPoll === "function" ? (
+        <CreatePollSheet
+          visible={pollSheetVisible}
+          onClose={() => setPollSheetVisible(false)}
+          onSend={async (question, options) => {
+            const ok = await onSendPoll(question, options);
+            if (ok) setPollSheetVisible(false);
+            return ok;
+          }}
+        />
+      ) : null}
     </View>
   );
 }
@@ -1856,5 +1998,20 @@ const chatHeaderOverlayStyles = RNStyleSheet.create({
   chatLoadingText: {
     color: MUTED2,
     fontSize: TYPE_LEAD,
+  },
+});
+
+const chatComposerStyles = RNStyleSheet.create({
+  shellWithPoll: {
+    paddingLeft: 6,
+  },
+  pollBtn: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: 2,
+    flexShrink: 0,
   },
 });

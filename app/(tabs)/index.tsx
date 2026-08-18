@@ -8,6 +8,7 @@ import { useTypingIndicator } from '@/src/hooks/useTypingIndicator';
 import { trackEvent } from '@/src/lib/analytics';
 import { useBlockedUsers } from '@/src/lib/blockedUsers';
 import { mergeMessages, pendingMatchesServer, type ChatMessage } from '@/src/lib/chatMessages';
+import { pollPreviewText, validatePollDraft } from '@/src/lib/chatPoll';
 import { deleteChat } from '@/src/lib/chats';
 import { containsObjectionableContent, filterOrReject } from '@/src/lib/contentFilter';
 import { ignoreSnapshotPermissionDenied } from '@/src/lib/firestoreListeners';
@@ -1945,6 +1946,77 @@ export default function SynqScreen() {
     }
   };
 
+  const sendPollToChat = async (question: string, options: string[]): Promise<boolean> => {
+    if (!auth.currentUser) return false;
+    if (!pendingNewChat && !activeChatId) return false;
+
+    const draft = validatePollDraft(question, options);
+    if (!draft.ok) {
+      showActionError(draft.reason, "Couldn't create poll");
+      return false;
+    }
+
+    const filterText = [draft.question, ...draft.options].join("\n");
+    if (rejectIfObjectionable(filterText)) return false;
+
+    try {
+      let chatId = activeChatId;
+      if (pendingNewChat) {
+        chatId = await ensureChatFromPending();
+      }
+      if (!chatId) return false;
+
+      const myAvatar = resolveAvatar(userProfile?.imageurl);
+      const preview = pollPreviewText(draft.question);
+
+      await addDoc(collection(db, "chats", chatId, "messages"), {
+        text: draft.question,
+        type: "poll",
+        senderId: auth.currentUser.uid,
+        imageurl: myAvatar,
+        createdAt: serverTimestamp(),
+        pollOptions: draft.options,
+        pollVotes: {},
+      });
+
+      await updateDoc(doc(db, "chats", chatId), {
+        lastMessage: preview,
+        lastMessageSenderId: auth.currentUser.uid,
+        updatedAt: serverTimestamp(),
+        [`participantImages.${auth.currentUser.uid}`]: myAvatar,
+      });
+
+      trackEvent("poll_sent", { chat_id: chatId });
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      return true;
+    } catch {
+      showActionError("Could not send poll. Please try again.");
+      return false;
+    }
+  };
+
+  const voteOnPoll = async (
+    messageId: string,
+    optionIndex: number,
+    currentVote?: number
+  ) => {
+    if (!auth.currentUser || !activeChatId || messageId.startsWith("pending-")) return;
+    if (!Number.isInteger(optionIndex) || optionIndex < 0) return;
+
+    const userId = auth.currentUser.uid;
+    const messageRef = doc(db, "chats", activeChatId, "messages", messageId);
+
+    try {
+      await updateDoc(messageRef, {
+        [`pollVotes.${userId}`]:
+          currentVote === optionIndex ? deleteField() : optionIndex,
+      });
+      void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    } catch {
+      showActionError("Could not save your vote. Please try again.");
+    }
+  };
+
   const applySynqAudience = async (selection: SynqAudienceSelection) => {
     if (!auth.currentUser) return;
     const uid = auth.currentUser.uid;
@@ -2730,6 +2802,8 @@ export default function SynqScreen() {
                     setReportModalVisible(true);
                   }}
                   onIdeaBubblePress={onIdeaBubblePress}
+                  onSendPoll={sendPollToChat}
+                  onPollVote={voteOnPoll}
                   ChatMessageBubble={MemoChatMessageBubble}
                   iMessageBubbleColumnMaxWidth={iMessageBubbleColumnMaxWidth}
                   windowWidth={windowWidth}

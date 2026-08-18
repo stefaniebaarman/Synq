@@ -20,6 +20,10 @@ export type ChatMessage = {
   createdAt?: unknown;
   imageurl?: string;
   type?: string;
+  why?: string;
+  category?: string;
+  pollOptions?: string[];
+  pollVotes?: Record<string, number>;
   reactions?: Record<string, string>;
   sendStatus?: MessageSendStatus;
   clientId?: string;
