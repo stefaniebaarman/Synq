@@ -15,11 +15,10 @@ import {
   TYPE_BODY,
   TYPE_BUTTON,
   TYPE_CAPTION,
-  TYPE_MICRO,
   TYPE_SUBHEAD,
   fonts,
   synqOutlineAddBtn,
-  synqOutlineAddBtnText,
+  synqOutlineAddBtnText
 } from "@/constants/Variables";
 import type { FriendGroup } from "@/src/lib/friendGroups";
 import type { SynqAudienceSelection } from "@/src/lib/synqBroadcast";

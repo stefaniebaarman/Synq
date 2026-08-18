@@ -346,7 +346,7 @@ export default function ActiveSynqSection({
                   accessibilityRole="button"
                   accessibilityLabel={`Sharing with ${sharingLabel}`}
                   accessibilityHint={
-                    openChangeAudience ? "Change who can see you" : undefined
+                    openChangeAudience ? "Change who you're sharing with" : undefined
                   }
                 >
                   <Text style={styles.sharingText} numberOfLines={1}>

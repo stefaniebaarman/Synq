@@ -9,10 +9,8 @@ import {
   GROUP_BORDER,
   MODAL_RADIUS,
   MUTED2,
-  ON_ACCENT_TEXT,
   OVERLAY_HEAVY,
   PLACEHOLDER_DARK,
-  PRIMARY_CTA_WIDTH,
   SURFACE_INPUT,
   TEXT,
   TEXT_MUTED_LIGHT,
@@ -22,6 +20,10 @@ import {
   formInputText,
   modalTitleText,
   fonts,
+  synqOutlineAddBtn,
+  synqOutlineAddBtnDisabled,
+  synqOutlineAddBtnText,
+  synqOutlineAddBtnTextDisabled,
 } from "@/constants/Variables";
 import CloseButton from "@/src/components/CloseButton";
 import PlanTimePicker from "@/src/components/PlanTimePicker";
@@ -358,13 +360,25 @@ export default function CreateCommunityPlanModal({ visible, busy, onClose, onCre
                     </View>
 
                     <TouchableOpacity
-                      style={[styles.popupPostBtn, !canPost && styles.popupPostBtnDisabled]}
+                      style={[
+                        synqOutlineAddBtn,
+                        styles.popupPostBtn,
+                        !canPost && synqOutlineAddBtnDisabled,
+                      ]}
                       disabled={!canPost}
                       onPress={handleSubmit}
-                      activeOpacity={0.88}
+                      activeOpacity={0.85}
+                      accessibilityRole="button"
+                      accessibilityLabel="Post"
                     >
-                      <Text style={[styles.popupPostBtnText, busy && { opacity: 0.5 }]}>
-                        Share
+                      <Text
+                        style={[
+                          synqOutlineAddBtnText,
+                          !canPost && synqOutlineAddBtnTextDisabled,
+                          busy && { opacity: 0.5 },
+                        ]}
+                      >
+                        Post
                       </Text>
                     </TouchableOpacity>
                   </View>
@@ -426,21 +440,11 @@ const styles = StyleSheet.create({
   },
   popupPostBtn: {
     marginTop: 14,
-    alignSelf: "center",
-    width: PRIMARY_CTA_WIDTH,
+    width: "56%",
     height: 50,
+    paddingVertical: 0,
+    paddingHorizontal: 0,
     borderRadius: BUTTON_RADIUS,
-    backgroundColor: ACCENT,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  popupPostBtnDisabled: {
-    opacity: 0.4,
-  },
-  popupPostBtnText: {
-    color: ON_ACCENT_TEXT,
-    fontFamily: fonts.heavy,
-    fontSize: TYPE_BODY,
   },
   planInputShell: {
     marginBottom: 10,

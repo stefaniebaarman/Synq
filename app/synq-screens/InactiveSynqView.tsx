@@ -357,10 +357,10 @@ export default function InactiveSynqView({
             pressed && styles.audiencePillPressed,
           ]}
           accessibilityRole="button"
-          accessibilityLabel={`Visible to ${audienceLabel}`}
+          accessibilityLabel={`Sharing with ${audienceLabel}`}
           accessibilityHint="Opens audience picker"
         >
-          <Text style={styles.sharingLabel}>Visible to</Text>
+          <Text style={styles.sharingLabel}>Sharing with</Text>
           <View style={styles.audienceValueRow}>
             <Text style={styles.sharingValue} numberOfLines={1}>
               {audienceLabel}

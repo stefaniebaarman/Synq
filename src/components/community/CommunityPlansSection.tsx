@@ -48,7 +48,7 @@ import {
   resolvePlanGoers,
   type CommunityPlanMemberProfile,
 } from "@/src/lib/communityPlanMembers";
-import { filterOutPastOpenPlans, isOpenPlanPast, sortOpenPlansByDateTime } from "@/src/lib/planEvents";
+import { filterOutPastOpenPlans, sortOpenPlansByDateTime } from "@/src/lib/planEvents";
 import { Ionicons } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
 import { doc, onSnapshot } from "firebase/firestore";
@@ -107,7 +107,6 @@ export default function CommunityPlansSection({
   const [alertVisible, setAlertVisible] = useState(false);
   const [alertTitle, setAlertTitle] = useState("");
   const [alertMessage, setAlertMessage] = useState("");
-  const prunedPastPlanIdsRef = useRef(new Set<string>());
   const openedInitialPlanRef = useRef<string | null>(null);
 
   const PLAN_PREVIEW_COUNT = 3;
@@ -168,22 +167,7 @@ export default function CommunityPlansSection({
     [plans]
   );
 
-  useEffect(() => {
-    prunedPastPlanIdsRef.current.clear();
-  }, [groupId]);
-
-  useEffect(() => {
-    if (!groupId || loading) return;
-
-    const pastPlans = plans.filter((plan) => isOpenPlanPast(plan));
-    for (const plan of pastPlans) {
-      if (prunedPastPlanIdsRef.current.has(plan.id)) continue;
-      prunedPastPlanIdsRef.current.add(plan.id);
-      void deleteCommunityGroupPlan(groupId, plan.id).catch(() => {
-        prunedPastPlanIdsRef.current.delete(plan.id);
-      });
-    }
-  }, [groupId, loading, plans]);
+  // Past plans are excluded by the subscribe query (date >= today); no client deletes.
 
   useEffect(() => {
     if (!initialPlanId || loading || openedInitialPlanRef.current === initialPlanId) return;
