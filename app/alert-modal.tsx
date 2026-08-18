@@ -1,5 +1,8 @@
 import { modalStyles } from "@/constants/modalStyles";
-import { primaryButtonText } from "@/constants/Variables";
+import {
+  synqOutlineAddBtn,
+  synqOutlineAddBtnText,
+} from "@/constants/Variables";
 import React from "react";
 import {
   Modal,
@@ -38,11 +41,11 @@ export default function AlertModal({
           <Text style={[modalStyles.body, styles.messageCentered]}>{message}</Text>
 
           <TouchableOpacity
-            style={modalStyles.primaryBtn}
+            style={synqOutlineAddBtn}
             onPress={onClose}
             activeOpacity={0.8}
           >
-            <Text style={primaryButtonText}>{buttonText}</Text>
+            <Text style={synqOutlineAddBtnText}>{buttonText}</Text>
           </TouchableOpacity>
         </View>
       </View>

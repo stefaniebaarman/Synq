@@ -1,17 +1,17 @@
 import { modalStyles } from "@/constants/modalStyles";
 import {
   ACCENT,
-  BUTTON_RADIUS,
+  ACCENT_BORDER,
+  ACCENT_FILL_SUBTLE,
   DESTRUCTIVE,
   DESTRUCTIVE_BORDER_STRONG,
   DESTRUCTIVE_FILL_SUBTLE,
   MUTED2,
   SYNQ_OUTLINE_CTA_RADIUS,
-  TEXT,
   TYPE_BUTTON,
-  TYPE_LEAD,
   fonts,
-  primaryButtonText,
+  synqOutlineAddBtn,
+  synqOutlineAddBtnText,
 } from "@/constants/Variables";
 import {
   Modal,
@@ -72,7 +72,7 @@ export default function ConfirmModal({
               onPress={onConfirm}
               disabled={confirmDisabled}
               style={[
-                styles.stackedConfirm,
+                synqOutlineAddBtn,
                 destructive && styles.stackedDestructive,
                 confirmDisabled && styles.confirmBtnDisabled,
               ]}
@@ -80,7 +80,7 @@ export default function ConfirmModal({
             >
               <Text
                 style={[
-                  styles.stackedConfirmText,
+                  synqOutlineAddBtnText,
                   destructive && styles.stackedDestructiveText,
                 ]}
               >
@@ -118,8 +118,7 @@ export default function ConfirmModal({
             >
               <Text
                 style={[
-                  primaryButtonText,
-                  styles.confirmTextSize,
+                  synqOutlineAddBtnText,
                   destructive && styles.destructiveText,
                 ]}
               >
@@ -159,16 +158,17 @@ const styles = StyleSheet.create({
     marginRight: 10,
   },
   confirmBtn: {
-    backgroundColor: ACCENT,
-    borderRadius: BUTTON_RADIUS,
+    backgroundColor: ACCENT_FILL_SUBTLE,
+    borderWidth: 1,
+    borderColor: ACCENT_BORDER,
+    borderRadius: SYNQ_OUTLINE_CTA_RADIUS,
     paddingVertical: 10,
     paddingHorizontal: 16,
+    alignItems: "center",
+    justifyContent: "center",
   },
   confirmBtnDisabled: {
     opacity: 0.45,
-  },
-  confirmTextSize: {
-    fontSize: TYPE_LEAD,
   },
   destructiveBtn: {
     backgroundColor: DESTRUCTIVE_FILL_SUBTLE,
@@ -203,26 +203,10 @@ const styles = StyleSheet.create({
     gap: 12,
     alignItems: "center",
   },
-  stackedConfirm: {
-    alignSelf: "center",
-    borderRadius: SYNQ_OUTLINE_CTA_RADIUS,
-    paddingVertical: 13,
-    paddingHorizontal: 32,
-    minWidth: 58,
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: ACCENT,
-  },
   stackedDestructive: {
     backgroundColor: DESTRUCTIVE_FILL_SUBTLE,
     borderWidth: 1,
     borderColor: DESTRUCTIVE_BORDER_STRONG,
-  },
-  stackedConfirmText: {
-    color: TEXT,
-    fontFamily: fonts.medium,
-    fontSize: TYPE_BUTTON,
-    letterSpacing: 0.1,
   },
   stackedDestructiveText: {
     color: DESTRUCTIVE,
