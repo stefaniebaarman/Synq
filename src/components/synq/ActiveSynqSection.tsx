@@ -299,7 +299,7 @@ export default function ActiveSynqSection({
               <View style={styles.headerActions}>
                 <TouchableOpacity
                   onPress={openMessagesInbox}
-                  hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                  hitSlop={{ top: 6, bottom: 6, left: 4, right: 4 }}
                   style={styles.headerIconBtn}
                   accessibilityRole="button"
                   accessibilityLabel={
@@ -319,7 +319,7 @@ export default function ActiveSynqSection({
                 </TouchableOpacity>
                 <TouchableOpacity
                   onPress={() => setOptionsVisible(true)}
-                  hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                  hitSlop={{ top: 6, bottom: 6, left: 4, right: 4 }}
                   style={styles.headerIconBtn}
                   accessibilityRole="button"
                   accessibilityLabel="Synq options"
@@ -597,7 +597,7 @@ const styles = StyleSheet.create({
   headerRow: {
     flexDirection: "row",
     alignItems: "center",
-    height: 40,
+    height: 44,
     marginBottom: 16,
   },
   glowWrap: {
@@ -622,7 +622,7 @@ const styles = StyleSheet.create({
     flex: 1,
     flexDirection: "row",
     alignItems: "center",
-    height: 40,
+    height: 44,
     gap: 8,
     minWidth: 0,
   },
@@ -638,14 +638,15 @@ const styles = StyleSheet.create({
   },
   headerIconBtn: {
     position: "relative",
-    width: 40,
-    height: 40,
+    width: 44,
+    height: 44,
     alignItems: "center",
     justifyContent: "center",
   },
   headerActions: {
     flexDirection: "row",
     alignItems: "center",
+    gap: 4,
   },
   statusDivider: {
     height: StyleSheet.hairlineWidth,

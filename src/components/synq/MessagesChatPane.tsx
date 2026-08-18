@@ -9,7 +9,7 @@ import {
   MUTED2,
   MUTED3,
   ON_ACCENT_TEXT,
-  PROFILE_HEADER_TOP_OFFSET,
+  messagesModalHeaderPaddingTop,
   RADIUS_XL,
   SURFACE_ELEVATED,
   TEXT,
@@ -1269,8 +1269,9 @@ export default function MessagesChatPane({
     ]
   );
 
-  const chatHeaderContentPaddingTop =
-    Math.max(insets.top, insetsTop, 10) + PROFILE_HEADER_TOP_OFFSET + 4;
+  const chatHeaderContentPaddingTop = messagesModalHeaderPaddingTop(
+    Math.max(insets.top, insetsTop)
+  );
   const compactChatHeader = !showAISuggestions;
   const aiPillBelowTitle = showAISuggestions && canExpandChatTitle;
   const headerFadeHeight = chatTitleExpanded
@@ -1797,7 +1798,7 @@ const chatHeaderOverlayStyles = RNStyleSheet.create({
     letterSpacing: 0.1,
   },
   closeBtnExpanded: {
-    marginTop: 2,
+    marginTop: 0,
   },
   fadeBelowAi: {
     height: CHAT_HEADER_FADE_BELOW_AI,

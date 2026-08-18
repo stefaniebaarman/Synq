@@ -4,6 +4,7 @@ import { ListRowsSkeleton } from "@/src/components/loading/BrandSkeletons";
 import ChatInboxActionSheet from "@/src/components/synq/ChatInboxActionSheet";
 import {
   MUTED2,
+  messagesModalHeaderPaddingTop,
   synqOutlineAddBtn,
   synqOutlineAddBtnDisabled,
   synqOutlineAddBtnText,
@@ -87,7 +88,7 @@ export default function MessagesInboxPane({
   onDeleteFromAction,
 }: Props) {
   const insets = useSafeAreaInsets();
-  const inboxHeaderPaddingTop = Math.max(insets.top, 20) + 6;
+  const inboxHeaderPaddingTop = messagesModalHeaderPaddingTop(insets.top);
   const inboxMergeHeaderPaddingTop = Math.max(insets.top, 16) + 6;
   const inboxBottomInset = Math.max(
     insets.bottom,

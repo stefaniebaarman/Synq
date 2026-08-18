@@ -3400,6 +3400,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
+    minHeight: 44,
     paddingBottom: 12,
   },
   inboxTitleRow: {
@@ -3659,8 +3660,8 @@ const styles = StyleSheet.create({
   chatHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: 18,
+    alignItems: 'flex-start',
+    paddingHorizontal: 20,
     paddingBottom: 6,
     overflow: 'visible',
   },

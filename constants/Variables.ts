@@ -62,6 +62,12 @@ export const PROFILE_HEADER_TOP_OFFSET = 12;
 export const PROFILE_HEADER_ICON_ROW_HEIGHT = 48;
 /** Clear space between the fade and scroll content below. */
 export const PROFILE_HEADER_CONTENT_GAP = 22;
+/** Extra space below the status bar for the messages inbox/thread close row. */
+export const MESSAGES_HEADER_EXTRA_TOP = 6;
+
+export function messagesModalHeaderPaddingTop(safeTop: number) {
+  return Math.max(safeTop, 20) + MESSAGES_HEADER_EXTRA_TOP;
+}
 
 /** Layout metrics for tab screens with floating header overlays. */
 export function getTabHeaderLayout(insetsTop: number) {

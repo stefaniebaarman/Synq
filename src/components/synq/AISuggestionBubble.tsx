@@ -1,25 +1,26 @@
 import {
   ACCENT,
   ACCENT_BORDER,
-  ACCENT_FILL_SUBTLE,
   HEART_LIKE,
-  MUTED2,
   MUTED3,
   SHADOW,
   SURFACE,
   SURFACE_ELEVATED,
+  SURFACE_SUBTLE,
   TEXT,
   TYPE_BUTTON,
   TYPE_CAPTION,
-  TYPE_CTA,
   TYPE_FINE,
-  TYPE_LEAD,
   TYPE_MICRO,
   fonts,
+  synqOutlineAddBtnCompact,
+  synqOutlineAddBtnTextCompact,
 } from "@/constants/Variables";
-import { vibeDisplayLabel } from "@/src/data/vibeCategoryImages";
+import { vibeCategoryImageUrl, vibeDisplayLabel } from "@/src/data/vibeCategoryImages";
 import { formatVenueAddressDisplay, stripLegacyAiPrefix } from "@/src/lib/helpers";
 import { Ionicons } from "@expo/vector-icons";
+import { Image as ExpoImage } from "expo-image";
+import { LinearGradient } from "expo-linear-gradient";
 import React, { useCallback, useMemo, useRef } from "react";
 import {
   Platform,
@@ -30,7 +31,8 @@ import {
 import { Gesture, GestureDetector } from "react-native-gesture-handler";
 import { runOnJS } from "react-native-reanimated";
 
-const CARD_RADIUS = 18;
+const CARD_RADIUS = 20;
+const HERO_HEIGHT = 196;
 
 type Props = {
   text: string;
@@ -61,6 +63,7 @@ export default function AISuggestionBubble({
   const displayWhy = why?.trim() || "";
   const displayCategory = vibeDisplayLabel(category || "") || "Spot";
   const showVenue = !isLegacy && (displayName || displayAddress);
+  const imageUrl = vibeCategoryImageUrl(category || "");
 
   const onPressRef = useRef(onPress);
   const onLongPressRef = useRef(onLongPress);
@@ -96,20 +99,37 @@ export default function AISuggestionBubble({
         accessibilityRole="button"
         accessibilityLabel={
           showVenue
-            ? `${displayName || displayAddress}. Tap to view on map.`
+            ? `${displayCategory}. ${displayName || displayAddress}. Tap to view on map.`
             : "Tap to view suggestion."
         }
         style={styles.pressable}
       >
-        <View style={styles.card}>
-          <View style={styles.accentBar} />
-          <View style={styles.body}>
-            {showVenue ? (
-              <>
-                <View style={styles.badge}>
-                  <Ionicons name="sparkles" size={10} color={ACCENT} />
-                  <Text style={styles.badgeText}>{displayCategory}</Text>
-                </View>
+        {showVenue ? (
+          <View style={styles.card}>
+            <ExpoImage
+              source={{ uri: imageUrl }}
+              style={styles.hero}
+              contentFit="cover"
+              cachePolicy="memory-disk"
+              recyclingKey={imageUrl}
+            />
+            <View style={styles.heroDim} />
+            <LinearGradient
+              colors={[
+                "rgba(0,0,0,0.38)",
+                "rgba(0,0,0,0.52)",
+                "rgba(0,0,0,0.78)",
+                "rgba(0,0,0,0.94)",
+              ]}
+              locations={[0, 0.22, 0.48, 1]}
+              style={styles.scrim}
+            >
+              <View style={[synqOutlineAddBtnCompact, styles.badge]}>
+                <Text style={[synqOutlineAddBtnTextCompact, styles.badgeText]}>
+                  {displayCategory}
+                </Text>
+              </View>
+              <View style={styles.copy}>
                 {displayName ? (
                   <Text style={styles.venueName} numberOfLines={2}>
                     {displayName}
@@ -121,21 +141,22 @@ export default function AISuggestionBubble({
                   </Text>
                 ) : null}
                 {displayAddress ? (
-                  <Text style={styles.addressText} numberOfLines={2}>
+                  <Text style={styles.addressText} numberOfLines={1}>
                     {displayAddress}
                   </Text>
                 ) : null}
-              </>
-            ) : (
-              <Text style={styles.legacyBody}>{legacyBody || text}</Text>
-            )}
+                <View style={styles.mapsRow}>
+                  <Text style={styles.mapsHint}>Open in Maps</Text>
+                  <Ionicons name="arrow-forward" size={13} color={ACCENT} />
+                </View>
+              </View>
+            </LinearGradient>
           </View>
-
-          <View style={styles.footer}>
-            <Text style={styles.footerHint}>Open in Maps</Text>
-            <Ionicons name="arrow-forward" size={13} color={ACCENT} />
+        ) : (
+          <View style={styles.legacyCard}>
+            <Text style={styles.legacyBody}>{legacyBody || text}</Text>
           </View>
-        </View>
+        )}
 
         {heartCount > 0 ? (
           <View style={styles.heartReaction}>
@@ -161,46 +182,47 @@ const styles = StyleSheet.create({
     overflow: "visible",
   },
   card: {
+    height: HERO_HEIGHT,
     borderRadius: CARD_RADIUS,
-    backgroundColor: SURFACE,
+    overflow: "hidden",
+    backgroundColor: SURFACE_SUBTLE,
     borderWidth: 1,
     borderColor: ACCENT_BORDER,
-    overflow: "hidden",
   },
-  accentBar: {
-    height: 3,
-    backgroundColor: ACCENT,
+  hero: {
+    ...StyleSheet.absoluteFillObject,
   },
-  body: {
-    paddingHorizontal: 16,
-    paddingTop: 14,
+  heroDim: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: "rgba(0,0,0,0.28)",
+  },
+  scrim: {
+    ...StyleSheet.absoluteFillObject,
+    justifyContent: "space-between",
+    paddingHorizontal: 14,
+    paddingTop: 12,
     paddingBottom: 12,
-    gap: 6,
   },
   badge: {
     alignSelf: "flex-start",
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 5,
-    backgroundColor: ACCENT_FILL_SUBTLE,
-    borderRadius: 999,
+    minWidth: 0,
+    paddingVertical: 3,
     paddingHorizontal: 8,
-    paddingVertical: 4,
-    marginBottom: 4,
   },
   badgeText: {
-    color: ACCENT,
-    fontFamily: fonts.heavy,
     fontSize: TYPE_MICRO,
-    letterSpacing: 0.7,
-    textTransform: "uppercase",
+    lineHeight: 13,
+    letterSpacing: 0.2,
+  },
+  copy: {
+    gap: 3,
   },
   venueName: {
-    color: TEXT,
-    fontSize: TYPE_CTA,
+    color: "#FFFFFF",
+    fontSize: 20,
     lineHeight: 24,
     fontFamily: fonts.heavy,
-    letterSpacing: 0.1,
+    letterSpacing: -0.2,
   },
   whyText: {
     color: ACCENT,
@@ -209,30 +231,37 @@ const styles = StyleSheet.create({
     fontFamily: fonts.medium,
   },
   addressText: {
-    color: MUTED2,
-    fontSize: TYPE_LEAD,
-    lineHeight: 20,
+    color: "rgba(255,255,255,0.68)",
+    fontSize: TYPE_FINE,
+    lineHeight: 16,
     fontFamily: fonts.book,
+  },
+  mapsRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginTop: 8,
+    paddingTop: 8,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: "rgba(255,255,255,0.16)",
+  },
+  mapsHint: {
+    color: ACCENT,
+    fontSize: TYPE_FINE,
+    fontFamily: fonts.heavy,
+    letterSpacing: 0.2,
+  },
+  legacyCard: {
+    borderRadius: CARD_RADIUS,
+    backgroundColor: SURFACE,
+    paddingHorizontal: 16,
+    paddingVertical: 14,
   },
   legacyBody: {
     color: TEXT,
     fontSize: TYPE_BUTTON,
     lineHeight: 22,
     fontFamily: fonts.book,
-  },
-  footer: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    paddingHorizontal: 16,
-    paddingVertical: 11,
-    backgroundColor: ACCENT_FILL_SUBTLE,
-  },
-  footerHint: {
-    color: ACCENT,
-    fontSize: TYPE_FINE,
-    fontFamily: fonts.heavy,
-    letterSpacing: 0.2,
   },
   heartReaction: {
     position: "absolute",
