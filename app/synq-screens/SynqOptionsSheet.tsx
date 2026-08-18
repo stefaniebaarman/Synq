@@ -2,13 +2,12 @@ import { sheetStyles } from "@/constants/sheetStyles";
 import SpringBottomSheet from "@/src/components/sheets/SpringBottomSheet";
 import { Ionicons } from "@expo/vector-icons";
 import { useRef } from "react";
-import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { StyleSheet, Text, TouchableOpacity } from "react-native";
 import {
   BG,
   BORDER,
   DESTRUCTIVE,
   RADIUS_MD,
-  TEXT,
   TYPE_SUBHEAD,
   fonts,
   sheetTitleText,
@@ -17,18 +16,12 @@ import {
 type Props = {
   visible: boolean;
   onClose: () => void;
-  onEditMemo: () => void;
-  onChangeAudience?: () => void;
-  onSortFriends?: () => void;
   onEndSynq: () => void;
 };
 
 export default function SynqOptionsSheet({
   visible,
   onClose,
-  onEditMemo,
-  onChangeAudience,
-  onSortFriends,
   onEndSynq,
 }: Props) {
   const pendingActionRef = useRef<(() => void) | null>(null);
@@ -65,41 +58,13 @@ export default function SynqOptionsSheet({
     >
       <TouchableOpacity
         style={styles.option}
-        onPress={() => runAfterClose(onEditMemo)}
-        activeOpacity={0.75}
-        accessibilityRole="button"
-        accessibilityLabel="Edit status"
-      >
-        <Ionicons name="create-outline" size={22} color={TEXT} />
-        <Text style={styles.optionText}>Edit status</Text>
-      </TouchableOpacity>
-      {onSortFriends ? (
-        <>
-          <View style={styles.divider} />
-          <TouchableOpacity
-            style={styles.option}
-            onPress={() => runAfterClose(onSortFriends)}
-            activeOpacity={0.75}
-            accessibilityRole="button"
-            accessibilityLabel="Sort friends"
-          >
-            <Ionicons name="swap-vertical-outline" size={22} color={TEXT} />
-            <Text style={styles.optionText}>Sort friends</Text>
-          </TouchableOpacity>
-        </>
-      ) : null}
-      <View style={styles.divider} />
-      <TouchableOpacity
-        style={styles.option}
         onPress={() => runAfterClose(onEndSynq)}
         activeOpacity={0.75}
         accessibilityRole="button"
         accessibilityLabel="End Synq"
       >
         <Ionicons name="stop-circle-outline" size={22} color={DESTRUCTIVE} />
-        <Text style={[styles.optionText, styles.destructiveText]}>
-          End Synq
-        </Text>
+        <Text style={styles.optionText}>End Synq</Text>
       </TouchableOpacity>
     </SpringBottomSheet>
   );
@@ -118,17 +83,9 @@ const styles = StyleSheet.create({
     gap: 14,
   },
   optionText: {
-    color: TEXT,
+    color: DESTRUCTIVE,
     fontSize: TYPE_SUBHEAD,
     fontFamily: fonts.medium,
-  },
-  destructiveText: {
-    color: DESTRUCTIVE,
-  },
-  divider: {
-    height: StyleSheet.hairlineWidth,
-    backgroundColor: BORDER,
-    marginLeft: 54,
   },
   cancelBtn: {
     marginTop: 10,

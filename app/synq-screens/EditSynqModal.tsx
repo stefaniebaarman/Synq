@@ -85,7 +85,7 @@ export default function EditSynqModal({
                 disabled={saving}
                 activeOpacity={0.85}
                 accessibilityRole="button"
-                accessibilityLabel="Save changes"
+                accessibilityLabel="Done"
               >
                 <Text
                   style={[
@@ -93,7 +93,7 @@ export default function EditSynqModal({
                     saving && synqOutlineAddBtnTextDisabled,
                   ]}
                 >
-                  Save changes
+                  Done
                 </Text>
               </TouchableOpacity>
 

@@ -28,6 +28,7 @@ import Animated, {
   useReducedMotion,
   useSharedValue,
   withRepeat,
+  withSequence,
   withTiming,
 } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -65,8 +66,34 @@ const SHORT_LIST_MAX = 3;
 const ACTIVE_CTA_BOTTOM_NUDGE_SHORT = 44;
 
 function ActiveLiveDot() {
+  const reduced = useReducedMotion();
+  const ring = useSharedValue(0);
+
+  useEffect(() => {
+    if (reduced) {
+      ring.value = 0;
+      return;
+    }
+    ring.value = withRepeat(
+      withSequence(
+        withTiming(1, { duration: 1400, easing: Easing.out(Easing.quad) }),
+        withTiming(0, { duration: 0 })
+      ),
+      -1,
+      false
+    );
+  }, [reduced, ring]);
+
+  const ringStyle = useAnimatedStyle(() => ({
+    opacity: 0.55 * (1 - ring.value),
+    transform: [{ scale: 1 + ring.value * 1.55 }],
+  }));
+
   return (
     <View style={pulseStyles.wrap} accessibilityElementsHidden>
+      {reduced ? null : (
+        <Animated.View style={[pulseStyles.ring, ringStyle]} />
+      )}
       <View style={pulseStyles.core} />
     </View>
   );
@@ -74,10 +101,17 @@ function ActiveLiveDot() {
 
 const pulseStyles = {
   wrap: {
-    width: LIVE_PULSE_SIZE + 10,
-    height: LIVE_PULSE_SIZE + 10,
+    width: LIVE_PULSE_SIZE + 14,
+    height: LIVE_PULSE_SIZE + 14,
     alignItems: "center" as const,
     justifyContent: "center" as const,
+  },
+  ring: {
+    position: "absolute" as const,
+    width: LIVE_PULSE_SIZE,
+    height: LIVE_PULSE_SIZE,
+    borderRadius: LIVE_PULSE_SIZE / 2,
+    backgroundColor: ACCENT,
   },
   core: {
     width: LIVE_PULSE_SIZE,
@@ -252,46 +286,46 @@ export default function ActiveSynqSection({
           <Animated.View
             entering={reducedMotion ? undefined : FadeIn.duration(380)}
           >
-            <View style={styles.statusRow}>
-              <Pressable
-                onPress={endSynq}
-                style={({ pressed }) => [
-                  styles.statusRowLead,
-                  pressed && styles.statusRowPressed,
-                ]}
-                accessibilityRole="button"
-                accessibilityLabel="Synq is active"
-                accessibilityHint="Double tap to end Synq"
-              >
+            <View style={styles.headerRow}>
+              <View style={styles.statusRowLead}>
                 <ActiveLiveDot />
                 <Text style={styles.activeTitle} numberOfLines={1}>
-                  Synq is active
+                  SYNQ IS ACTIVE
                 </Text>
-              </Pressable>
-              <TouchableOpacity
-                onPress={openMessagesInbox}
-                hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-                style={styles.messagesBtn}
-                accessibilityRole="button"
-                accessibilityLabel={
-                  unreadCount > 0
-                    ? `Open messages, ${unreadCount} unread`
-                    : "Open messages"
-                }
-              >
-                <Ionicons name="chatbubble-outline" size={22} color={TEXT} />
-                {unreadCount > 0 ? (
-                  <NotificationBadge
-                    variant="count"
-                    count={unreadCount}
-                    tone="accent"
-                  />
-                ) : null}
-              </TouchableOpacity>
+              </View>
+              <View style={styles.headerActions}>
+                <TouchableOpacity
+                  onPress={openMessagesInbox}
+                  hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                  style={styles.headerIconBtn}
+                  accessibilityRole="button"
+                  accessibilityLabel={
+                    unreadCount > 0
+                      ? `Open messages, ${unreadCount} unread`
+                      : "Open messages"
+                  }
+                >
+                  <Ionicons name="chatbubble-outline" size={22} color={TEXT} />
+                  {unreadCount > 0 ? (
+                    <NotificationBadge
+                      variant="count"
+                      count={unreadCount}
+                      tone="accent"
+                    />
+                  ) : null}
+                </TouchableOpacity>
+                <TouchableOpacity
+                  onPress={() => setOptionsVisible(true)}
+                  hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                  style={styles.headerIconBtn}
+                  accessibilityRole="button"
+                  accessibilityLabel="Synq options"
+                >
+                  <Ionicons name="ellipsis-horizontal" size={22} color={TEXT} />
+                </TouchableOpacity>
+              </View>
             </View>
           </Animated.View>
-
-          <View style={styles.statusDivider} />
 
           <Animated.View
             entering={
@@ -522,8 +556,6 @@ export default function ActiveSynqSection({
       <SynqOptionsSheet
         visible={optionsVisible}
         onClose={() => setOptionsVisible(false)}
-        onEditMemo={openEditModal}
-        onChangeAudience={openChangeAudience}
         onEndSynq={endSynq}
       />
     </View>
@@ -540,6 +572,12 @@ const styles = StyleSheet.create({
     position: "relative",
     paddingHorizontal: 22,
     paddingBottom: 6,
+  },
+  headerRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    height: 40,
+    marginBottom: 16,
   },
   glowWrap: {
     ...StyleSheet.absoluteFillObject,
@@ -563,22 +601,30 @@ const styles = StyleSheet.create({
     flex: 1,
     flexDirection: "row",
     alignItems: "center",
+    height: 40,
     gap: 8,
     minWidth: 0,
   },
   activeTitle: {
-    color: TEXT,
+    color: ACCENT,
     fontFamily: fonts.heavy,
-    fontSize: 22,
-    letterSpacing: 0.1,
+    fontSize: TYPE_BODY,
+    lineHeight: 22,
+    letterSpacing: 1.1,
+    textTransform: "uppercase",
     includeFontPadding: false,
+    textAlignVertical: "center",
   },
-  messagesBtn: {
+  headerIconBtn: {
     position: "relative",
     width: 40,
     height: 40,
     alignItems: "center",
     justifyContent: "center",
+  },
+  headerActions: {
+    flexDirection: "row",
+    alignItems: "center",
   },
   statusDivider: {
     height: StyleSheet.hairlineWidth,
