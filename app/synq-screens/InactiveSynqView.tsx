@@ -7,6 +7,7 @@ import {
   ACCENT_FILL_WHISPER,
   ACCENT_SUBTLE,
   BG,
+  MUTED,
   MUTED2,
   MUTED3,
   RADIUS_MD,
@@ -23,7 +24,6 @@ import {
   TYPE_BUTTON,
   TYPE_CAPTION,
   fonts,
-  profileNameText,
 } from "@/constants/Variables";
 import type { FriendGroup } from "@/src/lib/friendGroups";
 import { formatAudienceSelectionLabel, type SynqAudienceSelection } from "@/src/lib/synqBroadcast";
@@ -327,8 +327,8 @@ export default function InactiveSynqView({
 
   const stack = (
     <Animated.View entering={enter(0)} style={styles.stack}>
-      <Text style={styles.title}>
-        Let&apos;s <Text style={styles.titleAccent}>Synq.</Text>
+      <Text style={styles.title} accessibilityRole="header">
+        SYNQ INACTIVE
       </Text>
 
       <Animated.View entering={enter(60)} style={styles.footer}>
@@ -453,15 +453,15 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   title: {
-    ...profileNameText,
-    lineHeight: 36,
-    letterSpacing: -0.45,
-    textAlign: "center",
-    marginBottom: SPACE_6 + SPACE_4,
-  },
-  titleAccent: {
-    color: ACCENT,
+    color: MUTED,
     fontFamily: fonts.heavy,
+    fontSize: TYPE_BODY,
+    lineHeight: 22,
+    letterSpacing: 1.1,
+    textTransform: "uppercase",
+    textAlign: "center",
+    includeFontPadding: false,
+    marginBottom: SPACE_6,
   },
   footer: {
     width: "100%",

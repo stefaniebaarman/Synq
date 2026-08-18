@@ -23,11 +23,11 @@ import Animated, {
 import { SvgXml } from "react-native-svg";
 
 const RING_COUNT = 4;
-const RING_STAGGER_MS = 420;
-const RING_DURATION_MS = 1180;
+const RING_STAGGER_MS = 380;
+const RING_DURATION_MS = 1100;
 const LAST_RING_END_MS =
   (RING_COUNT - 1) * RING_STAGGER_MS + RING_DURATION_MS;
-const LAUNCH_MS = Math.max(2680, LAST_RING_END_MS + 260);
+const LAUNCH_MS = 3000;
 const CONTINUOUS_RING_CYCLE_MS = LAST_RING_END_MS + 320;
 
 type Props = {

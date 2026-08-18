@@ -1,4 +1,5 @@
 import type { Friend } from "@/constants/Variables";
+import { SkeletonBlock } from "@/src/components/loading/BrandSkeletons";
 import ActiveSynqEmptyState from "@/src/components/synq/ActiveSynqEmptyState";
 import NotificationBadge from "@/src/components/NotificationBadge";
 import { friendLocationWithDistance } from "@/src/lib/friendDistance";
@@ -203,6 +204,7 @@ type Props = {
   userProfile?: Record<string, unknown> | null;
   viewerId?: string;
   nudgeCandidates?: Friend[];
+  friendsLoading?: boolean;
 };
 
 export default function ActiveSynqSection({
@@ -222,6 +224,7 @@ export default function ActiveSynqSection({
   userProfile,
   viewerId,
   nudgeCandidates = [],
+  friendsLoading = false,
 }: Props) {
   const insets = useSafeAreaInsets();
   const [optionsVisible, setOptionsVisible] = useState(false);
@@ -250,7 +253,7 @@ export default function ActiveSynqSection({
   const freeCount = sortedAvailableFriends.length;
   const selectedCount = selectedFriends.length;
   const showCta = selectedCount > 0;
-  const showDock = freeCount > 0;
+  const showDock = !friendsLoading && freeCount > 0;
   const isShortList = freeCount > 0 && freeCount <= SHORT_LIST_MAX;
   const memoText = memo.trim();
   const sharingLabel = audienceLabel?.trim() || "All friends";
@@ -403,11 +406,13 @@ export default function ActiveSynqSection({
           <FlatList
             ref={listRef}
             style={styles.friendsList}
-            data={sortedAvailableFriends}
+            data={friendsLoading ? [] : sortedAvailableFriends}
             keyExtractor={(item) => item.id}
             showsVerticalScrollIndicator={false}
             ListEmptyComponent={
-              viewerId ? (
+              friendsLoading ? (
+                <ActiveFriendsSkeleton />
+              ) : viewerId ? (
                 <ActiveSynqEmptyState
                   viewerId={viewerId}
                   candidates={nudgeCandidates}
@@ -558,6 +563,22 @@ export default function ActiveSynqSection({
         onClose={() => setOptionsVisible(false)}
         onEndSynq={endSynq}
       />
+    </View>
+  );
+}
+
+function ActiveFriendsSkeleton() {
+  return (
+    <View accessibilityLabel="Loading friends">
+      {Array.from({ length: 4 }).map((_, i) => (
+        <View key={i} style={styles.friendCard}>
+          <SkeletonBlock style={styles.friendAvatar} />
+          <View style={styles.friendCopy}>
+            <SkeletonBlock style={styles.friendSkeletonTitle} />
+            <SkeletonBlock style={styles.friendSkeletonMeta} />
+          </View>
+        </View>
+      ))}
     </View>
   );
 }
@@ -738,5 +759,16 @@ const styles = StyleSheet.create({
     fontSize: 11,
     fontFamily: fonts.book,
     letterSpacing: 0.2,
+  },
+  friendSkeletonTitle: {
+    width: "52%",
+    height: 14,
+    borderRadius: 7,
+  },
+  friendSkeletonMeta: {
+    width: "36%",
+    height: 10,
+    borderRadius: 5,
+    marginTop: 8,
   },
 });
