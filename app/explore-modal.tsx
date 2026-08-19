@@ -1017,9 +1017,9 @@ const styles = StyleSheet.create({
         alignItems: "center",
     },
     sendBtn: {
-        alignSelf: "stretch",
-        minHeight: 52,
-        width: "100%",
+        alignSelf: "center",
+        minHeight: 48,
+        paddingHorizontal: 28,
     },
     emptyState: {
         flex: 1,

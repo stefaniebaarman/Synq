@@ -308,14 +308,16 @@ export default function ActiveSynqSection({
                       : "Open messages"
                   }
                 >
-                  <Ionicons name="chatbubble-outline" size={22} color={TEXT} />
-                  {unreadCount > 0 ? (
-                    <NotificationBadge
-                      variant="count"
-                      count={unreadCount}
-                      tone="accent"
-                    />
-                  ) : null}
+                  <View style={styles.headerMsgIconWrap}>
+                    <Ionicons name="chatbubble-outline" size={22} color={TEXT} />
+                    {unreadCount > 0 ? (
+                      <NotificationBadge
+                        variant="count"
+                        count={unreadCount}
+                        tone="accent"
+                      />
+                    ) : null}
+                  </View>
                 </TouchableOpacity>
                 <TouchableOpacity
                   onPress={() => setOptionsVisible(true)}
@@ -637,9 +639,15 @@ const styles = StyleSheet.create({
     textAlignVertical: "center",
   },
   headerIconBtn: {
-    position: "relative",
     width: 44,
     height: 44,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  headerMsgIconWrap: {
+    position: "relative",
+    width: 32,
+    height: 32,
     alignItems: "center",
     justifyContent: "center",
   },

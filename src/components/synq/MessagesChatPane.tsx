@@ -92,7 +92,8 @@ const CHAT_THREAD_REVEAL_MS = 160;
 /** Fade from black into the message list, starting just under the AI chip row. */
 const CHAT_HEADER_FADE_BELOW_AI = 44;
 const CHAT_HEADER_FADE_EXPANDED = 52;
-const CHAT_HEADER_TITLE_INDENT = 56;
+/** Title column starts at 88; nudge left so the chip isn’t inset by its own padding. */
+const CHAT_HEADER_TITLE_INDENT = 80;
 const CHAT_MEMBER_TILE_WIDTH = 68;
 const THREAD_REVEAL_EASING = Easing.bezier(0.22, 1, 0.36, 1);
 

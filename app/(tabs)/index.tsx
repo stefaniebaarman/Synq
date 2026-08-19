@@ -1956,7 +1956,9 @@ export default function SynqScreen() {
       return false;
     }
 
-    const filterText = [draft.question, ...draft.options].join("\n");
+    const filterText = [draft.question, ...draft.options]
+      .filter(Boolean)
+      .join("\n");
     if (rejectIfObjectionable(filterText)) return false;
 
     try {
@@ -3887,7 +3889,7 @@ const styles = StyleSheet.create({
     fontFamily: fonts.medium,
     letterSpacing: 0.15,
     marginBottom: 3,
-    marginLeft: 2,
+    marginLeft: 10,
     maxWidth: "100%",
   },
   explorePanel: { height: '85%', backgroundColor: SURFACE_INPUT, borderTopLeftRadius: MODAL_RADIUS + 8, borderTopRightRadius: MODAL_RADIUS + 8, overflow: 'hidden' },
@@ -4107,9 +4109,11 @@ const styles = StyleSheet.create({
     alignItems: "center",
     alignSelf: "flex-start",
     marginTop: 3,
-    paddingHorizontal: 8,
-    paddingVertical: 4,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
     borderRadius: 999,
+    borderWidth: 1,
+    borderColor: ACCENT_BORDER_SUBTLE,
     backgroundColor: "transparent",
     gap: 4,
     maxWidth: "92%",
