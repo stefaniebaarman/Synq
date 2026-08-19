@@ -107,7 +107,6 @@ import {
   ACCENT_FILL_MUTED,
   ACCENT_FILL_SUBTLE,
   AI_PLACE_SUGGESTIONS_ENABLED,
-  synqMovePrompts,
   BG,
   BORDER,
   BORDER_MUTED,
@@ -501,7 +500,6 @@ export default function SynqScreen() {
   const [showMergeConfirmModal, setShowMergeConfirmModal] = useState(false);
   const [isMergingChats, setIsMergingChats] = useState(false);
   const [inboxActionChat, setInboxActionChat] = useState<any | null>(null);
-  const [rotatingAIText, setRotatingAIText] = useState(() => synqMovePrompts()[0]);
   const [aiExploreError, setAiExploreError] = useState<string | null>(null);
   const activeParticipantIdsRef = useRef<string[]>([]);
   const [isStartingSynq, setIsStartingSynq] = useState(false);
@@ -990,20 +988,6 @@ export default function SynqScreen() {
     void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     openInMaps(mapsPayload);
   };
-
-  useEffect(() => {
-    if (!AI_PLACE_SUGGESTIONS_ENABLED) return;
-    const prompts = synqMovePrompts();
-    let index = 0;
-    setRotatingAIText(prompts[0]);
-
-    const interval = setInterval(() => {
-      index = (index + 1) % prompts.length;
-      setRotatingAIText(prompts[index]);
-    }, 15000);
-
-    return () => clearInterval(interval);
-  }, []);
 
   const openPendingChatFromNotification = useCallback(() => {
     const pending = peekPendingChatOpen();
@@ -2730,7 +2714,6 @@ export default function SynqScreen() {
                   activeChat={activeChatResolved}
                   chatTitle={activeChatTitle}
                   renderAvatarStack={renderAvatarStack}
-                  rotatingAIText={rotatingAIText}
                   pendingScrollToMessageId={pendingScrollToMessageId}
                   flatListRef={flatListRef}
                   messages={messages}

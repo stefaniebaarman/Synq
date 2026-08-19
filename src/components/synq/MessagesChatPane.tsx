@@ -12,6 +12,7 @@ import {
   messagesModalHeaderPaddingTop,
   RADIUS_XL,
   SURFACE_ELEVATED,
+  SYNQ_AI_PILL_LABEL,
   TEXT,
   TYPE_CAPTION,
   TYPE_FINE,
@@ -265,7 +266,6 @@ type Props = {
     images: Record<string, string> | undefined,
     participants?: string[]
   ) => React.ReactNode;
-  rotatingAIText: string;
   pendingScrollToMessageId: string | null;
   setPendingScrollToMessageId: (value: string | null) => void;
   flatListRef: React.RefObject<FlatList<any> | null>;
@@ -338,7 +338,6 @@ export default function MessagesChatPane({
   activeChat,
   chatTitle,
   renderAvatarStack,
-  rotatingAIText,
   pendingScrollToMessageId,
   setPendingScrollToMessageId,
   flatListRef,
@@ -606,16 +605,16 @@ export default function MessagesChatPane({
         ]}
         activeOpacity={0.82}
         accessibilityRole="button"
-        accessibilityLabel="Find a spot for this chat"
+        accessibilityLabel={SYNQ_AI_PILL_LABEL}
       >
         <Ionicons name="sparkles" size={11} color={ACCENT} />
         <Text style={styles.aiChipTextPremium} numberOfLines={1}>
-          {rotatingAIText}
+          {SYNQ_AI_PILL_LABEL}
         </Text>
         <Ionicons name="chevron-forward" size={11} color={MUTED2} />
       </TouchableOpacity>
     ),
-    [onOpenAISuggestions, rotatingAIText, styles.aiChipPremium, styles.aiChipTextPremium]
+    [onOpenAISuggestions, styles.aiChipPremium, styles.aiChipTextPremium]
   );
 
   const handleOpenFriendProfile = useCallback(
