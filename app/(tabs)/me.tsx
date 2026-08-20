@@ -606,15 +606,6 @@ export default function ProfileScreen() {
       }
     }
 
-    const newItem = {
-      id: String(eventToSave.id || Date.now().toString()),
-      date: eventToSave.date,
-      title: eventToSave.title,
-      time: eventToSave.time || "",
-      location: eventToSave.location || "",
-      planHostUid: auth.currentUser.uid,
-    };
-
     const inviteFriendIds = Array.isArray(eventToSave.inviteFriendIds)
       ? eventToSave.inviteFriendIds
           .map((id: unknown) => String(id || "").trim())
@@ -624,9 +615,26 @@ export default function ProfileScreen() {
     const ref = doc(db, "users", auth.currentUser.uid);
     try {
       const snap = await getDoc(ref);
-      const raw = snap.exists()
-        ? (snap.data() as { events?: unknown }).events
-        : undefined;
+      const hostUid = auth.currentUser.uid;
+      const hostData = snap.exists()
+        ? (snap.data() as { displayName?: string; imageurl?: string; events?: unknown })
+        : {};
+      const hostName =
+        String(hostData.displayName || auth.currentUser.displayName || "").trim() || "You";
+      const hostImage = String(hostData.imageurl || "").trim();
+      const newItem = {
+        id: String(eventToSave.id || Date.now().toString()),
+        date: eventToSave.date,
+        title: eventToSave.title,
+        time: eventToSave.time || "",
+        location: eventToSave.location || "",
+        planHostUid: hostUid,
+        joinedFromIds: [hostUid],
+        joinedFromId: hostUid,
+        attendeeDisplayNames: { [hostUid]: hostName },
+        attendeeImages: hostImage ? { [hostUid]: hostImage } : {},
+      };
+      const raw = hostData.events;
       const existing = Array.isArray(raw) ? (raw as OpenPlanEvent[]) : [];
       const updatedEvents = sortOpenPlansByDateTime([...existing, newItem]);
 

@@ -40,7 +40,9 @@ export default function PrivacyPolicyContent() {
           <Bullet>
             <Text style={styles.bold}>Social and relationship data:</Text>{" "}
             friends, friend requests, mutual-connection data, invite-link or
-            invite-code attribution, Synq counts, and last-Synq timestamps.
+            invite-code attribution, Synq counts, last-Synq timestamps, circles
+            (private friend lists), and community group memberships, plans, and
+            posts.
           </Bullet>
           <Bullet>
             <Text style={styles.bold}>Communications data:</Text> chat
@@ -132,8 +134,9 @@ export default function PrivacyPolicyContent() {
         <P>
           If you use the suggestion feature, Synq uses your city/state (and
           saved coordinates when present), the selected vibe, and shared
-          interests to look up nearby places from OpenStreetMap. Ranking happens
-          on device. Those suggestions may be incomplete or inaccurate.
+          interests to look up nearby places via Google Places. Suggestions may
+          be ranked with Google Gemini. Those suggestions may be incomplete or
+          inaccurate.
         </P>
       </Section>
 
@@ -148,8 +151,9 @@ export default function PrivacyPolicyContent() {
           <Bullet>
             <Text style={styles.bold}>To service providers:</Text> Firebase
             Authentication, Firestore, Storage, and Cloud Functions; Expo
-            notifications; OpenStreetMap for nearby venue lookup; and
-            email delivery providers used to notify us of feedback and safety
+            notifications; Google Places and Google Gemini for nearby venue
+            suggestions; Sentry for crash and error reporting; and email
+            delivery providers used to notify us of feedback and safety
             reports.
           </Bullet>
           <Bullet>
@@ -180,8 +184,9 @@ export default function PrivacyPolicyContent() {
         <P>
           If you delete your account through the app, Synq is designed to
           delete your profile document, friends, friend requests,
-          notification-lock records, chats, messages, and authentication
-          account. Some information may remain temporarily in logs, backups, or
+          notification-lock records, chats, messages, community memberships and
+          related community content you own, and your authentication account.
+          Some information may remain temporarily in logs, backups, or
           service-provider systems for a limited period.
         </P>
       </Section>
@@ -262,7 +267,7 @@ export default function PrivacyPolicyContent() {
         </P>
       </Section>
 
-      <Text style={styles.lastUpdated}>Last updated: May 11, 2026</Text>
+      <Text style={styles.lastUpdated}>Last updated: August 20, 2026</Text>
       <View style={styles.footerSpace} />
     </>
   );

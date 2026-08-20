@@ -48,6 +48,7 @@ import PlanInviteFriendsSheet, {
 import PlanTimePicker from "@/src/components/PlanTimePicker";
 import SynqPlusAddButton from "@/src/components/SynqPlusAddButton";
 import { resolvePlanAttribution } from "@/src/lib/planAttribution";
+import { friendProfileCacheByUser } from "@/src/lib/socialCache";
 import {
   canEditOpenPlan,
   collectPlanInterestedFriendIds,
@@ -166,10 +167,21 @@ export default function OpenPlans({
       hostDisplayNameByUid,
       viewerUid
     );
-    const peopleWithAvatars = goingPeople.map((person) => ({
-      ...person,
-      imageUrl: person.userId ? friendById.get(person.userId)?.imageurl || null : null,
-    }));
+    const peopleWithAvatars = goingPeople.map((person) => {
+      const uid = String(person.userId || "").trim();
+      const fromFriends = uid ? friendById.get(uid)?.imageurl || null : null;
+      const fromEvent =
+        uid &&
+        event?.attendeeImages &&
+        typeof (event as any).attendeeImages === "object"
+          ? String(((event as any).attendeeImages as Record<string, string>)[uid] || "").trim() ||
+            null
+          : null;
+      return {
+        ...person,
+        imageUrl: fromFriends || fromEvent,
+      };
+    });
     return { primary, secondary, goingPeople: peopleWithAvatars };
   };
   const [goingPeopleSheet, setGoingPeopleSheet] = useState<{
@@ -180,7 +192,11 @@ export default function OpenPlans({
     planTitle: string;
     people: PlanGoingPerson[];
   } | null>(null);
-  const pendingGoingProfileUidRef = useRef<string | null>(null);
+  const pendingGoingProfileRef = useRef<{
+    uid: string;
+    displayName?: string;
+    imageUrl?: string | null;
+  } | null>(null);
 
   useFocusEffect(
     useCallback(() => {
@@ -954,17 +970,35 @@ export default function OpenPlans({
         people={goingPeopleSheet?.people ?? []}
         viewerId={viewerUid}
         onClose={() => {
-          pendingGoingProfileUidRef.current = null;
+          pendingGoingProfileRef.current = null;
           pendingGoingSheetRef.current = null;
           setGoingPeopleSheet(null);
         }}
         onClosed={() => {
-          const uid = pendingGoingProfileUidRef.current;
-          pendingGoingProfileUidRef.current = null;
-          if (!uid) return;
+          const pending = pendingGoingProfileRef.current;
+          pendingGoingProfileRef.current = null;
+          if (!pending?.uid) return;
+          if (viewerUid) {
+            if (!friendProfileCacheByUser[viewerUid]) {
+              friendProfileCacheByUser[viewerUid] = {};
+            }
+            const existing = friendProfileCacheByUser[viewerUid][pending.uid];
+            friendProfileCacheByUser[viewerUid][pending.uid] = {
+              ...(existing || {}),
+              id: pending.uid,
+              displayName:
+                String(pending.displayName || "").trim() ||
+                existing?.displayName ||
+                "Friend",
+              imageurl:
+                String(pending.imageUrl || "").trim() ||
+                existing?.imageurl ||
+                undefined,
+            } as any;
+          }
           router.push({
             pathname: "/friend-profile",
-            params: { friendId: uid },
+            params: { friendId: pending.uid },
           });
         }}
         onPressPerson={(person) => {
@@ -973,7 +1007,11 @@ export default function OpenPlans({
           if (goingPeopleSheet) {
             pendingGoingSheetRef.current = goingPeopleSheet;
           }
-          pendingGoingProfileUidRef.current = uid;
+          pendingGoingProfileRef.current = {
+            uid,
+            displayName: person.displayName,
+            imageUrl: person.imageUrl,
+          };
           setGoingPeopleSheet(null);
         }}
       />

@@ -1276,8 +1276,26 @@ export default function FriendProfile({
                       cardPressOpensGoing
                       onPressCard={() => {}}
                       onPressAction={() => handleProfilePlanAction(event)}
-                      onOpenPersonProfile={(userId) => {
+                      onOpenPersonProfile={(userId, preview) => {
                         if (!userId || userId === viewerId) return;
+                        if (viewerId) {
+                          if (!friendProfileCacheByUser[viewerId]) {
+                            friendProfileCacheByUser[viewerId] = {};
+                          }
+                          const existing = friendProfileCacheByUser[viewerId][userId];
+                          friendProfileCacheByUser[viewerId][userId] = {
+                            ...(existing || {}),
+                            id: userId,
+                            displayName:
+                              String(preview?.displayName || "").trim() ||
+                              existing?.displayName ||
+                              "Friend",
+                            imageurl:
+                              String(preview?.imageUrl || "").trim() ||
+                              existing?.imageurl ||
+                              undefined,
+                          } as any;
+                        }
                         router.push({
                           pathname: "/friend-profile",
                           params: { friendId: userId },

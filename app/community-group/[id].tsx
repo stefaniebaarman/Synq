@@ -78,14 +78,13 @@ import {
   sendCommunityGroupInvites,
   subscribePendingCommunityGroupInvites,
 } from "@/src/lib/communityGroupInvites";
-import { friendsListCacheByUser } from "@/src/lib/socialCache";
-import { computeSynqActiveFromUserData } from "@/src/lib/synqSession";
+import { friendsListCacheByUser, friendProfileCacheByUser } from "@/src/lib/socialCache";
 import { Ionicons } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
 import { LinearGradient } from "expo-linear-gradient";
 import { Image as ExpoImage } from "expo-image";
 import { useLocalSearchParams, useRouter } from "expo-router";
-import { doc, getDoc, onSnapshot } from "firebase/firestore";
+import { arrayUnion, doc, getDoc, onSnapshot, updateDoc } from "firebase/firestore";
 import { db } from "@/src/lib/firebase";
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
@@ -124,7 +123,6 @@ function invitedFriendsSuccessMessage(
 const COVER_HERO_HEIGHT = 168;
 const MEMBER_AVATAR_SIZE = 48;
 const MEMBER_PREVIEW_COUNT = 6;
-const AVAILABLE_PREVIEW_COUNT = 3;
 const COVER_HERO_GRADIENT = [
   OVERLAY_DIM,
   OVERLAY_SOFT,
@@ -137,7 +135,6 @@ type MemberRow = {
   id: string;
   displayName: string;
   imageurl?: string;
-  synqActive?: boolean;
 };
 
 export default function CommunityGroupDetailScreen() {
@@ -171,7 +168,6 @@ export default function CommunityGroupDetailScreen() {
     displayName: string;
   } | null>(null);
   const [showAllMembers, setShowAllMembers] = useState(false);
-  const [showAllAvailable, setShowAllAvailable] = useState(false);
   const [alertVisible, setAlertVisible] = useState(false);
   const [alertTitle, setAlertTitle] = useState<string | undefined>();
   const [alertMessage, setAlertMessage] = useState("");
@@ -259,23 +255,18 @@ export default function CommunityGroupDetailScreen() {
             id: memberId,
             displayName,
             imageurl,
-            synqActive: computeSynqActiveFromUserData(
-              friend as unknown as Record<string, unknown>
-            ),
           };
         } else if (preview?.displayName) {
           next[memberId] = {
             id: memberId,
             displayName,
             imageurl,
-            synqActive: false,
           };
         } else {
           next[memberId] = {
             id: memberId,
             displayName: "Member",
             imageurl: undefined,
-            synqActive: false,
           };
           needsFetch.push(memberId);
         }
@@ -295,7 +286,6 @@ export default function CommunityGroupDetailScreen() {
               id: memberId,
               displayName: String(data.displayName || "").trim() || "Member",
               imageurl: data.imageurl,
-              synqActive: computeSynqActiveFromUserData(snap.data()),
             };
           } catch {
             // keep placeholder
@@ -311,6 +301,14 @@ export default function CommunityGroupDetailScreen() {
     };
   }, [group, friends]);
 
+  // Keep this group's id on the viewer's communityGroupIds so co-member profile reads work.
+  useEffect(() => {
+    if (!uid || !group?.id || !group.memberIds.includes(uid)) return;
+    void updateDoc(doc(db, "users", uid), {
+      communityGroupIds: arrayUnion(group.id),
+    }).catch(() => {});
+  }, [uid, group?.id, group?.memberIds]);
+
   const isMember = !!group && !!uid && group.memberIds.includes(uid);
   const isCreator = !!group && !!uid && group.creatorId === uid;
 
@@ -322,7 +320,6 @@ export default function CommunityGroupDetailScreen() {
         id: memberId,
         displayName: profile?.displayName || "Member",
         imageurl: profile?.imageurl,
-        synqActive: profile?.synqActive,
       };
     });
   }, [group, memberProfiles]);
@@ -334,21 +331,50 @@ export default function CommunityGroupDetailScreen() {
 
   const viewerDisplayName = auth.currentUser?.displayName?.trim() || "You";
 
-  const openGoerProfile = useCallback(
-    (target: CommunityPlanMemberProfile, plan: CommunityGroupPlan) => {
+  const openMemberProfile = useCallback(
+    (
+      member: MemberRow,
+      extraParams?: Record<string, string>
+    ) => {
+      if (uid) {
+        if (!friendProfileCacheByUser[uid]) {
+          friendProfileCacheByUser[uid] = {};
+        }
+        friendProfileCacheByUser[uid][member.id] = {
+          id: member.id,
+          displayName: member.displayName,
+          imageurl: member.imageurl,
+        } as any;
+      }
       router.push({
         pathname: "/friend-profile",
         params: {
-          friendId: target.id,
+          friendId: member.id,
           from: "community",
           communityGroupId: group?.id || "",
           communityGroupName: group?.name || "",
-          communityPlanId: plan.id,
-          communityPlanTitle: plan.title,
+          ...extraParams,
         },
       });
     },
-    [router, group?.id, group?.name]
+    [router, uid, group?.id, group?.name]
+  );
+
+  const openGoerProfile = useCallback(
+    (target: CommunityPlanMemberProfile, plan: CommunityGroupPlan) => {
+      openMemberProfile(
+        {
+          id: target.id,
+          displayName: target.displayName,
+          imageurl: target.imageurl,
+        },
+        {
+          communityPlanId: plan.id,
+          communityPlanTitle: plan.title,
+        }
+      );
+    },
+    [openMemberProfile]
   );
 
   const handleJoin = async () => {
@@ -485,22 +511,6 @@ export default function CommunityGroupDetailScreen() {
     }
   };
 
-  const availableMembers = useMemo(
-    () =>
-      memberRows.filter(
-        (member) => member.id !== uid && member.synqActive === true
-      ),
-    [memberRows, uid]
-  );
-
-  const availablePreview = showAllAvailable
-    ? availableMembers
-    : availableMembers.slice(0, AVAILABLE_PREVIEW_COUNT);
-  const availableOverflow = Math.max(
-    0,
-    availableMembers.length - AVAILABLE_PREVIEW_COUNT
-  );
-
   const memberPreview = showAllMembers
     ? memberRows
     : memberRows.slice(0, MEMBER_PREVIEW_COUNT);
@@ -527,12 +537,7 @@ export default function CommunityGroupDetailScreen() {
       key={member.id}
       style={styles.memberTile}
       activeOpacity={0.82}
-      onPress={() =>
-        router.push({
-          pathname: "/friend-profile",
-          params: { friendId: member.id, from: "friends" },
-        })
-      }
+      onPress={() => openMemberProfile(member)}
       accessibilityRole="button"
       accessibilityLabel={member.displayName}
     >
@@ -609,6 +614,7 @@ export default function CommunityGroupDetailScreen() {
                     size={22}
                     onPress={() => void handleShareJoinLink()}
                     accessibilityLabel="Share join link"
+                    disabled={shareBusy}
                   />
                 ) : null}
                 {isMember ? (
@@ -688,6 +694,7 @@ export default function CommunityGroupDetailScreen() {
                         size={22}
                         onPress={() => void handleShareJoinLink()}
                         accessibilityLabel="Share join link"
+                        disabled={shareBusy}
                       />
                     ) : null}
                     {isMember ? (
@@ -740,40 +747,6 @@ export default function CommunityGroupDetailScreen() {
             />
 
             <SectionDelimiter />
-
-            {isMember && availableMembers.length > 0 ? (
-              <>
-                <View style={styles.sectionBlock}>
-                <View style={styles.sectionHeader}>
-                  <Text style={styles.sectionTitle}>Available now</Text>
-                  <TouchableOpacity
-                    onPress={() => setShowAllAvailable((prev) => !prev)}
-                    hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-                    style={styles.sectionHeaderAction}
-                  >
-                      <Text style={styles.sectionLink}>
-                        {showAllAvailable ? "Show less" : "See all"}
-                      </Text>
-                    </TouchableOpacity>
-                  </View>
-                  <ScrollView
-                    horizontal
-                    showsHorizontalScrollIndicator={false}
-                    contentContainerStyle={styles.horizontalStrip}
-                  >
-                    {availablePreview.map((member) => renderMemberAvatar(member))}
-                    {!showAllAvailable && availableOverflow > 0 ? (
-                      <View style={styles.moreTile}>
-                        <View style={styles.moreTileCircle}>
-                          <Text style={styles.moreTileText}>+{availableOverflow} More</Text>
-                        </View>
-                      </View>
-                    ) : null}
-                  </ScrollView>
-                </View>
-                <SectionDelimiter />
-              </>
-            ) : null}
 
             <CommunityPlansSection
               groupId={group.id}
@@ -829,17 +802,7 @@ export default function CommunityGroupDetailScreen() {
                     <TouchableOpacity
                       style={styles.memberMain}
                       activeOpacity={0.82}
-                      onPress={() =>
-                        router.push({
-                          pathname: "/friend-profile",
-                          params: {
-                            friendId: item.id,
-                            from: "community",
-                            communityGroupId: group.id,
-                            communityGroupName: group.name,
-                          },
-                        })
-                      }
+                      onPress={() => openMemberProfile(item)}
                     >
                       <View style={styles.avatarRing}>
                         <ExpoImage
@@ -929,7 +892,8 @@ export default function CommunityGroupDetailScreen() {
         {isMember ? (
           <>
             <TouchableOpacity
-              style={styles.optionsRow}
+              style={[styles.optionsRow, shareBusy && { opacity: 0.45 }]}
+              disabled={shareBusy}
               onPress={() => {
                 optionsPendingRef.current = () => {
                   void handleShareJoinLink();

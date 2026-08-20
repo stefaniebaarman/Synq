@@ -327,9 +327,11 @@ export default function InactiveSynqView({
 
   const stack = (
     <Animated.View entering={enter(0)} style={styles.stack}>
-      <Text style={styles.title} accessibilityRole="header">
-        SYNQ INACTIVE
-      </Text>
+      <View style={styles.titleRow}>
+        <Text style={styles.title} accessibilityRole="header">
+          SYNQ INACTIVE
+        </Text>
+      </View>
 
       <Animated.View entering={enter(60)} style={styles.footer}>
         <View style={styles.moodPill}>
@@ -452,6 +454,14 @@ const styles = StyleSheet.create({
     maxWidth: "100%",
     alignItems: "center",
   },
+  titleRow: {
+    width: "100%",
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: SPACE_6,
+    minHeight: 28,
+  },
   title: {
     color: MUTED,
     fontFamily: fonts.heavy,
@@ -461,7 +471,7 @@ const styles = StyleSheet.create({
     textTransform: "uppercase",
     textAlign: "center",
     includeFontPadding: false,
-    marginBottom: SPACE_6,
+    flex: 1,
   },
   footer: {
     width: "100%",

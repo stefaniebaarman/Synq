@@ -964,6 +964,9 @@ export default function RootLayout() {
       !!user.displayName || userProfileGate?.hasDisplayName === true;
     if (!hasName) return;
     if (synqBoot === null) return;
+    const termsAccepted =
+      communityTermsOk === true || communityTermsOkRef.current === true;
+    if (!termsAccepted) return;
 
     let cancelled = false;
     const processPendingCommunityShareCode = async () => {
@@ -972,10 +975,12 @@ export default function RootLayout() {
       );
       if (!shareCode || cancelled) return;
       const groupId = await resolveCommunityShareCodeToGroupId(shareCode);
-      if (!groupId || cancelled) {
-        if (!cancelled) {
-          await AsyncStorage.removeItem(PENDING_COMMUNITY_SHARE_CODE_KEY);
-        }
+      if (cancelled) return;
+      if (!groupId) {
+        await AsyncStorage.removeItem(PENDING_COMMUNITY_SHARE_CODE_KEY);
+        setInviteLinkAlert(
+          "This community link is invalid or no longer available."
+        );
         return;
       }
       router.push({
@@ -997,6 +1002,7 @@ export default function RootLayout() {
     user?.displayName,
     userProfileGate,
     synqBoot,
+    communityTermsOk,
     router,
   ]);
 

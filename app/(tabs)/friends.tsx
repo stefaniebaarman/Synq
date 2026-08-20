@@ -548,18 +548,39 @@ export default function FriendsScreen() {
   const { isBlocked } = useBlockedUsers();
 
   const openFriendProfileFromFriendsTab = useCallback(
-    (friendId: string) => {
+    (
+      friendId: string,
+      preview?: { displayName?: string; imageUrl?: string | null }
+    ) => {
       void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
       if (plansSheetVisible) {
         reopenPlansSheetOnFocusRef.current = true;
         setPlansSheetVisible(false);
+      }
+      if (myId && friendId) {
+        if (!friendProfileCacheByUser[myId]) {
+          friendProfileCacheByUser[myId] = {};
+        }
+        const existing = friendProfileCacheByUser[myId][friendId];
+        friendProfileCacheByUser[myId][friendId] = {
+          ...(existing || {}),
+          id: friendId,
+          displayName:
+            String(preview?.displayName || "").trim() ||
+            existing?.displayName ||
+            "Friend",
+          imageurl:
+            String(preview?.imageUrl || "").trim() ||
+            existing?.imageurl ||
+            undefined,
+        } as any;
       }
       router.push({
         pathname: "/friend-profile",
         params: { friendId, from: "friends" },
       });
     },
-    [router, plansSheetVisible]
+    [router, plansSheetVisible, myId]
   );
 
   const friendPlansFeed = useFriendPlansFeed({

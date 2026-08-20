@@ -94,8 +94,16 @@ export default function AboutUsScreen() {
               <Text style={styles.bulletDot}>•</Text>
               <Text style={styles.bulletText}>
                 When friends are active too, select them and tap{" "}
-                <Text style={styles.bold}>Start plan</Text> to open a chat and
+                <Text style={styles.bold}>Start chat</Text> to open a chat and
                 coordinate
+              </Text>
+            </View>
+            <View style={styles.bulletRow}>
+              <Text style={styles.bulletDot}>•</Text>
+              <Text style={styles.bulletText}>
+                Use <Text style={styles.bold}>Circles</Text> for private friend
+                lists and <Text style={styles.bold}>Communities</Text> for open
+                interest groups
               </Text>
             </View>
             <View style={styles.bulletRow}>

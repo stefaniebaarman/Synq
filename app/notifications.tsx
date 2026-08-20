@@ -86,6 +86,8 @@ type ActivityFeedKind =
   | "open_plan_interest"
   | "community_plan_join"
   | "community_post_approval"
+  | "community_post_approved"
+  | "community_post_rejected"
   | "friend_synq_active"
   | "synq_nudge";
 
@@ -320,7 +322,11 @@ function mapActivity(item: Record<string, unknown> & { id: string }, cache: Acto
   const name = displayPersonName(actorName);
   const parts = activityMessageParts(
     type,
-    type === "community_post_approval" ? groupName || planTitle : planTitle
+    type === "community_post_approval" ||
+    type === "community_post_approved" ||
+    type === "community_post_rejected"
+      ? groupName || planTitle
+      : planTitle
   );
   const body = stripTrailingPeriod(
     `${name}${parts.rest}${parts.emphasis || ""}`
@@ -337,14 +343,18 @@ function mapActivity(item: Record<string, unknown> & { id: string }, cache: Acto
       normalizeNotificationTitle(title) ||
       (type === "friend_accepted"
         ? "Request accepted"
-        : type === "open_plan_interest"
-          ? "Open plan"
+          : type === "open_plan_interest"
+          ? "Plan update"
           : type === "plan_invite"
             ? "Plan invite"
           : type === "community_plan_join"
             ? "Community plan"
           : type === "community_post_approval"
             ? "Please review a post"
+          : type === "community_post_approved"
+            ? "Post approved"
+          : type === "community_post_rejected"
+            ? "Post not approved"
           : type === "synq_nudge"
             ? "Are you free?"
             : "Friend active on Synq"),
@@ -450,6 +460,14 @@ function activityMessageParts(
       return title
         ? { rest: " — please review a post in ", emphasis: title }
         : { rest: " — please review a post" };
+    case "community_post_approved":
+      return title
+        ? { rest: ` — your post is live in `, emphasis: title }
+        : { rest: " — your post was approved" };
+    case "community_post_rejected":
+      return title
+        ? { rest: " — your post was not approved for ", emphasis: title }
+        : { rest: " — your post was not approved" };
     case "friend_synq_active":
       return { rest: " is free" };
     case "synq_nudge":
@@ -493,7 +511,7 @@ function NotificationsEmptyState() {
       </View>
       <Text style={styles.emptyHeadline}>No notifications</Text>
       <Text style={styles.emptyHelper}>
-        Friend requests and activity from your friends will appear here.
+        Friend requests, community invites, and activity from your friends will appear here.
       </Text>
     </View>
   );
@@ -649,7 +667,7 @@ export default function NotificationsScreen() {
     const legacyList = legacySnap.docs
       .map((d) => ({ id: d.id, ...d.data() } as LegacyNotificationLockRow))
       .filter((row) =>
-        ["friend_accepted", "open_plan_interest", "plan_invite", "community_plan_join", "community_post_approval"].includes(
+        ["friend_accepted", "open_plan_interest", "plan_invite", "community_plan_join", "community_post_approval", "community_post_approved", "community_post_rejected"].includes(
           String(row.type || "")
         )
       );
@@ -773,7 +791,7 @@ export default function NotificationsScreen() {
         const list = snapshot.docs
           .map((d) => ({ id: d.id, ...d.data() } as LegacyNotificationLockRow))
           .filter((row) =>
-            ["friend_accepted", "open_plan_interest", "plan_invite", "community_plan_join", "community_post_approval"].includes(
+            ["friend_accepted", "open_plan_interest", "plan_invite", "community_plan_join", "community_post_approval", "community_post_approved", "community_post_rejected"].includes(
               String(row.type || "")
             )
           );
@@ -844,6 +862,8 @@ export default function NotificationsScreen() {
           "plan_invite",
           "community_plan_join",
           "community_post_approval",
+          "community_post_approved",
+          "community_post_rejected",
           "friend_synq_active",
           "synq_nudge",
         ].includes(a.type)
@@ -1152,7 +1172,12 @@ export default function NotificationsScreen() {
       return;
     }
 
-    if (item.kind === "community_post_approval" && item.groupId) {
+    if (
+      (item.kind === "community_post_approval" ||
+        item.kind === "community_post_approved" ||
+        item.kind === "community_post_rejected") &&
+      item.groupId
+    ) {
       router.push({
         pathname: "/community-group/[id]",
         params: { id: item.groupId },
@@ -1362,7 +1387,9 @@ export default function NotificationsScreen() {
                 name={item.actorName}
                 {...activityMessageParts(
                   item.kind,
-                  item.kind === "community_post_approval"
+                  item.kind === "community_post_approval" ||
+                  item.kind === "community_post_approved" ||
+                  item.kind === "community_post_rejected"
                     ? item.groupName
                     : item.planTitle
                 )}
