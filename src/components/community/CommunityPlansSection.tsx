@@ -1,8 +1,11 @@
+import AlertModal from "@/app/alert-modal";
+import ConfirmModal from "@/app/confirm-modal";
 import {
   ACCENT,
   ACCENT_FILL_MUTED,
   ACCENT_SUBTLE,
   BORDER,
+  BUTTON_RADIUS,
   MUTED2,
   RADIUS_LG,
   RADIUS_MD,
@@ -20,18 +23,15 @@ import {
   fonts,
   listSectionTitle,
   sectionLinkText,
-  BUTTON_RADIUS,
   synqOutlineAddBtnCompact,
   synqOutlineAddBtnDisabled,
   synqOutlineAddBtnTextCompact,
   synqOutlineAddBtnTextDisabled,
 } from "@/constants/Variables";
-import AlertModal from "@/app/alert-modal";
-import ConfirmModal from "@/app/confirm-modal";
 import CommunityPlanDetailSheet from "@/src/components/community/CommunityPlanDetailSheet";
 import CommunityPlanGoerAvatars from "@/src/components/community/CommunityPlanGoerAvatars";
-import { PlanCardsSkeleton } from "@/src/components/loading/BrandSkeletons";
 import CreateCommunityPlanModal from "@/src/components/community/CreateCommunityPlanModal";
+import { PlanCardsSkeleton } from "@/src/components/loading/BrandSkeletons";
 import {
   addCommunityPlanToUserEvents,
   createCommunityGroupPlan,
@@ -48,11 +48,11 @@ import {
   resolvePlanGoers,
   type CommunityPlanMemberProfile,
 } from "@/src/lib/communityPlanMembers";
+import { db } from "@/src/lib/firebase";
 import { filterOutPastOpenPlans, sortOpenPlansByDateTime } from "@/src/lib/planEvents";
 import { Ionicons } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
 import { doc, onSnapshot } from "firebase/firestore";
-import { db } from "@/src/lib/firebase";
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   Pressable,
@@ -319,7 +319,9 @@ export default function CommunityPlansSection({
         ) : plansLoadError ? (
           <Text style={styles.empty}>Could not load plans. Pull to refresh the group.</Text>
         ) : displayedPlans.length === 0 ? (
-          <Text style={styles.empty}>Nothing upcoming yet.</Text>
+          <Text style={styles.empty}>
+            Nothing upcoming yet.
+          </Text>
         ) : (
           <View style={styles.list}>
             {displayedPlans.map((plan) => {

@@ -41,6 +41,7 @@ export type CommunityGroup = {
   about?: string;
   coverPhotoUrl?: string;
   coverPhotoThumbUrl?: string;
+  shareCode?: string;
   createdAt?: unknown;
   updatedAt?: unknown;
 };
@@ -94,6 +95,7 @@ export function mapCommunityGroupDoc(id: string, data: Record<string, unknown>):
   const about = optionalTrimmed(data.about, 500);
   const coverPhotoUrl = optionalTrimmed(data.coverPhotoUrl, 2048);
   const coverPhotoThumbUrl = optionalTrimmed(data.coverPhotoThumbUrl, 2048);
+  const shareCode = optionalTrimmed(data.shareCode, 32)?.toUpperCase();
   const rawPreviews =
     data.memberPreviews && typeof data.memberPreviews === "object"
       ? (data.memberPreviews as Record<string, { displayName?: string; imageurl?: string }>)
@@ -113,6 +115,7 @@ export function mapCommunityGroupDoc(id: string, data: Record<string, unknown>):
     ...(about ? { about } : {}),
     ...(coverPhotoUrl ? { coverPhotoUrl } : {}),
     ...(coverPhotoThumbUrl ? { coverPhotoThumbUrl } : {}),
+    ...(shareCode ? { shareCode } : {}),
     createdAt: data.createdAt,
     updatedAt: data.updatedAt,
   };
@@ -127,13 +130,13 @@ export function subscribeJoinedCommunityGroups(
   // eslint-disable-next-line @typescript-eslint/no-require-imports
   const { subscribeJoinedCommunityGroupsMultiplexed } =
     require("./socialListenerHub") as typeof import("./socialListenerHub");
-  const unsub = subscribeJoinedCommunityGroupsMultiplexed(uid, (groups) => {
-    onData(groups as CommunityGroup[]);
-  });
-  return () => {
-    unsub();
-    void onError;
-  };
+  return subscribeJoinedCommunityGroupsMultiplexed(
+    uid,
+    (groups) => {
+      onData(groups as CommunityGroup[]);
+    },
+    onError
+  );
 }
 
 export async function searchCommunityGroups(searchText: string): Promise<CommunityGroup[]> {

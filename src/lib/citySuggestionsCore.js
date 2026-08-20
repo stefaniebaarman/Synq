@@ -307,6 +307,13 @@ function allParticipantsHaveCachedCitySuggestions(
   });
 }
 
+/**
+ * @param {string} senderLocationLabel
+ * @param {string} category
+ * @param {Record<string, { categories?: Record<string, unknown[]> }>} cityDataById
+ * @param {{ cityId: string, match: (labels: string[]) => boolean }[]} registry
+ * @param {string[] | { avoidNames?: string[], excludeNames?: string[], recentBatchKeys?: string[], count?: number }} [excludeOrOptions]
+ */
 function getCachedCitySuggestions(
   senderLocationLabel,
   category,
@@ -321,9 +328,16 @@ function getCachedCitySuggestions(
   if (!cityData?.categories) return null;
 
   const normalizedCategory = String(category || "").trim();
-  if (!VIBE_CATEGORIES.includes(normalizedCategory)) return null;
-
-  const venues = cityData.categories[normalizedCategory];
+  let venues = cityData.categories[normalizedCategory];
+  if (
+    (!Array.isArray(venues) || venues.length === 0) &&
+    (normalizedCategory === "Night out" || normalizedCategory === "Active")
+  ) {
+    venues =
+      normalizedCategory === "Night out"
+        ? cityData.categories.Drinks
+        : cityData.categories.Outdoors;
+  }
   if (!Array.isArray(venues) || venues.length === 0) return null;
 
   const options = Array.isArray(excludeOrOptions)

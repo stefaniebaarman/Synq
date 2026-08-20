@@ -51,6 +51,7 @@ import AddMembersToGroupSheet from "@/src/components/friends/AddMembersToGroupSh
 import { groupsPageStyles, GROUP_BORDER } from "@/src/components/friends/groupsListStyles";
 import BackButton from "@/src/components/BackButton";
 import CommunityPlansSection from "@/src/components/community/CommunityPlansSection";
+import CommunityFeedSection from "@/src/components/community/CommunityFeedSection";
 import type { CommunityPlanMemberProfile } from "@/src/lib/communityPlanMembers";
 import type { CommunityGroupPlan } from "@/src/lib/communityGroupPlans";
 import HeaderIconButton from "@/src/components/HeaderIconButton";
@@ -68,6 +69,9 @@ import {
   removeMemberFromCommunityGroup,
   type CommunityGroup,
 } from "@/src/lib/communityGroups";
+import { fetchOrCreateCommunityShareCode } from "@/src/lib/communityShareCode";
+import { buildCommunityShareWebUrl } from "@/src/lib/communityShareUrl";
+import { shareCommunityJoinLink } from "@/src/lib/shareCommunityLink";
 import {
   acceptCommunityGroupInvite,
   communityGroupInviteRef,
@@ -161,6 +165,7 @@ export default function CommunityGroupDetailScreen() {
   const [deleteVisible, setDeleteVisible] = useState(false);
   const [leaveVisible, setLeaveVisible] = useState(false);
   const [joinBusy, setJoinBusy] = useState(false);
+  const [shareBusy, setShareBusy] = useState(false);
   const [pendingRemoveMember, setPendingRemoveMember] = useState<{
     id: string;
     displayName: string;
@@ -375,6 +380,30 @@ export default function CommunityGroupDetailScreen() {
     }
   };
 
+  const handleShareJoinLink = async () => {
+    if (!group || shareBusy) return;
+    if (!isMember) {
+      showAlert("Join to share", "Join this community before sharing the invite link.");
+      return;
+    }
+    setShareBusy(true);
+    try {
+      void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+      const code =
+        group.shareCode?.trim().toUpperCase() ||
+        (await fetchOrCreateCommunityShareCode(group.id));
+      const url = buildCommunityShareWebUrl(code);
+      await shareCommunityJoinLink(url, group.name);
+    } catch (err: unknown) {
+      showAlert(
+        "Couldn't share",
+        err instanceof Error ? err.message : "Please try again."
+      );
+    } finally {
+      setShareBusy(false);
+    }
+  };
+
   const handleInviteFriends = async (memberIds: string[]) => {
     if (!uid || !group || memberIds.length === 0 || !isMember) return;
 
@@ -573,16 +602,24 @@ export default function CommunityGroupDetailScreen() {
             title={group.name}
             onBack={goBack}
             right={
-              isMember ? (
-                <View style={styles.headerActions}>
+              <View style={styles.headerActions}>
+                {isMember ? (
+                  <HeaderIconButton
+                    name="share-outline"
+                    size={22}
+                    onPress={() => void handleShareJoinLink()}
+                    accessibilityLabel="Share join link"
+                  />
+                ) : null}
+                {isMember ? (
                   <HeaderIconButton
                     name="ellipsis-horizontal"
                     size={22}
                     onPress={() => setOptionsVisible(true)}
                     accessibilityLabel="Community options"
                   />
-                </View>
-              ) : undefined
+                ) : null}
+              </View>
             }
           />
         ) : null}
@@ -647,6 +684,14 @@ export default function CommunityGroupDetailScreen() {
                   <View style={styles.coverNavRight}>
                     {isMember ? (
                       <HeaderIconButton
+                        name="share-outline"
+                        size={22}
+                        onPress={() => void handleShareJoinLink()}
+                        accessibilityLabel="Share join link"
+                      />
+                    ) : null}
+                    {isMember ? (
+                      <HeaderIconButton
                         name="ellipsis-horizontal"
                         size={22}
                         onPress={() => setOptionsVisible(true)}
@@ -685,6 +730,16 @@ export default function CommunityGroupDetailScreen() {
                 <Text style={styles.profileAbout}>{group.about}</Text>
               ) : null}
             </View>
+
+            <CommunityFeedSection
+              groupId={group.id}
+              groupName={group.name}
+              uid={uid}
+              isMember={isMember}
+              isCreator={isCreator}
+            />
+
+            <SectionDelimiter />
 
             {isMember && availableMembers.length > 0 ? (
               <>
@@ -873,6 +928,20 @@ export default function CommunityGroupDetailScreen() {
       >
         {isMember ? (
           <>
+            <TouchableOpacity
+              style={styles.optionsRow}
+              onPress={() => {
+                optionsPendingRef.current = () => {
+                  void handleShareJoinLink();
+                };
+                setOptionsVisible(false);
+              }}
+              activeOpacity={0.75}
+            >
+              <Ionicons name="share-outline" size={22} color={TEXT} />
+              <Text style={styles.optionsRowText}>Share join link</Text>
+            </TouchableOpacity>
+            <View style={styles.optionsDivider} />
             <TouchableOpacity
               style={styles.optionsRow}
               onPress={() => {

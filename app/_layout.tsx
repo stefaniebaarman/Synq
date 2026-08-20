@@ -8,6 +8,11 @@ import {
   parseProfileShareCodeFromUrl,
   resolveProfileShareCodeToFriendId,
 } from "@/src/lib/profileShareUrl";
+import {
+  parseCommunityShareCodeFromUrl,
+  PENDING_COMMUNITY_SHARE_CODE_KEY,
+  resolveCommunityShareCodeToGroupId,
+} from "@/src/lib/communityShareUrl";
 import { parsePushNotificationTap } from "@/src/lib/pushNotificationTapCore";
 import { SYNQ_ACTIVE_FRIENDS_REFRESH } from "@/src/lib/synqTabEvents";
 import AsyncStorage from "@react-native-async-storage/async-storage";
@@ -303,6 +308,16 @@ export default function RootLayout() {
     const captureDeepLinkFromUrl = async (url: string | null) => {
       if (!url) return;
       try {
+        const communityShareCode = parseCommunityShareCodeFromUrl(url);
+        if (communityShareCode) {
+          requestDismissNavigationOverlays();
+          await AsyncStorage.setItem(
+            PENDING_COMMUNITY_SHARE_CODE_KEY,
+            communityShareCode
+          );
+          return;
+        }
+
         const shareCode = parseProfileShareCodeFromUrl(url);
         if (shareCode) {
           requestDismissNavigationOverlays();
@@ -344,11 +359,12 @@ export default function RootLayout() {
 
   useEffect(() => {
     const dismissForPendingProfileLink = async () => {
-      const [shareCode, friendId] = await AsyncStorage.multiGet([
+      const [shareCode, friendId, communityCode] = await AsyncStorage.multiGet([
         PENDING_PROFILE_SHARE_CODE_KEY,
         PENDING_FRIEND_PROFILE_ID_KEY,
+        PENDING_COMMUNITY_SHARE_CODE_KEY,
       ]);
-      if (shareCode[1] || friendId[1]) {
+      if (shareCode[1] || friendId[1] || communityCode[1]) {
         requestDismissNavigationOverlays();
       }
     };
@@ -938,6 +954,49 @@ export default function RootLayout() {
     userProfileGate,
     synqBoot,
     segments,
+    router,
+  ]);
+
+  useEffect(() => {
+    if (!authReady || !navReady || !assetsReady) return;
+    if (!user?.uid) return;
+    const hasName =
+      !!user.displayName || userProfileGate?.hasDisplayName === true;
+    if (!hasName) return;
+    if (synqBoot === null) return;
+
+    let cancelled = false;
+    const processPendingCommunityShareCode = async () => {
+      const shareCode = cleanUid(
+        await AsyncStorage.getItem(PENDING_COMMUNITY_SHARE_CODE_KEY)
+      );
+      if (!shareCode || cancelled) return;
+      const groupId = await resolveCommunityShareCodeToGroupId(shareCode);
+      if (!groupId || cancelled) {
+        if (!cancelled) {
+          await AsyncStorage.removeItem(PENDING_COMMUNITY_SHARE_CODE_KEY);
+        }
+        return;
+      }
+      router.push({
+        pathname: "/community-group/[id]",
+        params: { id: groupId },
+      });
+      await AsyncStorage.removeItem(PENDING_COMMUNITY_SHARE_CODE_KEY);
+    };
+
+    void processPendingCommunityShareCode();
+    return () => {
+      cancelled = true;
+    };
+  }, [
+    authReady,
+    navReady,
+    assetsReady,
+    user?.uid,
+    user?.displayName,
+    userProfileGate,
+    synqBoot,
     router,
   ]);
 

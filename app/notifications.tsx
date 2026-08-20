@@ -85,6 +85,7 @@ type ActivityFeedKind =
   | "friend_accepted"
   | "open_plan_interest"
   | "community_plan_join"
+  | "community_post_approval"
   | "friend_synq_active"
   | "synq_nudge";
 
@@ -314,9 +315,13 @@ function mapActivity(item: Record<string, unknown> & { id: string }, cache: Acto
   const { actorName, actorImageUrl } = lookupActor(cache, fromUserId);
   const type = String(item.type || "") as PlanInviteFeedItem["kind"] | ActivityFeedKind;
   const planTitle = String(item.planTitle || "").trim();
+  const groupName = String(item.groupName || "").trim();
   const title = String(item.title || "").trim();
   const name = displayPersonName(actorName);
-  const parts = activityMessageParts(type, planTitle);
+  const parts = activityMessageParts(
+    type,
+    type === "community_post_approval" ? groupName || planTitle : planTitle
+  );
   const body = stripTrailingPeriod(
     `${name}${parts.rest}${parts.emphasis || ""}`
   );
@@ -338,6 +343,8 @@ function mapActivity(item: Record<string, unknown> & { id: string }, cache: Acto
             ? "Plan invite"
           : type === "community_plan_join"
             ? "Community plan"
+          : type === "community_post_approval"
+            ? "Please review a post"
           : type === "synq_nudge"
             ? "Are you free?"
             : "Friend active on Synq"),
@@ -439,6 +446,10 @@ function activityMessageParts(
       return title
         ? { rest: " is in for ", emphasis: title }
         : { rest: " joined a community plan" };
+    case "community_post_approval":
+      return title
+        ? { rest: " — please review a post in ", emphasis: title }
+        : { rest: " — please review a post" };
     case "friend_synq_active":
       return { rest: " is free" };
     case "synq_nudge":
@@ -638,7 +649,7 @@ export default function NotificationsScreen() {
     const legacyList = legacySnap.docs
       .map((d) => ({ id: d.id, ...d.data() } as LegacyNotificationLockRow))
       .filter((row) =>
-        ["friend_accepted", "open_plan_interest", "plan_invite", "community_plan_join"].includes(
+        ["friend_accepted", "open_plan_interest", "plan_invite", "community_plan_join", "community_post_approval"].includes(
           String(row.type || "")
         )
       );
@@ -762,7 +773,7 @@ export default function NotificationsScreen() {
         const list = snapshot.docs
           .map((d) => ({ id: d.id, ...d.data() } as LegacyNotificationLockRow))
           .filter((row) =>
-            ["friend_accepted", "open_plan_interest", "plan_invite", "community_plan_join"].includes(
+            ["friend_accepted", "open_plan_interest", "plan_invite", "community_plan_join", "community_post_approval"].includes(
               String(row.type || "")
             )
           );
@@ -832,6 +843,7 @@ export default function NotificationsScreen() {
           "open_plan_interest",
           "plan_invite",
           "community_plan_join",
+          "community_post_approval",
           "friend_synq_active",
           "synq_nudge",
         ].includes(a.type)
@@ -1137,6 +1149,14 @@ export default function NotificationsScreen() {
           ...(item.planId ? { planId: item.planId } : {}),
         },
       });
+      return;
+    }
+
+    if (item.kind === "community_post_approval" && item.groupId) {
+      router.push({
+        pathname: "/community-group/[id]",
+        params: { id: item.groupId },
+      });
     }
   }, []);
 
@@ -1340,7 +1360,12 @@ export default function NotificationsScreen() {
             <View style={{ flex: 1 }}>
               <NotificationMessage
                 name={item.actorName}
-                {...activityMessageParts(item.kind, item.planTitle)}
+                {...activityMessageParts(
+                  item.kind,
+                  item.kind === "community_post_approval"
+                    ? item.groupName
+                    : item.planTitle
+                )}
               />
             </View>
           </View>
