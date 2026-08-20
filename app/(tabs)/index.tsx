@@ -31,11 +31,13 @@ import {
 import { openInMaps } from "@/src/lib/openInMaps";
 import {
   friendGroupsCacheByUser,
+  friendProfileCacheByUser,
   friendsListCacheByUser,
   invalidateSynqActiveFriendsPoll,
   pollSynqActiveFriends,
   SYNQ_FRIEND_POLL_TTL_MS,
 } from '@/src/lib/socialCache';
+import { rememberRecentChatId } from '@/src/lib/recentChatIds';
 import { useSynqBoot } from '@/src/lib/synqBootContext';
 import {
   buildSynqBroadcastFirestorePayload,
@@ -899,6 +901,8 @@ export default function SynqScreen() {
       navigateMessagesPane("chat");
       void markChatRead(chatId);
       void unhideChat(chatId);
+      const uid = auth.currentUser?.uid;
+      if (uid) void rememberRecentChatId(uid, chatId);
     },
     [
       prepareChatSync,
@@ -2170,12 +2174,45 @@ export default function SynqScreen() {
     setIsExploreVisible(false);
   }, [navigateMessagesPane, stopTyping]);
 
-  const openFriendProfileFromChat = useCallback((friendId: string) => {
-    if (!friendId || friendId === auth.currentUser?.uid) return;
+  const openFriendProfileFromChat = useCallback(async (friendId: string) => {
+    const myId = auth.currentUser?.uid;
+    if (!friendId || friendId === myId) return;
     Keyboard.dismiss();
+
+    const chat =
+      (activeChatId && allChats.find((c) => c.id === activeChatId)) ||
+      (activeChatId && seededActiveChat?.id === activeChatId ? seededActiveChat : null);
+
+    if (myId && activeChatId) {
+      await rememberRecentChatId(myId, activeChatId);
+    }
+
+    if (myId) {
+      if (!friendProfileCacheByUser[myId]) {
+        friendProfileCacheByUser[myId] = {};
+      }
+      const names = (chat as { participantNames?: Record<string, string> } | null)
+        ?.participantNames;
+      const images = (chat as { participantImages?: Record<string, string> } | null)
+        ?.participantImages;
+      const existing = friendProfileCacheByUser[myId][friendId];
+      friendProfileCacheByUser[myId][friendId] = {
+        ...(existing || {}),
+        id: friendId,
+        displayName:
+          String(names?.[friendId] || "").trim() ||
+          existing?.displayName ||
+          "Friend",
+        imageurl:
+          String(images?.[friendId] || "").trim() ||
+          existing?.imageurl ||
+          undefined,
+      } as any;
+    }
+
     setProfileFriendId(friendId);
     navigateMessagesPane("profile");
-  }, [navigateMessagesPane]);
+  }, [navigateMessagesPane, activeChatId, allChats, seededActiveChat]);
 
   const closeProfileFromChat = useCallback(() => {
     navigateMessagesPane("chat");
@@ -2398,6 +2435,7 @@ export default function SynqScreen() {
       navigateMessagesPane("chat");
       void markChatRead(chatRef.id);
       void hideMergedSourceChats([chatA.id, chatB.id]);
+      if (myId) void rememberRecentChatId(myId, chatRef.id);
       void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     } catch {
       showActionError("Could not create group chat. Please try again.");

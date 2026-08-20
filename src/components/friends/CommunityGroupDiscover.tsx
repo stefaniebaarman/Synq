@@ -9,6 +9,7 @@ import {
   RADIUS_LG,
   SURFACE,
   SURFACE_MUTED,
+  SYNQ_OUTLINE_CTA_RADIUS,
   TEXT,
   TYPE_BODY,
   TYPE_CAPTION,
@@ -469,7 +470,7 @@ const styles = StyleSheet.create({
   joinedPill: {
     paddingHorizontal: 11,
     paddingVertical: 7,
-    borderRadius: 999,
+    borderRadius: SYNQ_OUTLINE_CTA_RADIUS,
     backgroundColor: SURFACE_MUTED,
     borderWidth: StyleSheet.hairlineWidth,
     borderColor: GROUP_BORDER,

@@ -41,7 +41,10 @@ type Props = {
   userId: string;
   feed: Feed;
   onClose: () => void;
-  onOpenFriendProfile: (friendId: string) => void;
+  onOpenFriendProfile: (
+    friendId: string,
+    preview?: { displayName?: string; imageUrl?: string | null }
+  ) => void;
 };
 
 function planSearchHaystack(

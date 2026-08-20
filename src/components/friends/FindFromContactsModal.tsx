@@ -203,7 +203,7 @@ export default function FindFromContactsModal({
 
   const renderMatchRow = (item: ContactMatchUser) => {
     const action = getFriendAction(item.id);
-    let label = "Add";
+    let label = "+ Add";
     let disabled = false;
     let onPress: (() => void) | undefined = () => onAddFriend(item);
     if (action === "friends") {

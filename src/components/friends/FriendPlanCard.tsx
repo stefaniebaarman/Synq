@@ -6,8 +6,8 @@ import {
   MUTED,
   MUTED3,
   RADIUS_LG,
-  RADIUS_SM,
   SURFACE_SUBTLE,
+  SYNQ_OUTLINE_CTA_RADIUS,
   synqOutlineAddBtnCompact,
   synqOutlineAddBtnTextCompact,
   TEXT,
@@ -40,7 +40,7 @@ import {
 const PLAN_PILL_LAYOUT = {
   minWidth: 88,
   minHeight: 32,
-  borderRadius: RADIUS_SM,
+  borderRadius: SYNQ_OUTLINE_CTA_RADIUS,
   borderWidth: 1,
   paddingHorizontal: 10,
   paddingVertical: 6,
@@ -67,7 +67,10 @@ type Props = {
   busy: boolean;
   onPressCard: () => void;
   onPressAction: () => void;
-  onOpenPersonProfile?: (userId: string) => void;
+  onOpenPersonProfile?: (
+    userId: string,
+    preview?: { displayName?: string; imageUrl?: string | null }
+  ) => void;
   /** When true, tapping the card opens the going list instead of onPressCard. */
   cardPressOpensGoing?: boolean;
 };
@@ -89,7 +92,11 @@ export default function FriendPlanCard({
   void PLAN_CARD_OWNER_LOGIC_VERSION;
   const [goingSheetOpen, setGoingSheetOpen] = useState(false);
   const reopenGoingOnFocusRef = useRef(false);
-  const pendingProfileUidRef = useRef<string | null>(null);
+  const pendingProfileRef = useRef<{
+    uid: string;
+    displayName?: string;
+    imageUrl?: string | null;
+  } | null>(null);
 
   useFocusEffect(
     useCallback(() => {
@@ -159,10 +166,23 @@ export default function FriendPlanCard({
     : hostPersonFirst
       ? `${hostPersonFirst}'s plan`
       : hostLine || `${friendFirstName}'s plan`;
-  const peopleWithAvatars: PlanGoingPerson[] = goingPeople.map((person) => ({
-    ...person,
-    imageUrl: person.userId ? friendImageByUid[person.userId] ?? null : null,
-  }));
+  const peopleWithAvatars: PlanGoingPerson[] = goingPeople.map((person) => {
+    const uid = String(person.userId || "").trim();
+    const fromFriends = uid ? friendImageByUid[uid] ?? null : null;
+    const fromEvent =
+      uid &&
+      eventForAttribution?.attendeeImages &&
+      typeof eventForAttribution.attendeeImages === "object"
+        ? String(
+            (eventForAttribution.attendeeImages as Record<string, string>)[uid] ||
+              ""
+          ).trim() || null
+        : null;
+    return {
+      ...person,
+      imageUrl: fromFriends || fromEvent,
+    };
+  });
 
   const handleCardPress = () => {
     if (cardPressOpensGoing) {
@@ -262,21 +282,30 @@ export default function FriendPlanCard({
         people={peopleWithAvatars}
         viewerId={viewerId}
         onClose={() => {
-          pendingProfileUidRef.current = null;
+          pendingProfileRef.current = null;
           reopenGoingOnFocusRef.current = false;
           setGoingSheetOpen(false);
         }}
         onClosed={() => {
-          const uid = pendingProfileUidRef.current;
-          pendingProfileUidRef.current = null;
-          if (uid && onOpenPersonProfile) onOpenPersonProfile(uid);
+          const pending = pendingProfileRef.current;
+          pendingProfileRef.current = null;
+          if (pending?.uid && onOpenPersonProfile) {
+            onOpenPersonProfile(pending.uid, {
+              displayName: pending.displayName,
+              imageUrl: pending.imageUrl,
+            });
+          }
         }}
         onPressPerson={
           onOpenPersonProfile
             ? (person) => {
                 const uid = String(person.userId || "").trim();
                 if (!uid || uid === viewerId) return;
-                pendingProfileUidRef.current = uid;
+                pendingProfileRef.current = {
+                  uid,
+                  displayName: person.displayName,
+                  imageUrl: person.imageUrl,
+                };
                 reopenGoingOnFocusRef.current = true;
                 setGoingSheetOpen(false);
               }

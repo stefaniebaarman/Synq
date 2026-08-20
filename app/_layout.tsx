@@ -5,8 +5,8 @@ import {
 import { requestDismissNavigationOverlays } from "@/src/lib/navigationOverlayEvents";
 import { setPendingChatOpen } from "@/src/lib/pendingChatOpen";
 import {
+  connectViaProfileShareCode,
   parseProfileShareCodeFromUrl,
-  resolveProfileShareCodeToFriendId,
 } from "@/src/lib/profileShareUrl";
 import {
   parseCommunityShareCodeFromUrl,
@@ -924,7 +924,20 @@ export default function RootLayout() {
         await AsyncStorage.getItem(PENDING_PROFILE_SHARE_CODE_KEY)
       );
       if (!shareCode || cancelled) return;
-      const friendId = await resolveProfileShareCodeToFriendId(shareCode);
+
+      let friendId: string | null = null;
+      try {
+        friendId = await connectViaProfileShareCode(shareCode);
+      } catch (err: any) {
+        const message = String(err?.message || "");
+        if (/yourself/i.test(message)) {
+          await AsyncStorage.removeItem(PENDING_PROFILE_SHARE_CODE_KEY);
+          if (segments[0] !== "friend-profile") {
+            setOwnProfileLinkAlert(true);
+          }
+          return;
+        }
+      }
       if (!friendId || cancelled) return;
       if (friendId === user.uid) {
         await AsyncStorage.removeItem(PENDING_PROFILE_SHARE_CODE_KEY);

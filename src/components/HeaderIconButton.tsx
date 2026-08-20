@@ -19,6 +19,7 @@ type Props = {
   badge?: React.ReactNode;
   style?: StyleProp<ViewStyle>;
   size?: number;
+  disabled?: boolean;
 };
 
 export default function HeaderIconButton({
@@ -28,16 +29,20 @@ export default function HeaderIconButton({
   badge,
   style,
   size = HEADER_ICON_SIZE,
+  disabled = false,
 }: Props) {
   return (
     <Pressable
+      disabled={disabled}
       onPress={() => {
+        if (disabled) return;
         void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
         onPress();
       }}
-      style={[styles.container, style]}
+      style={[styles.container, style, disabled && styles.disabled]}
       accessibilityRole="button"
       accessibilityLabel={accessibilityLabel}
+      accessibilityState={{ disabled }}
     >
       <View style={styles.inner}>
         <Ionicons name={name} size={size} color={TEXT} />
@@ -59,5 +64,8 @@ const styles = StyleSheet.create({
     height: 40,
     alignItems: "center",
     justifyContent: "center",
+  },
+  disabled: {
+    opacity: 0.45,
   },
 });

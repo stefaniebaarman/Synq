@@ -27,7 +27,10 @@ type FeedSlice = {
 type Props = FeedSlice & {
   userId: string;
   onSeeAll: () => void;
-  onOpenFriendProfile: (friendId: string) => void;
+  onOpenFriendProfile: (
+    friendId: string,
+    preview?: { displayName?: string; imageUrl?: string | null }
+  ) => void;
 };
 
 export default function FriendsPlansPreview({

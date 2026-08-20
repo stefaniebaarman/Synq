@@ -70,7 +70,6 @@ import { ListRowsSkeleton } from "@/src/components/loading/BrandSkeletons";
 import ProfileTabHeaderOverlay, {
   useTabHeaderLayout,
 } from "@/src/components/ProfileTabHeaderOverlay";
-import SynqPlusAddButton from "@/src/components/SynqPlusAddButton";
 import TabHeaderIconRow from "@/src/components/TabHeaderIconRow";
 import { useBlockedUsers } from "@/src/lib/blockedUsers";
 import { ignoreSnapshotPermissionDenied } from "@/src/lib/firestoreListeners";
@@ -1856,16 +1855,7 @@ function SearchModal({
       disabled?: boolean;
     }
   ) => {
-    if (label === "Add") {
-      return (
-        <SynqPlusAddButton
-          onPress={() => opts?.onPress?.()}
-          accessibilityLabel="Add friend"
-          disabled={opts?.disabled}
-          activeOpacity={0.8}
-        />
-      );
-    }
+    const displayLabel = label === "Add" ? "+ Add" : label;
     return (
       <TouchableOpacity
         onPress={opts?.onPress}
@@ -1874,6 +1864,8 @@ function SearchModal({
         style={[synqOutlineAddBtnCompact, opts?.disabled && synqOutlineAddBtnDisabled]}
         activeOpacity={0.8}
         disabled={opts?.disabled && !opts?.onLongPress}
+        accessibilityRole="button"
+        accessibilityLabel={displayLabel}
       >
         <Text
           style={[
@@ -1881,7 +1873,7 @@ function SearchModal({
             opts?.disabled && synqOutlineAddBtnTextDisabled,
           ]}
         >
-          {label}
+          {displayLabel}
         </Text>
       </TouchableOpacity>
     );

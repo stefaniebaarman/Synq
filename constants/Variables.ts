@@ -591,7 +591,7 @@ export const synqPlusAddBtn: ViewStyle = {
   alignSelf: "flex-start",
   borderWidth: 1,
   borderColor: ACCENT_BORDER,
-  borderRadius: SYNQ_ADD_ICON_RADIUS,
+  borderRadius: SYNQ_OUTLINE_CTA_RADIUS,
   paddingRight: 12,
   backgroundColor: ACCENT_FILL_SUBTLE,
   minHeight: SYNQ_ADD_ICON_SIZE,

@@ -95,7 +95,7 @@ export default function GroupsListPane({
       showAlert(
         "Could not create circle",
         permissionDenied
-          ? "Firestore may be missing the new groups rules. Deploy firestore rules, then try again."
+          ? "Could not create this circle. Check your connection and try again."
           : message
       );
     } finally {
@@ -165,6 +165,12 @@ export default function GroupsListPane({
               infoAccessibilityLabel="What are circles"
             />
           </View>
+
+          {groups.length === 0 ? (
+            <Text style={groupsPageStyles.sectionSubtitle}>
+              Create a circle to share Synq with only some of your friends.
+            </Text>
+          ) : null}
 
           {groups.map((group) => (
             <TouchableOpacity

@@ -52,7 +52,7 @@ function firestoreErrorMessage(err: unknown): string {
   if (!(err instanceof Error)) return "Please try again.";
   const message = err.message || "";
   if (/permission|insufficient/i.test(message)) {
-    return "Couldn’t save this post. Deploy the latest Firestore rules, then try again.";
+    return "Couldn’t save this post. Check your connection and try again.";
   }
   return message || "Please try again.";
 }

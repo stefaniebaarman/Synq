@@ -27,7 +27,10 @@ type Feed = ReturnType<typeof useFriendPlansFeed>;
 type Props = {
   userId: string;
   feed: Feed;
-  onOpenFriendProfile: (friendId: string) => void;
+  onOpenFriendProfile: (
+    friendId: string,
+    preview?: { displayName?: string; imageUrl?: string | null }
+  ) => void;
   onScroll?: (event: NativeSyntheticEvent<NativeScrollEvent>) => void;
 };
 
