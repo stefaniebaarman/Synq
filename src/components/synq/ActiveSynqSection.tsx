@@ -290,12 +290,24 @@ export default function ActiveSynqSection({
             entering={reducedMotion ? undefined : FadeIn.duration(380)}
           >
             <View style={styles.headerRow}>
-              <View style={styles.statusRowLead}>
+              <Pressable
+                onPress={() => {
+                  void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                  setOptionsVisible(true);
+                }}
+                style={({ pressed }) => [
+                  styles.statusRowLead,
+                  pressed && styles.statusRowPressed,
+                ]}
+                accessibilityRole="button"
+                accessibilityLabel="Synq is active"
+                accessibilityHint="Opens options to end Synq"
+              >
                 <ActiveLiveDot />
                 <Text style={styles.activeTitle} numberOfLines={1}>
                   SYNQ IS ACTIVE
                 </Text>
-              </View>
+              </Pressable>
               <View style={styles.headerActions}>
                 <TouchableOpacity
                   onPress={openMessagesInbox}

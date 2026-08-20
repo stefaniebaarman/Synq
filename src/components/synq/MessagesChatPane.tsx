@@ -5,7 +5,6 @@ import {
   BORDER_LIGHT,
   DESTRUCTIVE_IOS_FILL,
   fonts,
-  heroTitleText,
   MUTED2,
   MUTED3,
   ON_ACCENT_TEXT,
@@ -13,6 +12,7 @@ import {
   RADIUS_XL,
   SURFACE_ELEVATED,
   SYNQ_AI_PILL_LABEL,
+  sheetHeaderTitleText,
   TEXT,
   TYPE_CAPTION,
   TYPE_FINE,
@@ -91,7 +91,7 @@ const CHAT_OPEN_LAYOUT_SETTLE_MS = 220;
 /** Soft reveal after stack push + first layout (hides scroll/layout flash). */
 const CHAT_THREAD_REVEAL_MS = 160;
 /** Fade from black into the message list, starting just under the AI chip row. */
-const CHAT_HEADER_FADE_BELOW_AI = 44;
+const CHAT_HEADER_FADE_BELOW_AI = 28;
 const CHAT_HEADER_FADE_EXPANDED = 52;
 /** Title column starts at 88; nudge left so the chip isn’t inset by its own padding. */
 const CHAT_HEADER_TITLE_INDENT = 80;
@@ -329,8 +329,6 @@ type Props = {
   /** Bumped each time a chat is opened from inbox / notification (not profile back). */
   chatOpenAnchorKey?: number;
 };
-
-const CHAT_AI_SUBTITLE_SLOT_HEIGHT = 26;
 
 export default function MessagesChatPane({
   styles,
@@ -1383,16 +1381,10 @@ export default function MessagesChatPane({
   const chatHeaderContentPaddingTop = messagesModalHeaderPaddingTop(
     Math.max(insets.top, insetsTop)
   );
-  const compactChatHeader = !showAISuggestions;
-  const aiPillBelowTitle = showAISuggestions && canExpandChatTitle;
   const headerFadeHeight = chatTitleExpanded
     ? CHAT_HEADER_FADE_EXPANDED
     : CHAT_HEADER_FADE_BELOW_AI;
   const showMemberRoster = otherParticipants.length > 1;
-  const memberCountLabel =
-    otherParticipants.length === 1
-      ? "1 person"
-      : `${otherParticipants.length} people`;
 
   const renderCollapsedTitle = () => (
     <Pressable
@@ -1408,11 +1400,6 @@ export default function MessagesChatPane({
       >
         {chatTitle}
       </Text>
-      {showMemberRoster ? (
-        <Text style={chatHeaderOverlayStyles.memberSubtitle}>
-          {memberCountLabel}
-        </Text>
-      ) : null}
     </Pressable>
   );
 
@@ -1739,7 +1726,9 @@ export default function MessagesChatPane({
           <View
             style={[
               styles.chatHeader,
-              chatTitleExpanded && chatHeaderOverlayStyles.headerTitleRowExpanded,
+              chatTitleExpanded
+                ? chatHeaderOverlayStyles.headerTitleRowExpanded
+                : chatHeaderOverlayStyles.headerTitleRowCollapsed,
             ]}
           >
             <View style={styles.chatHeaderMain}>
@@ -1767,7 +1756,7 @@ export default function MessagesChatPane({
                 <View
                   style={[
                     styles.chatHeaderTextCol,
-                    compactChatHeader && styles.chatHeaderTextColCompact,
+                    chatHeaderOverlayStyles.textColNameOnly,
                     chatTitleExpanded
                       ? chatHeaderOverlayStyles.textColExpanded
                       : chatHeaderOverlayStyles.textColCollapsed,
@@ -1787,11 +1776,6 @@ export default function MessagesChatPane({
                   {typingUserIds.length > 0 ? (
                     <Text style={styles.typingIndicatorText}>Typing…</Text>
                   ) : null}
-                  {showAISuggestions && !aiPillBelowTitle && !chatTitleExpanded ? (
-                    <View style={chatHeaderOverlayStyles.aiSubtitleSlot}>
-                      {renderAiChip()}
-                    </View>
-                  ) : null}
                 </View>
               </View>
             </View>
@@ -1804,8 +1788,8 @@ export default function MessagesChatPane({
             />
           </View>
           {chatTitleExpanded && showMemberRoster ? renderMemberStrip() : null}
-          {aiPillBelowTitle && !chatTitleExpanded ? (
-            <View style={chatHeaderOverlayStyles.aiSubtitleSlotExpanded}>
+          {!chatTitleExpanded && showAISuggestions ? (
+            <View style={chatHeaderOverlayStyles.belowTitleStack}>
               {renderAiChip(0)}
             </View>
           ) : null}
@@ -1853,7 +1837,7 @@ const chatHeaderOverlayStyles = RNStyleSheet.create({
   },
   headerShell: {
     backgroundColor: BG,
-    paddingBottom: 6,
+    paddingBottom: 2,
   },
   headerShellExpanded: {
     paddingBottom: 8,
@@ -1861,6 +1845,10 @@ const chatHeaderOverlayStyles = RNStyleSheet.create({
   headerTitleRowExpanded: {
     alignItems: "flex-start",
     paddingBottom: 4,
+  },
+  headerTitleRowCollapsed: {
+    alignItems: "center",
+    paddingBottom: 0,
   },
   identityRowCollapsed: {
     alignItems: "center",
@@ -1870,9 +1858,13 @@ const chatHeaderOverlayStyles = RNStyleSheet.create({
     alignItems: "flex-start",
     flex: 0,
   },
+  textColNameOnly: {
+    justifyContent: "center",
+    paddingTop: 0,
+  },
   textColCollapsed: {
     justifyContent: "center",
-    paddingTop: 2,
+    paddingTop: 0,
   },
   textColExpanded: {
     justifyContent: "flex-start",
@@ -1881,20 +1873,19 @@ const chatHeaderOverlayStyles = RNStyleSheet.create({
   titlePressable: {
     alignSelf: "stretch",
     minWidth: 0,
+    justifyContent: "center",
   },
   collapsedTitleText: {
     flexShrink: 1,
   },
-  memberSubtitle: {
-    marginTop: 2,
-    color: MUTED2,
-    fontSize: TYPE_CAPTION,
-    fontFamily: fonts.book,
-    letterSpacing: 0.1,
+  belowTitleStack: {
+    marginLeft: CHAT_HEADER_TITLE_INDENT,
+    marginTop: 1,
+    paddingBottom: 0,
   },
   expandedHeadline: {
-    ...heroTitleText,
-    letterSpacing: 0.15,
+    ...sheetHeaderTitleText,
+    letterSpacing: 0.05,
   },
   showLessLink: {
     marginTop: 3,
@@ -1944,16 +1935,6 @@ const chatHeaderOverlayStyles = RNStyleSheet.create({
   },
   fadeBelowAi: {
     height: CHAT_HEADER_FADE_BELOW_AI,
-  },
-  aiSubtitleSlot: {
-    minHeight: CHAT_AI_SUBTITLE_SLOT_HEIGHT,
-    justifyContent: "center",
-  },
-  aiSubtitleSlotExpanded: {
-    marginLeft: CHAT_HEADER_TITLE_INDENT,
-    marginTop: 4,
-    minHeight: CHAT_AI_SUBTITLE_SLOT_HEIGHT,
-    justifyContent: "center",
   },
   typingIndicatorText: {
     color: MUTED2,

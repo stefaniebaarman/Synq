@@ -1,6 +1,6 @@
 import AlertModal from "@/app/alert-modal";
 import ConfirmModal from "@/app/confirm-modal";
-import { resolveAvatar } from "@/src/lib/helpers";
+import { sheetStyles } from "@/constants/sheetStyles";
 import {
   ACCENT,
   ACCENT_FILL,
@@ -13,13 +13,14 @@ import {
   HEADER_BLACK,
   MUTED2,
   MUTED3,
-  OVERLAY_DIM,
   OVERLAY_DARK,
+  OVERLAY_DIM,
   OVERLAY_MID,
   OVERLAY_SOFT,
   PROFILE_HEADER_FADE_GRADIENT,
   PROFILE_HEADER_FADE_LOCATIONS,
   RADIUS_MD,
+  RADIUS_XL,
   SPACE_2,
   SPACE_3,
   SPACE_4,
@@ -32,7 +33,6 @@ import {
   TYPE_FINE,
   TYPE_LEAD,
   TYPE_NANO,
-  TYPE_SUBHEAD,
   cardMetaText,
   fonts,
   getTabHeaderLayout,
@@ -43,23 +43,25 @@ import {
   sectionLinkText,
   sheetTitleText,
   stackNavigationBackBtn,
-  RADIUS_XL,
   synqOutlineAddBtnCompact,
   synqOutlineAddBtnTextCompact,
 } from "@/constants/Variables";
-import AddMembersToGroupSheet from "@/src/components/friends/AddMembersToGroupSheet";
-import { groupsPageStyles, GROUP_BORDER } from "@/src/components/friends/groupsListStyles";
 import BackButton from "@/src/components/BackButton";
-import CommunityPlansSection from "@/src/components/community/CommunityPlansSection";
 import CommunityFeedSection from "@/src/components/community/CommunityFeedSection";
-import type { CommunityPlanMemberProfile } from "@/src/lib/communityPlanMembers";
-import type { CommunityGroupPlan } from "@/src/lib/communityGroupPlans";
+import CommunityPlansSection from "@/src/components/community/CommunityPlansSection";
+import AddMembersToGroupSheet from "@/src/components/friends/AddMembersToGroupSheet";
+import { GROUP_BORDER } from "@/src/components/friends/groupsListStyles";
 import HeaderIconButton from "@/src/components/HeaderIconButton";
 import { PageLoadSkeleton } from "@/src/components/loading/BrandSkeletons";
 import SpringBottomSheet from "@/src/components/sheets/SpringBottomSheet";
 import StackScreenHeader from "@/src/components/StackScreenHeader";
-import { sheetStyles } from "@/constants/sheetStyles";
-import { auth } from "@/src/lib/firebase";
+import {
+  acceptCommunityGroupInvite,
+  communityGroupInviteRef,
+  sendCommunityGroupInvites,
+  subscribePendingCommunityGroupInvites,
+} from "@/src/lib/communityGroupInvites";
+import type { CommunityGroupPlan } from "@/src/lib/communityGroupPlans";
 import {
   communityGroupRef,
   deleteCommunityGroup,
@@ -69,24 +71,20 @@ import {
   removeMemberFromCommunityGroup,
   type CommunityGroup,
 } from "@/src/lib/communityGroups";
+import type { CommunityPlanMemberProfile } from "@/src/lib/communityPlanMembers";
 import { fetchOrCreateCommunityShareCode } from "@/src/lib/communityShareCode";
 import { buildCommunityShareWebUrl } from "@/src/lib/communityShareUrl";
+import { auth, db } from "@/src/lib/firebase";
+import { resolveAvatar } from "@/src/lib/helpers";
 import { shareCommunityJoinLink } from "@/src/lib/shareCommunityLink";
-import {
-  acceptCommunityGroupInvite,
-  communityGroupInviteRef,
-  sendCommunityGroupInvites,
-  subscribePendingCommunityGroupInvites,
-} from "@/src/lib/communityGroupInvites";
-import { friendsListCacheByUser, friendProfileCacheByUser } from "@/src/lib/socialCache";
+import { friendProfileCacheByUser, friendsListCacheByUser } from "@/src/lib/socialCache";
 import { Ionicons } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
-import { LinearGradient } from "expo-linear-gradient";
 import { Image as ExpoImage } from "expo-image";
+import { LinearGradient } from "expo-linear-gradient";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { arrayUnion, doc, getDoc, onSnapshot, updateDoc } from "firebase/firestore";
-import { db } from "@/src/lib/firebase";
-import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   Modal,
   ScrollView,
@@ -827,7 +825,7 @@ export default function CommunityGroupDetailScreen() {
                         accessibilityLabel={
                           item.id === uid
                             ? `Leave ${group.name}`
-                            : `Remove ${item.displayName} from group`
+                            : `Remove ${item.displayName} from community`
                         }
                         style={[synqOutlineAddBtnCompact, styles.removeMemberBtn]}
                       >
@@ -1202,6 +1200,7 @@ const styles = StyleSheet.create({
     color: MUTED2,
   },
   profileMetaBullet: {
+    fontFamily: fonts.book,
     fontSize: TYPE_NANO,
     color: MUTED2,
     lineHeight: 19,
@@ -1372,7 +1371,7 @@ const styles = StyleSheet.create({
   },
   optionsRowText: {
     fontFamily: fonts.medium,
-    fontSize: TYPE_SUBHEAD,
+    fontSize: TYPE_BODY,
     color: TEXT,
   },
   optionsDestructive: {

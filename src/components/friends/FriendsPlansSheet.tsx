@@ -8,12 +8,11 @@ import {
   RADIUS_MD,
   SURFACE_INPUT,
   TEXT,
-  TYPE_BODY,
   TYPE_LEAD,
-  TYPE_SECTION,
   fonts,
+  formInputText,
   listRowTitleText,
-  sheetHeaderTitleText,
+  sheetTitleText,
 } from "@/constants/Variables";
 import ConfirmModal from "@/app/confirm-modal";
 import CloseButton from "@/src/components/CloseButton";
@@ -252,11 +251,7 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   title: {
-    ...sheetHeaderTitleText,
-    color: TEXT,
-    fontSize: TYPE_SECTION,
-    lineHeight: 26,
-    letterSpacing: 0.04,
+    ...sheetTitleText,
   },
   searchWrap: {
     paddingHorizontal: 20,
@@ -275,10 +270,8 @@ const styles = StyleSheet.create({
     gap: 10,
   },
   searchBarInput: {
+    ...formInputText,
     flex: 1,
-    color: TEXT,
-    fontFamily: fonts.book,
-    fontSize: TYPE_BODY,
     paddingVertical: 0,
     minHeight: 22,
   },

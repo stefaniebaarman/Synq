@@ -95,6 +95,7 @@ type EventItem = {
   joinedFromFriendUid?: string;
   planHostUid?: string;
   attendeeDisplayNames?: Record<string, string>;
+  attendeeImages?: Record<string, string>;
   planInvitedIds?: string[];
 };
 
@@ -173,9 +174,8 @@ export default function OpenPlans({
       const fromEvent =
         uid &&
         event?.attendeeImages &&
-        typeof (event as any).attendeeImages === "object"
-          ? String(((event as any).attendeeImages as Record<string, string>)[uid] || "").trim() ||
-            null
+        typeof event.attendeeImages === "object"
+          ? String(event.attendeeImages[uid] || "").trim() || null
           : null;
       return {
         ...person,

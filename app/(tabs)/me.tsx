@@ -12,7 +12,6 @@ import {
   fonts,
   Friend,
   MODAL_RADIUS,
-  MUTED,
   MUTED2,
   MUTED3,
   ON_ACCENT_TEXT,
@@ -28,12 +27,13 @@ import {
   SURFACE_INPUT,
   SURFACE_RAISED,
   SURFACE_SUBTLE,
+  SYNQ_OUTLINE_CTA_RADIUS,
   synqOutlineAddBtn,
   synqOutlineAddBtnDisabled,
   synqOutlineAddBtnText,
   synqOutlineAddBtnTextDisabled,
   TAB_BAR_SCROLL_INSET,
-  tabScreenMainHeaderTitle,
+  stackScreenHeaderTitle,
   TEXT,
   TYPE_CAPTION
 } from "@/constants/Variables";
@@ -1873,7 +1873,6 @@ const styles = StyleSheet.create({
   },
   locationText: {
     ...profileLocationText,
-    color: MUTED,
     flexShrink: 1,
   },
   editProfileBtn: {
@@ -1882,7 +1881,7 @@ const styles = StyleSheet.create({
     gap: 5,
     paddingVertical: 7,
     paddingHorizontal: 12,
-    borderRadius: 999,
+    borderRadius: SYNQ_OUTLINE_CTA_RADIUS,
     borderWidth: StyleSheet.hairlineWidth,
     borderColor: BORDER,
     backgroundColor: SURFACE_SUBTLE,
@@ -1978,9 +1977,8 @@ const styles = StyleSheet.create({
     marginBottom: 24,
   },
   interestTitle: {
-    ...tabScreenMainHeaderTitle,
+    ...stackScreenHeaderTitle,
     flex: 1,
-    lineHeight: 32,
     includeFontPadding: false,
     marginRight: 12,
   },

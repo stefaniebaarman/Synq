@@ -56,6 +56,7 @@ type EventItem = {
   joinedFromNames?: string[];
   planHostUid?: string;
   attendeeDisplayNames?: Record<string, string>;
+  attendeeImages?: Record<string, string>;
 };
 
 type Props = {

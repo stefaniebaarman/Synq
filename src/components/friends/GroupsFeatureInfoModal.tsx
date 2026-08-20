@@ -3,8 +3,8 @@ import {
   BORDER_SOFT,
   MODAL_RADIUS,
   OVERLAY_DARK,
-  emptyStateTitleText,
   modalBodyText,
+  modalTitleText,
 } from "@/constants/Variables";
 import CloseButton from "@/src/components/CloseButton";
 import {
@@ -38,7 +38,7 @@ const COPY: Record<
   community: {
     title: "Communities",
     body:
-      "Open groups around a shared interest. Anyone can join to meet people beyond your circle.",
+      "Open communities around a shared interest. Anyone can join to meet people beyond your circle.",
   },
 };
 
@@ -85,7 +85,7 @@ const styles = StyleSheet.create({
     zIndex: 1,
   },
   title: {
-    ...emptyStateTitleText,
+    ...modalTitleText,
     marginBottom: 10,
     textAlign: "center",
     paddingHorizontal: 28,

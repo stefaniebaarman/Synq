@@ -22,9 +22,11 @@ import {
   TYPE_CAPTION,
   TYPE_LEAD,
   fonts,
+  profileInterestPillText,
   profileLocationText,
   profileNameText,
   profileScreenSectionTitle,
+  sheetTitleText,
   synqOutlineAddBtn,
   synqOutlineAddBtnDisabled,
   synqOutlineAddBtnText,
@@ -1155,10 +1157,10 @@ export default function FriendProfile({
               accessibilityRole="button"
               accessibilityLabel={
                 incomingRequest
-                  ? "Accept friend request"
+                  ? "Accept"
                   : requestSent
-                    ? "Friend request pending"
-                    : "Add friend"
+                    ? "Pending"
+                    : "+ Add"
               }
             >
               <Text
@@ -1169,10 +1171,10 @@ export default function FriendProfile({
                 ]}
               >
                 {incomingRequest
-                  ? "Accept friend request"
+                  ? "Accept"
                   : requestSent
                     ? "Pending"
-                    : "Add friend"}
+                    : "+ Add"}
               </Text>
             </TouchableOpacity>
           </View>
@@ -1487,27 +1489,27 @@ export default function FriendProfile({
             setAddToGroupSheetVisible(false);
             const friendLabel = friend?.displayName || "Friend";
             if (addedGroupIds.length > 0 && removedGroupIds.length > 0) {
-              setAlertTitle("Groups updated");
-              setAlertMessage(`${friendLabel}'s groups were updated.`);
+              setAlertTitle("Circles updated");
+              setAlertMessage(`${friendLabel}'s circles were updated.`);
             } else if (addedGroupIds.length === 1) {
-              const groupName = groupById.get(addedGroupIds[0])?.name || "the group";
-              setAlertTitle("Added to group");
+              const groupName = groupById.get(addedGroupIds[0])?.name || "the circle";
+              setAlertTitle("Added to circle");
               setAlertMessage(`Added to ${groupName}.`);
             } else if (addedGroupIds.length > 1) {
-              setAlertTitle("Added to groups");
-              setAlertMessage(`Added to ${addedGroupIds.length} groups.`);
+              setAlertTitle("Added to circles");
+              setAlertMessage(`Added to ${addedGroupIds.length} circles.`);
             } else if (removedGroupIds.length === 1) {
-              const groupName = groupById.get(removedGroupIds[0])?.name || "the group";
-              setAlertTitle("Removed from group");
+              const groupName = groupById.get(removedGroupIds[0])?.name || "the circle";
+              setAlertTitle("Removed from circle");
               setAlertMessage(`Removed from ${groupName}.`);
             } else if (removedGroupIds.length > 1) {
-              setAlertTitle("Removed from groups");
-              setAlertMessage(`Removed from ${removedGroupIds.length} groups.`);
+              setAlertTitle("Removed from circles");
+              setAlertMessage(`Removed from ${removedGroupIds.length} circles.`);
             }
             setAlertVisible(true);
           } catch (err) {
             setAlertTitle("Error");
-            setAlertMessage(err instanceof Error ? err.message : "Could not update groups.");
+            setAlertMessage(err instanceof Error ? err.message : "Could not update circles.");
             setAlertVisible(true);
           } finally {
             setAddToGroupBusy(false);
@@ -1816,9 +1818,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   optionsCancelText: {
-    color: TEXT,
-    fontSize: TYPE_BODY,
-    fontFamily: fonts.heavy,
+    ...sheetTitleText,
   },
 
   synqsContainer: {
@@ -1855,11 +1855,9 @@ const styles = StyleSheet.create({
   },
 
   connName: {
-    color: TEXT,
-    fontSize: TYPE_LEAD,
+    ...profileInterestPillText,
     marginTop: 8,
     textAlign: "center",
-    fontFamily: fonts.book,
   },
 
   interestsWrapper: {
@@ -1877,9 +1875,7 @@ const styles = StyleSheet.create({
     paddingVertical: 7,
   },
   pillText: {
-    color: TEXT,
-    fontSize: TYPE_LEAD,
-    fontFamily: fonts.book,
+    ...profileInterestPillText,
   },
   emptyText: {
     color: MUTED2,

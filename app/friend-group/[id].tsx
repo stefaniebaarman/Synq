@@ -26,6 +26,7 @@ import {
   TYPE_CAPTION,
   TYPE_SUBHEAD,
   fonts,
+  listRowTitleText,
   listSectionTitle,
   sheetTitleText,
   synqOutlineAddBtnCompact,
@@ -355,7 +356,7 @@ export default function FriendGroupDetailScreen() {
                   onPress={() => handleRemoveMember(item.id, item.displayName)}
                   hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
                   accessibilityRole="button"
-                  accessibilityLabel={`Remove ${item.displayName} from group`}
+                  accessibilityLabel={`Remove ${item.displayName} from circle`}
                   style={[synqOutlineAddBtnCompact, styles.removeMemberBtn]}
                 >
                   <Text
@@ -583,11 +584,8 @@ const styles = StyleSheet.create({
     height: 48,
   },
   memberName: {
+    ...listRowTitleText,
     flex: 1,
-    fontFamily: fonts.heavy,
-    fontSize: TYPE_BODY,
-    color: TEXT,
-    letterSpacing: 0.05,
   },
   removeMemberBtn: {
     borderColor: DESTRUCTIVE_BORDER_STRONG,

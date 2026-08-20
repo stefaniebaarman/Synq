@@ -25,7 +25,6 @@ import {
   ACCENT,
   BG,
   BORDER,
-  BUTTON_RADIUS,
   DESTRUCTIVE,
   MUTED2,
   RADIUS_LG,
@@ -37,15 +36,15 @@ import {
   TEXT,
   TYPE_BODY,
   TYPE_CAPTION,
-  TYPE_CTA,
   TYPE_FINE,
   TYPE_LEAD,
   TYPE_SUBHEAD,
   cardMetaText,
-  cardTitleText,
   fonts,
   formSectionLabel,
   sheetTitleText,
+  synqOutlineAddBtn,
+  synqOutlineAddBtnText,
 } from "@/constants/Variables";
 
 type Props = {
@@ -204,12 +203,12 @@ export default function CommunityPlanDetailSheet({
               </TouchableOpacity>
             ) : (
               <TouchableOpacity
-                style={styles.primaryBtn}
+                style={[synqOutlineAddBtn, busy && { opacity: 0.5 }]}
                 onPress={onJoin}
                 disabled={busy}
                 activeOpacity={0.85}
               >
-                <Text style={[styles.primaryBtnText, busy && { opacity: 0.5 }]}>
+                <Text style={[synqOutlineAddBtnText, busy && { opacity: 0.5 }]}>
                   Join
                 </Text>
               </TouchableOpacity>
@@ -273,25 +272,19 @@ const styles = StyleSheet.create({
     overflow: "hidden",
   },
   title: {
-    ...cardTitleText,
-    fontSize: TYPE_CTA,
+    ...sheetTitleText,
   },
   meta: {
     ...cardMetaText,
   },
   groupLabel: {
-    fontFamily: fonts.book,
-    fontSize: TYPE_CAPTION,
-    color: MUTED2,
+    ...cardMetaText,
   },
   goersSection: {
     gap: SPACE_3,
   },
   sectionLabel: {
     ...formSectionLabel,
-    color: MUTED2,
-    fontSize: TYPE_CAPTION,
-    letterSpacing: 0.4,
   },
   goerStrip: {
     gap: SPACE_4,
@@ -335,18 +328,6 @@ const styles = StyleSheet.create({
   actions: {
     gap: SPACE_3,
     paddingTop: SPACE_3,
-  },
-  primaryBtn: {
-    minHeight: 48,
-    borderRadius: BUTTON_RADIUS,
-    backgroundColor: ACCENT,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  primaryBtnText: {
-    fontFamily: fonts.heavy,
-    fontSize: TYPE_BODY,
-    color: BG,
   },
   leaveBtn: {
     minHeight: 44,

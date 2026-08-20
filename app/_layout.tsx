@@ -6,6 +6,7 @@ import { requestDismissNavigationOverlays } from "@/src/lib/navigationOverlayEve
 import { setPendingChatOpen } from "@/src/lib/pendingChatOpen";
 import {
   connectViaProfileShareCode,
+  connectViaProfileUserId,
   parseProfileShareCodeFromUrl,
 } from "@/src/lib/profileShareUrl";
 import {
@@ -886,12 +887,33 @@ export default function RootLayout() {
         }
         return;
       }
-      navigateToFriendProfile(
-        router,
-        friendId,
-        segments[0] === "friend-profile"
-      );
-      await AsyncStorage.removeItem(PENDING_FRIEND_PROFILE_ID_KEY);
+      try {
+        const connectedId = await connectViaProfileUserId(friendId);
+        if (!connectedId || cancelled) {
+          setInviteLinkAlert(
+            "Couldn't open that profile link. Open the link again to retry."
+          );
+          return;
+        }
+        navigateToFriendProfile(
+          router,
+          connectedId,
+          segments[0] === "friend-profile"
+        );
+        await AsyncStorage.removeItem(PENDING_FRIEND_PROFILE_ID_KEY);
+      } catch (err: any) {
+        const message = String(err?.message || "");
+        if (/yourself/i.test(message)) {
+          await AsyncStorage.removeItem(PENDING_FRIEND_PROFILE_ID_KEY);
+          if (segments[0] !== "friend-profile") {
+            setOwnProfileLinkAlert(true);
+          }
+          return;
+        }
+        setInviteLinkAlert(
+          "Couldn't open that profile link. Open the link again to retry."
+        );
+      }
     };
 
     void processPendingFriendProfile();
@@ -937,8 +959,17 @@ export default function RootLayout() {
           }
           return;
         }
+        setInviteLinkAlert(
+          "Couldn't open that profile link. Open the link again to retry."
+        );
+        return;
       }
-      if (!friendId || cancelled) return;
+      if (!friendId || cancelled) {
+        setInviteLinkAlert(
+          "Couldn't open that profile link. Open the link again to retry."
+        );
+        return;
+      }
       if (friendId === user.uid) {
         await AsyncStorage.removeItem(PENDING_PROFILE_SHARE_CODE_KEY);
         if (segments[0] !== "friend-profile") {

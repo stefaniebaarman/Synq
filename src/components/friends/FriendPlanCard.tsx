@@ -4,6 +4,7 @@ import {
   fonts,
   listRowTitleText,
   MUTED,
+  MUTED2,
   MUTED3,
   RADIUS_LG,
   SURFACE_SUBTLE,
@@ -11,8 +12,6 @@ import {
   synqOutlineAddBtnCompact,
   synqOutlineAddBtnTextCompact,
   TEXT,
-  TEXT_MUTED_DARK,
-  TEXT_MUTED_DARKER,
   TYPE_BODY,
   TYPE_FINE,
   TYPE_MICRO
@@ -169,15 +168,13 @@ export default function FriendPlanCard({
   const peopleWithAvatars: PlanGoingPerson[] = goingPeople.map((person) => {
     const uid = String(person.userId || "").trim();
     const fromFriends = uid ? friendImageByUid[uid] ?? null : null;
-    const fromEvent =
-      uid &&
-      eventForAttribution?.attendeeImages &&
-      typeof eventForAttribution.attendeeImages === "object"
-        ? String(
-            (eventForAttribution.attendeeImages as Record<string, string>)[uid] ||
-              ""
-          ).trim() || null
+    const images =
+      eventForAttribution &&
+      typeof eventForAttribution.attendeeImages === "object" &&
+      eventForAttribution.attendeeImages
+        ? (eventForAttribution.attendeeImages as Record<string, string>)
         : null;
+    const fromEvent = uid && images ? String(images[uid] || "").trim() || null : null;
     return {
       ...person,
       imageUrl: fromFriends || fromEvent,
@@ -362,8 +359,9 @@ const styles = StyleSheet.create({
     opacity: 0.45,
   },
   day: {
-    color: TEXT_MUTED_DARK,
+    color: MUTED2,
     fontSize: TYPE_FINE,
+    fontFamily: fonts.book,
   },
   date: {
     color: TEXT,
@@ -371,8 +369,9 @@ const styles = StyleSheet.create({
     fontFamily: fonts.heavy,
   },
   month: {
-    color: TEXT_MUTED_DARK,
+    color: MUTED2,
     fontSize: TYPE_FINE,
+    fontFamily: fonts.book,
     marginTop: 2,
   },
   title: {
@@ -382,7 +381,6 @@ const styles = StyleSheet.create({
   },
   meta: {
     ...cardMetaText,
-    color: TEXT_MUTED_DARKER,
     marginTop: 3,
   },
   planOwnerLine: {
@@ -420,6 +418,8 @@ const styles = StyleSheet.create({
   },
   interestText: {
     fontSize: TYPE_FINE,
+    fontFamily: fonts.medium,
+    color: MUTED,
     textAlign: "center",
     includeFontPadding: false,
   },

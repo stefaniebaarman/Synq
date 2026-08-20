@@ -3,8 +3,7 @@ import {
   ACCENT_BORDER,
   ACCENT_FILL,
   MUTED2,
-  MUTED3,
-  SURFACE_ELEVATED,
+  SURFACE_RAISED,
   SURFACE_SUBTLE,
   TEXT,
   TYPE_CAPTION,
@@ -116,10 +115,10 @@ export default function PollBubble({
 const styles = StyleSheet.create({
   card: {
     width: "100%",
-    backgroundColor: SURFACE_ELEVATED,
+    backgroundColor: SURFACE_RAISED,
     borderRadius: CARD_RADIUS,
     borderWidth: 1,
-    borderColor: MUTED3,
+    borderColor: ACCENT_BORDER,
     paddingHorizontal: 14,
     paddingTop: 12,
     paddingBottom: 12,

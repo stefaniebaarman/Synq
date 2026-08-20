@@ -37,8 +37,10 @@ import {
   TYPE_TITLE,
   cardMetaText,
   fonts,
+  formInputText,
   listRowTitleText,
   listSectionTitle,
+  profileInterestPillText,
   profileNameText,
   profileScreenSectionTitle,
   stackScreenHeaderTitle,
@@ -2267,10 +2269,8 @@ const styles = StyleSheet.create({
     gap: 10,
   },
   searchBarInput: {
+    ...formInputText,
     flex: 1,
-    color: TEXT,
-    fontFamily: fonts.book,
-    fontSize: TYPE_BODY,
     paddingVertical: 0,
     minHeight: 22,
   },
@@ -2510,7 +2510,7 @@ const styles = StyleSheet.create({
     marginRight: 8,
     marginBottom: 8,
   },
-  interestText: { color: TEXT, fontFamily: fonts.book, fontSize: TYPE_CAPTION },
+  interestText: { ...profileInterestPillText },
   noInterestsText: {
     color: MUTED2,
     fontSize: TYPE_CAPTION,
@@ -2579,10 +2579,9 @@ const styles = StyleSheet.create({
   addFriendsSectionLabel: {
     flex: 1,
     color: MUTED2,
-    fontSize: TYPE_LEAD,
     fontFamily: fonts.medium,
+    fontSize: TYPE_CAPTION,
     letterSpacing: 0.2,
-    lineHeight: 20,
     includeFontPadding: false,
   },
   addFriendsSectionHeader: {

@@ -9,6 +9,13 @@ export {
 export const ACCENT = "#00FF85";
 /** Text on accent-filled buttons and chips. */
 export const ON_ACCENT_TEXT = "#061006";
+/**
+ * Outgoing chat bubbles — same Synq green family as {@link ACCENT},
+ * slightly deeper so large fills don’t read as neon CTA.
+ */
+export const CHAT_BUBBLE_SELF = "#00D974";
+/** Text on {@link CHAT_BUBBLE_SELF}. */
+export const CHAT_BUBBLE_SELF_TEXT = ON_ACCENT_TEXT;
 /** Destructive actions: delete, block, end synq, swipe delete. */
 export const DESTRUCTIVE = "#FF453A";
 /** Solid black behind status bar in tab header overlays. */
@@ -106,6 +113,8 @@ export const MUTED = "rgba(255,255,255,0.55)";
 export const fonts = {
   heavy: "Avenir-Heavy",
   medium: "Avenir-Medium",
+  /** Between Book and Medium — good for chat body copy. */
+  roman: "Avenir-Roman",
   book: "Avenir-Book",
   black: "Avenir-Black",
 };

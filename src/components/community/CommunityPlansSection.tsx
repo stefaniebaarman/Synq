@@ -408,7 +408,7 @@ export default function CommunityPlansSection({
                             busy && { opacity: 0.5 },
                           ]}
                         >
-                          {isGoing ? "Joined" : "Join"}
+                          {isGoing ? "Leave" : "Join"}
                         </Text>
                       </TouchableOpacity>
                     </View>
@@ -433,7 +433,7 @@ export default function CommunityPlansSection({
             </View>
             <View style={styles.startSynqCopy}>
               <Text style={styles.startSynqTitle}>Share a plan</Text>
-              <Text style={styles.startSynqSubtitle}>Anyone in the group can join</Text>
+              <Text style={styles.startSynqSubtitle}>Anyone in the community can join</Text>
             </View>
           </TouchableOpacity>
         ) : null}
@@ -603,6 +603,7 @@ const styles = StyleSheet.create({
     lineHeight: 18,
   },
   planMetaBullet: {
+    fontFamily: fonts.book,
     fontSize: TYPE_NANO,
     color: MUTED2,
     lineHeight: 18,

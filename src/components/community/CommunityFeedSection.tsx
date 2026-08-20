@@ -12,13 +12,14 @@ import {
   SPACE_4,
   SPACE_5,
   SURFACE_RAISED,
+  SYNQ_OUTLINE_CTA_RADIUS,
   TEXT,
   TYPE_BODY,
   TYPE_CAPTION,
-  TYPE_FINE,
   TYPE_LEAD,
   cardMetaText,
   fonts,
+  listRowTitleText,
   listSectionTitle,
   sectionLinkText,
   synqOutlineAddBtnCompact,
@@ -403,7 +404,7 @@ export default function CommunityFeedSection({
           </Text>
         ) : feedPosts.length === 0 && pendingForAdmin.length === 0 ? (
           <Text style={styles.empty}>
-            No posts yet. Share an update or a link with the group.
+            No posts yet. Share an update or a link with the community.
           </Text>
         ) : (
           <View style={styles.list}>
@@ -509,14 +510,11 @@ const styles = StyleSheet.create({
     minWidth: 0,
   },
   authorName: {
+    ...listRowTitleText,
     fontFamily: fonts.heavy,
-    fontSize: TYPE_LEAD,
-    color: TEXT,
   },
   meta: {
     ...cardMetaText,
-    fontSize: TYPE_FINE,
-    color: MUTED2,
     marginTop: 1,
   },
   body: {
@@ -546,10 +544,12 @@ const styles = StyleSheet.create({
   },
   rejectBtn: {
     paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 999,
-    borderWidth: StyleSheet.hairlineWidth,
+    paddingVertical: 7,
+    borderRadius: SYNQ_OUTLINE_CTA_RADIUS,
+    borderWidth: 1,
     borderColor: BORDER,
+    alignItems: "center",
+    justifyContent: "center",
   },
   rejectText: {
     fontFamily: fonts.medium,

@@ -4,17 +4,12 @@ import {
   ACCENT_FILL_SUBTLE,
   BORDER,
   GROUP_BORDER,
-  ON_ACCENT_TEXT,
   RADIUS_LG,
   SURFACE_ELEVATED,
   SURFACE_MUTED,
   SURFACE_RAISED,
-  TYPE_BUTTON,
-  TYPE_CAPTION,
-  TYPE_CTA,
-  TYPE_FINE,
+  SYNQ_OUTLINE_CTA_RADIUS,
   TYPE_MICRO,
-  TYPE_SECTION,
   cardMetaText,
   cardTitleText,
   detailSectionTitle,
@@ -22,7 +17,7 @@ import {
   listRowTitleText,
   listSectionTitle,
   searchPlaceholderText,
-  RADIUS_MD,
+  synqOutlineAddBtnTextCompact,
   RADIUS_SM,
 } from "@/constants/Variables";
 import { StyleSheet } from "react-native";
@@ -57,8 +52,6 @@ export const groupsPageStyles = StyleSheet.create({
   },
   sectionTitle: {
     ...listSectionTitle,
-    fontSize: TYPE_CTA,
-    lineHeight: 23,
     marginTop: 0,
   },
   sectionAddBtn: {
@@ -145,7 +138,6 @@ export const groupsPageStyles = StyleSheet.create({
   },
   subsectionTitle: {
     ...detailSectionTitle,
-    fontSize: TYPE_BUTTON,
     marginTop: 4,
   },
   discoverScroll: {
@@ -179,9 +171,6 @@ export const groupsPageStyles = StyleSheet.create({
   },
   discoverCardTitle: {
     ...cardTitleText,
-    fontFamily: fonts.heavy,
-    fontSize: TYPE_BUTTON,
-    letterSpacing: 0.05,
     marginBottom: 4,
   },
   discoverCardTag: {
@@ -195,27 +184,25 @@ export const groupsPageStyles = StyleSheet.create({
   },
   discoverCardMeta: {
     ...cardMetaText,
-    fontSize: TYPE_FINE,
     marginBottom: 12,
   },
   joinBtn: {
     alignSelf: "flex-start",
-    minWidth: 64,
-    height: 32,
-    paddingHorizontal: 14,
-    borderRadius: RADIUS_MD,
-    backgroundColor: ACCENT,
+    minWidth: 58,
+    borderWidth: 1,
+    borderColor: ACCENT_BORDER,
+    borderRadius: SYNQ_OUTLINE_CTA_RADIUS,
+    paddingVertical: 7,
+    paddingHorizontal: 12,
+    backgroundColor: ACCENT_FILL_SUBTLE,
     alignItems: "center",
     justifyContent: "center",
   },
   joinBtnText: {
-    fontFamily: fonts.medium,
-    fontSize: TYPE_CAPTION,
-    color: ON_ACCENT_TEXT,
-    letterSpacing: 0.04,
+    ...synqOutlineAddBtnTextCompact,
   },
   joinBtnDisabled: {
-    opacity: 0.55,
+    opacity: 0.45,
   },
   communityListSurface: {
     backgroundColor: GROUP_SURFACE,
