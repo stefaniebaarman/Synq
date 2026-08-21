@@ -11,7 +11,7 @@ import {
   TYPE_LEAD,
   fonts,
   formInputText,
-  listRowTitleText,
+  emptyStateTitleText,
   sheetTitleText,
 } from "@/constants/Variables";
 import ConfirmModal from "@/app/confirm-modal";
@@ -293,7 +293,7 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   emptyTitle: {
-    ...listRowTitleText,
+    ...emptyStateTitleText,
     textAlign: "center",
   },
   emptyText: {

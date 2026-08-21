@@ -347,9 +347,9 @@ export const bodyBookText: TextStyle = {
   letterSpacing: 0.02,
 };
 
-/** Accent inline actions (See all, section links). */
+/** Secondary expand/collapse links (See all, Show less). */
 export const sectionLinkText: TextStyle = {
-  color: ACCENT,
+  color: MUTED,
   fontFamily: fonts.medium,
   fontSize: TYPE_LEAD,
   letterSpacing: 0.04,

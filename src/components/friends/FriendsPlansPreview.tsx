@@ -1,7 +1,5 @@
 import {
-  MUTED,
-  TYPE_CAPTION,
-  fonts,
+  sectionLinkText,
   listSectionTitle,
   SPACE_4,
 } from "@/constants/Variables";
@@ -104,9 +102,6 @@ const styles = StyleSheet.create({
     ...listSectionTitle,
   },
   sectionLink: {
-    color: MUTED,
-    fontSize: TYPE_CAPTION,
-    fontFamily: fonts.medium,
-    letterSpacing: 0.22,
+    ...sectionLinkText,
   },
 });

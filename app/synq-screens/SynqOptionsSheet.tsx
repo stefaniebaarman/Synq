@@ -8,7 +8,7 @@ import {
   BORDER,
   DESTRUCTIVE,
   RADIUS_MD,
-  TYPE_SUBHEAD,
+  TYPE_BODY,
   fonts,
   sheetTitleText,
 } from "../../constants/Variables";
@@ -84,7 +84,7 @@ const styles = StyleSheet.create({
   },
   optionText: {
     color: DESTRUCTIVE,
-    fontSize: TYPE_SUBHEAD,
+    fontSize: TYPE_BODY,
     fontFamily: fonts.medium,
   },
   cancelBtn: {

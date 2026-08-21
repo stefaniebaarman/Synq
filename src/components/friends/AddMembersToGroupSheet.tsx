@@ -10,10 +10,10 @@ import {
   MUTED3,
   RADIUS_MD,
   SURFACE,
-  TEXT,
-  TYPE_BODY,
   TYPE_CAPTION,
   fonts,
+  formInputText,
+  listRowTitleText,
   sheetHeaderTitleText,
   synqOutlineAddBtn,
   synqOutlineAddBtnDisabled,
@@ -286,9 +286,7 @@ const styles = StyleSheet.create({
   },
   searchInput: {
     flex: 1,
-    color: TEXT,
-    fontFamily: fonts.book,
-    fontSize: TYPE_BODY,
+    ...formInputText,
     paddingVertical: 0,
   },
   row: {
@@ -310,9 +308,7 @@ const styles = StyleSheet.create({
   },
   rowName: {
     flex: 1,
-    fontFamily: fonts.book,
-    fontSize: TYPE_BODY,
-    color: TEXT,
+    ...listRowTitleText,
   },
   empty: {
     paddingVertical: 24,

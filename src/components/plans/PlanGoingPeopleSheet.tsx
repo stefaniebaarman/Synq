@@ -8,10 +8,10 @@ import {
   MUTED2,
   ON_ACCENT_TEXT,
   TEXT,
-  TYPE_BUTTON,
   TYPE_CAPTION,
   TYPE_SUBHEAD,
   fonts,
+  listRowTitleText,
   RADIUS_LG,
   RADIUS_SM,
 } from "@/constants/Variables";
@@ -339,9 +339,7 @@ const styles = StyleSheet.create({
     minWidth: 0,
   },
   rowName: {
-    color: TEXT,
-    fontFamily: fonts.medium,
-    fontSize: TYPE_BUTTON,
+    ...listRowTitleText,
   },
   hostLabel: {
     color: MUTED2,

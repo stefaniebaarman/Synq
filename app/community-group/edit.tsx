@@ -15,9 +15,10 @@ import {
   TEXT,
   TYPE_BODY,
   TYPE_CAPTION,
-  TYPE_CTA,
   TYPE_LEAD,
   fonts,
+  formInputText,
+  sheetTitleText,
 } from "@/constants/Variables";
 import StackScreenHeader from "@/src/components/StackScreenHeader";
 import { PageLoadSkeleton } from "@/src/components/loading/BrandSkeletons";
@@ -396,13 +397,11 @@ const styles = StyleSheet.create({
     marginBottom: 2,
   },
   input: {
+    ...formInputText,
     borderRadius: RADIUS_MD,
     borderWidth: 1,
     borderColor: FIELD_BORDER,
     backgroundColor: FIELD_SURFACE,
-    color: TEXT,
-    fontFamily: fonts.book,
-    fontSize: TYPE_BODY,
     paddingHorizontal: 14,
     paddingVertical: 14,
     minHeight: 52,
@@ -419,9 +418,7 @@ const styles = StyleSheet.create({
     minHeight: 52,
   },
   selectText: {
-    fontFamily: fonts.book,
-    fontSize: TYPE_BODY,
-    color: TEXT,
+    ...formInputText,
   },
   selectPlaceholder: {
     color: MUTED3,
@@ -475,9 +472,7 @@ const styles = StyleSheet.create({
     paddingBottom: 12,
   },
   categorySheetTitle: {
-    fontFamily: fonts.heavy,
-    fontSize: TYPE_CTA,
-    color: TEXT,
+    ...sheetTitleText,
     marginBottom: 8,
     paddingTop: 4,
   },

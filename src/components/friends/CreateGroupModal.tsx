@@ -4,8 +4,8 @@ import {
   BUTTON_RADIUS,
   formInputText,
   modalBodyText,
-  modalTitleText,
   MUTED2,
+  sheetTitleText,
   MUTED3,
   OVERLAY_DARK,
   RADIUS_MD,
@@ -14,6 +14,7 @@ import {
   synqOutlineAddBtnDisabled,
   synqOutlineAddBtnText,
   synqOutlineAddBtnTextDisabled,
+  TYPE_LEAD,
 } from "@/constants/Variables";
 import CloseButton from "@/src/components/CloseButton";
 import { useEffect, useState } from "react";
@@ -178,7 +179,7 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   title: {
-    ...modalTitleText,
+    ...sheetTitleText,
   },
   hint: {
     ...modalBodyText,
@@ -197,6 +198,9 @@ const styles = StyleSheet.create({
     marginBottom: 28,
   },
   inputCompact: {
+    fontSize: TYPE_LEAD,
+    minHeight: 44,
+    paddingVertical: 10,
     marginBottom: 16,
   },
   ctaRow: {

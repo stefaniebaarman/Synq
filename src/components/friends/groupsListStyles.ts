@@ -233,7 +233,6 @@ export const groupsPageStyles = StyleSheet.create({
   },
   communityRowTitle: {
     ...listRowTitleText,
-    fontFamily: fonts.heavy,
     marginBottom: 2,
   },
   communityRowMeta: {

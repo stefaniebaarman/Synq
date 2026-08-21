@@ -29,17 +29,16 @@ import {
   TAB_BAR_SCROLL_INSET,
   TEXT,
   TYPE_BODY,
-  TYPE_BUTTON,
   TYPE_CAPTION,
-  TYPE_CTA,
   TYPE_DISPLAY,
   TYPE_LEAD,
-  TYPE_TITLE,
   cardMetaText,
   fonts,
   formInputText,
+  emptyStateTitleText,
   listRowTitleText,
   listSectionTitle,
+  sectionLinkText,
   profileInterestPillText,
   profileNameText,
   profileScreenSectionTitle,
@@ -2325,7 +2324,6 @@ const styles = StyleSheet.create({
   },
   friendNameAccent: {
     ...listRowTitleText,
-    fontFamily: fonts.heavy,
     letterSpacing: 0.05,
   },
   friendRowMeta: { flexDirection: "row", alignItems: "center" },
@@ -2361,7 +2359,7 @@ const styles = StyleSheet.create({
     height: 48,
     borderRadius: RADIUS_XL,
   },
-  friendName: { ...listRowTitleText, fontFamily: fonts.heavy },
+  friendName: { ...listRowTitleText },
   mutualText: { ...cardMetaText, marginTop: 3 },
   friendsLoadErrorWrap: {
     paddingHorizontal: 20,
@@ -2380,9 +2378,7 @@ const styles = StyleSheet.create({
     textAlign: "center",
   },
   friendsLoadErrorRetry: {
-    color: ACCENT,
-    fontFamily: fonts.heavy,
-    fontSize: TYPE_BODY,
+    ...sectionLinkText,
     textAlign: "center",
     marginTop: 8,
   },
@@ -2455,7 +2451,9 @@ const styles = StyleSheet.create({
     gap: SPACE_3,
   },
   emptySecondaryBtn: { marginTop: SPACE_4, paddingVertical: 8, paddingHorizontal: 12 },
-  emptySecondaryBtnText: { color: ACCENT, fontFamily: fonts.heavy, fontSize: TYPE_BUTTON },
+  emptySecondaryBtnText: {
+    ...sectionLinkText,
+  },
   emptyContainer: { flex: 1, justifyContent: "center", marginTop: 30, paddingHorizontal: 10 },
   emptyCard: {
     backgroundColor: SURFACE,
@@ -2464,7 +2462,7 @@ const styles = StyleSheet.create({
     borderColor: BORDER,
     padding: 18,
   },
-  emptyTitle: { ...listRowTitleText, fontFamily: fonts.heavy, textAlign: "center" },
+  emptyTitle: { ...emptyStateTitleText, textAlign: "center" },
   emptyText: { ...cardMetaText, color: MUTED, textAlign: "center", marginTop: 12, lineHeight: 20, paddingHorizontal: 8 },
   popupOverlay: {
     flex: 1,
@@ -2552,9 +2550,7 @@ const styles = StyleSheet.create({
   },
   qrScanRowText: {
     flex: 1,
-    color: TEXT,
-    fontFamily: fonts.book,
-    fontSize: TYPE_BODY,
+    ...listRowTitleText,
   },
   addFriendsTitle: {
     ...stackScreenHeaderTitle,
@@ -2632,7 +2628,7 @@ const styles = StyleSheet.create({
   },
   addFriendDeclineBtnText: {
     color: MUTED2,
-    fontFamily: fonts.heavy,
+    fontFamily: fonts.medium,
     fontSize: TYPE_CAPTION,
     letterSpacing: 0.15,
   },
@@ -2643,10 +2639,7 @@ const styles = StyleSheet.create({
     width: "100%",
   },
   addFriendsEmptyTitle: {
-    color: TEXT,
-    fontFamily: fonts.heavy,
-    fontSize: TYPE_CTA,
-    letterSpacing: 0.15,
+    ...emptyStateTitleText,
     textAlign: "center",
   },
   addFriendsEmptyText: {
@@ -2664,11 +2657,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: SPACE_5,
   },
   addFriendsEmptyInviteTitle: {
-    color: TEXT,
-    fontFamily: fonts.heavy,
-    fontSize: TYPE_TITLE,
-    lineHeight: 32,
-    letterSpacing: 0.15,
+    ...emptyStateTitleText,
     textAlign: "center",
   },
   addFriendsEmptyInviteText: {

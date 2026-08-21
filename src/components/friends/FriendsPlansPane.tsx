@@ -6,7 +6,7 @@ import {
   TAB_BAR_SCROLL_INSET,
   TYPE_LEAD,
   fonts,
-  listRowTitleText,
+  emptyStateTitleText,
   listSectionTitle,
 } from "@/constants/Variables";
 import FriendPlanCard from "@/src/components/friends/FriendPlanCard";
@@ -199,8 +199,7 @@ const styles = StyleSheet.create({
     paddingBottom: 48,
   },
   emptyTitle: {
-    ...listRowTitleText,
-    fontFamily: fonts.heavy,
+    ...emptyStateTitleText,
     textAlign: "center",
   },
   emptyText: {

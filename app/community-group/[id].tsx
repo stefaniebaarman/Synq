@@ -1370,13 +1370,10 @@ const styles = StyleSheet.create({
     paddingHorizontal: 18,
   },
   optionsRowText: {
-    fontFamily: fonts.medium,
-    fontSize: TYPE_BODY,
-    color: TEXT,
+    ...listRowTitleText,
   },
   optionsDestructive: {
     color: DESTRUCTIVE,
-    fontFamily: fonts.medium,
   },
   optionsDivider: {
     height: StyleSheet.hairlineWidth,

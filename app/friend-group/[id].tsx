@@ -24,7 +24,6 @@ import {
   TEXT,
   TYPE_BODY,
   TYPE_CAPTION,
-  TYPE_SUBHEAD,
   fonts,
   listRowTitleText,
   listSectionTitle,
@@ -653,13 +652,10 @@ const styles = StyleSheet.create({
     paddingHorizontal: 18,
   },
   optionsRowText: {
-    fontFamily: fonts.medium,
-    fontSize: TYPE_SUBHEAD,
-    color: TEXT,
+    ...listRowTitleText,
   },
   optionsDestructive: {
     color: DESTRUCTIVE,
-    fontFamily: fonts.medium,
   },
   optionsDivider: {
     height: StyleSheet.hairlineWidth,

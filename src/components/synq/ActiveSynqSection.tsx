@@ -50,7 +50,9 @@ import {
   TYPE_BODY,
   TYPE_BUTTON,
   TYPE_CAPTION,
+  TYPE_MICRO,
   fonts,
+  listRowTitleText,
   synqOutlineAddBtn,
   synqOutlineAddBtnDisabled,
   synqOutlineAddBtnText,
@@ -753,11 +755,7 @@ const styles = StyleSheet.create({
     paddingRight: 8,
   },
   friendName: {
-    color: TEXT,
-    fontFamily: fonts.heavy,
-    fontSize: TYPE_BODY,
-    lineHeight: 20,
-    letterSpacing: 0.05,
+    ...listRowTitleText,
   },
   friendMemo: {
     marginTop: 3,
@@ -777,7 +775,7 @@ const styles = StyleSheet.create({
   friendMeta: {
     flex: 1,
     color: MUTED2,
-    fontSize: 11,
+    fontSize: TYPE_MICRO,
     fontFamily: fonts.book,
     letterSpacing: 0.2,
   },

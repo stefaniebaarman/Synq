@@ -8,7 +8,6 @@ import {
   TEXT,
   listRowTitleText,
   sheetTitleText,
-  TYPE_SUBHEAD,
 } from "@/constants/Variables";
 import { Ionicons } from "@expo/vector-icons";
 import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
@@ -102,7 +101,6 @@ const styles = StyleSheet.create({
   },
   optionText: {
     ...listRowTitleText,
-    fontSize: TYPE_SUBHEAD,
   },
   destructiveText: {
     color: DESTRUCTIVE,

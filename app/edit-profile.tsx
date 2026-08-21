@@ -45,6 +45,7 @@ import {
   TYPE_BUTTON,
   TYPE_LEAD,
   fonts,
+  formInputText,
   RADIUS_LG,
   synqOutlineAddBtn,
   synqOutlineAddBtnDisabled,
@@ -699,9 +700,7 @@ const styles = StyleSheet.create({
     marginVertical: 6,
   },
   fieldInput: {
-    color: TEXT,
-    fontSize: TYPE_BODY,
-    fontFamily: fonts.medium,
+    ...formInputText,
     paddingVertical: Platform.OS === "ios" ? 6 : 4,
     paddingHorizontal: 0,
     includeFontPadding: false,

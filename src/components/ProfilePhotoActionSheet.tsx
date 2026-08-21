@@ -4,8 +4,7 @@ import {
   BORDER,
   DESTRUCTIVE,
   TEXT,
-  TYPE_SUBHEAD,
-  fonts,
+  listRowTitleText,
   sheetTitleText,
 } from "@/constants/Variables";
 import { Ionicons } from "@expo/vector-icons";
@@ -96,9 +95,7 @@ const styles = StyleSheet.create({
     gap: 14,
   },
   optionText: {
-    color: TEXT,
-    fontSize: TYPE_SUBHEAD,
-    fontFamily: fonts.medium,
+    ...listRowTitleText,
   },
   destructiveText: {
     color: DESTRUCTIVE,

@@ -12,6 +12,7 @@ import {
   RADIUS_XL,
   SURFACE_ELEVATED,
   SYNQ_AI_PILL_LABEL,
+  sectionLinkText,
   sheetHeaderTitleText,
   TEXT,
   TYPE_CAPTION,
@@ -1774,7 +1775,9 @@ export default function MessagesChatPane({
                     </Text>
                   )}
                   {typingUserIds.length > 0 ? (
-                    <Text style={styles.typingIndicatorText}>Typing…</Text>
+                    <Text style={chatHeaderOverlayStyles.typingIndicatorText}>
+                      Typing…
+                    </Text>
                   ) : null}
                 </View>
               </View>
@@ -1939,6 +1942,7 @@ const chatHeaderOverlayStyles = RNStyleSheet.create({
   typingIndicatorText: {
     color: MUTED2,
     fontSize: TYPE_FINE,
+    fontFamily: fonts.book,
     marginTop: 2,
   },
   chatErrorBanner: {
@@ -1951,12 +1955,13 @@ const chatHeaderOverlayStyles = RNStyleSheet.create({
   chatErrorBannerText: {
     color: TEXT,
     fontSize: TYPE_CAPTION,
+    fontFamily: fonts.book,
   },
   chatErrorBannerAction: {
     color: ACCENT,
     fontSize: TYPE_FINE,
     marginTop: 2,
-    fontFamily: fonts.heavy,
+    fontFamily: fonts.medium,
   },
   loadEarlierBtn: {
     alignSelf: "center",
@@ -1965,9 +1970,8 @@ const chatHeaderOverlayStyles = RNStyleSheet.create({
     marginBottom: 8,
   },
   loadEarlierText: {
-    color: ACCENT,
+    ...sectionLinkText,
     fontSize: TYPE_CAPTION,
-    fontFamily: fonts.heavy,
   },
   chatLoadingWrap: {
     flex: 1,
@@ -1979,6 +1983,7 @@ const chatHeaderOverlayStyles = RNStyleSheet.create({
   chatLoadingText: {
     color: MUTED2,
     fontSize: TYPE_LEAD,
+    fontFamily: fonts.book,
   },
 });
 

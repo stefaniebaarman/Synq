@@ -5,6 +5,7 @@ import {
   BORDER,
   DESTRUCTIVE,
   GROUP_BORDER,
+  MUTED,
   MUTED2,
   RADIUS_MD,
   SPACE_2,
@@ -490,7 +491,7 @@ const styles = StyleSheet.create({
   pendingLabel: {
     fontFamily: fonts.medium,
     fontSize: TYPE_CAPTION,
-    color: ACCENT,
+    color: MUTED,
   },
   card: {
     borderRadius: RADIUS_MD,
@@ -511,7 +512,6 @@ const styles = StyleSheet.create({
   },
   authorName: {
     ...listRowTitleText,
-    fontFamily: fonts.heavy,
   },
   meta: {
     ...cardMetaText,

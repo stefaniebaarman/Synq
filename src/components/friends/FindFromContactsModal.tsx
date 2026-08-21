@@ -7,7 +7,7 @@ import {
   TEXT,
   TYPE_BODY,
   TYPE_CAPTION,
-  TYPE_SUBHEAD,
+  emptyStateTitleText,
   fonts,
   primaryButtonText,
   stackScreenHeaderTitle,
@@ -443,9 +443,7 @@ const styles = StyleSheet.create({
     borderRadius: 24,
   },
   emptyTitle: {
-    color: TEXT,
-    fontFamily: fonts.medium,
-    fontSize: TYPE_SUBHEAD,
+    ...emptyStateTitleText,
     textAlign: "center",
   },
   hint: {

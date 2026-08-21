@@ -15,8 +15,8 @@ import {
   TYPE_BODY,
   TYPE_BUTTON,
   TYPE_CAPTION,
-  TYPE_SUBHEAD,
   fonts,
+  sheetTitleText,
   synqOutlineAddBtn,
   synqOutlineAddBtnText
 } from "@/constants/Variables";
@@ -197,10 +197,7 @@ const styles = StyleSheet.create({
     maxHeight: "78%",
   },
   title: {
-    color: TEXT,
-    fontFamily: fonts.heavy,
-    fontSize: TYPE_SUBHEAD,
-    letterSpacing: 0.1,
+    ...sheetTitleText,
   },
   subtitle: {
     color: MUTED2,

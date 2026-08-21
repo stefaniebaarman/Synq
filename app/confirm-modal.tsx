@@ -10,6 +10,7 @@ import {
   SYNQ_OUTLINE_CTA_RADIUS,
   TYPE_BUTTON,
   fonts,
+  secondaryButtonText,
   synqOutlineAddBtn,
   synqOutlineAddBtnText,
 } from "@/constants/Variables";
@@ -218,8 +219,6 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
   },
   stackedCancelText: {
-    color: ACCENT,
-    fontFamily: fonts.medium,
-    fontSize: TYPE_BUTTON,
+    ...secondaryButtonText,
   },
 });

@@ -8,10 +8,13 @@ import {
   SURFACE_ELEVATED,
   SURFACE_SUBTLE,
   TEXT,
+  TEXT_BRIGHT_HEX,
+  TEXT_ON_BRIGHT,
   TYPE_BUTTON,
   TYPE_CAPTION,
   TYPE_FINE,
   TYPE_MICRO,
+  TYPE_SECTION,
   fonts,
   synqOutlineAddBtnCompact,
   synqOutlineAddBtnTextCompact,
@@ -218,8 +221,8 @@ const styles = StyleSheet.create({
     gap: 3,
   },
   venueName: {
-    color: "#FFFFFF",
-    fontSize: 20,
+    color: TEXT_BRIGHT_HEX,
+    fontSize: TYPE_SECTION,
     lineHeight: 24,
     fontFamily: fonts.heavy,
     letterSpacing: -0.2,
@@ -231,7 +234,7 @@ const styles = StyleSheet.create({
     fontFamily: fonts.medium,
   },
   addressText: {
-    color: "rgba(255,255,255,0.68)",
+    color: TEXT_ON_BRIGHT,
     fontSize: TYPE_FINE,
     lineHeight: 16,
     fontFamily: fonts.book,
@@ -248,7 +251,7 @@ const styles = StyleSheet.create({
   mapsHint: {
     color: ACCENT,
     fontSize: TYPE_FINE,
-    fontFamily: fonts.heavy,
+    fontFamily: fonts.medium,
     letterSpacing: 0.2,
   },
   legacyCard: {

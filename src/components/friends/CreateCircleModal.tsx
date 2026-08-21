@@ -14,6 +14,8 @@ import {
   TYPE_CAPTION,
   heroTitleText,
   fonts,
+  formInputText,
+  listRowTitleText,
   MODAL_RADIUS,
   synqOutlineAddBtn,
   synqOutlineAddBtnDisabled,
@@ -330,9 +332,7 @@ const styles = StyleSheet.create({
   searchInput: {
     flex: 1,
     alignSelf: "stretch",
-    color: TEXT,
-    fontFamily: fonts.book,
-    fontSize: TYPE_BODY,
+    ...formInputText,
     lineHeight: 22,
     paddingTop: 13,
     paddingBottom: 13,
@@ -358,9 +358,7 @@ const styles = StyleSheet.create({
   },
   rowName: {
     flex: 1,
-    fontFamily: fonts.book,
-    fontSize: TYPE_BODY,
-    color: TEXT,
+    ...listRowTitleText,
   },
   empty: {
     paddingVertical: 20,

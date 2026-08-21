@@ -366,7 +366,7 @@ const styles = StyleSheet.create({
   date: {
     color: TEXT,
     fontSize: TYPE_BODY,
-    fontFamily: fonts.heavy,
+    fontFamily: fonts.medium,
   },
   month: {
     color: MUTED2,

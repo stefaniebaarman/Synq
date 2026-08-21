@@ -11,8 +11,8 @@ import {
   TYPE_BUTTON,
   TYPE_CAPTION,
   TYPE_SUBHEAD,
-  TYPE_TAB_HEADER,
   fonts,
+  modalTitleText,
 } from "@/constants/Variables";
 import CloseButton from "@/src/components/CloseButton";
 import { SkeletonBlock } from "@/src/components/loading/BrandSkeletons";
@@ -247,11 +247,9 @@ const styles = StyleSheet.create({
     letterSpacing: 1.4,
   },
   title: {
+    ...modalTitleText,
     color: TEXT_ON_BRIGHT,
-    fontFamily: fonts.heavy,
-    fontSize: TYPE_TAB_HEADER,
-    letterSpacing: 0.2,
-    lineHeight: 34,
+    lineHeight: 28,
   },
   closeBtn: {
     marginTop: 4,
