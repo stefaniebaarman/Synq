@@ -287,7 +287,9 @@ export default function CommunityFeedSection({
   if (!isMember) {
     return (
       <View style={styles.sectionBlock}>
-        <Text style={styles.sectionTitle}>Feed</Text>
+        <View style={styles.sectionHeader}>
+          <Text style={styles.sectionTitle}>Feed</Text>
+        </View>
         <Text style={styles.empty}>Join to see posts and share updates.</Text>
       </View>
     );

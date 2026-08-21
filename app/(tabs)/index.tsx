@@ -135,6 +135,8 @@ import {
   listSectionTitle,
   MODAL_RADIUS,
   modalTitleText,
+  emptyStateTitleText,
+  formInputText,
   MUTED,
   MUTED2,
   MUTED3,
@@ -161,6 +163,7 @@ import {
   SURFACE_SOFT,
   SURFACE_SUBTLE,
   sheetHeaderTitleText,
+  sheetTitleText,
   stackScreenHeaderTitle,
   tabScreenMainHeaderTitle,
   TEXT,
@@ -3242,7 +3245,6 @@ const styles = StyleSheet.create({
   },
   headerTitle: {
     ...tabScreenMainHeaderTitle,
-    fontSize: 24,
     textAlign: "center",
     includeFontPadding: false,
   },
@@ -3378,7 +3380,6 @@ const styles = StyleSheet.create({
     backgroundColor: BORDER,
   },
   friendImg: { width: 50, height: 50, borderRadius: 25, marginRight: 15 },
-  whiteBold: { ...listRowTitleText, fontFamily: fonts.heavy },
   grayText: { ...cardMetaText, marginTop: 2 },
   communityChatMeta: { ...cardMetaText, fontSize: TYPE_FINE, marginTop: 1, color: MUTED2 },
   locationText: { ...cardMetaText, fontSize: TYPE_FINE, marginTop: 2 },
@@ -3601,10 +3602,7 @@ const styles = StyleSheet.create({
     marginBottom: 6,
   },
   inboxMergeFooterTitle: {
-    color: TEXT,
-    fontFamily: fonts.heavy,
-    fontSize: TYPE_SECTION,
-    letterSpacing: 0.1,
+    ...sheetTitleText,
     lineHeight: 26,
     marginBottom: 16,
   },
@@ -3692,7 +3690,6 @@ const styles = StyleSheet.create({
   },
   unreadChatTitle: {
     ...listRowTitleText,
-    color: ACCENT,
   },
   readChatTitle: {
     ...listRowTitleText,
@@ -3840,9 +3837,7 @@ const styles = StyleSheet.create({
   },
   composerInput: {
     flex: 1,
-    color: TEXT,
-    fontSize: TYPE_BODY,
-    fontFamily: fonts.medium,
+    ...formInputText,
     lineHeight: 21,
     paddingTop: 10,
     paddingBottom: 10,
@@ -3933,11 +3928,13 @@ const styles = StyleSheet.create({
   },
   venueRating: {
     color: ACCENT,
+    fontFamily: fonts.medium,
     fontSize: TYPE_FINE,
     marginVertical: 2,
   },
   venueDesc: {
     color: MUTED2,
+    fontFamily: fonts.book,
     fontSize: TYPE_CAPTION,
     lineHeight: 18,
   },
@@ -3969,13 +3966,12 @@ const styles = StyleSheet.create({
   panelTitle: modalTitleText,
   panelInput: {
     width: '100%',
+    ...formInputText,
     backgroundColor: SURFACE_INPUT,
-    color: TEXT,
     padding: 16,
     borderRadius: RADIUS_MD,
     marginTop: 8,
     marginBottom: 12,
-    fontSize: TYPE_BUTTON,
     minHeight: 80,
   },
   centeredIdeaContainer: {
@@ -4168,6 +4164,7 @@ const styles = StyleSheet.create({
 
   suggestionText: {
     color: TEXT,
+    fontFamily: fonts.medium,
     fontSize: TYPE_CAPTION,
   },
 
@@ -4188,7 +4185,7 @@ const styles = StyleSheet.create({
     marginBottom: 14,
   },
   inboxEmptyTitle: {
-    ...modalTitleText,
+    ...emptyStateTitleText,
     textAlign: "center",
     letterSpacing: 0.2,
   },
@@ -4218,10 +4215,7 @@ const styles = StyleSheet.create({
     marginBottom: 14,
   },
   chatEmptyTitle: {
-    color: TEXT,
-    fontSize: TYPE_SUBHEAD,
-    fontFamily: fonts.heavy,
-    letterSpacing: 0.2,
+    ...emptyStateTitleText,
     textAlign: "center",
   },
   chatEmptyText: {

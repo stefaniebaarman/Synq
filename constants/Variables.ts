@@ -315,8 +315,8 @@ export const cardMetaText: TextStyle = {
 export const profileNameText: TextStyle = {
   color: TEXT,
   fontFamily: fonts.heavy,
-  fontSize: TYPE_MODAL_TITLE,
-  lineHeight: 28,
+  fontSize: 24,
+  lineHeight: 30,
   letterSpacing: 0.04,
 };
 
