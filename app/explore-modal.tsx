@@ -17,15 +17,19 @@ import {
   RADIUS_LG,
   SURFACE_SUBTLE,
   TEXT,
+  TEXT_BRIGHT_HEX,
+  TEXT_ON_BRIGHT,
   TYPE_CAPTION,
   TYPE_LEAD,
   TYPE_MICRO,
+  TYPE_MODAL_TITLE,
   TYPE_SECTION,
   TYPE_SUBHEAD,
+  TYPE_TITLE,
   cardMetaText,
   cardTitleText,
+  emptyStateTitleText,
   fonts,
-  sheetTitleText,
   synqOutlineAddBtn,
   synqOutlineAddBtnDisabled,
   synqOutlineAddBtnText,
@@ -419,8 +423,8 @@ export default function ExploreModal({
                                             contentFit="cover"
                                         />
                                         <LinearGradient
-                                            colors={["transparent", "rgba(0,0,0,0.78)"]}
-                                            locations={[0.3, 1]}
+                                            colors={["transparent", "rgba(0,0,0,0.55)", "rgba(0,0,0,0.88)"]}
+                                            locations={[0.15, 0.55, 1]}
                                             style={styles.vibeTileScrim}
                                         >
                                             <Text style={styles.vibeTileLabel} numberOfLines={1}>
@@ -724,13 +728,13 @@ const styles = StyleSheet.create({
         textTransform: "uppercase",
     },
     surpriseHeroTitle: {
-        color: "#fff",
+        color: TEXT_BRIGHT_HEX,
         fontFamily: fonts.heavy,
-        fontSize: 22,
+        fontSize: TYPE_MODAL_TITLE,
         lineHeight: 26,
     },
     surpriseHeroHint: {
-        color: "rgba(255,255,255,0.78)",
+        color: TEXT_ON_BRIGHT,
         fontFamily: fonts.medium,
         fontSize: TYPE_LEAD,
     },
@@ -766,7 +770,7 @@ const styles = StyleSheet.create({
         paddingBottom: 10,
     },
     vibeTileLabel: {
-        color: "#fff",
+        color: TEXT_BRIGHT_HEX,
         fontFamily: fonts.heavy,
         fontSize: TYPE_LEAD,
         lineHeight: 18,
@@ -852,13 +856,13 @@ const styles = StyleSheet.create({
         textTransform: "uppercase",
     },
     featuredName: {
-        color: "#fff",
+        color: TEXT_BRIGHT_HEX,
         fontFamily: fonts.heavy,
-        fontSize: 24,
+        fontSize: TYPE_TITLE,
         lineHeight: 28,
     },
     featuredAddress: {
-        color: "rgba(255,255,255,0.72)",
+        color: TEXT_ON_BRIGHT,
         fontFamily: fonts.medium,
         fontSize: TYPE_LEAD,
         marginTop: 2,
@@ -953,7 +957,7 @@ const styles = StyleSheet.create({
         marginBottom: 12,
     },
     generatingStatusText: {
-        color: "#fff",
+        color: TEXT_BRIGHT_HEX,
         fontFamily: fonts.medium,
         fontSize: TYPE_LEAD,
         lineHeight: 20,
@@ -1029,7 +1033,7 @@ const styles = StyleSheet.create({
         paddingBottom: 48,
     },
     emptyStateTitle: {
-        ...sheetTitleText,
+        ...emptyStateTitleText,
         marginBottom: 8,
     },
     emptyStateText: {

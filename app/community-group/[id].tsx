@@ -78,6 +78,7 @@ import { auth, db } from "@/src/lib/firebase";
 import { resolveAvatar } from "@/src/lib/helpers";
 import { shareCommunityJoinLink } from "@/src/lib/shareCommunityLink";
 import { friendProfileCacheByUser, friendsListCacheByUser } from "@/src/lib/socialCache";
+import { syncCommunityMemberPreviews } from "@/src/lib/syncCommunityMemberPreviews";
 import { Ionicons } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
 import { Image as ExpoImage } from "expo-image";
@@ -169,6 +170,7 @@ export default function CommunityGroupDetailScreen() {
   const [alertVisible, setAlertVisible] = useState(false);
   const [alertTitle, setAlertTitle] = useState<string | undefined>();
   const [alertMessage, setAlertMessage] = useState("");
+  const memberPreviewSyncKeyRef = useRef<string>("");
 
   const showAlert = useCallback((title: string, message: string) => {
     setAlertTitle(title);
@@ -231,73 +233,77 @@ export default function CommunityGroupDetailScreen() {
     if (!group) return;
 
     let cancelled = false;
-    const MAX_REMOTE_PROFILE_FETCHES = 40;
 
     void (async () => {
-      const next: Record<string, MemberRow> = {};
-      const needsFetch: string[] = [];
-
-      for (const memberId of group.memberIds) {
-        const friend = friends.find((f) => f.id === memberId);
-        const preview = group.memberPreviews?.[memberId];
-        const displayName =
-          friend?.displayName?.trim() ||
-          preview?.displayName?.trim() ||
-          "Member";
-        const imageurl =
-          (friend as { imageurl?: string } | undefined)?.imageurl ||
-          preview?.imageurl;
-
-        if (friend) {
-          next[memberId] = {
-            id: memberId,
-            displayName,
-            imageurl,
-          };
-        } else if (preview?.displayName) {
-          next[memberId] = {
-            id: memberId,
-            displayName,
-            imageurl,
-          };
-        } else {
-          next[memberId] = {
-            id: memberId,
-            displayName: "Member",
-            imageurl: undefined,
-          };
-          needsFetch.push(memberId);
+      // Ensure co-member profile taps work once communityGroupIds is set.
+      if (uid && group.memberIds.includes(uid)) {
+        try {
+          await updateDoc(doc(db, "users", uid), {
+            communityGroupIds: arrayUnion(group.id),
+          });
+        } catch {
+          // Profile opens may still work via friend/chat paths.
         }
       }
+      if (cancelled) return;
 
-      const toFetch = needsFetch.slice(0, MAX_REMOTE_PROFILE_FETCHES);
-      await Promise.all(
-        toFetch.map(async (memberId) => {
-          try {
-            const snap = await getDoc(doc(db, "users", memberId));
-            if (!snap.exists()) return;
-            const data = snap.data() as {
-              displayName?: string;
-              imageurl?: string;
-            };
-            next[memberId] = {
-              id: memberId,
-              displayName: String(data.displayName || "").trim() || "Member",
-              imageurl: data.imageurl,
-            };
-          } catch {
-            // keep placeholder
-          }
-        })
-      );
+      const applyRows = (
+        source: Record<string, { displayName?: string; imageurl?: string } | undefined>
+      ) => {
+        const next: Record<string, MemberRow> = {};
+        for (const memberId of group.memberIds) {
+          const friend = friends.find((f) => f.id === memberId);
+          const preview = source[memberId];
+          const displayName =
+            friend?.displayName?.trim() ||
+            String(preview?.displayName || "").trim() ||
+            "Member";
+          const imageurl =
+            (friend as { imageurl?: string } | undefined)?.imageurl ||
+            preview?.imageurl;
+          next[memberId] = {
+            id: memberId,
+            displayName,
+            imageurl,
+          };
+        }
+        setMemberProfiles(next);
+        return next;
+      };
 
-      if (!cancelled) setMemberProfiles({ ...next });
+      // Paint friends + existing denormalized previews immediately.
+      const painted = applyRows(group.memberPreviews ?? {});
+
+      const incomplete = group.memberIds.some((memberId) => {
+        const row = painted[memberId];
+        if (!row || row.displayName === "Member") return true;
+        if (row.imageurl) return false;
+        return !friends.some((f) => f.id === memberId);
+      });
+      const syncKey = `${group.id}:${group.memberIds.join(",")}`;
+      const needsSync =
+        !!uid &&
+        group.memberIds.includes(uid) &&
+        incomplete &&
+        memberPreviewSyncKeyRef.current !== syncKey;
+
+      if (!needsSync) return;
+
+      memberPreviewSyncKeyRef.current = syncKey;
+      try {
+        const synced = await syncCommunityMemberPreviews(group.id);
+        if (cancelled) return;
+        applyRows({ ...(group.memberPreviews ?? {}), ...synced });
+      } catch {
+        // Allow a retry on the next open / membership change.
+        memberPreviewSyncKeyRef.current = "";
+      }
     })();
 
     return () => {
       cancelled = true;
     };
-  }, [group, friends]);
+  }, [group, friends, uid]);
 
   // Keep this group's id on the viewer's communityGroupIds so co-member profile reads work.
   useEffect(() => {
@@ -550,7 +556,7 @@ export default function CommunityGroupDetailScreen() {
         </View>
       </View>
       <Text style={styles.memberTileName} numberOfLines={1}>
-        {member.displayName.split(" ")[0]}
+        {member.displayName.trim().split(/\s+/)[0] || member.displayName}
       </Text>
       {showAdmin && member.id === group?.creatorId ? (
         <View style={styles.adminBadge}>

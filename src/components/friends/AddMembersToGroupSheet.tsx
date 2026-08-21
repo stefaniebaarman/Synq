@@ -14,7 +14,7 @@ import {
   fonts,
   formInputText,
   listRowTitleText,
-  sheetHeaderTitleText,
+  sheetTitleText,
   synqOutlineAddBtn,
   synqOutlineAddBtnDisabled,
   synqOutlineAddBtnText,
@@ -271,7 +271,7 @@ const styles = StyleSheet.create({
     marginBottom: 6,
   },
   title: {
-    ...sheetHeaderTitleText,
+    ...sheetTitleText,
   },
   searchBar: {
     flexDirection: "row",
