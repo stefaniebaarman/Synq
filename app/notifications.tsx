@@ -39,7 +39,6 @@ import {
   BORDER_SUBTLE_HEX,
   emptyStateTitleText,
   fonts,
-  modalTitleText,
   MUTED,
   MUTED2,
   MUTED3,
@@ -51,8 +50,6 @@ import {
   SPACE_6,
   SURFACE,
   TEXT,
-  TEXT_MUTED_DARKER,
-  TEXT_MUTED_HEX,
   TYPE_BODY,
   TYPE_BUTTON,
   TYPE_CAPTION,
@@ -1622,7 +1619,7 @@ const styles = StyleSheet.create({
     fontSize: TYPE_BODY,
   },
   messageRest: {
-    color: TEXT_MUTED_HEX,
+    color: MUTED,
     fontFamily: fonts.book,
     fontSize: TYPE_BODY,
   },
@@ -1657,7 +1654,7 @@ const styles = StyleSheet.create({
     marginBottom: SPACE_5,
   },
   emptyHeadline: {
-    ...modalTitleText,
+    ...emptyStateTitleText,
     textAlign: "center",
   },
   emptyHelper: {
@@ -1674,15 +1671,15 @@ const styles = StyleSheet.create({
     marginBottom: 4,
   },
   emptySubtitle: {
-    color: TEXT_MUTED_DARKER,
+    color: MUTED2,
     fontSize: TYPE_BUTTON,
     fontFamily: fonts.medium,
     textAlign: "center",
     marginTop: 8,
   },
   clearAllText: {
-    color: ACCENT,
+    color: MUTED,
     fontSize: TYPE_CAPTION,
-    fontFamily: fonts.heavy,
+    fontFamily: fonts.medium,
   },
 });

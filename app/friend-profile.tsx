@@ -22,6 +22,7 @@ import {
   TYPE_CAPTION,
   TYPE_LEAD,
   fonts,
+  listRowTitleText,
   profileInterestPillText,
   profileLocationText,
   profileNameText,
@@ -1796,9 +1797,7 @@ const styles = StyleSheet.create({
     gap: 14,
   },
   optionsRowText: {
-    color: TEXT,
-    fontSize: TYPE_BODY,
-    fontFamily: fonts.medium,
+    ...listRowTitleText,
   },
   optionsDestructive: {
     color: DESTRUCTIVE,
