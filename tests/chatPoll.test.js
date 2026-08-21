@@ -23,8 +23,12 @@ describe("chatPoll", () => {
     ).toEqual(["Pizza", "Tacos", "Sushi", "Thai", "Burgers"]);
   });
 
-  test("validatePollDraft requires a question and at least two options", () => {
-    expect(validatePollDraft("  ", ["A", "B"]).ok).toBe(false);
+  test("validatePollDraft allows an empty question and requires at least two options", () => {
+    expect(validatePollDraft("  ", ["A", "B"])).toEqual({
+      ok: true,
+      question: "",
+      options: ["A", "B"],
+    });
     expect(validatePollDraft("Lunch?", ["A"]).ok).toBe(false);
     expect(validatePollDraft("Lunch?", ["A", "B"]).ok).toBe(true);
     expect(MIN_POLL_OPTIONS).toBe(2);

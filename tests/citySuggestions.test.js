@@ -235,6 +235,76 @@ describe("citySuggestions", () => {
     expect(suggestions).toHaveLength(4);
   });
 
+  test("getCachedCitySuggestions uses Outdoors for Active when no Active list exists", () => {
+    const cityData = {
+      "washington-dc": {
+        cityId: "washington-dc",
+        categories: {
+          Outdoors: [
+            { name: "Rock Creek", address: "1 St, Washington, DC", imageUrl: "https://a.test/r.jpg" },
+            { name: "Meridian Hill", address: "2 St, Washington, DC", imageUrl: "https://a.test/m.jpg" },
+            { name: "National Mall", address: "3 St, Washington, DC", imageUrl: "https://a.test/n.jpg" },
+          ],
+        },
+      },
+    };
+    const suggestions = getCachedCitySuggestions(
+      "Washington, DC",
+      "Active",
+      cityData,
+      registry
+    );
+    expect(suggestions?.map((row) => row.name).sort()).toEqual([
+      "Meridian Hill",
+      "National Mall",
+      "Rock Creek",
+    ]);
+  });
+
+  test("getCachedCitySuggestions uses Drinks for Night out when no nightlife list exists", () => {
+    const cityData = {
+      "washington-dc": {
+        cityId: "washington-dc",
+        categories: {
+          Drinks: [
+            { name: "Flash", address: "1 St, Washington, DC", imageUrl: "https://a.test/f.jpg" },
+            { name: "ESL", address: "2 St, Washington, DC", imageUrl: "https://a.test/e.jpg" },
+            { name: "DC9", address: "3 St, Washington, DC", imageUrl: "https://a.test/d.jpg" },
+          ],
+        },
+      },
+    };
+    const suggestions = getCachedCitySuggestions(
+      "Washington, DC",
+      "Night out",
+      cityData,
+      registry
+    );
+    expect(suggestions?.map((row) => row.name).sort()).toEqual(["DC9", "ESL", "Flash"]);
+  });
+
+  test("getCachedCitySuggestions returns a Shopping list for DC when provided", () => {
+    const cityData = {
+      "washington-dc": {
+        cityId: "washington-dc",
+        categories: {
+          Shopping: [
+            { name: "CityCenterDC", address: "1 St, Washington, DC", imageUrl: "https://a.test/c.jpg" },
+            { name: "Union Market", address: "2 St, Washington, DC", imageUrl: "https://a.test/u.jpg" },
+            { name: "Eastern Market", address: "3 St, Washington, DC", imageUrl: "https://a.test/e.jpg" },
+          ],
+        },
+      },
+    };
+    const suggestions = getCachedCitySuggestions(
+      "Washington, DC",
+      "Shopping",
+      cityData,
+      registry
+    );
+    expect(suggestions).toHaveLength(3);
+  });
+
   test("getCachedCitySuggestions prefers up to 5 venues when available", () => {
     const richDinner = {
       cityId: "washington-dc",

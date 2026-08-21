@@ -1,4 +1,6 @@
 import {
+  arrayRemove,
+  arrayUnion,
   collection,
   deleteDoc,
   doc,
@@ -272,6 +274,11 @@ export async function createCommunityGroup(
     updatedAt: serverTimestamp(),
   });
 
+  // Denormalized for scoped profile reads among community co-members.
+  await updateDoc(doc(db, "users", uid), {
+    communityGroupIds: arrayUnion(ref.id),
+  }).catch(() => {});
+
   if (coverLocalUri) {
     const uploaded = await uploadCommunityCoverPhoto(ref.id, coverLocalUri);
     coverPhotoUrl = uploaded.coverPhotoUrl;
@@ -369,6 +376,11 @@ export async function joinCommunityGroup(
       updatedAt: serverTimestamp(),
     });
     return next;
+  }).then(async (next) => {
+    await updateDoc(doc(db, "users", uid), {
+      communityGroupIds: arrayUnion(groupId),
+    }).catch(() => {});
+    return next;
   });
 }
 
@@ -401,6 +413,9 @@ export async function leaveCommunityGroup(
       updatedAt: serverTimestamp(),
     });
   });
+  await updateDoc(doc(db, "users", uid), {
+    communityGroupIds: arrayRemove(groupId),
+  }).catch(() => {});
 }
 
 export async function renameCommunityGroup(groupId: string, name: string): Promise<void> {
