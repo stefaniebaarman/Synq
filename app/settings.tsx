@@ -36,13 +36,12 @@ import {
   SPACE_6,
   SURFACE_RAISED,
   TEXT,
-  TEXT_MUTED_HEX,
-  TIKTOK_URL,
   TYPE_BODY,
   TYPE_CAPTION,
   TYPE_CTA,
   TYPE_LEAD,
   fonts,
+  TIKTOK_URL,
 } from "../constants/Variables";
 import { auth, db } from "../src/lib/firebase";
 import { useAuthRefresh } from "./_layout";
@@ -227,6 +226,10 @@ export default function SettingsScreen() {
         <Text style={formScreenStyles.groupTitle}>Safety</Text>
         <View style={formScreenStyles.group}>
           <SettingItem
+            label="Blocked users"
+            onPress={() => router.push("/blocked-users" as never)}
+          />
+          <SettingItem
             label="Report a safety issue"
             onPress={() => router.push("/profile-settings/safety-report")}
             isLast
@@ -341,6 +344,7 @@ const styles = StyleSheet.create({
     color: TEXT,
     fontSize: TYPE_CTA,
     fontFamily: fonts.heavy,
+    letterSpacing: 0.04,
   },
 
   item: {
@@ -362,7 +366,7 @@ const styles = StyleSheet.create({
     fontFamily: fonts.medium,
   },
   itemValue: {
-    color: TEXT_MUTED_HEX,
+    color: MUTED2,
     fontSize: TYPE_LEAD,
     fontFamily: fonts.medium,
   },
