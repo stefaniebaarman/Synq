@@ -58,6 +58,7 @@ import {
 } from "@/src/lib/friendGroups";
 import {
   appendOptimisticJoinedViewerEvent,
+  isInSharedPlanWithFriend,
   joinFriendOpenPlan,
   removeJoinedViewerEvent,
   unjoinFriendOpenPlan,
@@ -67,7 +68,8 @@ import {
   removeFriendMutual,
   removeFriendMutualErrorMessage,
 } from "@/src/lib/friends";
-import { formatLastSynq, resolveAvatar } from "@/src/lib/helpers";
+import { formatLastSynq, friendLocationLine, resolveAvatar } from "@/src/lib/helpers";
+import { fetchPublicProfilePreview } from "@/src/lib/userSearch";
 import { blockUser, unblockUser } from "@/src/lib/moderation";
 import { collectJoinedIds, planLooseMatch } from "@/src/lib/planAttribution";
 import {
@@ -400,17 +402,6 @@ export default function FriendProfile({
     return { [friendKey]: url };
   }, [friendKey, friend?.imageurl]);
 
-  const isInSharedPlanWithFriend = (e: any, myUid: string, friendUid: string) => {
-    if (!e || !friendUid) return false;
-    if (e.joinedFromFriendUid === friendUid) return true;
-    const ids = new Set(
-      [...(Array.isArray(e?.joinedFromIds) ? e.joinedFromIds : []), e?.joinedFromId]
-        .filter(Boolean)
-        .map((id: string) => String(id).trim())
-    );
-    return ids.has(myUid) && ids.has(friendUid);
-  };
-
   const setJoinedKeysForEvent = (event: any, value: boolean) => {
     setJoinedPlanKeys((prev) => {
       const next = { ...prev };
@@ -671,6 +662,51 @@ export default function FriendProfile({
     return () => unsub();
   }, [viewerId, friendKey]);
 
+  // Non-friends often cannot read the full user doc; fill city/interests via callable.
+  useEffect(() => {
+    if (!viewerId || !friendKey || isFriend || isOwnProfile) return;
+
+    let cancelled = false;
+    void fetchPublicProfilePreview(friendKey)
+      .then((preview) => {
+        if (cancelled || !preview) return;
+        setFriend((prev: any) => {
+          const next = {
+            ...(prev || {}),
+            displayName: prev?.displayName || preview.displayName,
+            imageurl: prev?.imageurl || preview.imageurl,
+            city: prev?.city || preview.city || "",
+            state: prev?.state || preview.state || "",
+            locationDisplay:
+              prev?.locationDisplay || preview.locationDisplay || "",
+            interests:
+              Array.isArray(prev?.interests) && prev.interests.length > 0
+                ? prev.interests
+                : preview.interests || [],
+            location:
+              prev?.location ||
+              preview.locationDisplay ||
+              [preview.city, preview.state].filter(Boolean).join(", "),
+            events: Array.isArray(prev?.events) ? prev.events : [],
+          };
+          if (!friendProfileCacheByUser[viewerId]) {
+            friendProfileCacheByUser[viewerId] = {};
+          }
+          friendProfileCacheByUser[viewerId][friendKey] = {
+            id: friendKey,
+            ...next,
+          } as any;
+          return next;
+        });
+        setLoading(false);
+      })
+      .catch(() => {});
+
+    return () => {
+      cancelled = true;
+    };
+  }, [viewerId, friendKey, isFriend, isOwnProfile]);
+
   useEffect(() => {
     if (!friendKey || !friend) return;
     const events = Array.isArray(friend.events) ? friend.events : [];
@@ -870,10 +906,10 @@ export default function FriendProfile({
     );
   }
 
-  const city = friend.city?.trim();
-  const state = friend.state?.trim();
   const locationText =
-    friend.location || [city, state].filter(Boolean).join(", ");
+    friendLocationLine(friend) ||
+    (typeof friend.location === "string" ? friend.location.trim() : "") ||
+    "";
 
   const avatarUri = resolveAvatar(friend.imageurl);
 

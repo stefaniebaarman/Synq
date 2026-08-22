@@ -1778,15 +1778,24 @@ function SearchModal({
     if (!friendProfileCacheByUser[myId]) {
       friendProfileCacheByUser[myId] = {};
     }
+    const city = typeof user.city === "string" ? user.city : "";
+    const state = typeof user.state === "string" ? user.state : "";
+    const locationDisplay =
+      typeof user.locationDisplay === "string" ? user.locationDisplay : "";
+    const location =
+      (typeof user.location === "string" && user.location) ||
+      locationDisplay ||
+      [city, state].filter(Boolean).join(", ");
     friendProfileCacheByUser[myId][user.id] = {
       id: user.id,
       displayName: user.displayName,
       imageurl: user.imageurl,
-      city: user.city,
-      state: user.state,
+      city,
+      state,
+      locationDisplay,
       interests: user.interests,
       events: user.events,
-      location: user.location,
+      location,
     } as any;
   };
 

@@ -33,6 +33,8 @@ import {
   friendProfileCacheByUser,
   friendsListCacheByUser,
   invalidateSynqActiveFriendsPoll,
+  noteFriendSynqBecameInactive,
+  cacheFriendProfileFromUserDoc,
   pollSynqActiveFriends,
   SYNQ_FRIEND_POLL_TTL_MS,
 } from '@/src/lib/socialCache';
@@ -1464,6 +1466,7 @@ export default function SynqScreen() {
         if (cancelled || !snap.exists()) return;
         const data = snap.data() as Record<string, unknown>;
         if (!computeSynqActiveFromUserData(data)) return;
+        cacheFriendProfileFromUserDoc(myId, fromUserId, data);
         upsertAvailableFriend(fromUserId, data);
       } catch {
         // Fall through to force poll below.
@@ -1480,6 +1483,7 @@ export default function SynqScreen() {
       (payload?: { fromUserId?: string; inactive?: boolean }) => {
         const fromUserId = payload?.fromUserId;
         if (payload?.inactive && fromUserId) {
+          noteFriendSynqBecameInactive(myId, fromUserId);
           setAvailableFriends((prev) => prev.filter((f) => f.id !== fromUserId));
         } else if (fromUserId) {
           void absorbActivatedFriend(fromUserId);
@@ -1488,7 +1492,14 @@ export default function SynqScreen() {
       }
     );
 
-    // Realtime discovery when CF writes friend_synq_active (works even if Expo push is delayed).
+    // Realtime discovery when CF writes/deletes friend_synq_active (works even if Expo push is delayed).
+    const parseSynqActiveFromNotifId = (notifId: string): string => {
+      const prefix = "synq_active_";
+      const suffix = `_${myId}`;
+      if (!notifId.startsWith(prefix) || !notifId.endsWith(suffix)) return "";
+      return notifId.slice(prefix.length, notifId.length - suffix.length).trim();
+    };
+
     let notificationsReady = false;
     const notifUnsub = onSnapshot(
       query(
@@ -1502,14 +1513,28 @@ export default function SynqScreen() {
           return;
         }
         for (const change of snap.docChanges()) {
-          if (change.type !== "added" && change.type !== "modified") continue;
           const data = change.doc.data() as Record<string, unknown>;
+          const fromData =
+            typeof data?.fromUserId === "string" ? data.fromUserId.trim() : "";
+          const fromId = fromData || parseSynqActiveFromNotifId(change.doc.id);
+          const isSynqActiveNotif =
+            data?.type === "friend_synq_active" ||
+            change.doc.id.startsWith("synq_active_");
+
+          // CF deletes these docs on deactivate — drop the friend immediately.
+          if (change.type === "removed") {
+            if (!isSynqActiveNotif || !fromId) continue;
+            noteFriendSynqBecameInactive(myId, fromId);
+            setAvailableFriends((prev) => prev.filter((f) => f.id !== fromId));
+            void refreshAvailable(true, fromId);
+            continue;
+          }
+
+          if (change.type !== "added" && change.type !== "modified") continue;
           if (data?.type !== "friend_synq_active") continue;
-          const fromUserId =
-            typeof data.fromUserId === "string" ? data.fromUserId.trim() : "";
-          if (!fromUserId) continue;
-          void absorbActivatedFriend(fromUserId);
-          void refreshAvailable(true, fromUserId);
+          if (!fromId) continue;
+          void absorbActivatedFriend(fromId);
+          void refreshAvailable(true, fromId);
         }
       },
       ignoreSnapshotPermissionDenied
@@ -1523,7 +1548,66 @@ export default function SynqScreen() {
     };
   }, [shouldLoadAvailableFriends, user?.uid, resolvedFriendIds, friendIdsHydrated]);
 
-  // Per-friend user-doc listeners removed — poll + friend_synq_active notifications are enough.
+  // Realtime: watch user docs of friends currently shown as Synq-active.
+  // Activation notifs / push can miss deactivates (same-device token skip, flaky
+  // silent push, poll cache). The friend's own status write is the source of truth.
+  const availableFriendIdsKey = useMemo(
+    () =>
+      availableFriends
+        .map((f) => String(f?.id || "").trim())
+        .filter(Boolean)
+        .sort()
+        .join("|"),
+    [availableFriends]
+  );
+
+  useEffect(() => {
+    const myId = user?.uid;
+    if (!myId || !shouldLoadAvailableFriends || !availableFriendIdsKey) return;
+
+    const ids = availableFriendIdsKey.split("|").filter(Boolean);
+    const unsubs = ids.map((fid) =>
+      onSnapshot(
+        doc(db, "users", fid),
+        (snap) => {
+          const data = snap.exists()
+            ? (snap.data() as Record<string, unknown>)
+            : undefined;
+          if (!computeSynqActiveFromUserData(data)) {
+            noteFriendSynqBecameInactive(myId, fid, data);
+            setAvailableFriends((prev) => {
+              if (!prev.some((f) => f.id === fid)) return prev;
+              return prev.filter((f) => f.id !== fid);
+            });
+            return;
+          }
+          cacheFriendProfileFromUserDoc(myId, fid, data as Record<string, unknown>);
+          setAvailableFriends((prev) => {
+            const idx = prev.findIndex((f) => f.id === fid);
+            if (idx < 0) return prev;
+            const cur = prev[idx] as Record<string, unknown>;
+            if (
+              cur.status === data?.status &&
+              cur.memo === data?.memo &&
+              cur.synqBroadcastMode === data?.synqBroadcastMode
+            ) {
+              return prev;
+            }
+            const next = [...prev];
+            next[idx] = { id: fid, ...(data as object) } as (typeof prev)[number];
+            return next;
+          });
+        },
+        ignoreSnapshotPermissionDenied
+      )
+    );
+
+    return () => {
+      unsubs.forEach((u) => u());
+    };
+  }, [shouldLoadAvailableFriends, user?.uid, availableFriendIdsKey]);
+
+  // Poll discovers activations; user-doc listeners above handle deactivations in realtime.
   useEffect(() => {
     if (activeChatId) {
       chatOpenGraceRef.current.set(activeChatId, Date.now());

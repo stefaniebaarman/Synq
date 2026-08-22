@@ -426,8 +426,11 @@ function normalizeNotificationTitle(title: string): string {
   const known: Record<string, string> = {
     "Request Accepted! ✨": "Request accepted! ✨",
     "Request Accepted!": "Request accepted!",
-    "New Friend Request 🤝": "New friend request 🤝",
-    "New Friend Request": "New friend request",
+    "New Friend Request 🤝": "New Synq request",
+    "New Friend Request": "New Synq request",
+    "New friend request 🤝": "New Synq request",
+    "New friend request": "New Synq request",
+    "New Synq Request": "New Synq request",
     "New Message": "New message",
   };
   return known[trimmed] || trimmed;
@@ -440,7 +443,7 @@ function activityMessageParts(
   const title = String(planTitle || "").trim();
   switch (kind) {
     case "friend_accepted":
-      return { rest: " accepted your friend request" };
+      return { rest: " added you on Synq" };
     case "open_plan_interest":
       return title
         ? { rest: ` is going to your plan ${title}` }
@@ -1203,7 +1206,7 @@ export default function NotificationsScreen() {
           <View style={{ flex: 1 }}>
             <NotificationMessage
               name={item.actorName}
-              rest=" wants to be your friend"
+              rest=" wants to Synq with you"
             />
           </View>
         </View>

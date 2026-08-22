@@ -12,7 +12,7 @@ import {
 import { Image as ExpoImage } from "expo-image";
 import { useFocusEffect, useRouter } from "expo-router";
 import { updateProfile } from "firebase/auth";
-import { doc, setDoc } from "firebase/firestore";
+import { doc, getDoc, setDoc, updateDoc } from "firebase/firestore";
 import React, { useCallback, useState } from "react";
 import {
   Keyboard,
@@ -178,25 +178,36 @@ export default function Details() {
         photoURL: image ?? null, 
       });
 
-      await setDoc(
-        doc(db, "users", auth.currentUser.uid),
-        {
-          uid: auth.currentUser.uid,
+      const userRef = doc(db, "users", auth.currentUser.uid);
+      const profileFields = {
+        displayName: fullName,
+        firstName: firstName.trim(),
+        lastName: lastName.trim(),
+        imageurl: image ?? null,
+        status: "inactive",
+        ...buildUserSearchFields({
           displayName: fullName,
           firstName: firstName.trim(),
           lastName: lastName.trim(),
-          imageurl: image ?? null,
-          status: "inactive",
+          email: auth.currentUser.email,
+        }),
+      };
+      const existingSnap = await getDoc(userRef);
+      if (!existingSnap.exists()) {
+        await setDoc(userRef, {
+          uid: auth.currentUser.uid,
           createdAt: new Date().toISOString(),
-          ...buildUserSearchFields({
-            displayName: fullName,
-            firstName: firstName.trim(),
-            lastName: lastName.trim(),
-            email: auth.currentUser.email,
-          }),
-        },
-        { merge: true }
-      );
+          ...profileFields,
+        });
+      } else {
+        await updateDoc(userRef, {
+          ...profileFields,
+          ...(!existingSnap.data()?.uid ? { uid: auth.currentUser.uid } : {}),
+          ...(!existingSnap.data()?.createdAt
+            ? { createdAt: new Date().toISOString() }
+            : {}),
+        });
+      }
 
       if (auth.currentUser.phoneNumber) {
         try {
