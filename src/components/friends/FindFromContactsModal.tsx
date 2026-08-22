@@ -17,7 +17,7 @@ import {
   synqOutlineAddBtnTextDisabled,
 } from "@/constants/Variables";
 import CloseButton from "@/src/components/CloseButton";
-import { SkeletonBlock } from "@/src/components/loading/BrandSkeletons";
+import { ListRowsSkeleton } from "@/src/components/loading/BrandSkeletons";
 import { resolveAvatar } from "@/src/lib/helpers";
 import { fetchOrCreateInviteCode } from "@/src/lib/inviteCode";
 import {
@@ -115,6 +115,9 @@ export default function FindFromContactsModal({
   }, [applyResult]);
 
   const runMatch = useCallback(async (force = false) => {
+    const showFullLoading = force || !hasLoadedOnceRef.current;
+    if (showFullLoading) setLoading(true);
+
     if (!force) {
       let cached = getCachedContactsMatch();
       if (!cached) {
@@ -131,8 +134,6 @@ export default function FindFromContactsModal({
       }
     }
 
-    const showFullLoading = force || !hasLoadedOnceRef.current;
-    if (showFullLoading) setLoading(true);
     setError(null);
     setPermissionDenied(false);
     try {
@@ -158,6 +159,9 @@ export default function FindFromContactsModal({
       setInvitingKey(null);
       softRefreshGenRef.current += 1;
       return;
+    }
+    if (!getCachedContactsMatch()) {
+      setLoading(true);
     }
     void runMatch(false);
   }, [visible, runMatch]);
@@ -199,6 +203,9 @@ export default function FindFromContactsModal({
   if (invitees.length) {
     sections.push({ title: "Invite to Synq", data: invitees, kind: "invite" });
   }
+
+  const awaitingFirstLoad =
+    visible && !hasLoadedOnceRef.current && !loading && !permissionDenied;
 
   const renderMatchRow = (item: ContactMatchUser) => {
     const action = getFriendAction(item.id);
@@ -293,10 +300,23 @@ export default function FindFromContactsModal({
           <CloseButton onPress={onClose} accessibilityLabel="Close contacts finder" />
         </View>
 
-        {loading ? (
-          <View style={styles.centered}>
-            <SkeletonBlock style={styles.loadingSkeleton} />
-            <Text style={styles.hint}>Looking for friends on Synq…</Text>
+        {loading || awaitingFirstLoad ? (
+          <View
+            style={styles.loadingWrap}
+            accessibilityRole="progressbar"
+            accessibilityLabel="Loading contacts"
+          >
+            <View style={styles.loadingHeader}>
+              <View style={styles.loadingIconWrap}>
+                <Ionicons name="people-outline" size={28} color={ACCENT} />
+              </View>
+              <Text style={styles.loadingTitle}>Loading contacts…</Text>
+              <Text style={styles.loadingSubtitle}>
+                Reading your address book and checking who&apos;s already on Synq. This can take a
+                moment the first time.
+              </Text>
+            </View>
+            <ListRowsSkeleton count={6} />
           </View>
         ) : permissionDenied ? (
           <View style={styles.centered}>
@@ -437,10 +457,35 @@ const styles = StyleSheet.create({
     paddingHorizontal: 28,
     gap: 10,
   },
-  loadingSkeleton: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
+  loadingWrap: {
+    flex: 1,
+    paddingHorizontal: 20,
+  },
+  loadingHeader: {
+    alignItems: "center",
+    paddingTop: 28,
+    paddingBottom: 24,
+    paddingHorizontal: 8,
+    gap: 12,
+  },
+  loadingIconWrap: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: SURFACE_INPUT,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  loadingTitle: {
+    ...emptyStateTitleText,
+    textAlign: "center",
+  },
+  loadingSubtitle: {
+    color: MUTED2,
+    fontFamily: fonts.book,
+    fontSize: TYPE_BODY,
+    textAlign: "center",
+    lineHeight: 22,
   },
   emptyTitle: {
     ...emptyStateTitleText,
