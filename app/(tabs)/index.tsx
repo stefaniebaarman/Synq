@@ -4,7 +4,6 @@ import PlanGoingPeopleSheet, {
 } from '@/src/components/plans/PlanGoingPeopleSheet';
 import { useChatMessages } from '@/src/hooks/useChatMessages';
 import { useSendMessage } from '@/src/hooks/useSendMessage';
-import { useTypingIndicator } from '@/src/hooks/useTypingIndicator';
 import { trackEvent } from '@/src/lib/analytics';
 import { useBlockedUsers } from '@/src/lib/blockedUsers';
 import { mergeMessages, pendingMatchesServer, type ChatMessage } from '@/src/lib/chatMessages';
@@ -23,10 +22,10 @@ import {
 } from '@/src/lib/helpers';
 import {
   findChatWithParticipants,
+  mergeChatsRemote,
   mergeParticipantMaps,
   mergeParticipantSets,
   participantsMatch,
-  uniqueChatIds,
 } from '@/src/lib/mergeChats';
 import { openInMaps } from "@/src/lib/openInMaps";
 import {
@@ -58,7 +57,6 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import {
   addDoc,
   arrayRemove,
-  arrayUnion,
   collection,
   deleteField,
   doc,
@@ -1569,22 +1567,6 @@ export default function SynqScreen() {
 
   const activeParticipantIdsKey = activeParticipantIds.join("|");
 
-  const {
-    typingUserIds,
-    notifyInputChange,
-    stopTyping,
-    ingestChatTypingSnapshot,
-  } = useTypingIndicator({
-    chatId: activeChatId,
-    enabled: isChatPaneOpen && !pendingNewChat,
-    participantIds: activeParticipantIds,
-  });
-
-  useEffect(() => {
-    const chat = allChats.find((c) => c.id === activeChatId);
-    ingestChatTypingSnapshot(chat?.typingBy as Record<string, unknown> | undefined);
-  }, [allChats, activeChatId, ingestChatTypingSnapshot]);
-
   const [liveParticipantImages, setLiveParticipantImages] = useState<
     Record<string, string>
   >({});
@@ -2156,7 +2138,6 @@ export default function SynqScreen() {
     if (rejectIfObjectionable(text)) return;
 
     setInputText("");
-    stopTyping();
     await sendMessageCore(text);
   };
 
@@ -2173,13 +2154,12 @@ export default function SynqScreen() {
 
   const goBackFromChat = useCallback(() => {
     Keyboard.dismiss();
-    stopTyping();
     navigateMessagesPane("inbox");
     setShowAICard(false);
     setShowOptionsList(false);
     setPendingNewChat(null);
     setIsExploreVisible(false);
-  }, [navigateMessagesPane, stopTyping]);
+  }, [navigateMessagesPane]);
 
   const openFriendProfileFromChat = useCallback(async (friendId: string) => {
     const myId = auth.currentUser?.uid;
@@ -2298,31 +2278,6 @@ export default function SynqScreen() {
     setSelectedMergeChatIds([chatId]);
   };
 
-  const hideMergedSourceChats = async (sourceChatIds: string[]) => {
-    if (!auth.currentUser) return;
-    const myId = auth.currentUser.uid;
-    const ids = uniqueChatIds(sourceChatIds);
-    if (ids.length === 0) return;
-
-    setUserProfile((prev: any) => {
-      const currentHidden = Array.isArray(prev?.hiddenChatIds)
-        ? prev.hiddenChatIds.filter(Boolean)
-        : [];
-      return {
-        ...prev,
-        hiddenChatIds: uniqueChatIds([...currentHidden, ...ids]),
-      };
-    });
-
-    try {
-      await updateDoc(doc(db, "users", myId), {
-        hiddenChatIds: arrayUnion(...ids),
-      });
-    } catch {
-      // Merge succeeded; inbox hide is best-effort and will sync on next profile load.
-    }
-  };
-
   const toggleMergeChatSelection = (chatId: string) => {
     setSelectedMergeChatIds((prev) => {
       if (prev.includes(chatId)) {
@@ -2388,64 +2343,37 @@ export default function SynqScreen() {
         bumpChatOpenAnchor();
         navigateMessagesPane("chat");
         void markChatRead(existing.id);
-        void hideMergedSourceChats([chatA.id, chatB.id]);
         return;
       }
 
-      let { participantNames, participantImages } = mergeParticipantMaps(
-        chatA,
-        chatB,
-        mergedParticipants
-      );
-
-      for (const uid of mergedParticipants) {
-        if (participantNames[uid]?.trim() && participantImages[uid]) continue;
-        const uSnap = await getDoc(doc(db, "users", uid));
-        if (!uSnap.exists()) continue;
-        const data = uSnap.data();
-        if (!participantNames[uid]?.trim()) {
-          participantNames[uid] = data.displayName || "";
-        }
-        if (!participantImages[uid]) {
-          participantImages[uid] = resolveAvatar(data.imageurl);
-        }
-      }
-
-      const myDisplayName =
-        participantNames[myId] || userProfile?.displayName || "Someone";
-      const systemText = `${(myDisplayName || "").trim().split(/\s+/)[0] || "Someone"} combined two conversations`;
-
-      const chatRef = await addDoc(collection(db, "chats"), {
-        participants: mergedParticipants,
-        participantNames,
-        participantImages,
-        createdAt: serverTimestamp(),
-        updatedAt: serverTimestamp(),
-        lastMessage: systemText,
-        lastMessageSenderId: myId,
-        mergedFrom: [chatA.id, chatB.id],
-      });
-
-      await addDoc(collection(db, "chats", chatRef.id, "messages"), {
-        text: systemText,
-        senderId: myId,
-        type: "system",
-        imageurl: resolveAvatar(userProfile?.imageurl),
-        createdAt: serverTimestamp(),
-      });
+      const { chatId } = await mergeChatsRemote(chatA.id, chatB.id);
 
       resetMergeSelect();
       setPendingNewChat(null);
-      prepareChatSync(chatRef.id);
-      setActiveChatId(chatRef.id);
+      prepareChatSync(chatId);
+      setActiveChatId(chatId);
       bumpChatOpenAnchor();
       navigateMessagesPane("chat");
-      void markChatRead(chatRef.id);
-      void hideMergedSourceChats([chatA.id, chatB.id]);
-      if (myId) void rememberRecentChatId(myId, chatRef.id);
+      void markChatRead(chatId);
+      if (myId) void rememberRecentChatId(myId, chatId);
       void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-    } catch {
-      showActionError("Could not create group chat. Please try again.");
+    } catch (err: any) {
+      const code = String(err?.code || "");
+      const message = String(err?.message || "");
+      if (
+        code.includes("failed-precondition") ||
+        message.toLowerCase().includes("same people")
+      ) {
+        showActionError("These conversations already include the same people.");
+      } else if (
+        code.includes("not-found") ||
+        message.toLowerCase().includes("no longer available")
+      ) {
+        showActionError("One of those conversations is no longer available.");
+        resetMergeSelect();
+      } else {
+        showActionError("Could not create group chat. Please try again.");
+      }
     } finally {
       setIsMergingChats(false);
       setShowMergeConfirmModal(false);
@@ -2768,11 +2696,7 @@ export default function SynqScreen() {
                   hasEarlierMessages={hasEarlierMessages}
                   loadingEarlier={loadingEarlier}
                   onLoadEarlier={loadEarlierMessages}
-                  typingUserIds={typingUserIds}
-                  onComposerChange={(text) => {
-                    setInputText(text);
-                    notifyInputChange();
-                  }}
+                  onComposerChange={setInputText}
                   showAICard={showAICard}
                   aiResponse={aiResponse}
                   inputText={inputText}
@@ -3788,6 +3712,7 @@ const styles = StyleSheet.create({
   },
   chatTitle: {
     ...sheetHeaderTitleText,
+    fontSize: TYPE_SECTION,
   },
   chatHeaderDivider: {
     height: StyleSheet.hairlineWidth,
@@ -3890,10 +3815,10 @@ const styles = StyleSheet.create({
   },
   chatSenderName: {
     color: MUTED2,
-    fontSize: TYPE_MICRO,
+    fontSize: TYPE_FINE,
     fontFamily: fonts.medium,
     letterSpacing: 0.15,
-    marginBottom: 3,
+    marginBottom: 6,
     marginLeft: 10,
     maxWidth: "100%",
   },

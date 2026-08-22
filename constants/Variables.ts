@@ -168,22 +168,8 @@ export const SURFACE_RAISED = SURFACES.card;
 export const SURFACE_ELEVATED = SURFACES.elevated;
 /** Memo and input field backgrounds → {@link SURFACES.inset}. */
 export const SURFACE_INPUT = SURFACES.inset;
-/** Deep wells in community/memo modals → {@link SURFACES.inset}. */
-export const SURFACE_DEEP = SURFACES.inset;
-/** Deepest inset wells (memo/picker footers) → {@link SURFACES.page}. */
-export const SURFACE_DEEPER = SURFACES.page;
 /** Bottom sheet and action sheet backgrounds → {@link SURFACES.sheet}. */
 export const SHEET_SURFACE = SURFACES.sheet;
-/** Alternate sheet surface → {@link SURFACES.sheet}. */
-export const SURFACE_SHEET_ALT = SURFACES.sheet;
-/** Inset card backgrounds → {@link SURFACES.card}. */
-export const SURFACE_INSET = SURFACES.card;
-/** Avatar wells and icon circles → {@link SURFACES.card}. */
-export const SURFACE_WELL = SURFACES.card;
-/** Slightly lifted dark surface → {@link SURFACES.elevated}. */
-export const SURFACE_LIFTED = SURFACES.elevated;
-/** Near-black panel backgrounds → {@link SURFACES.card}. */
-export const SURFACE_PANEL = SURFACES.card;
 export const BORDER_STRONG = "#222";
 export const BORDER_MUTED = "#333";
 export const TEXT_MUTED_HEX = "#A8A8A8";

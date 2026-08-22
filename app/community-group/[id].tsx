@@ -65,6 +65,7 @@ import type { CommunityGroupPlan } from "@/src/lib/communityGroupPlans";
 import {
   communityGroupRef,
   deleteCommunityGroup,
+  ensureCommunityGroupIdOnUser,
   joinCommunityGroup,
   leaveCommunityGroup,
   mapCommunityGroupDoc,
@@ -84,7 +85,7 @@ import * as Haptics from "expo-haptics";
 import { Image as ExpoImage } from "expo-image";
 import { LinearGradient } from "expo-linear-gradient";
 import { useLocalSearchParams, useRouter } from "expo-router";
-import { arrayUnion, doc, getDoc, onSnapshot, updateDoc } from "firebase/firestore";
+import { getDoc, onSnapshot } from "firebase/firestore";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   Modal,
@@ -235,12 +236,11 @@ export default function CommunityGroupDetailScreen() {
     let cancelled = false;
 
     void (async () => {
-      // Ensure co-member profile taps work once communityGroupIds is set.
+      // Put this group first in communityGroupIds so co-member profile reads work
+      // within the rules get() budget (first 10 groups only).
       if (uid && group.memberIds.includes(uid)) {
         try {
-          await updateDoc(doc(db, "users", uid), {
-            communityGroupIds: arrayUnion(group.id),
-          });
+          await ensureCommunityGroupIdOnUser(uid, group.id);
         } catch {
           // Profile opens may still work via friend/chat paths.
         }
@@ -289,11 +289,14 @@ export default function CommunityGroupDetailScreen() {
 
       if (!needsSync) return;
 
-      memberPreviewSyncKeyRef.current = syncKey;
       try {
         const synced = await syncCommunityMemberPreviews(group.id);
-        if (cancelled) return;
+        if (cancelled) {
+          // Allow a later effect run to retry; do not mark syncKey as done.
+          return;
+        }
         applyRows({ ...(group.memberPreviews ?? {}), ...synced });
+        memberPreviewSyncKeyRef.current = syncKey;
       } catch {
         // Allow a retry on the next open / membership change.
         memberPreviewSyncKeyRef.current = "";
@@ -305,12 +308,10 @@ export default function CommunityGroupDetailScreen() {
     };
   }, [group, friends, uid]);
 
-  // Keep this group's id on the viewer's communityGroupIds so co-member profile reads work.
+  // Keep this group's id prioritized on the viewer for co-member profile reads.
   useEffect(() => {
     if (!uid || !group?.id || !group.memberIds.includes(uid)) return;
-    void updateDoc(doc(db, "users", uid), {
-      communityGroupIds: arrayUnion(group.id),
-    }).catch(() => {});
+    void ensureCommunityGroupIdOnUser(uid, group.id).catch(() => {});
   }, [uid, group?.id, group?.memberIds]);
 
   const isMember = !!group && !!uid && group.memberIds.includes(uid);
