@@ -48,11 +48,7 @@ export function subscribeFriendGroups(
   // eslint-disable-next-line @typescript-eslint/no-require-imports
   const { subscribeFriendGroupsMultiplexed } =
     require("./socialListenerHub") as typeof import("./socialListenerHub");
-  const unsub = subscribeFriendGroupsMultiplexed(uid, onData);
-  return () => {
-    unsub();
-    void onError;
-  };
+  return subscribeFriendGroupsMultiplexed(uid, onData, onError);
 }
 
 export async function createFriendGroup(
@@ -99,7 +95,7 @@ export async function deleteFriendGroup(uid: string, groupId: string): Promise<v
   await deleteDoc(friendGroupRef(uid, groupId));
 }
 
-export async function setFriendGroupMembers(
+async function setFriendGroupMembers(
   uid: string,
   groupId: string,
   memberIds: string[]
@@ -163,8 +159,4 @@ export async function pruneFriendFromAllGroups(
   if (writes > 0) {
     await batch.commit();
   }
-}
-
-export function groupsContainingMember(groups: FriendGroup[], memberId: string): FriendGroup[] {
-  return groups.filter((g) => g.memberIds.includes(memberId));
 }

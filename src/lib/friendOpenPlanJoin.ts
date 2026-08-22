@@ -6,7 +6,7 @@ import {
   matchesPlanEvent,
   openPlanSortValue,
 } from "@/src/lib/planEvents";
-import { collection, doc, getDoc, getDocs, updateDoc } from "firebase/firestore";
+import { collection, doc, getDoc, getDocs, updateDoc, arrayUnion } from "firebase/firestore";
 
 export type FriendOpenPlanEvent = {
   id: string;
@@ -21,6 +21,8 @@ export type FriendOpenPlanEvent = {
   joinedFromName?: string;
   joinedFromNames?: string[];
   attendeeDisplayNames?: Record<string, string>;
+  /** Denormalized avatars so non-friends can see faces on going lists. */
+  attendeeImages?: Record<string, string>;
   mergedIntoExisting?: boolean;
 };
 
@@ -214,12 +216,20 @@ export async function joinFriendOpenPlan(
   const sourceIds = Array.from(sourceIdsSet);
 
   const displayNameById: Record<string, string> = {};
+  const imageById: Record<string, string> = {};
+  const myImage = String(meData?.imageurl || "").trim();
+  if (joinerName) displayNameById[user.uid] = joinerName;
+  if (myImage) imageById[user.uid] = myImage;
+
   await Promise.all(
     sourceIds.map(async (uid) => {
       try {
         const s = await getDoc(doc(db, "users", uid));
         if (s.exists()) {
-          displayNameById[uid] = String((s.data() as Record<string, unknown>)?.displayName || "").trim();
+          const data = s.data() as Record<string, unknown>;
+          displayNameById[uid] = String(data?.displayName || "").trim();
+          const img = String(data?.imageurl || "").trim();
+          if (img) imageById[uid] = img;
         }
       } catch {
         /* best-effort */
@@ -229,6 +239,13 @@ export async function joinFriendOpenPlan(
 
   const planHostUid = resolvePlanHostUidForJoin(event, friendKey);
   const eventForMatch = { ...event, planHostUid: event.planHostUid || planHostUid };
+  const discoveryHosts = Array.from(
+    new Set(
+      [planHostUid, friendKey]
+        .map((id) => String(id || "").trim())
+        .filter((id) => id && id !== user.uid)
+    )
+  );
 
   const exists = existingEvents.some((row) => matchesPlanEvent(row, eventForMatch, existingEvents));
   if (exists) {
@@ -258,9 +275,18 @@ export async function joinFriendOpenPlan(
           ...(row.attendeeDisplayNames || {}),
           ...displayNameById,
         },
+        attendeeImages: {
+          ...(row.attendeeImages || {}),
+          ...imageById,
+        },
       };
     });
-    await updateDoc(meRef, { events: updatedExistingEvents });
+    await updateDoc(meRef, {
+      events: updatedExistingEvents,
+      ...(discoveryHosts.length > 0
+        ? { planDiscoveryHosts: arrayUnion(...discoveryHosts) }
+        : {}),
+    });
     return "updated";
   }
 
@@ -278,12 +304,18 @@ export async function joinFriendOpenPlan(
     mergedIntoExisting: false,
     joinedFromFriendUid: friendKey,
     attendeeDisplayNames: displayNameById,
+    attendeeImages: imageById,
   };
 
   const nextEvents = [...existingEvents, newEvent].sort(
     (a, b) => openPlanSortValue(a) - openPlanSortValue(b)
   );
-  await updateDoc(meRef, { events: nextEvents });
+  await updateDoc(meRef, {
+    events: nextEvents,
+    ...(discoveryHosts.length > 0
+      ? { planDiscoveryHosts: arrayUnion(...discoveryHosts) }
+      : {}),
+  });
   return "added";
 }
 

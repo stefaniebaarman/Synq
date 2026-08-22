@@ -110,30 +110,11 @@ export function matchesPlanEvent(e: any, target: any, siblingEvents: any[]): boo
   return false;
 }
 
-export function matchesPlanEventForHostSync(
-  e: any,
-  target: any,
-  siblingEvents: any[],
-  planHostUid: string
-): boolean {
-  const host = String(planHostUid || "").trim();
-  if (!host) return false;
-  if (eventKeyLoose(e) !== eventKeyLoose(target)) return false;
-  const rowHost = String(e?.planHostUid || "").trim();
-  if (rowHost && rowHost !== host) return false;
-  const candidates = siblingEvents.filter(
-    (x) =>
-      eventKeyLoose(x) === eventKeyLoose(target) &&
-      (!String(x?.planHostUid || "").trim() || String(x.planHostUid).trim() === host)
-  );
-  return candidates.length === 1 && candidates[0] === e;
-}
-
 /** Open plans stay visible for 12 hours after start so late joiners can still find them. */
-export const OPEN_PLAN_GRACE_MS = 12 * 60 * 60 * 1000;
+const OPEN_PLAN_GRACE_MS = 12 * 60 * 60 * 1000;
 
 /** True when the plan started more than 12 hours ago (date-only plans use noon as start). */
-export function isOpenPlanPast(
+function isOpenPlanPast(
   event: { date?: string; time?: string },
   now: Date = new Date()
 ): boolean {

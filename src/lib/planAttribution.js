@@ -618,6 +618,14 @@ function mergeEventsForGoingAttribution(primary, secondary) {
         ? primary.attendeeDisplayNames
         : {}),
     },
+    attendeeImages: {
+      ...(typeof secondary.attendeeImages === "object" && secondary.attendeeImages
+        ? secondary.attendeeImages
+        : {}),
+      ...(typeof primary.attendeeImages === "object" && primary.attendeeImages
+        ? primary.attendeeImages
+        : {}),
+    },
   };
 }
 
@@ -627,6 +635,5 @@ module.exports = {
   resolvePlanAttribution,
   resolvePlanHostUidForJoin,
   planLooseMatch,
-  enrichEventForFriendProfileAttribution,
   mergeEventsForGoingAttribution,
 };

@@ -33,14 +33,7 @@ export function resolvePlanHostUidForJoin(
 
 export function planLooseMatch(a: unknown, b: unknown): boolean;
 
-export function enrichEventForFriendProfileAttribution(
-  event: unknown,
-  viewerUid?: string | null,
-  profileSubjectUid?: string | null,
-  viewerEvents?: unknown[]
-): unknown;
-
 export function mergeEventsForGoingAttribution(
   primary: unknown,
   secondary?: unknown
-): unknown;
+): Record<string, unknown> | null | undefined;

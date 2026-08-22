@@ -10,10 +10,7 @@ import { seattleWaSuggestions } from "../data/citySuggestions/seattle-wa";
 import { washingtonDcSuggestions } from "../data/citySuggestions/washington-dc";
 import type { SynqSuggestion } from "./synqSuggestions";
 
-import { formatUserLocationLabel } from "./chatAiLocation";
-
 import {
-  allParticipantsHaveCachedCitySuggestions as allParticipantsHaveCachedCitySuggestionsCore,
   getCachedCitySuggestions as getCachedCitySuggestionsCore,
   matchesArlingtonVa,
   matchesAustinTx,
@@ -25,7 +22,6 @@ import {
   matchesSanDiegoCa,
   matchesSeattleWa,
   matchesWashingtonDcMetro,
-  resolveCityId,
   suggestionBatchKey as suggestionBatchKeyCore,
 } from "./citySuggestionsCore";
 
@@ -106,15 +102,4 @@ export function getCachedCitySuggestions(
 
 export function suggestionBatchKey(names: string[]): string {
   return suggestionBatchKeyCore(names);
-}
-
-export function hasCachedCitySuggestions(senderLocationLabel: string): boolean {
-  return resolveCityId(senderLocationLabel, cityRegistry) !== null;
-}
-
-export function allParticipantsHaveCachedCitySuggestions(
-  participantData: Record<string, unknown>[]
-): boolean {
-  const labels = participantData.map((data) => formatUserLocationLabel(data));
-  return allParticipantsHaveCachedCitySuggestionsCore(labels, cityRegistry);
 }

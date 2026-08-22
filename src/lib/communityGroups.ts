@@ -2,7 +2,6 @@ import {
   arrayRemove,
   arrayUnion,
   collection,
-  deleteDoc,
   doc,
   getDoc,
   getDocs,
@@ -20,9 +19,9 @@ import {
 import { db, auth } from "./firebase";
 import {
   MAX_COMMUNITY_GROUP_MEMBERS as MAX_MEMBERS,
-  mergeCommunityGroupMemberIds as mergeMemberIdsCore,
 } from "./communityGroupsCore.js";
 import { uploadCommunityCoverPhoto, deleteCommunityCoverPhotos } from "./uploadCommunityCoverPhoto";
+import { getFunctions, httpsCallable } from "firebase/functions";
 
 export const MAX_COMMUNITY_GROUP_MEMBERS = MAX_MEMBERS;
 export const MAX_COMMUNITY_GROUPS_JOINED = 50;
@@ -64,6 +63,39 @@ export function communityGroupRef(groupId: string) {
   return doc(db, "communityGroups", groupId);
 }
 
+/**
+ * Keep this group first in the viewer's communityGroupIds so rules
+ * sharesCommunityWithTarget (first 10 only) can resolve co-member profile reads.
+ */
+export async function ensureCommunityGroupIdOnUser(
+  uid: string,
+  groupId: string
+): Promise<void> {
+  const id = String(groupId || "").trim();
+  if (!uid || !id) return;
+
+  const userRef = doc(db, "users", uid);
+  const snap = await getDoc(userRef);
+  const raw = snap.exists()
+    ? (snap.data() as { communityGroupIds?: unknown }).communityGroupIds
+    : [];
+  const existing = Array.isArray(raw)
+    ? [
+        ...new Set(
+          raw.map((x) => String(x || "").trim()).filter(Boolean)
+        ),
+      ]
+    : [];
+  const rest = existing.filter((x) => x !== id);
+  const next = [id, ...rest].slice(0, 50);
+  const unchanged =
+    existing.length === next.length &&
+    existing.every((value, index) => value === next[index]);
+  if (unchanged) return;
+
+  await updateDoc(userRef, { communityGroupIds: next });
+}
+
 export async function getCommunityGroup(groupId: string): Promise<CommunityGroup | null> {
   const snap = await getDoc(communityGroupRef(groupId));
   if (!snap.exists()) return null;
@@ -89,6 +121,33 @@ function optionalTrimmed(value: unknown, maxLen: number): string | undefined {
   const trimmed = String(value ?? "").trim();
   if (!trimmed) return undefined;
   return trimmed.slice(0, maxLen);
+}
+
+async function viewerMemberPreview(
+  uid: string
+): Promise<{ displayName: string; imageurl?: string }> {
+  let displayName =
+    auth.currentUser?.uid === uid
+      ? String(auth.currentUser.displayName || "").trim()
+      : "";
+  let imageurl: string | undefined;
+
+  try {
+    const snap = await getDoc(doc(db, "users", uid));
+    if (snap.exists()) {
+      const data = snap.data() as { displayName?: string; imageurl?: string };
+      displayName = String(data.displayName || "").trim() || displayName;
+      const photo = String(data.imageurl || "").trim();
+      if (photo) imageurl = photo;
+    }
+  } catch {
+    // Fall back to auth display name.
+  }
+
+  return {
+    displayName: displayName || "Member",
+    ...(imageurl ? { imageurl } : {}),
+  };
 }
 
 export function mapCommunityGroupDoc(id: string, data: Record<string, unknown>): CommunityGroup {
@@ -170,58 +229,6 @@ export async function fetchAllCommunityGroups(
     .filter((g) => g.memberIds.length > 0);
 }
 
-export async function fetchCommunityGroupsByCategory(
-  category: string,
-  limitCount = COMMUNITY_GROUP_SEARCH_LIMIT
-): Promise<CommunityGroup[]> {
-  const trimmed = category.trim();
-  if (!trimmed) return [];
-
-  const snap = await getDocs(
-    query(
-      communityGroupsCollection(),
-      where("category", "==", trimmed),
-      limit(limitCount)
-    )
-  );
-
-  return snap.docs
-    .map((d) => mapCommunityGroupDoc(d.id, d.data() as Record<string, unknown>))
-    .filter((g) => g.memberIds.length > 0)
-    .sort((a, b) => b.memberIds.length - a.memberIds.length || a.name.localeCompare(b.name));
-}
-
-/** Groups the user has not joined, returned in random order for suggested UI. */
-export async function fetchSuggestedCommunityGroups(
-  excludeIds: Set<string>,
-  limitCount = 3
-): Promise<CommunityGroup[]> {
-  const snap = await getDocs(query(communityGroupsCollection(), limit(50)));
-  const eligible = snap.docs
-    .map((d) => mapCommunityGroupDoc(d.id, d.data() as Record<string, unknown>))
-    .filter((g) => !excludeIds.has(g.id) && g.memberIds.length > 0);
-
-  for (let i = eligible.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [eligible[i], eligible[j]] = [eligible[j], eligible[i]];
-  }
-
-  return eligible.slice(0, limitCount);
-}
-
-/** @deprecated Use fetchSuggestedCommunityGroups */
-export async function fetchDiscoverCommunityGroups(
-  excludeIds: Set<string>,
-  limitCount = 8
-): Promise<CommunityGroup[]> {
-  const snap = await getDocs(query(communityGroupsCollection(), limit(50)));
-  return snap.docs
-    .map((d) => mapCommunityGroupDoc(d.id, d.data() as Record<string, unknown>))
-    .filter((g) => !excludeIds.has(g.id) && g.memberIds.length > 0)
-    .sort((a, b) => b.memberIds.length - a.memberIds.length)
-    .slice(0, limitCount);
-}
-
 export async function createCommunityGroup(
   uid: string,
   input: CreateCommunityGroupInput | string,
@@ -253,10 +260,7 @@ export async function createCommunityGroup(
   }
 
   const ref = doc(communityGroupsCollection());
-  const displayName =
-    auth.currentUser?.uid === uid
-      ? String(auth.currentUser.displayName || "").trim() || "Member"
-      : "Member";
+  const preview = await viewerMemberPreview(uid);
 
   await setDoc(ref, {
     name: trimmed,
@@ -264,7 +268,7 @@ export async function createCommunityGroup(
     creatorId: uid,
     memberIds: [uid],
     memberPreviews: {
-      [uid]: { displayName },
+      [uid]: preview,
     },
     ...(category ? { category } : {}),
     ...(location ? { location } : {}),
@@ -275,9 +279,9 @@ export async function createCommunityGroup(
   });
 
   // Denormalized for scoped profile reads among community co-members.
-  await updateDoc(doc(db, "users", uid), {
-    communityGroupIds: arrayUnion(ref.id),
-  }).catch(() => {});
+  await ensureCommunityGroupIdOnUser(uid, ref.id).catch(() => {
+    void ensureCommunityGroupIdOnUser(uid, ref.id);
+  });
 
   if (coverLocalUri) {
     const uploaded = await uploadCommunityCoverPhoto(ref.id, coverLocalUri);
@@ -344,6 +348,8 @@ export async function joinCommunityGroup(
     throw new Error(`You can join at most ${MAX_COMMUNITY_GROUPS_JOINED} community groups.`);
   }
 
+  const preview = await viewerMemberPreview(uid);
+
   return runTransaction(db, async (transaction) => {
     const ref = communityGroupRef(groupId);
     const snap = await transaction.get(ref);
@@ -361,15 +367,11 @@ export async function joinCommunityGroup(
       throw new Error("This group is full.");
     }
     const next = normalizeMemberIds([...currentMemberIds, uid]);
-    const displayName =
-      auth.currentUser?.uid === uid
-        ? String(auth.currentUser.displayName || "").trim() || "Member"
-        : "Member";
     const existingPreviews =
       data.memberPreviews && typeof data.memberPreviews === "object"
         ? { ...(data.memberPreviews as Record<string, unknown>) }
         : {};
-    existingPreviews[uid] = { displayName };
+    existingPreviews[uid] = preview;
     transaction.update(ref, {
       memberIds: next,
       memberPreviews: existingPreviews,
@@ -377,9 +379,9 @@ export async function joinCommunityGroup(
     });
     return next;
   }).then(async (next) => {
-    await updateDoc(doc(db, "users", uid), {
-      communityGroupIds: arrayUnion(groupId),
-    }).catch(() => {});
+    await ensureCommunityGroupIdOnUser(uid, groupId).catch(() => {
+      void ensureCommunityGroupIdOnUser(uid, groupId);
+    });
     return next;
   });
 }
@@ -418,55 +420,15 @@ export async function leaveCommunityGroup(
   }).catch(() => {});
 }
 
-export async function renameCommunityGroup(groupId: string, name: string): Promise<void> {
-  const trimmed = normalizeName(name);
-  if (!trimmed) {
-    throw new Error("Group name is required.");
-  }
-  await updateDoc(communityGroupRef(groupId), {
-    name: trimmed,
-    nameLower: normalizeNameLower(trimmed),
-    updatedAt: serverTimestamp(),
-  });
-}
-
 export async function deleteCommunityGroup(groupId: string): Promise<void> {
-  await deleteCommunityCoverPhotos(groupId);
-  await deleteDoc(communityGroupRef(groupId));
-}
-
-export function mergeCommunityGroupMemberIds(
-  currentMemberIds: string[],
-  newMemberIds: string[]
-): string[] {
-  return mergeMemberIdsCore(currentMemberIds, newMemberIds);
-}
-
-export async function addMembersToCommunityGroup(
-  groupId: string,
-  _currentMemberIds: string[],
-  newMemberIds: string[]
-): Promise<string[]> {
-  return runTransaction(db, async (transaction) => {
-    const ref = communityGroupRef(groupId);
-    const snap = await transaction.get(ref);
-    if (!snap.exists()) {
-      throw new Error("This group no longer exists.");
-    }
-    const data = snap.data() as Record<string, unknown>;
-    const currentMemberIds = normalizeMemberIds(
-      Array.isArray(data.memberIds) ? (data.memberIds as string[]) : []
-    );
-    const merged = mergeCommunityGroupMemberIds(currentMemberIds, newMemberIds);
-    if (merged.length === currentMemberIds.length) {
-      return merged;
-    }
-    transaction.update(ref, {
-      memberIds: merged,
-      updatedAt: serverTimestamp(),
-    });
-    return merged;
-  });
+  const id = String(groupId || "").trim();
+  if (!id) {
+    throw new Error("Community not found.");
+  }
+  await deleteCommunityCoverPhotos(id).catch(() => {});
+  const functions = getFunctions(undefined, "us-central1");
+  const deleteGroup = httpsCallable(functions, "deleteCommunityGroup");
+  await deleteGroup({ groupId: id });
 }
 
 export async function removeMemberFromCommunityGroup(
@@ -474,22 +436,13 @@ export async function removeMemberFromCommunityGroup(
   _currentMemberIds: string[],
   memberId: string
 ): Promise<void> {
-  await runTransaction(db, async (transaction) => {
-    const ref = communityGroupRef(groupId);
-    const snap = await transaction.get(ref);
-    if (!snap.exists()) return;
-    const data = snap.data() as Record<string, unknown>;
-    const currentMemberIds = normalizeMemberIds(
-      Array.isArray(data.memberIds) ? (data.memberIds as string[]) : []
-    );
-    const next = currentMemberIds.filter((id) => id !== memberId);
-    if (next.length === 0) {
-      transaction.delete(ref);
-      return;
-    }
-    transaction.update(ref, {
-      memberIds: next,
-      updatedAt: serverTimestamp(),
-    });
-  });
+  const id = String(groupId || "").trim();
+  const targetId = String(memberId || "").trim();
+  if (!id || !targetId) {
+    throw new Error("Missing community or member.");
+  }
+
+  const functions = getFunctions(undefined, "us-central1");
+  const removeMember = httpsCallable(functions, "removeCommunityGroupMember");
+  await removeMember({ groupId: id, memberId: targetId });
 }

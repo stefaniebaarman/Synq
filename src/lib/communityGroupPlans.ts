@@ -97,62 +97,12 @@ function formatStoredDateValue(d: Date): string {
   return `${y}-${m}-${day}`;
 }
 
-export function isSpontaneousCommunitySynqDate(dateStr: string, now = new Date()): boolean {
+function isSpontaneousCommunitySynqDate(dateStr: string, now = new Date()): boolean {
   const date = dateStr.trim();
   if (!date) return false;
   const today = formatStoredDateValue(now);
   const tomorrow = formatStoredDateValue(new Date(now.getTime() + 86400000));
   return date === today || date === tomorrow;
-}
-
-function formatSynqTimeLabel(timeStr?: string): string {
-  const raw = timeStr?.trim();
-  if (!raw) return "";
-  const cleaned = raw.replace(/\u202f/g, " ").trim();
-  const match = cleaned.match(/^(\d{1,2}):(\d{2})\s*(AM|PM)$/i);
-  if (match) {
-    const hour = parseInt(match[1], 10);
-    const minutes = parseInt(match[2], 10);
-    const period = match[3].toLowerCase();
-    const displayHour = hour === 0 ? 12 : hour > 12 ? hour - 12 : hour;
-    if (minutes === 0) {
-      return `${displayHour}${period}`;
-    }
-    return `${displayHour}:${String(minutes).padStart(2, "0")}${period}`;
-  }
-  return cleaned.toLowerCase().replace(/\s/g, "").replace(":00", "");
-}
-
-export function formatCommunitySynqWhenLabel(
-  dateStr: string,
-  timeStr?: string,
-  now = new Date()
-): string {
-  const [y, m, d] = dateStr.split("-").map(Number);
-  const planDate = new Date(y, (m || 1) - 1, d || 1);
-  const today = new Date(now);
-  today.setHours(0, 0, 0, 0);
-  const tomorrow = new Date(today);
-  tomorrow.setDate(tomorrow.getDate() + 1);
-  planDate.setHours(0, 0, 0, 0);
-
-  let dayLabel: string;
-  if (planDate.getTime() === today.getTime()) {
-    dayLabel = "today";
-  } else if (planDate.getTime() === tomorrow.getTime()) {
-    dayLabel = "tomorrow";
-  } else {
-    const fallbackDay = planDate.toLocaleDateString("en-US", {
-      weekday: "short",
-      month: "short",
-      day: "numeric",
-    });
-    const timeLabel = formatSynqTimeLabel(timeStr);
-    return timeLabel ? `${fallbackDay} at ${timeLabel}` : fallbackDay;
-  }
-
-  const timeLabel = formatSynqTimeLabel(timeStr);
-  return timeLabel ? `${dayLabel} at ${timeLabel}` : dayLabel;
 }
 
 function formatCommunitySynqCardDayLabel(dateStr: string, now = new Date()): string {
@@ -199,15 +149,6 @@ export function getCommunitySynqCardMetaParts(
   const locationLabel = location?.trim();
   if (locationLabel) parts.push(locationLabel);
   return parts;
-}
-
-export function formatCommunitySynqCardMeta(
-  dateStr: string,
-  timeStr?: string,
-  location?: string,
-  now = new Date()
-): string {
-  return getCommunitySynqCardMetaParts(dateStr, timeStr, location, now).join(" • ");
 }
 
 export function formatCommunitySynqGoingCount(count: number): string {
@@ -379,18 +320,4 @@ export async function addCommunityPlanToUserEvents(
 ): Promise<"added" | "already"> {
   const result = await setCommunityPlanGoing(uid, plan, viewerDisplayName, true);
   return result === "already" ? "already" : "added";
-}
-
-export function formatCommunityPlanDateLabel(dateStr: string): {
-  weekday: string;
-  day: number;
-  month: string;
-} {
-  const [y, m, d] = dateStr.split("-").map(Number);
-  const date = new Date(y, (m || 1) - 1, d || 1);
-  return {
-    weekday: date.toLocaleDateString("en-US", { weekday: "short" }).toUpperCase(),
-    day: date.getDate(),
-    month: date.toLocaleDateString("en-US", { month: "short" }).toUpperCase(),
-  };
 }

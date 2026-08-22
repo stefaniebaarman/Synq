@@ -44,3 +44,18 @@ export async function unblockUser(blockedUserId: string) {
   const res = await fn({ blockedUserId });
   return res.data as { ok: boolean };
 }
+
+export type BlockedUserRow = {
+  id: string;
+  displayName: string;
+  imageurl?: string;
+};
+
+export async function listBlockedUsers() {
+  const fn = httpsCallable<Record<string, never>, { users: BlockedUserRow[] }>(
+    functions,
+    "listBlockedUsers"
+  );
+  const res = await fn({});
+  return Array.isArray(res.data?.users) ? res.data.users : [];
+}

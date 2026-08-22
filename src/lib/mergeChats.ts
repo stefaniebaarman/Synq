@@ -1,3 +1,6 @@
+import { getFunctions, httpsCallable } from "firebase/functions";
+import { app } from "./firebase";
+
 export type ChatLike = {
   id: string;
   participants?: string[];
@@ -62,4 +65,25 @@ export function mergeParticipantMaps(
 
 export function uniqueChatIds(chatIds: string[]): string[] {
   return [...new Set(chatIds.map((id) => String(id || "").trim()).filter(Boolean))];
+}
+
+const functions = getFunctions(app, "us-central1");
+
+export async function mergeChatsRemote(
+  chatIdA: string,
+  chatIdB: string
+): Promise<{ chatId: string; reused: boolean }> {
+  const a = String(chatIdA || "").trim();
+  const b = String(chatIdB || "").trim();
+  if (!a || !b || a === b) {
+    throw new Error("Two different chats are required.");
+  }
+  const fn = httpsCallable(functions, "mergeChats");
+  const result = await fn({ chatIdA: a, chatIdB: b });
+  const data = (result?.data || {}) as { chatId?: string; reused?: boolean };
+  const chatId = String(data.chatId || "").trim();
+  if (!chatId) {
+    throw new Error("Combine did not return a chat id.");
+  }
+  return { chatId, reused: !!data.reused };
 }
