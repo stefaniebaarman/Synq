@@ -1,4 +1,8 @@
 import CloseIcon from "@/src/components/CloseIcon";
+import {
+  GROUP_BORDER,
+  GROUP_SURFACE,
+} from "@/src/components/friends/groupsListStyles";
 import { ListRowsSkeleton } from "@/src/components/loading/BrandSkeletons";
 import StackScreenHeader from "@/src/components/StackScreenHeader";
 import { Ionicons } from "@expo/vector-icons";
@@ -54,10 +58,6 @@ import {
   TYPE_BUTTON,
   TYPE_CAPTION,
 } from "../constants/Variables";
-import {
-  GROUP_BORDER,
-  GROUP_SURFACE,
-} from "@/src/components/friends/groupsListStyles";
 import {
   acceptCommunityGroupInvite,
   declineCommunityGroupInvite,
@@ -510,9 +510,6 @@ function NotificationsEmptyState() {
         <Ionicons name="notifications-off-outline" size={34} color={MUTED2} />
       </View>
       <Text style={styles.emptyHeadline}>No notifications</Text>
-      <Text style={styles.emptyHelper}>
-        Friend requests, community invites, and activity from your friends will appear here.
-      </Text>
     </View>
   );
 }

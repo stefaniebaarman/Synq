@@ -7,6 +7,7 @@ import {
   ONBOARDING_SCROLL_BOTTOM,
   ONBOARDING_SUBTITLE_MARGIN_TOP,
   ONBOARDING_SUBTITLE_SIZE,
+  ONBOARDING_TITLE_LETTER_SPACING,
   ONBOARDING_TITLE_LINE_HEIGHT,
   ONBOARDING_TITLE_SIZE,
   onboardingAuthInnerMarginTop,
@@ -302,7 +303,7 @@ const styles = StyleSheet.create({
     color: TEXT,
     fontSize: ONBOARDING_TITLE_SIZE,
     fontFamily: fonts.heavy,
-    letterSpacing: 0.2,
+    letterSpacing: ONBOARDING_TITLE_LETTER_SPACING,
     lineHeight: ONBOARDING_TITLE_LINE_HEIGHT,
   },
   divider: {

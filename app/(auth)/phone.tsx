@@ -7,6 +7,7 @@ import {
   ONBOARDING_SCROLL_BOTTOM,
   ONBOARDING_SUBTITLE_MARGIN_TOP,
   ONBOARDING_SUBTITLE_SIZE,
+  ONBOARDING_TITLE_LETTER_SPACING,
   ONBOARDING_TITLE_LINE_HEIGHT,
   ONBOARDING_TITLE_SIZE,
   onboardingAuthInnerMarginTop,
@@ -310,7 +311,7 @@ export default function Phone() {
           {!isCodeSent ? (
             <View style={[styles.innerContent, { marginTop: onboardingAuthInnerMarginTop() }]}>
               <Text style={styles.title}>
-                {isSignIn ? "Welcome back" : "What’s your\nnumber?"}
+                {isSignIn ? "Welcome back" : "What’s your number?"}
               </Text>
               <View style={styles.divider} />
               <View style={styles.inputRow}>
@@ -495,7 +496,7 @@ const styles = StyleSheet.create({
     fontSize: ONBOARDING_TITLE_SIZE,
     fontFamily: fonts.heavy,
     lineHeight: ONBOARDING_TITLE_LINE_HEIGHT,
-    letterSpacing: 0.2,
+    letterSpacing: ONBOARDING_TITLE_LETTER_SPACING,
   },
   subtitle: {
     color: MUTED,

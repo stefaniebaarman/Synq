@@ -22,6 +22,7 @@ import {
   ONBOARDING_SCROLL_BOTTOM,
   ONBOARDING_SUBTITLE_MARGIN_TOP,
   ONBOARDING_SUBTITLE_SIZE,
+  ONBOARDING_TITLE_LETTER_SPACING,
   ONBOARDING_TITLE_LINE_HEIGHT,
   ONBOARDING_TITLE_SIZE,
   onboardingContentTopPadding,
@@ -426,7 +427,7 @@ const styles = StyleSheet.create({
     fontSize: ONBOARDING_TITLE_SIZE,
     lineHeight: ONBOARDING_TITLE_LINE_HEIGHT,
     fontFamily: fonts.heavy,
-    letterSpacing: 0.2,
+    letterSpacing: ONBOARDING_TITLE_LETTER_SPACING,
   },
   divider: {
     marginTop: ONBOARDING_DIVIDER_MARGIN_TOP,

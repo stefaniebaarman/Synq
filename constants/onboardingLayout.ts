@@ -116,9 +116,10 @@ export function onboardingAuthInnerMarginTop(): number {
   return Math.round(WINDOW_HEIGHT * 0.2);
 }
 
-/** Primary headline size for onboarding (matches email / login). */
-export const ONBOARDING_TITLE_SIZE = 34;
-export const ONBOARDING_TITLE_LINE_HEIGHT = 40;
+/** Primary headline size for form steps (TYPE_TITLE; display stays on carousel). */
+export const ONBOARDING_TITLE_SIZE = 26;
+export const ONBOARDING_TITLE_LINE_HEIGHT = 32;
+export const ONBOARDING_TITLE_LETTER_SPACING = -0.3;
 
 /** Hairline under title on auth screens. */
 export const ONBOARDING_DIVIDER_WIDTH = "78%" as const;

@@ -14,6 +14,15 @@ import {
   PENDING_COMMUNITY_SHARE_CODE_KEY,
   resolveCommunityShareCodeToGroupId,
 } from "@/src/lib/communityShareUrl";
+import {
+  claimPendingAmbassadorReferral,
+  isValidAmbassadorCodeShape,
+  normalizeAmbassadorCode,
+  parseAmbassadorCodeFromUrl,
+  PENDING_AMBASSADOR_CODE_KEY,
+  recoverAmbassadorCodeOnce,
+  stashPendingAmbassadorCode,
+} from "@/src/lib/ambassadorReferral";
 import { parsePushNotificationTap } from "@/src/lib/pushNotificationTapCore";
 import { SYNQ_ACTIVE_FRIENDS_REFRESH } from "@/src/lib/synqTabEvents";
 import AsyncStorage from "@react-native-async-storage/async-storage";
@@ -253,6 +262,8 @@ export default function RootLayout() {
   } | null>(null);
   const inviteProcessingRef = useRef(false);
   const inviteAttemptsRef = useRef<Set<string>>(new Set());
+  const ambassadorProcessingRef = useRef(false);
+  const ambassadorAttemptsRef = useRef<Set<string>>(new Set());
   const [suspendedNoticeVisible, setSuspendedNoticeVisible] = useState(false);
   const [inviteLinkAlert, setInviteLinkAlert] = useState<string | null>(null);
   const [ownProfileLinkAlert, setOwnProfileLinkAlert] = useState(false);
@@ -309,6 +320,13 @@ export default function RootLayout() {
     const captureDeepLinkFromUrl = async (url: string | null) => {
       if (!url) return;
       try {
+        const ambassadorCode = parseAmbassadorCodeFromUrl(url);
+        if (ambassadorCode) {
+          requestDismissNavigationOverlays();
+          await stashPendingAmbassadorCode(ambassadorCode, "universal_link");
+          return;
+        }
+
         const communityShareCode = parseCommunityShareCodeFromUrl(url);
         if (communityShareCode) {
           requestDismissNavigationOverlays();
@@ -356,6 +374,10 @@ export default function RootLayout() {
       void captureDeepLinkFromUrl(url);
     });
     return () => sub.remove();
+  }, []);
+
+  useEffect(() => {
+    void recoverAmbassadorCodeOnce();
   }, []);
 
   useEffect(() => {
@@ -863,6 +885,34 @@ export default function RootLayout() {
     };
 
     void processPendingInvite();
+  }, [authReady, navReady, user?.uid, user?.displayName, userProfileGate]);
+
+  useEffect(() => {
+    if (!authReady || !navReady || !user?.uid) return;
+    const hasName =
+      !!user.displayName || userProfileGate?.hasDisplayName === true;
+    if (!hasName) return;
+    if (ambassadorProcessingRef.current) return;
+
+    const processPendingAmbassador = async () => {
+      const codeRaw = await AsyncStorage.getItem(PENDING_AMBASSADOR_CODE_KEY);
+      const code = normalizeAmbassadorCode(codeRaw || "");
+      if (!isValidAmbassadorCodeShape(code)) return;
+
+      const attemptKey = `${user.uid}:${code}`;
+      if (ambassadorAttemptsRef.current.has(attemptKey)) return;
+      ambassadorAttemptsRef.current.add(attemptKey);
+      ambassadorProcessingRef.current = true;
+      try {
+        await claimPendingAmbassadorReferral();
+      } catch {
+        ambassadorAttemptsRef.current.delete(attemptKey);
+      } finally {
+        ambassadorProcessingRef.current = false;
+      }
+    };
+
+    void processPendingAmbassador();
   }, [authReady, navReady, user?.uid, user?.displayName, userProfileGate]);
 
   useEffect(() => {

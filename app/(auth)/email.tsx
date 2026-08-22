@@ -5,8 +5,7 @@ import {
   ONBOARDING_DIVIDER_WIDTH,
   ONBOARDING_H_PADDING,
   ONBOARDING_SCROLL_BOTTOM,
-  ONBOARDING_SUBTITLE_MARGIN_TOP,
-  ONBOARDING_SUBTITLE_SIZE,
+  ONBOARDING_TITLE_LETTER_SPACING,
   ONBOARDING_TITLE_LINE_HEIGHT,
   ONBOARDING_TITLE_SIZE,
   onboardingAuthInnerMarginTop,
@@ -15,7 +14,6 @@ import {
   BG,
   BORDER,
   BUTTON_RADIUS,
-  MUTED,
   MUTED2,
   MUTED3,
   PRIMARY_CTA_HEIGHT,
@@ -129,7 +127,6 @@ export default function EmailSignup() {
             >
               <Text style={styles.title}>Sign up with email</Text>
               <View style={styles.divider} />
-              <Text style={styles.subtitle}>Create an account with your email</Text>
 
               <View style={styles.fields}>
                 <TextInput
@@ -215,7 +212,7 @@ const styles = StyleSheet.create({
     color: TEXT,
     fontSize: ONBOARDING_TITLE_SIZE,
     fontFamily: fonts.heavy,
-    letterSpacing: 0.2,
+    letterSpacing: ONBOARDING_TITLE_LETTER_SPACING,
     lineHeight: ONBOARDING_TITLE_LINE_HEIGHT,
   },
   divider: {
@@ -223,13 +220,6 @@ const styles = StyleSheet.create({
     height: 1,
     backgroundColor: BORDER,
     width: ONBOARDING_DIVIDER_WIDTH,
-  },
-  subtitle: {
-    color: MUTED,
-    fontSize: ONBOARDING_SUBTITLE_SIZE,
-    marginTop: ONBOARDING_SUBTITLE_MARGIN_TOP,
-    fontFamily: fonts.book,
-    lineHeight: 22,
   },
   fields: {
     marginTop: 28,
