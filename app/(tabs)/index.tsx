@@ -1278,11 +1278,12 @@ export default function SynqScreen() {
 
   useEffect(() => {
     const uid = user?.uid;
+    // Nudge when nobody is free, or only one friend is — “see who else is free”.
     if (
       !uid ||
       status !== "active" ||
       !availableFriendsReady ||
-      visibleAvailableFriends.length > 0
+      visibleAvailableFriends.length > 1
     ) {
       setNudgeCandidates([]);
       return;

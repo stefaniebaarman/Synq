@@ -22,7 +22,6 @@ import {
   TEXT,
   TYPE_BODY,
   TYPE_BUTTON,
-  TYPE_CAPTION,
   fonts,
 } from "@/constants/Variables";
 import type { FriendGroup } from "@/src/lib/friendGroups";
@@ -328,8 +327,12 @@ export default function InactiveSynqView({
   const stack = (
     <Animated.View entering={enter(0)} style={styles.stack}>
       <View style={styles.titleRow}>
-        <Text style={styles.title} accessibilityRole="header">
-          SYNQ INACTIVE
+        <Text
+          style={styles.title}
+          accessibilityRole="header"
+          accessibilityLabel="Synq is inactive"
+        >
+          SYNQ IS INACTIVE
         </Text>
       </View>
 
@@ -465,7 +468,7 @@ const styles = StyleSheet.create({
   title: {
     color: MUTED,
     fontFamily: fonts.heavy,
-    fontSize: TYPE_BODY,
+    fontSize: TYPE_BUTTON,
     lineHeight: 22,
     letterSpacing: 1.1,
     textTransform: "uppercase",
@@ -573,8 +576,8 @@ const styles = StyleSheet.create({
   },
   ctaText: {
     color: ACCENT,
-    fontSize: TYPE_CAPTION,
-    lineHeight: 18,
+    fontSize: TYPE_BUTTON,
+    lineHeight: 22,
     fontFamily: fonts.heavy,
     letterSpacing: 1.2,
     textAlign: "center",

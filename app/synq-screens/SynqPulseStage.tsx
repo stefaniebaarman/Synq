@@ -1,11 +1,9 @@
 import {
-  ACCENT,
   ACCENT_BORDER,
   ACCENT_FILL_STRONG,
   BG,
   MUTED,
   modalTitleText,
-  synqSvg,
 } from "@/constants/Variables";
 import { Image as ExpoImage } from "expo-image";
 import React, { useEffect, useState } from "react";
@@ -20,7 +18,6 @@ import Animated, {
   withSequence,
   withTiming,
 } from "react-native-reanimated";
-import { SvgXml } from "react-native-svg";
 
 const RING_COUNT = 4;
 const RING_STAGGER_MS = 380;
@@ -83,7 +80,6 @@ export default function SynqPulseStage({ title, onComplete }: Props) {
   const [ringCycle, setRingCycle] = useState(0);
 
   const bloom = useSharedValue(0);
-  const bgReveal = useSharedValue(0);
   const pulseScale = useSharedValue(1);
 
   useEffect(() => {
@@ -94,10 +90,6 @@ export default function SynqPulseStage({ title, onComplete }: Props) {
         bloom.value = withTiming(1, {
           duration: LAUNCH_MS - 180,
           easing: Easing.inOut(Easing.cubic),
-        });
-        bgReveal.value = withTiming(1, {
-          duration: LAUNCH_MS,
-          easing: Easing.out(Easing.cubic),
         });
         pulseScale.value = withSequence(
           withTiming(1.06, { duration: 360, easing: Easing.out(Easing.cubic) }),
@@ -125,10 +117,6 @@ export default function SynqPulseStage({ title, onComplete }: Props) {
       -1,
       false
     );
-    bgReveal.value = withTiming(1, {
-      duration: 900,
-      easing: Easing.out(Easing.cubic),
-    });
     pulseScale.value = withRepeat(
       withSequence(
         withTiming(1.06, { duration: 720, easing: Easing.out(Easing.cubic) }),
@@ -143,22 +131,11 @@ export default function SynqPulseStage({ title, onComplete }: Props) {
     }, CONTINUOUS_RING_CYCLE_MS);
 
     return () => clearInterval(ringTimer);
-  }, [launch, reduced, bloom, bgReveal, pulseScale, onComplete]);
+  }, [launch, reduced, bloom, pulseScale, onComplete]);
 
   const bloomStyle = useAnimatedStyle(() => ({
     opacity: 0.12 + bloom.value * 0.38,
     transform: [{ scale: 0.85 + bloom.value * 0.35 }],
-  }));
-
-  const bgStyle = useAnimatedStyle(() => ({
-    opacity: 0.06 + bgReveal.value * 0.2,
-    transform: [
-      { scale: launch ? 0.9 + bgReveal.value * 0.14 : 0.94 },
-    ],
-  }));
-
-  const bgTintStyle = useAnimatedStyle(() => ({
-    opacity: bgReveal.value * 0.12,
   }));
 
   const pulseStyle = useAnimatedStyle(() => ({
@@ -167,11 +144,6 @@ export default function SynqPulseStage({ title, onComplete }: Props) {
 
   return (
     <View style={styles.container}>
-      <Animated.View style={[styles.bgWrap, bgStyle]} pointerEvents="none">
-        <SvgXml xml={synqSvg} width="115%" height="115%" />
-      </Animated.View>
-      <Animated.View style={[styles.bgTint, bgTintStyle]} pointerEvents="none" />
-
       <View style={styles.stage}>
         <View style={styles.pulseArea}>
           {Array.from({ length: RING_COUNT }, (_, i) => (
@@ -209,15 +181,6 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     overflow: "hidden",
-  },
-  bgWrap: {
-    ...StyleSheet.absoluteFillObject,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  bgTint: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: ACCENT,
   },
   stage: {
     alignItems: "center",
