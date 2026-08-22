@@ -3,10 +3,13 @@ import type { Friend } from "@/constants/Variables";
 import {
   ACCENT,
   MUTED2,
+  SPACE_2,
   SPACE_3,
   SPACE_4,
   SPACE_5,
+  TYPE_LEAD,
   TYPE_SUBHEAD,
+  fonts,
   modalBodyText,
   modalTitleText,
   synqOutlineAddBtn,
@@ -37,6 +40,8 @@ type NudgeRowState = { loading: boolean; sent: boolean };
 type Props = {
   viewerId: string;
   candidates: Friend[];
+  /** empty = nobody free; seeWhoElse = one friend free, nudge the rest */
+  variant?: "empty" | "seeWhoElse";
 };
 
 function shuffleArray<T>(items: T[]): T[] {
@@ -64,7 +69,11 @@ function pickFriendIds(
     .map((f) => f.id);
 }
 
-export default function ActiveSynqEmptyState({ viewerId, candidates }: Props) {
+export default function ActiveSynqEmptyState({
+  viewerId,
+  candidates,
+  variant = "empty",
+}: Props) {
   const [nudgeByFriendId, setNudgeByFriendId] = useState<Record<string, NudgeRowState>>({});
   const [shownIds, setShownIds] = useState<string[]>([]);
   const [sharingProfile, setSharingProfile] = useState(false);
@@ -230,19 +239,40 @@ export default function ActiveSynqEmptyState({ viewerId, candidates }: Props) {
   }, [sharingProfile, showAlert]);
 
   const hasCandidates = candidates.length > 0;
+  const isSeeWhoElse = variant === "seeWhoElse";
 
   return (
-    <View style={styles.wrap}>
-      <Text style={styles.title}>Nobody&apos;s free yet</Text>
-      <Text style={styles.subtitle}>
-        {hasCandidates
-          ? "Nudge your friends to see if they're free."
-          : "Check back soon or share your profile to grow your circle."}
-      </Text>
+    <View style={[styles.wrap, isSeeWhoElse && styles.wrapFooter]}>
+      {!isSeeWhoElse ? (
+        <>
+          <Text style={styles.title}>Nobody&apos;s free yet</Text>
+          <Text style={styles.subtitle}>
+            {hasCandidates
+              ? "Nudge your friends to see if they're free."
+              : "Check back soon or share your profile to grow your circle."}
+          </Text>
+        </>
+      ) : hasCandidates ? (
+        <View style={styles.sectionHeader}>
+          <Text style={styles.sectionLabel}>See who else is free</Text>
+          {canShuffle ? (
+            <TouchableOpacity
+              style={styles.shuffleBtnInline}
+              onPress={handleShuffle}
+              activeOpacity={0.85}
+              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+              accessibilityRole="button"
+              accessibilityLabel="Show 3 more friends to nudge"
+            >
+              <Ionicons name="shuffle-outline" size={20} color={MUTED2} />
+            </TouchableOpacity>
+          ) : null}
+        </View>
+      ) : null}
 
       {hasCandidates ? (
-        <View style={styles.nudgeSection}>
-          {canShuffle ? (
+        <View style={[styles.nudgeSection, isSeeWhoElse && styles.nudgeSectionSolo]}>
+          {!isSeeWhoElse && canShuffle ? (
             <TouchableOpacity
               style={styles.shuffleBtn}
               onPress={handleShuffle}
@@ -270,7 +300,7 @@ export default function ActiveSynqEmptyState({ viewerId, candidates }: Props) {
             })}
           </View>
         </View>
-      ) : (
+      ) : isSeeWhoElse ? null : (
         <View style={styles.growthSection}>
           <TouchableOpacity
             style={[synqOutlineAddBtn, styles.shareCta]}
@@ -307,6 +337,29 @@ const styles = StyleSheet.create({
     alignSelf: "center",
     width: "100%",
   },
+  wrapFooter: {
+    paddingTop: SPACE_4,
+  },
+  sectionHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: SPACE_3,
+    marginBottom: SPACE_2,
+    minHeight: 28,
+  },
+  sectionLabel: {
+    flex: 1,
+    color: MUTED2,
+    fontSize: TYPE_LEAD,
+    lineHeight: 18,
+    fontFamily: fonts.medium,
+    letterSpacing: 0.2,
+  },
+  shuffleBtnInline: {
+    padding: 4,
+    marginRight: -4,
+  },
   title: {
     ...modalTitleText,
     lineHeight: 32,
@@ -321,6 +374,9 @@ const styles = StyleSheet.create({
   },
   nudgeSection: {
     marginTop: SPACE_4,
+  },
+  nudgeSectionSolo: {
+    marginTop: 0,
   },
   nudgeList: {
     gap: 10,

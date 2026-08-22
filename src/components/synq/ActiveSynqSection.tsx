@@ -253,6 +253,8 @@ export default function ActiveSynqSection({
   );
 
   const freeCount = sortedAvailableFriends.length;
+  const showSeeWhoElseNudge =
+    !friendsLoading && freeCount === 1 && nudgeCandidates.length > 0;
   const selectedCount = selectedFriends.length;
   const showCta = selectedCount > 0;
   const showDock = !friendsLoading && freeCount > 0;
@@ -432,6 +434,15 @@ export default function ActiveSynqSection({
                 <ActiveSynqEmptyState
                   viewerId={viewerId}
                   candidates={nudgeCandidates}
+                />
+              ) : null
+            }
+            ListFooterComponent={
+              showSeeWhoElseNudge && viewerId ? (
+                <ActiveSynqEmptyState
+                  viewerId={viewerId}
+                  candidates={nudgeCandidates}
+                  variant="seeWhoElse"
                 />
               ) : null
             }
