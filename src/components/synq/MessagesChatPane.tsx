@@ -18,7 +18,8 @@ import {
   TYPE_CAPTION,
   TYPE_FINE,
   TYPE_LEAD,
-  TYPE_MICRO
+  TYPE_MICRO,
+  TYPE_SECTION,
 } from "@/constants/Variables";
 import CloseButton from "@/src/components/CloseButton";
 import CloseIcon from "@/src/components/CloseIcon";
@@ -277,7 +278,6 @@ type Props = {
   hasEarlierMessages?: boolean;
   loadingEarlier?: boolean;
   onLoadEarlier?: () => void;
-  typingUserIds?: string[];
   onComposerChange?: (text: string) => void;
   showAICard: boolean;
   aiResponse: string;
@@ -347,7 +347,6 @@ export default function MessagesChatPane({
   hasEarlierMessages = false,
   loadingEarlier = false,
   onLoadEarlier,
-  typingUserIds = [],
   onComposerChange,
   showAICard,
   aiResponse,
@@ -1774,11 +1773,6 @@ export default function MessagesChatPane({
                       {chatTitle}
                     </Text>
                   )}
-                  {typingUserIds.length > 0 ? (
-                    <Text style={chatHeaderOverlayStyles.typingIndicatorText}>
-                      Typing…
-                    </Text>
-                  ) : null}
                 </View>
               </View>
             </View>
@@ -1888,6 +1882,7 @@ const chatHeaderOverlayStyles = RNStyleSheet.create({
   },
   expandedHeadline: {
     ...sheetHeaderTitleText,
+    fontSize: TYPE_SECTION,
     letterSpacing: 0.05,
   },
   showLessLink: {
@@ -1938,12 +1933,6 @@ const chatHeaderOverlayStyles = RNStyleSheet.create({
   },
   fadeBelowAi: {
     height: CHAT_HEADER_FADE_BELOW_AI,
-  },
-  typingIndicatorText: {
-    color: MUTED2,
-    fontSize: TYPE_FINE,
-    fontFamily: fonts.book,
-    marginTop: 2,
   },
   chatErrorBanner: {
     backgroundColor: DESTRUCTIVE_IOS_FILL,
