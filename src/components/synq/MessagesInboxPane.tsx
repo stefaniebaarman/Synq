@@ -3,6 +3,7 @@ import CloseButton from "@/src/components/CloseButton";
 import { ListRowsSkeleton } from "@/src/components/loading/BrandSkeletons";
 import ChatInboxActionSheet from "@/src/components/synq/ChatInboxActionSheet";
 import {
+  ACCENT,
   MUTED2,
   messagesModalHeaderPaddingTop,
   synqOutlineAddBtn,
@@ -162,7 +163,7 @@ export default function MessagesInboxPane({
               ]}
             >
               {isSelected ? (
-                <Ionicons name="checkmark" size={15} color="white" />
+                <Ionicons name="checkmark" size={15} color={ACCENT} />
               ) : null}
             </View>
           ) : null}
