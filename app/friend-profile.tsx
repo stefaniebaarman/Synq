@@ -1,6 +1,8 @@
 import { sheetStyles } from "@/constants/sheetStyles";
 import {
   ACCENT,
+  ACCENT_BORDER,
+  ACCENT_FILL_SUBTLE,
   BG,
   BORDER,
   BORDER_SOFT,
@@ -16,6 +18,7 @@ import {
   SURFACE_ELEVATED,
   SURFACE_INPUT,
   SURFACE_RAISED,
+  SYNQ_OUTLINE_CTA_RADIUS,
   TEXT,
   TYPE_BODY,
   TYPE_BUTTON,
@@ -1164,6 +1167,42 @@ export default function FriendProfile({
                 Last Synq: {formatLastSynq(lastSynq)}
               </Text>
             ) : null}
+
+            {!userIsBlocked && !isFriend ? (
+              <TouchableOpacity
+                activeOpacity={0.8}
+                style={[
+                  styles.profileAddBtn,
+                  requestSent && !incomingRequest && synqOutlineAddBtnDisabled,
+                ]}
+                onPress={incomingRequest ? acceptIncomingFriendRequest : addFriend}
+                disabled={(!incomingRequest && requestSent) || actionLoading}
+                accessibilityRole="button"
+                accessibilityLabel={
+                  incomingRequest
+                    ? "Accept"
+                    : requestSent
+                      ? "Pending"
+                      : "+ Add"
+                }
+              >
+                <Text
+                  style={[
+                    styles.profileAddBtnText,
+                    requestSent &&
+                      !incomingRequest &&
+                      synqOutlineAddBtnTextDisabled,
+                    actionLoading && { opacity: 0.5 },
+                  ]}
+                >
+                  {incomingRequest
+                    ? "Accept"
+                    : requestSent
+                      ? "Pending"
+                      : "+ Add"}
+                </Text>
+              </TouchableOpacity>
+            ) : null}
           </View>
 
           {showNudgeCard ? (
@@ -1180,40 +1219,6 @@ export default function FriendProfile({
         {userIsBlocked ? (
           <View style={styles.profileActionWrap}>
             <Text style={styles.blockedHint}>You’ve blocked this user.</Text>
-          </View>
-        ) : !isFriend ? (
-          <View style={styles.profileActionWrap}>
-            <TouchableOpacity
-              activeOpacity={0.8}
-              style={[
-                synqOutlineAddBtn,
-                requestSent && !incomingRequest && synqOutlineAddBtnDisabled,
-              ]}
-              onPress={incomingRequest ? acceptIncomingFriendRequest : addFriend}
-              disabled={(!incomingRequest && requestSent) || actionLoading}
-              accessibilityRole="button"
-              accessibilityLabel={
-                incomingRequest
-                  ? "Accept"
-                  : requestSent
-                    ? "Pending"
-                    : "+ Add"
-              }
-            >
-              <Text
-                style={[
-                  synqOutlineAddBtnText,
-                  requestSent && !incomingRequest && synqOutlineAddBtnTextDisabled,
-                  actionLoading && { opacity: 0.5 },
-                ]}
-              >
-                {incomingRequest
-                  ? "Accept"
-                  : requestSent
-                    ? "Pending"
-                    : "+ Add"}
-              </Text>
-            </TouchableOpacity>
           </View>
         ) : null}
 
@@ -1810,6 +1815,26 @@ const styles = StyleSheet.create({
     marginTop: 10,
     alignItems: "center",
     gap: 10,
+  },
+
+  profileAddBtn: {
+    marginTop: 14,
+    alignSelf: "center",
+    paddingVertical: 9,
+    paddingHorizontal: 14,
+    borderRadius: SYNQ_OUTLINE_CTA_RADIUS,
+    borderWidth: 1,
+    borderColor: ACCENT_BORDER,
+    backgroundColor: ACCENT_FILL_SUBTLE,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+
+  profileAddBtnText: {
+    color: ACCENT,
+    fontFamily: fonts.medium,
+    fontSize: TYPE_CAPTION,
+    letterSpacing: 0.1,
   },
 
   profileSectionLabel: profileScreenSectionTitle,

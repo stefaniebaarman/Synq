@@ -311,7 +311,7 @@ export default function Phone() {
           {!isCodeSent ? (
             <View style={[styles.innerContent, { marginTop: onboardingAuthInnerMarginTop() }]}>
               <Text style={styles.title}>
-                {isSignIn ? "Welcome back" : "What’s your number?"}
+                {isSignIn ? "Welcome back!" : "What’s your number?"}
               </Text>
               <View style={styles.divider} />
               <View style={styles.inputRow}>

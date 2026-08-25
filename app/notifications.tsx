@@ -507,9 +507,12 @@ function NotificationsEmptyState() {
   return (
     <View style={styles.emptyState}>
       <View style={styles.emptyIconRing}>
-        <Ionicons name="notifications-off-outline" size={34} color={MUTED2} />
+        <Ionicons name="checkmark-circle-outline" size={34} color={MUTED2} />
       </View>
-      <Text style={styles.emptyHeadline}>No notifications</Text>
+      <Text style={styles.emptyHeadline}>You&apos;re all caught up!</Text>
+      <Text style={styles.emptyHelper}>
+        New activity from friends will show up here.
+      </Text>
     </View>
   );
 }
