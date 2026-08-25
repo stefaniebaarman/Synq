@@ -251,7 +251,7 @@ export default function PlanGoingPeopleSheet({
 }
 
 const AVATAR_SIZE = 40;
-const HOST_RING = 2.5;
+const HOST_RING = 1.5;
 const BADGE_SIZE = 18;
 
 const styles = StyleSheet.create({

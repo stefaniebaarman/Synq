@@ -21,6 +21,7 @@ import { ListRowsSkeleton } from "@/src/components/loading/BrandSkeletons";
 import { resolveAvatar } from "@/src/lib/helpers";
 import { fetchOrCreateInviteCode } from "@/src/lib/inviteCode";
 import {
+  contactsMatchNeedsNameRefresh,
   findFriendsFromContacts,
   getCachedContactsMatch,
   hydrateContactsMatchCache,
@@ -127,7 +128,12 @@ export default function FindFromContactsModal({
         setError(null);
         applyResult(cached, { quiet: true });
         setLoading(false);
-        if (shouldSoftRefreshContactsMatch()) {
+        // Soft-refresh when stale, or immediately if any row still shows the
+        // "User" placeholder (e.g. matched before a stub profile was repaired).
+        if (
+          shouldSoftRefreshContactsMatch() ||
+          contactsMatchNeedsNameRefresh(cached)
+        ) {
           void softRefresh();
         }
         return;

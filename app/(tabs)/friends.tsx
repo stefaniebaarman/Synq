@@ -2046,6 +2046,20 @@ function SearchModal({
           <Ionicons name="chevron-forward" size={18} color={MUTED2} />
         </TouchableOpacity>
 
+        <TouchableOpacity
+          style={styles.qrScanRow}
+          onPress={() => void handleShareProfile()}
+          disabled={sharingProfile}
+          accessibilityRole="button"
+          accessibilityLabel="Share your profile"
+        >
+          <Ionicons name="share-social-outline" size={20} color={ACCENT} />
+          <Text style={styles.qrScanRowText}>
+            {sharingProfile ? "Preparing…" : "Share your profile"}
+          </Text>
+          <Ionicons name="chevron-forward" size={18} color={MUTED2} />
+        </TouchableOpacity>
+
         {!queryText ? (
           <View
             style={[
