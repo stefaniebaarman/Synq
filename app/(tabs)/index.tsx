@@ -3640,7 +3640,7 @@ const styles = StyleSheet.create({
     backgroundColor: SURFACE_SUBTLE,
   },
   inboxSelectBadgeActive: {
-    backgroundColor: ACCENT,
+    backgroundColor: "transparent",
     borderColor: ACCENT,
   },
   messagesHeaderDivider: {
