@@ -61,7 +61,10 @@ import {
   View,
 } from "react-native";
 import { Gesture, GestureDetector } from "react-native-gesture-handler";
-import { useReanimatedKeyboardAnimation } from "react-native-keyboard-controller";
+import {
+  KeyboardStickyView,
+  useReanimatedKeyboardAnimation,
+} from "react-native-keyboard-controller";
 import Animated, {
   Easing,
   Extrapolation,
@@ -77,9 +80,8 @@ import CreatePollSheet from "./CreatePollSheet";
 import { MESSAGES_STACK_DURATION_MS } from "./MessagesModalStack";
 import PollBubble from "./PollBubble";
 
-const COMPOSER_KEYBOARD_GAP = 10;
-/** Extra lift while the keyboard is open so the field isn’t covered. */
-const COMPOSER_KEYBOARD_CLEARANCE = 20;
+/** Gap between the input shell and the home indicator / keyboard. */
+const COMPOSER_KEYBOARD_GAP = 8;
 /** Inverted list: paddingTop = visual gap between the latest message and the composer. */
 const CHAT_LIST_COMPOSER_CLEARANCE = 18;
 const LIST_SCROLL_OVERFLOW_SLACK = 4;
@@ -88,6 +90,8 @@ const LIST_SCROLL_OVERFLOW_SLACK = 4;
 const CHAT_PANE_ENTER_MS = MESSAGES_STACK_DURATION_MS;
 /** Clamp overscroll at the latest-message edge (inverted list, offset near 0). */
 const CHAT_LATEST_SCROLL_TOLERANCE = 2;
+/** If scroll moves farther than this from latest, treat as browse (not keyboard dismiss). */
+const KEYBOARD_DISMISS_SCROLL_SLACK = 280;
 /** Brief settle after open anchor before enabling bounce/follow-up scrolls. */
 const CHAT_OPEN_LAYOUT_SETTLE_MS = 220;
 /** Soft reveal after stack push + first layout (hides scroll/layout flash). */
@@ -398,6 +402,21 @@ export default function MessagesChatPane({
   useEffect(() => {
     bottomInsetSV.value = bottomInset;
   }, [bottomInset, bottomInsetSV]);
+  const composerClosedPad = bottomInset + COMPOSER_KEYBOARD_GAP;
+  /**
+   * StickyView moves by keyboardHeight + opened offset. opened = bottomInset
+   * tucks safe-area padding under the keyboard (no black gap under the input).
+   * Spacer matches that effective lift so the list isn’t covered.
+   * Reanimated (not RN Animated) — native driver can't animate `height`.
+   */
+  const keyboardSpacerStyle = useAnimatedStyle(() => {
+    const lift = keyboardHeight.value > -2 ? 0 : keyboardHeight.value;
+    const absLift = -lift;
+    const inset = bottomInsetSV.value;
+    return {
+      height: Math.max(0, absLift - inset),
+    };
+  });
   const activeChatRef = useRef(activeChat);
   activeChatRef.current = activeChat;
   const liveImagesRef = useRef(liveParticipantImages);
@@ -406,6 +425,9 @@ export default function MessagesChatPane({
   const chatSeededRef = useRef(false);
   const prevChatIdRef = useRef<string | undefined>(undefined);
   const anchorBottomRef = useRef(true);
+  /** Started keyboard session / dismiss while viewing latest — re-pin after swipe-dismiss. */
+  const pinLatestThroughKeyboardRef = useRef(true);
+  const keyboardVisibleRef = useRef(false);
   const pendingNormalScrollRef = useRef(false);
   const prevAnchorKeyRef = useRef(chatOpenAnchorKey);
   const prevMessagesLenByChatRef = useRef<Record<string, number>>({});
@@ -440,67 +462,32 @@ export default function MessagesChatPane({
     opacity: threadOpacity.value,
   }));
 
-  const swipeRevealGesture = useMemo(
-    () =>
-      Gesture.Pan()
-        // Stay out of the way of bubble long-press / tap until a clear horizontal swipe.
-        .activeOffsetX([-22, 22])
-        .failOffsetY([-16, 16])
-        .onBegin(() => {
-          swipeRevealStartX.value = swipeRevealX.value;
-        })
-        .onUpdate((e) => {
-          const next = swipeRevealStartX.value + e.translationX;
-          swipeRevealX.value = Math.min(
-            0,
-            Math.max(-CHAT_SWIPE_REVEAL_MAX, next)
-          );
-        })
-        .onEnd(() => {
-          // iMessage-style peek: snap closed when the finger lifts.
-          swipeRevealX.value = withTiming(0, { duration: 200 });
-        }),
-    [swipeRevealStartX, swipeRevealX]
-  );
+  const swipeRevealGesture = useMemo(() => {
+    const pan = Gesture.Pan()
+      // Stay out of the way of bubble long-press / tap until a clear horizontal swipe.
+      .activeOffsetX([-22, 22])
+      .failOffsetY([-16, 16])
+      .onBegin(() => {
+        swipeRevealStartX.value = swipeRevealX.value;
+      })
+      .onUpdate((e) => {
+        const next = swipeRevealStartX.value + e.translationX;
+        swipeRevealX.value = Math.min(
+          0,
+          Math.max(-CHAT_SWIPE_REVEAL_MAX, next)
+        );
+      })
+      .onEnd(() => {
+        // iMessage-style peek: snap closed when the finger lifts.
+        swipeRevealX.value = withTiming(0, { duration: 200 });
+      });
+    // Keep FlatList’s native scroll/keyboard-dismiss gestures working.
+    return Gesture.Simultaneous(Gesture.Native(), pan);
+  }, [swipeRevealStartX, swipeRevealX]);
 
   useEffect(() => {
     swipeRevealX.value = 0;
   }, [activeChat?.id, swipeRevealX]);
-
-  /**
-   * List spacer tracks keyboard height only (UI thread).
-   */
-  const keyboardSpacerStyle = useAnimatedStyle(() => {
-    // Ignore sub-pixel residue after dismiss / remount.
-    const lift = keyboardHeight.value > -2 ? 0 : keyboardHeight.value;
-    const absLift = -lift;
-    const inset = bottomInsetSV.value;
-    // Reclaim safe-area padding as the keyboard covers the home indicator.
-    const reclaim = absLift <= 0 ? 0 : Math.min(inset, absLift);
-    const clearance =
-      absLift <= 0
-        ? 0
-        : COMPOSER_KEYBOARD_CLEARANCE * Math.min(1, absLift / 48);
-    return {
-      height: Math.max(0, absLift - reclaim + clearance),
-    };
-  });
-
-  const composerDockAnimStyle = useAnimatedStyle(() => {
-    const lift = keyboardHeight.value > -2 ? 0 : keyboardHeight.value;
-    const absLift = -lift;
-    const inset = bottomInsetSV.value;
-    const reclaim = absLift <= 0 ? 0 : Math.min(inset, absLift);
-    const clearance =
-      absLift <= 0
-        ? 0
-        : COMPOSER_KEYBOARD_CLEARANCE * Math.min(1, absLift / 48);
-    return {
-      transform: [{ translateY: lift + reclaim - clearance }],
-    };
-  });
-
-  const composerClosedPad = bottomInset + COMPOSER_KEYBOARD_GAP;
 
   const scheduleOpenAnchor = useCallback((messageCount: number) => {
     if (messageCount <= 0) {
@@ -820,23 +807,58 @@ export default function MessagesChatPane({
     return atLatest;
   }, []);
 
+  const pinToLatestAfterKeyboard = useCallback(() => {
+    if (!pinLatestThroughKeyboardRef.current) return;
+    anchorBottomRef.current = true;
+    scrollOffsetRef.current = 0;
+    flatListRef.current?.scrollToOffset({ offset: 0, animated: false });
+  }, [flatListRef]);
+
   const handleChatScroll = useCallback(
     (event: NativeSyntheticEvent<NativeScrollEvent>) => {
       if (!listScrollableRef.current) return;
 
       const y = event.nativeEvent.contentOffset.y;
       scrollOffsetRef.current = y;
+      if (pinLatestThroughKeyboardRef.current) {
+        // Interactive dismiss only nudges offset a little; a larger drag is browse-up.
+        if (y > KEYBOARD_DISMISS_SCROLL_SLACK) {
+          pinLatestThroughKeyboardRef.current = false;
+          syncAnchoredToLatest(y);
+        }
+        return;
+      }
       syncAnchoredToLatest(y);
     },
     [syncAnchoredToLatest]
   );
 
+  const handleChatScrollBeginDrag = useCallback(() => {
+    const atLatest = scrollOffsetRef.current <= CHAT_LATEST_SCROLL_TOLERANCE;
+    if (atLatest) {
+      // Swipe from the latest edge is usually keyboard dismiss, not browse-up.
+      pinLatestThroughKeyboardRef.current = true;
+      anchorBottomRef.current = true;
+      return;
+    }
+    pinLatestThroughKeyboardRef.current = false;
+    anchorBottomRef.current = false;
+  }, []);
+
   const handleChatScrollEnd = useCallback(
     (event: NativeSyntheticEvent<NativeScrollEvent>) => {
       if (!listScrollableRef.current) return;
-      syncAnchoredToLatest(event.nativeEvent.contentOffset.y);
+      const y = event.nativeEvent.contentOffset.y;
+      scrollOffsetRef.current = y;
+      if (pinLatestThroughKeyboardRef.current && !keyboardVisibleRef.current) {
+        pinToLatestAfterKeyboard();
+        return;
+      }
+      if (!pinLatestThroughKeyboardRef.current) {
+        syncAnchoredToLatest(y);
+      }
     },
-    [syncAnchoredToLatest]
+    [pinToLatestAfterKeyboard, syncAnchoredToLatest]
   );
 
   const scrollToLatest = useCallback(
@@ -953,9 +975,30 @@ export default function MessagesChatPane({
   const flatListInitialRender = CHAT_LIST_INITIAL_RENDER_MIN;
 
   const handleComposerFocus = useCallback(() => {
+    const atLatest = scrollOffsetRef.current <= CHAT_LATEST_SCROLL_TOLERANCE;
+    pinLatestThroughKeyboardRef.current = atLatest;
     anchorBottomRef.current = true;
     scheduleScrollToLatest(true);
   }, [scheduleScrollToLatest]);
+
+  /** After interactive dismiss, long threads often land away from latest — re-pin. */
+  useEffect(() => {
+    const showEvt = Platform.OS === "ios" ? "keyboardWillShow" : "keyboardDidShow";
+    const hideEvt = Platform.OS === "ios" ? "keyboardWillHide" : "keyboardDidHide";
+    const showSub = Keyboard.addListener(showEvt, () => {
+      keyboardVisibleRef.current = true;
+      pinLatestThroughKeyboardRef.current =
+        scrollOffsetRef.current <= CHAT_LATEST_SCROLL_TOLERANCE;
+    });
+    const hideSub = Keyboard.addListener(hideEvt, () => {
+      keyboardVisibleRef.current = false;
+      pinToLatestAfterKeyboard();
+    });
+    return () => {
+      showSub.remove();
+      hideSub.remove();
+    };
+  }, [pinToLatestAfterKeyboard]);
 
   /** Keep pinned to latest when new messages arrive (not on keyboard layout). */
   useEffect(() => {
@@ -1526,11 +1569,7 @@ export default function MessagesChatPane({
             scrollEventThrottle={16}
             onScroll={listPanActive ? handleChatScroll : undefined}
             onScrollBeginDrag={
-              listPanActive
-                ? () => {
-                    anchorBottomRef.current = false;
-                  }
-                : undefined
+              listPanActive ? handleChatScrollBeginDrag : undefined
             }
             onScrollEndDrag={listPanActive ? handleChatScrollEnd : undefined}
             onMomentumScrollEnd={listPanActive ? handleChatScrollEnd : undefined}
@@ -1631,18 +1670,17 @@ export default function MessagesChatPane({
           </View>
         )}
 
-        {/* Shrinks the list viewport in sync with the keyboard (UI thread). */}
         <Animated.View style={keyboardSpacerStyle} />
       </View>
 
-      <Animated.View
+      <KeyboardStickyView
+        offset={{ closed: 0, opened: bottomInset }}
         style={[
           styles.composerDock,
           {
             backgroundColor: BG,
             paddingBottom: composerClosedPad,
           },
-          composerDockAnimStyle,
         ]}
       >
         <View
@@ -1699,7 +1737,7 @@ export default function MessagesChatPane({
             </View>
           </TouchableOpacity>
         </View>
-      </Animated.View>
+      </KeyboardStickyView>
 
       <View
         style={chatHeaderOverlayStyles.shell}
