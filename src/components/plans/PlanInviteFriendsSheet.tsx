@@ -278,8 +278,7 @@ export default function PlanInviteFriendsSheet({
             showsVerticalScrollIndicator={false}
             renderItem={({ item }) => {
               const avatarUri = resolveAvatar(item.imageurl) || DEFAULT_AVATAR;
-              const firstName =
-                String(item.displayName || "Friend").trim().split(/\s+/)[0] || "Friend";
+              const name = String(item.displayName || "Friend").trim() || "Friend";
               const interested = interestedSet.has(item.id);
               const invited = !interested && invitedSet.has(item.id);
               const unavailable = interested || invited;
@@ -298,10 +297,10 @@ export default function PlanInviteFriendsSheet({
                   }}
                   accessibilityLabel={
                     interested
-                      ? `${firstName} already going`
+                      ? `${name} already going`
                       : invited
-                        ? `${firstName} invited`
-                        : `${firstName}, ${checked ? "selected" : "not selected"}`
+                        ? `${name} invited`
+                        : `${name}, ${checked ? "selected" : "not selected"}`
                   }
                 >
                   <View style={styles.rowLeft}>
@@ -315,7 +314,9 @@ export default function PlanInviteFriendsSheet({
                         recyclingKey={item.id}
                       />
                     </View>
-                    <Text style={styles.name}>{firstName}</Text>
+                    <Text style={styles.name} numberOfLines={1}>
+                      {name}
+                    </Text>
                   </View>
 
                   {interested ? (
@@ -335,7 +336,7 @@ export default function PlanInviteFriendsSheet({
                       onPress={() => void unsendInvite(item.id)}
                       disabled={!!revokingId}
                       accessibilityRole="button"
-                      accessibilityLabel={`Unsend invite to ${firstName}`}
+                      accessibilityLabel={`Unsend invite to ${name}`}
                     >
                       <Text style={[styles.unsendBtnText, isRevoking && { opacity: 0.5 }]}>
                         Unsend

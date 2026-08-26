@@ -95,8 +95,6 @@ const CHAT_THREAD_REVEAL_MS = 160;
 /** Fade from black into the message list, starting just under the AI chip row. */
 const CHAT_HEADER_FADE_BELOW_AI = 28;
 const CHAT_HEADER_FADE_EXPANDED = 52;
-/** Title column starts at 88; nudge left so the chip isn’t inset by its own padding. */
-const CHAT_HEADER_TITLE_INDENT = 80;
 const CHAT_MEMBER_TILE_WIDTH = 68;
 const THREAD_REVEAL_EASING = Easing.bezier(0.22, 1, 0.36, 1);
 
@@ -590,17 +588,14 @@ export default function MessagesChatPane({
   }, [canExpandChatTitle]);
 
   const renderAiChip = useCallback(
-    (chipMarginTop?: number) => (
+    () => (
       <TouchableOpacity
         onPress={() => {
           Keyboard.dismiss();
           Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
           onOpenAISuggestions();
         }}
-        style={[
-          styles.aiChipPremium,
-          chipMarginTop != null && { marginTop: chipMarginTop },
-        ]}
+        style={styles.aiChipPremium}
         activeOpacity={0.82}
         accessibilityRole="button"
         accessibilityLabel={SYNQ_AI_PILL_LABEL}
@@ -1773,6 +1768,9 @@ export default function MessagesChatPane({
                       {chatTitle}
                     </Text>
                   )}
+                  {!chatTitleExpanded && showAISuggestions
+                    ? renderAiChip()
+                    : null}
                 </View>
               </View>
             </View>
@@ -1785,11 +1783,6 @@ export default function MessagesChatPane({
             />
           </View>
           {chatTitleExpanded && showMemberRoster ? renderMemberStrip() : null}
-          {!chatTitleExpanded && showAISuggestions ? (
-            <View style={chatHeaderOverlayStyles.belowTitleStack}>
-              {renderAiChip(0)}
-            </View>
-          ) : null}
         </View>
         <LinearGradient
           pointerEvents="none"
@@ -1844,7 +1837,7 @@ const chatHeaderOverlayStyles = RNStyleSheet.create({
     paddingBottom: 4,
   },
   headerTitleRowCollapsed: {
-    alignItems: "center",
+    alignItems: "flex-start",
     paddingBottom: 0,
   },
   identityRowCollapsed: {
@@ -1862,6 +1855,7 @@ const chatHeaderOverlayStyles = RNStyleSheet.create({
   textColCollapsed: {
     justifyContent: "center",
     paddingTop: 0,
+    gap: 6,
   },
   textColExpanded: {
     justifyContent: "flex-start",
@@ -1874,11 +1868,6 @@ const chatHeaderOverlayStyles = RNStyleSheet.create({
   },
   collapsedTitleText: {
     flexShrink: 1,
-  },
-  belowTitleStack: {
-    marginLeft: CHAT_HEADER_TITLE_INDENT,
-    marginTop: 1,
-    paddingBottom: 0,
   },
   expandedHeadline: {
     ...sheetHeaderTitleText,
