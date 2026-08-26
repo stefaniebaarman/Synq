@@ -8,6 +8,10 @@ export type SearchUserResult = {
   displayName: string;
   imageurl?: string;
   email?: string | null;
+  city?: string;
+  state?: string;
+  locationDisplay?: string;
+  interests?: string[];
   isFriend?: boolean;
 };
 
@@ -31,4 +35,19 @@ export async function fetchSuggestedFriends(): Promise<SuggestedFriend[]> {
   );
   const result = await callable({});
   return result.data.users ?? [];
+}
+
+export type PublicProfilePreview = SearchUserResult;
+
+export async function fetchPublicProfilePreview(
+  uid: string
+): Promise<PublicProfilePreview | null> {
+  const trimmed = String(uid || "").trim();
+  if (!trimmed) return null;
+  const callable = httpsCallable<{ uid: string }, { user: PublicProfilePreview }>(
+    functions,
+    "getPublicProfilePreview"
+  );
+  const result = await callable({ uid: trimmed });
+  return result.data.user ?? null;
 }

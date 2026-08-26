@@ -10,6 +10,7 @@ import {
   unjoinFriendOpenPlan,
   type FriendOpenPlanEvent,
 } from "@/src/lib/friendOpenPlanJoin";
+import { collectJoinedIds, planLooseMatch } from "@/src/lib/planAttribution";
 import { filterOutPastOpenPlans } from "@/src/lib/planEvents";
 import { friendProfileCacheByUser } from "@/src/lib/socialCache";
 import { subscribeUserDocMultiplexed } from "@/src/lib/socialListenerHub";
@@ -219,20 +220,48 @@ export function useFriendPlansFeed({ userId, friends, isBlocked }: Options) {
 
   const planJoined = useCallback(
     (item: AggregatedFriendPlan) => {
+      const vid = String(userId || "").trim();
+      const friendId = String(item.sourceFriendId || "").trim();
+      if (!vid) return false;
+
+      // Friend's live roster already lists the viewer.
+      if (collectJoinedIds(item.event).includes(vid)) return true;
+
       const joinedKeys = buildJoinedPlanKeysForFriend(
         viewerEvents,
-        userId,
-        item.sourceFriendId
+        vid,
+        friendId
       );
-      return planLooksJoinedForFriend(joinedKeys, item.event);
+      if (planLooksJoinedForFriend(joinedKeys, item.event)) return true;
+
+      // Same fallback as friend profile: matching calendar row for this host/plan.
+      return viewerEvents.some((row) => {
+        if (!planLooseMatch(row, item.event)) return false;
+        if (collectJoinedIds(row).includes(friendId)) return true;
+        if (String(row?.joinedFromFriendUid || "").trim() === friendId) return true;
+        if (String(row?.planHostUid || "").trim() === friendId) return true;
+        return false;
+      });
     },
     [viewerEvents, userId]
   );
 
   const planIsHost = useCallback(
-    (item: AggregatedFriendPlan) =>
-      isViewerHostOfFriendPlan(item.event, userId, item.sourceFriendId),
-    [userId]
+    (item: AggregatedFriendPlan) => {
+      const vid = String(userId || "").trim();
+      if (
+        vid &&
+        viewerEvents.some(
+          (row) =>
+            planLooseMatch(row, item.event) &&
+            String(row?.planHostUid || "").trim() === vid
+        )
+      ) {
+        return true;
+      }
+      return isViewerHostOfFriendPlan(item.event, userId, item.sourceFriendId);
+    },
+    [userId, viewerEvents]
   );
 
   const handlePlanAction = useCallback(

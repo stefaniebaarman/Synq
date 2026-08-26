@@ -5,10 +5,7 @@ import {
   buildSynqBroadcastFirestorePayload as buildPayloadCore,
   filterActiveFriendsForInbound as filterInboundCore,
   getMyAudienceSet as getMyAudienceSetCore,
-  isRecipientInSynqVisibleTo,
   resolveSynqVisibleTo as resolveVisibleToCore,
-  SYNQ_RECIPROCAL_INBOUND,
-  viewerInFriendAudience,
 } from "./synqBroadcastCore.js";
 import { computeSynqActiveFromUserData } from "./synqSession";
 
@@ -19,9 +16,7 @@ export type SynqAudienceSelection = {
   groupIds: string[];
 };
 
-export const SYNQ_AUDIENCE_STORAGE_PREFIX = "synq-audience:";
-
-export { SYNQ_RECIPROCAL_INBOUND, isRecipientInSynqVisibleTo, viewerInFriendAudience };
+const SYNQ_AUDIENCE_STORAGE_PREFIX = "synq-audience:";
 
 const defaultSelection = (): SynqAudienceSelection => ({
   mode: "all",
