@@ -609,6 +609,7 @@ export default function FriendsScreen() {
             hostDisplayNameByUid={friendPlansFeed.hostDisplayNameByUid}
             viewerEvents={friendPlansFeed.viewerEvents}
             friendImageByUid={friendPlansFeed.friendImageByUid}
+            friendIds={friendPlansFeed.visibleFriends.map((f) => f.id)}
             planJoined={friendPlansFeed.planJoined}
             planIsHost={friendPlansFeed.planIsHost}
             handlePlanAction={friendPlansFeed.handlePlanAction}

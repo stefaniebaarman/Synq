@@ -94,6 +94,7 @@ export default function FriendsPlansSheet({
   const {
     aggregatedPlans,
     hostDisplayNameByUid,
+    visibleFriends,
     viewerEvents,
     friendImageByUid,
     planJoined,
@@ -107,6 +108,11 @@ export default function FriendsPlansSheet({
     confirmUnjoin,
     cancelUnjoin,
   } = feed;
+
+  const friendIds = useMemo(
+    () => visibleFriends.map((friend) => friend.id).filter(Boolean),
+    [visibleFriends]
+  );
 
   useEffect(() => {
     if (!visible) setSearchText("");
@@ -220,6 +226,7 @@ export default function FriendsPlansSheet({
             hostDisplayNameByUid={hostDisplayNameByUid}
             viewerEvents={viewerEvents}
             friendImageByUid={friendImageByUid}
+            friendIds={friendIds}
             joined={planJoined(item)}
             isHost={planIsHost(item)}
             busy={isPlanBusy(item)}

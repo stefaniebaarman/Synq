@@ -37,6 +37,8 @@ export type PlanGoingPerson = {
   displayName: string;
   imageUrl?: string | null;
   isHost?: boolean;
+  /** Viewer row — same visual treatment as Host, with a "You" label. */
+  isYou?: boolean;
 };
 
 type Props = {
@@ -71,7 +73,7 @@ function peopleSignature(people: PlanGoingPerson[]): string {
       (p) =>
         `${String(p.userId || "")}|${String(p.displayName || "")}|${String(p.imageUrl || "")}|${
           p.isHost ? "1" : "0"
-        }`
+        }|${p.isYou ? "1" : "0"}`
     )
     .join(";");
 }
@@ -200,12 +202,15 @@ export default function PlanGoingPeopleSheet({
           const uid = String(item.userId || "").trim();
           const canOpen =
             !!onPressPerson && !!uid && (!viewerKey || uid !== viewerKey);
+          const roleLabel = item.isHost ? "Host" : item.isYou ? "You" : null;
 
           const row = (
             <View style={styles.row}>
               <View
                 style={styles.avatarWrap}
-                accessibilityLabel={item.isHost ? "Plan host" : undefined}
+                accessibilityLabel={
+                  item.isHost ? "Plan host" : item.isYou ? "You" : undefined
+                }
               >
                 <View style={[styles.avatarRing, item.isHost && styles.avatarRingHost]}>
                   <View style={styles.avatarInner}>
@@ -227,7 +232,7 @@ export default function PlanGoingPeopleSheet({
                 <Text style={styles.rowName} numberOfLines={1}>
                   {item.displayName}
                 </Text>
-                {item.isHost ? <Text style={styles.hostLabel}>Host</Text> : null}
+                {roleLabel ? <Text style={styles.hostLabel}>{roleLabel}</Text> : null}
               </View>
             </View>
           );

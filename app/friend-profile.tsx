@@ -132,6 +132,7 @@ import {
   communityGroupsCacheByUser,
   friendProfileCacheByUser,
   friendRelationCacheByUser,
+  friendsListCacheByUser,
   getCachedFriendRelationship,
   getCachedMutualFriends,
   resolveMutualFriendsForTarget,
@@ -404,6 +405,16 @@ export default function FriendProfile({
     if (!friendKey || !url) return {};
     return { [friendKey]: url };
   }, [friendKey, friend?.imageurl]);
+
+  const viewerFriendIds = useMemo(() => {
+    const ids = (viewerId ? friendsListCacheByUser[viewerId] ?? [] : [])
+      .map((f) => String(f.id || "").trim())
+      .filter(Boolean);
+    if (friendKey && isFriend && !ids.includes(friendKey)) {
+      ids.push(friendKey);
+    }
+    return ids;
+  }, [viewerId, friendKey, isFriend]);
 
   const setJoinedKeysForEvent = (event: any, value: boolean) => {
     setJoinedPlanKeys((prev) => {
@@ -1314,6 +1325,7 @@ export default function FriendProfile({
                       hostDisplayNameByUid={hostDisplayNameByUid}
                       viewerEvents={viewerEvents}
                       friendImageByUid={friendPlanImageByUid}
+                      friendIds={viewerFriendIds}
                       joined={planLooksJoined(event)}
                       isHost={isViewerHostOfFriendsPlan(event)}
                       busy={busyPlanId === event.id}

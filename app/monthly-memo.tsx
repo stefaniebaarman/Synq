@@ -161,12 +161,19 @@ export default function OpenPlans({
     return map;
   }, [friends]);
 
+  const friendIds = useMemo(
+    () => friends.map((friend) => friend.id).filter(Boolean),
+    [friends]
+  );
+
   const planAttributionLines = (event: EventItem) => {
     const { primary, secondary, goingPeople } = resolvePlanAttribution(
       event,
       viewerUid,
       hostDisplayNameByUid,
-      viewerUid
+      viewerUid,
+      undefined,
+      friendIds
     );
     const peopleWithAvatars = goingPeople.map((person) => {
       const uid = String(person.userId || "").trim();

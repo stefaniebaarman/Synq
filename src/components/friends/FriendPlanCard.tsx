@@ -60,6 +60,8 @@ type Props = {
   viewerId: string;
   hostDisplayNameByUid: Record<string, string>;
   friendImageByUid?: Record<string, string | null>;
+  /** Viewer's friend uids — enables "N friends and M others" going lines. */
+  friendIds?: string[];
   viewerEvents?: FriendOpenPlanEvent[];
   joined: boolean;
   isHost: boolean;
@@ -79,6 +81,7 @@ export default function FriendPlanCard({
   viewerId,
   hostDisplayNameByUid,
   friendImageByUid = {},
+  friendIds = [],
   viewerEvents,
   joined,
   isHost,
@@ -140,7 +143,8 @@ export default function FriendPlanCard({
     viewerId,
     hostDisplayNameByUid,
     profileSubject,
-    viewerEvents
+    viewerEvents,
+    friendIds
   );
   const friendFirstName = item.sourceFriendName.trim().split(/\s+/)[0] || "Friend";
 

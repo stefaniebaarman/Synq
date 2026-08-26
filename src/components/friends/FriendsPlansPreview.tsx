@@ -16,6 +16,7 @@ type FeedSlice = {
   hostDisplayNameByUid: Record<string, string>;
   viewerEvents?: FriendOpenPlanEvent[];
   friendImageByUid?: Record<string, string | null>;
+  friendIds?: string[];
   planJoined: (item: AggregatedFriendPlan) => boolean;
   planIsHost: (item: AggregatedFriendPlan) => boolean;
   handlePlanAction: (item: AggregatedFriendPlan) => void;
@@ -37,6 +38,7 @@ export default function FriendsPlansPreview({
   hostDisplayNameByUid,
   viewerEvents,
   friendImageByUid,
+  friendIds = [],
   planJoined,
   planIsHost,
   handlePlanAction,
@@ -73,6 +75,7 @@ export default function FriendsPlansPreview({
           hostDisplayNameByUid={hostDisplayNameByUid}
           viewerEvents={viewerEvents}
           friendImageByUid={friendImageByUid}
+          friendIds={friendIds}
           joined={planJoined(item)}
           isHost={planIsHost(item)}
           busy={isPlanBusy(item)}
