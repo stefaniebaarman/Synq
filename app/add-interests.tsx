@@ -1,6 +1,6 @@
 import { useRouter } from "expo-router";
 import { doc, setDoc } from "firebase/firestore";
-import React, { useState } from "react";
+import { useState } from "react";
 import {
     ScrollView,
     StyleSheet,
@@ -9,37 +9,37 @@ import {
     View,
 } from "react-native";
 import {
-  onboardingContentTopPadding,
-  ONBOARDING_DIVIDER_MARGIN_TOP,
-  ONBOARDING_H_PADDING,
-  ONBOARDING_SUBTITLE_MARGIN_TOP,
-  ONBOARDING_SUBTITLE_SIZE,
-  ONBOARDING_TITLE_LETTER_SPACING,
-  ONBOARDING_TITLE_LINE_HEIGHT,
-  ONBOARDING_TITLE_SIZE,
+    ONBOARDING_DIVIDER_MARGIN_TOP,
+    ONBOARDING_H_PADDING,
+    ONBOARDING_SUBTITLE_MARGIN_TOP,
+    ONBOARDING_SUBTITLE_SIZE,
+    ONBOARDING_TITLE_LETTER_SPACING,
+    ONBOARDING_TITLE_LINE_HEIGHT,
+    ONBOARDING_TITLE_SIZE,
+    onboardingContentTopPadding,
 } from "../constants/onboardingLayout";
 import {
-  ACCENT_BORDER,
-  ACCENT_FILL,
-  BG,
-  BORDER,
-  MUTED,
-  PRIMARY_CTA_HEIGHT,
-  PRIMARY_CTA_WIDTH,
-  SURFACE_INPUT,
-  TEXT,
-  TYPE_LEAD,
-  fonts,
-  profileInterestPillText,
-  profileInterestPillTextActive,
-  synqOutlineAddBtn,
-  synqOutlineAddBtnDisabled,
-  synqOutlineAddBtnText,
-  synqOutlineAddBtnTextDisabled,
+    ACCENT_BORDER,
+    ACCENT_FILL,
+    BG,
+    BORDER,
+    MUTED,
+    PRIMARY_CTA_HEIGHT,
+    PRIMARY_CTA_WIDTH,
+    SURFACE_INPUT,
+    TEXT,
+    TYPE_LEAD,
+    fonts,
+    profileInterestPillText,
+    profileInterestPillTextActive,
+    synqOutlineAddBtn,
+    synqOutlineAddBtnDisabled,
+    synqOutlineAddBtnText,
+    synqOutlineAddBtnTextDisabled,
 } from "../constants/Variables";
 import { auth, db } from "../src/lib/firebase";
-import AlertModal from "./alert-modal";
 import { useAuthRefresh } from "./_layout";
+import AlertModal from "./alert-modal";
 
 const INTERESTS = [
     "🍽️ Going out to eat",
@@ -100,7 +100,7 @@ export default function InterestsOnboarding() {
             );
 
             refreshAuth();
-            router.replace("/(tabs)/friends");
+            router.replace("/(auth)/how-it-works?step=1");
         } catch (e: any) {
             console.error(e);
             setAlertMessage("Could not save interests.");
@@ -111,7 +111,7 @@ export default function InterestsOnboarding() {
 
     const handleSkip = () => {
         refreshAuth();
-        router.replace("/(tabs)/friends");
+        router.replace("/(auth)/how-it-works?step=1");
     };
 
     return (

@@ -266,7 +266,7 @@ function FriendsEmptyMainContent({
           {"\n"}made simple
         </Text>
         <Text style={styles.emptyHeroSubtitle}>
-          Add friends to see who&apos;s free.
+          Invite friends with your link to see who&apos;s free.
         </Text>
       </Animated.View>
 
@@ -279,10 +279,10 @@ function FriendsEmptyMainContent({
           onPress={onPressAdd}
           activeOpacity={0.85}
           accessibilityRole="button"
-          accessibilityLabel="Add friends"
+          accessibilityLabel="Invite friends"
         >
           <Ionicons name="person-add-outline" size={20} color={ACCENT} />
-          <Text style={synqOutlineAddBtnText}>Add friends</Text>
+          <Text style={synqOutlineAddBtnText}>Invite friends</Text>
         </TouchableOpacity>
       </Animated.View>
     </View>
@@ -2056,7 +2056,7 @@ function SearchModal({
         >
           <Ionicons name="share-social-outline" size={20} color={ACCENT} />
           <Text style={styles.qrScanRowText}>
-            {sharingProfile ? "Preparing…" : "Share your profile"}
+            {sharingProfile ? "Preparing…" : "Invite friends with your link"}
           </Text>
           <Ionicons name="chevron-forward" size={18} color={MUTED2} />
         </TouchableOpacity>
@@ -2072,7 +2072,7 @@ function SearchModal({
               <View style={styles.addFriendsEmptyInvite}>
                 <Text style={styles.addFriendsEmptyInviteTitle}>No friends yet</Text>
                 <Text style={styles.addFriendsEmptyInviteText}>
-                  Share your profile so people can find you on Synq.
+                  Invite friends with your link so people can find you on Synq.
                 </Text>
                 <TouchableOpacity
                   style={[synqOutlineAddBtn, styles.addFriendsShareCta]}
@@ -2080,11 +2080,11 @@ function SearchModal({
                   disabled={sharingProfile}
                   activeOpacity={0.85}
                   accessibilityRole="button"
-                  accessibilityLabel="Share profile"
+                  accessibilityLabel="Invite friends with your link"
                 >
                   <Ionicons name="share-social-outline" size={20} color={ACCENT} />
                   <Text style={synqOutlineAddBtnText}>
-                    {sharingProfile ? "Preparing…" : "Share profile"}
+                    {sharingProfile ? "Preparing…" : "Invite friends with your link"}
                   </Text>
                 </TouchableOpacity>
               </View>

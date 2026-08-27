@@ -250,6 +250,8 @@ const styles = StyleSheet.create({
     fontSize: TYPE_DISPLAY + 4,
     letterSpacing: -0.6,
     lineHeight: 44,
+    // Two-line titles on every carousel slide — keeps SYNQ kicker Y-aligned.
+    minHeight: 88,
   },
   titleAccent: {
     color: ACCENT,
@@ -261,6 +263,8 @@ const styles = StyleSheet.create({
     fontSize: TYPE_BODY,
     lineHeight: 23,
     maxWidth: 320,
+    // Reserve two lines so shorter copy doesn't drop the kicker.
+    minHeight: 46,
   },
   footer: {
     marginTop: 28,

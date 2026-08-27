@@ -59,6 +59,7 @@ import {
   fetchCurrentCityState,
   foregroundLocationAccessGranted,
   getForegroundLocationPermission,
+  LOCATION_ONCE_PRIVACY_MESSAGE,
   requestForegroundLocationAccess,
   type LocationResolvePhase,
   type ResolvedCityState,
@@ -363,7 +364,10 @@ export default function EditProfileScreen() {
         displayName: displayName.trim(),
         city: c,
         state: s,
-        coords: coords?.lat != null && coords?.lng != null ? { ...coords } : null,
+        coords:
+          coords?.lat != null && coords?.lng != null
+            ? { ...coords }
+            : null,
       });
 
       showAlert("Profile updated!", "Success", true);
@@ -465,6 +469,8 @@ export default function EditProfileScreen() {
                 value={city}
                 onChangeText={(text) => {
                   setCity(text);
+                  // Manual edits invalidate prior GPS coords.
+                  setCoords(null);
                   if (locationAutofill === "success") {
                     setLocationAutofill("dismissed");
                   }
@@ -480,6 +486,7 @@ export default function EditProfileScreen() {
                 value={state}
                 onChangeText={(text) => {
                   setState(text);
+                  setCoords(null);
                   if (locationAutofill === "success") {
                     setLocationAutofill("dismissed");
                   }
@@ -656,7 +663,7 @@ export default function EditProfileScreen() {
         <AlertModal
           visible={locationPermissionPromptVisible}
           title="Location access"
-          message="Synq uses your location once to auto-fill your city and state."
+          message={LOCATION_ONCE_PRIVACY_MESSAGE}
           buttonText="Continue"
           onClose={() => {
             setLocationPermissionPromptVisible(false);

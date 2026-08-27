@@ -58,6 +58,7 @@ import {
   foregroundLocationAccessGranted,
   requestForegroundLocationAccess,
 } from "../../src/lib/locationAccess";
+import { LOCATION_ONCE_PRIVACY_MESSAGE } from "../../src/lib/locationAccess";
 import { userHasLocation } from "../../src/lib/userProfile";
 import { useAuthRefresh } from "../_layout";
 import AlertModal from "../alert-modal";
@@ -387,7 +388,7 @@ export default function LocationDetails() {
         <AlertModal
           visible={locationPermissionPromptVisible}
           title="Location access"
-          message="Synq uses your location once to auto-fill your city and state."
+          message={LOCATION_ONCE_PRIVACY_MESSAGE}
           buttonText="Continue"
           onClose={() => {
             setLocationPermissionPromptVisible(false);

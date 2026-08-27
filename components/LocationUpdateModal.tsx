@@ -9,13 +9,11 @@ import {
   MUTED2,
   ON_ACCENT_TEXT,
   TEXT,
-  TYPE_BUTTON,
   TYPE_CAPTION,
   TYPE_CTA,
   TYPE_LEAD,
   fonts,
 } from "@/constants/Variables";
-import * as Location from "expo-location";
 import { doc, updateDoc } from "firebase/firestore";
 import React, { useEffect, useState } from "react";
 import {
@@ -26,6 +24,10 @@ import {
   View,
 } from "react-native";
 import { auth, db } from "../src/lib/firebase";
+import {
+  fetchCurrentCityState,
+  requestForegroundLocationAccess,
+} from "../src/lib/locationAccess";
 
 const US_STATE_ABBREV: Record<string, string> = {
   Alabama: "AL",
@@ -87,7 +89,11 @@ type Props = {
   onSaved: () => void;
 };
 
-export default function LocationUpdateModal({ visible, onClose, onSaved }: Props) {
+export default function LocationUpdateModal({
+  visible,
+  onClose,
+  onSaved,
+}: Props) {
   const [locating, setLocating] = useState(false);
   const [isUpdating, setIsUpdating] = useState(false);
   const [alertVisible, setAlertVisible] = useState(false);
@@ -104,6 +110,7 @@ export default function LocationUpdateModal({ visible, onClose, onSaved }: Props
   useEffect(() => {
     if (!visible) return;
     setCloseAfterAlert(false);
+    setAlertVisible(false);
   }, [visible]);
 
   const handleUpdateFromCurrentLocation = async () => {
@@ -112,8 +119,8 @@ export default function LocationUpdateModal({ visible, onClose, onSaved }: Props
       setLocating(true);
       setIsUpdating(true);
 
-      const { status } = await Location.requestForegroundPermissionsAsync();
-      if (status !== "granted") {
+      const granted = await requestForegroundLocationAccess();
+      if (!granted) {
         showAlert(
           "Enable location access to update your city and state.",
           "Location permission needed"
@@ -123,37 +130,31 @@ export default function LocationUpdateModal({ visible, onClose, onSaved }: Props
         return;
       }
 
-      const pos = await Location.getCurrentPositionAsync({
-        accuracy: Location.Accuracy.Balanced,
-      });
-
-      const lat = pos.coords.latitude;
-      const lng = pos.coords.longitude;
-
-      const results = await Location.reverseGeocodeAsync({
-        latitude: lat,
-        longitude: lng,
-      });
-
-      const best = results?.[0];
-      const detectedCity =
-        (best?.city || best?.subregion || best?.district || "").trim();
-      const detectedRegion = (best?.region || "").trim();
-
-      if (!detectedCity || !detectedRegion) {
-        showAlert("Please enter city and state manually.", "Couldn’t detect city/state");
+      const result = await fetchCurrentCityState(US_STATE_ABBREV);
+      if (!result.ok) {
+        if (result.reason === "undetected") {
+          showAlert(
+            "Please enter city and state manually.",
+            "Couldn’t detect city/state"
+          );
+        } else if (result.reason === "denied") {
+          showAlert(
+            "Enable location access to update your city and state.",
+            "Location permission needed"
+          );
+        } else {
+          showAlert("Could not update your location.", "Error");
+        }
         setLocating(false);
         setIsUpdating(false);
         return;
       }
 
-      const abbrev =
-        US_STATE_ABBREV[detectedRegion] ?? detectedRegion.toUpperCase().slice(0, 2);
-
-      const nextLocation = `${detectedCity}, ${abbrev}`;
+      const { lat, lng, city, stateAbbrev } = result.data;
+      const nextLocation = `${city}, ${stateAbbrev}`;
       await updateDoc(doc(db, "users", auth.currentUser.uid), {
-        city: detectedCity,
-        state: abbrev,
+        city,
+        state: stateAbbrev,
         locationDisplay: nextLocation,
         lat,
         lng,
@@ -185,7 +186,8 @@ export default function LocationUpdateModal({ visible, onClose, onSaved }: Props
         <View style={sheetStyles.card}>
           <Text style={sheetStyles.title}>Improve nearby matches</Text>
           <Text style={[sheetStyles.body, styles.bodySpacing]}>
-            Let Synq auto-fill your location so nearby matches are more accurate. Edit your location anytime on your profile.
+            Let Synq auto-fill your location so nearby matches are more accurate.
+            Edit your location anytime on your profile.
           </Text>
           <Text style={styles.privacy}>
             Your location is only used for nearby matching.
@@ -197,12 +199,21 @@ export default function LocationUpdateModal({ visible, onClose, onSaved }: Props
             style={[styles.saveBtn, (isUpdating || locating) && { opacity: 0.7 }]}
             activeOpacity={0.85}
           >
-            <Text style={[styles.saveBtnText, (isUpdating || locating) && { opacity: 0.5 }]}>
+            <Text
+              style={[
+                styles.saveBtnText,
+                (isUpdating || locating) && { opacity: 0.5 },
+              ]}
+            >
               Use current location
             </Text>
           </TouchableOpacity>
 
-          <TouchableOpacity onPress={onClose} style={styles.cancelBtn} activeOpacity={0.8}>
+          <TouchableOpacity
+            onPress={onClose}
+            style={styles.cancelBtn}
+            activeOpacity={0.8}
+          >
             <Text style={styles.cancelText}>Not now</Text>
           </TouchableOpacity>
         </View>
@@ -210,7 +221,9 @@ export default function LocationUpdateModal({ visible, onClose, onSaved }: Props
         {alertVisible ? (
           <View style={styles.alertLayer} pointerEvents="auto">
             <View style={styles.alertCard}>
-              {alertTitle ? <Text style={styles.alertTitle}>{alertTitle}</Text> : null}
+              {alertTitle ? (
+                <Text style={styles.alertTitle}>{alertTitle}</Text>
+              ) : null}
               <Text style={styles.alertMessage}>{alertMessage}</Text>
               <TouchableOpacity
                 style={styles.alertButton}

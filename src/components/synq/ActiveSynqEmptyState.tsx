@@ -249,7 +249,7 @@ export default function ActiveSynqEmptyState({
           <Text style={styles.subtitle}>
             {hasCandidates
               ? "Nudge your friends to see if they're free."
-              : "Check back soon or share your profile to grow your circle."}
+              : "Invite friends with your link to grow your circle."}
           </Text>
         </>
       ) : hasCandidates ? (
@@ -308,11 +308,11 @@ export default function ActiveSynqEmptyState({
             disabled={sharingProfile}
             activeOpacity={0.85}
             accessibilityRole="button"
-            accessibilityLabel="Share profile"
+            accessibilityLabel="Invite friends with your link"
           >
             <Ionicons name="share-social-outline" size={20} color={ACCENT} />
             <Text style={synqOutlineAddBtnText}>
-              {sharingProfile ? "Preparing…" : "Share profile"}
+              {sharingProfile ? "Preparing…" : "Invite friends with your link"}
             </Text>
           </TouchableOpacity>
         </View>

@@ -2,18 +2,6 @@ import {
   activityNotificationId,
   dismissActivityNotification,
 } from "@/src/lib/activityNotifications";
-import { requestDismissNavigationOverlays } from "@/src/lib/navigationOverlayEvents";
-import { setPendingChatOpen } from "@/src/lib/pendingChatOpen";
-import {
-  connectViaProfileShareCode,
-  connectViaProfileUserId,
-  parseProfileShareCodeFromUrl,
-} from "@/src/lib/profileShareUrl";
-import {
-  parseCommunityShareCodeFromUrl,
-  PENDING_COMMUNITY_SHARE_CODE_KEY,
-  resolveCommunityShareCodeToGroupId,
-} from "@/src/lib/communityShareUrl";
 import {
   claimPendingAmbassadorReferral,
   isValidAmbassadorCodeShape,
@@ -23,6 +11,18 @@ import {
   recoverAmbassadorCodeOnce,
   stashPendingAmbassadorCode,
 } from "@/src/lib/ambassadorReferral";
+import {
+  parseCommunityShareCodeFromUrl,
+  PENDING_COMMUNITY_SHARE_CODE_KEY,
+  resolveCommunityShareCodeToGroupId,
+} from "@/src/lib/communityShareUrl";
+import { requestDismissNavigationOverlays } from "@/src/lib/navigationOverlayEvents";
+import { setPendingChatOpen } from "@/src/lib/pendingChatOpen";
+import {
+  connectViaProfileShareCode,
+  connectViaProfileUserId,
+  parseProfileShareCodeFromUrl,
+} from "@/src/lib/profileShareUrl";
 import { parsePushNotificationTap } from "@/src/lib/pushNotificationTapCore";
 import { SYNQ_ACTIVE_FRIENDS_REFRESH } from "@/src/lib/synqTabEvents";
 import AsyncStorage from "@react-native-async-storage/async-storage";
@@ -249,6 +249,9 @@ export default function RootLayout() {
   } | null>(null);
   const synqBootUidRef = useRef<string | null>(null);
   const [showLocationModal, setShowLocationModal] = useState(false);
+  const locationPromptInFlightRef = useRef(false);
+  const showLocationModalRef = useRef(false);
+  showLocationModalRef.current = showLocationModal;
   const [updateRequired, setUpdateRequired] = useState<{
     checked: boolean;
     required: boolean;
@@ -596,10 +599,14 @@ export default function RootLayout() {
     if (!user || !authReady || !navReady) return;
 
     const maybePromptForLocationUpdate = async () => {
+      if (locationPromptInFlightRef.current || showLocationModalRef.current) {
+        return;
+      }
+      locationPromptInFlightRef.current = true;
       try {
         const userSnap = await getDoc(doc(db, "users", user.uid));
         if (!userSnap.exists()) return;
-        const data = userSnap.data() as any;
+        const data = userSnap.data() as Record<string, unknown>;
         const hasCoords =
           typeof data?.lat === "number" && typeof data?.lng === "number";
         const hasCityState =
@@ -616,7 +623,11 @@ export default function RootLayout() {
         if (!Number.isNaN(snoozedUntilMs) && snoozedUntilMs > now) return;
 
         setShowLocationModal(true);
-      } catch {}
+      } catch {
+        // Ignore — location prompts are best-effort.
+      } finally {
+        locationPromptInFlightRef.current = false;
+      }
     };
 
     const sub = DeviceEventEmitter.addListener(
@@ -625,18 +636,23 @@ export default function RootLayout() {
         void maybePromptForLocationUpdate();
       }
     );
-    return () => sub.remove();
+
+    return () => {
+      sub.remove();
+    };
   }, [user?.uid, authReady, navReady]);
 
   const markLocationPromptSnoozed = async () => {
     if (!user) return;
-    const snoozeDays = 7;
-    const snoozedUntil = new Date(Date.now() + snoozeDays * 24 * 60 * 60 * 1000).toISOString();
+    const snoozedUntil = new Date(
+      Date.now() + 7 * 24 * 60 * 60 * 1000
+    ).toISOString();
     try {
       const snap = await getDoc(doc(db, "users", user.uid));
+      const data = snap.exists() ? (snap.data() as Record<string, unknown>) : {};
       const currentCount =
-        snap.exists() && typeof (snap.data() as any)?.locationPromptCount === "number"
-          ? (snap.data() as any).locationPromptCount
+        typeof data?.locationPromptCount === "number"
+          ? data.locationPromptCount
           : 0;
       await updateDoc(doc(db, "users", user.uid), {
         locationPromptCount: currentCount + 1,
@@ -766,6 +782,10 @@ export default function RootLayout() {
       segments[0] === "location" ||
       (segments[0] === "(auth)" && segments[1] === "location");
     const onInterestsPage = segments[0] === "add-interests";
+    const onHowItWorksPage = segments[1] === "how-it-works";
+    const onInviteFriendsPage = segments[1] === "invite-friends";
+    const onPostProfileOnboarding =
+      onInterestsPage || onHowItWorksPage || onInviteFriendsPage;
     const onDetailsPage = segments[1] === "details";
     const onProfilePhotoCropPage = segments[0] === "profile-photo-crop";
     const onCommunityTermsPage = segments[1] === "community-terms";
@@ -806,15 +826,19 @@ export default function RootLayout() {
       return;
     }
 
-    if (
-      (onLocationPage && userProfileGate.hasLocation) ||
-      (onInterestsPage && userProfileGate.hasDisplayName)
-    ) {
+    // Already has location — don't keep returning users on the location step.
+    if (onLocationPage && userProfileGate.hasLocation) {
       router.replace("/(tabs)");
       return;
     }
 
-    if (onLocationPage || onInterestsPage) return;
+    // Post-profile signup: location (until saved), interests, how-it-works, invite.
+    if (
+      (onLocationPage && !userProfileGate.hasLocation) ||
+      onPostProfileOnboarding
+    ) {
+      return;
+    }
 
     if (inAuthGroup && !onCommunityTermsPage) router.replace("/(tabs)");
   }, [authReady, navReady, user, segments, communityTermsOk, userProfileGate]);
@@ -1206,7 +1230,14 @@ export default function RootLayout() {
     segments[0] === "location" ||
     (segments[0] === "(auth)" && segments[1] === "location");
   const onInterestsPageForSplash = segments[0] === "add-interests";
+  const onHowItWorksForSplash = segments[1] === "how-it-works";
+  const onInviteFriendsForSplash = segments[1] === "invite-friends";
   const onCommunityTermsForSplash = segments[1] === "community-terms";
+  const onPostProfileOnboardingForSplash =
+    onInterestsPageForSplash ||
+    onHowItWorksForSplash ||
+    onInviteFriendsForSplash ||
+    (onLocationPageForSplash && !userProfileGate?.hasLocation);
   /** Keep splash up while a completed user is still on auth slides pending redirect to tabs. */
   const holdSplashForPendingTabsRedirect =
     !!user &&
@@ -1215,10 +1246,8 @@ export default function RootLayout() {
     ((termsAcceptedForSplash &&
       ((inAuthGroupForSplash &&
         !onCommunityTermsForSplash &&
-        !(onLocationPageForSplash && !userProfileGate!.hasLocation) &&
-        !(onInterestsPageForSplash && !userProfileGate!.hasDisplayName)) ||
-        (onLocationPageForSplash && userProfileGate!.hasLocation) ||
-        (onInterestsPageForSplash && userProfileGate!.hasDisplayName))) ||
+        !onPostProfileOnboardingForSplash) ||
+        (onLocationPageForSplash && userProfileGate!.hasLocation))) ||
       (communityTermsOk === false && !onCommunityTermsForSplash));
   const appReady =
     authReady && navReady && assetsReady && synqBootReady && authGateReady;
@@ -1228,7 +1257,9 @@ export default function RootLayout() {
     segments[0] === "location" ||
     (segments[0] === "(auth)" && segments[1] === "location") ||
     segments[0] === "profile-photo-crop" ||
-    segments[0] === "add-interests";
+    segments[0] === "add-interests" ||
+    segments[1] === "how-it-works" ||
+    segments[1] === "invite-friends";
   const hideBootSplashDuringSignup =
     appReady && !!user && onSignupFlowScreen;
   const keepBootSplashForAuth =
