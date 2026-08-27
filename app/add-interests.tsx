@@ -100,7 +100,7 @@ export default function InterestsOnboarding() {
             );
 
             refreshAuth();
-            router.replace("/(auth)/how-it-works?step=1");
+            router.replace("/(auth)/invite-friends");
         } catch (e: any) {
             console.error(e);
             setAlertMessage("Could not save interests.");
@@ -111,7 +111,7 @@ export default function InterestsOnboarding() {
 
     const handleSkip = () => {
         refreshAuth();
-        router.replace("/(auth)/how-it-works?step=1");
+        router.replace("/(auth)/invite-friends");
     };
 
     return (

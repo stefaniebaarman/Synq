@@ -782,10 +782,10 @@ export default function RootLayout() {
       segments[0] === "location" ||
       (segments[0] === "(auth)" && segments[1] === "location");
     const onInterestsPage = segments[0] === "add-interests";
-    const onHowItWorksPage = segments[1] === "how-it-works";
-    const onInviteFriendsPage = segments[1] === "invite-friends";
-    const onPostProfileOnboarding =
-      onInterestsPage || onHowItWorksPage || onInviteFriendsPage;
+    const segmentList = segments as string[];
+    const onInviteFriendsPage =
+      segments[1] === "invite-friends" || segmentList.includes("invite-friends");
+    const onPostProfileOnboarding = onInterestsPage || onInviteFriendsPage;
     const onDetailsPage = segments[1] === "details";
     const onProfilePhotoCropPage = segments[0] === "profile-photo-crop";
     const onCommunityTermsPage = segments[1] === "community-terms";
@@ -832,7 +832,7 @@ export default function RootLayout() {
       return;
     }
 
-    // Post-profile signup: location (until saved), interests, how-it-works, invite.
+    // Post-profile signup: location (until saved), interests, invite.
     if (
       (onLocationPage && !userProfileGate.hasLocation) ||
       onPostProfileOnboarding
@@ -1229,13 +1229,14 @@ export default function RootLayout() {
   const onLocationPageForSplash =
     segments[0] === "location" ||
     (segments[0] === "(auth)" && segments[1] === "location");
+  const segmentListForSplash = segments as string[];
   const onInterestsPageForSplash = segments[0] === "add-interests";
-  const onHowItWorksForSplash = segments[1] === "how-it-works";
-  const onInviteFriendsForSplash = segments[1] === "invite-friends";
+  const onInviteFriendsForSplash =
+    segments[1] === "invite-friends" ||
+    segmentListForSplash.includes("invite-friends");
   const onCommunityTermsForSplash = segments[1] === "community-terms";
   const onPostProfileOnboardingForSplash =
     onInterestsPageForSplash ||
-    onHowItWorksForSplash ||
     onInviteFriendsForSplash ||
     (onLocationPageForSplash && !userProfileGate?.hasLocation);
   /** Keep splash up while a completed user is still on auth slides pending redirect to tabs. */
@@ -1258,26 +1259,39 @@ export default function RootLayout() {
     (segments[0] === "(auth)" && segments[1] === "location") ||
     segments[0] === "profile-photo-crop" ||
     segments[0] === "add-interests" ||
-    segments[1] === "how-it-works" ||
-    segments[1] === "invite-friends";
+    segmentListForSplash.includes("invite-friends");
   const hideBootSplashDuringSignup =
     appReady && !!user && onSignupFlowScreen;
   const keepBootSplashForAuth =
     holdSplashForPendingTabsRedirect || (!!user && !authGateReady);
+  const onMainTabs = segments[0] === "(tabs)";
   const shouldDismissBootSplash =
     !bootSplashDismissed &&
     !keepBootSplashForAuth &&
     !hideBootSplashDuringSignup &&
     appReady &&
     minimumSplashElapsed;
+  // invite onboarding hides splash without dismissing it; clear as soon as
+  // those screens show, and never re-cover main tabs after signup.
+  const forceClearSplashOnTabs = onMainTabs && !!user;
 
   useEffect(() => {
-    if (!shouldDismissBootSplash) return;
-    setBootSplashDismissed(true);
-  }, [shouldDismissBootSplash]);
+    if (
+      shouldDismissBootSplash ||
+      hideBootSplashDuringSignup ||
+      forceClearSplashOnTabs
+    ) {
+      setBootSplashDismissed(true);
+    }
+  }, [
+    shouldDismissBootSplash,
+    hideBootSplashDuringSignup,
+    forceClearSplashOnTabs,
+  ]);
 
   const showBootSplashOverlay =
-    (!bootSplashDismissed || keepBootSplashForAuth) &&
+    !forceClearSplashOnTabs &&
+    (!bootSplashDismissed || (keepBootSplashForAuth && !onMainTabs)) &&
     !hideBootSplashDuringSignup;
 
   useEffect(() => {

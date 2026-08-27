@@ -248,8 +248,6 @@ function FriendsEmptyMainContent({
 }: {
   onAddFriends: () => void;
 }) {
-  const reduced = useReducedMotion();
-
   const onPressAdd = () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
     onAddFriends();
@@ -257,34 +255,28 @@ function FriendsEmptyMainContent({
 
   return (
     <View style={styles.emptyStateMain}>
-      <Animated.View
-        entering={emptyEntering(reduced, STAGGER_DELAYS[0])}
-        style={styles.emptyHeroBlock}
-      >
+      <View style={styles.emptyHeroBlock}>
         <Text style={styles.emptyHeroTitle}>
           <Text style={styles.emptyHeroAccent}>Your circle,</Text>
           {"\n"}made simple
         </Text>
         <Text style={styles.emptyHeroSubtitle}>
-          Invite friends with your link to see who&apos;s free.
+          Add friends to see who&apos;s free.
         </Text>
-      </Animated.View>
+      </View>
 
-      <Animated.View
-        entering={emptyEntering(reduced, STAGGER_DELAYS[1])}
-        style={styles.emptyPrimaryCtaWrap}
-      >
+      <View style={styles.emptyPrimaryCtaWrap}>
         <TouchableOpacity
           style={[synqOutlineAddBtn, styles.emptyPrimaryCta]}
           onPress={onPressAdd}
           activeOpacity={0.85}
           accessibilityRole="button"
-          accessibilityLabel="Invite friends"
+          accessibilityLabel="Add friends"
         >
           <Ionicons name="person-add-outline" size={20} color={ACCENT} />
-          <Text style={synqOutlineAddBtnText}>Invite friends</Text>
+          <Text style={synqOutlineAddBtnText}>Add friends</Text>
         </TouchableOpacity>
-      </Animated.View>
+      </View>
     </View>
   );
 }
@@ -2072,21 +2064,8 @@ function SearchModal({
               <View style={styles.addFriendsEmptyInvite}>
                 <Text style={styles.addFriendsEmptyInviteTitle}>No friends yet</Text>
                 <Text style={styles.addFriendsEmptyInviteText}>
-                  Invite friends with your link so people can find you on Synq.
+                  Share your profile so people can find you on Synq.
                 </Text>
-                <TouchableOpacity
-                  style={[synqOutlineAddBtn, styles.addFriendsShareCta]}
-                  onPress={() => void handleShareProfile()}
-                  disabled={sharingProfile}
-                  activeOpacity={0.85}
-                  accessibilityRole="button"
-                  accessibilityLabel="Invite friends with your link"
-                >
-                  <Ionicons name="share-social-outline" size={20} color={ACCENT} />
-                  <Text style={synqOutlineAddBtnText}>
-                    {sharingProfile ? "Preparing…" : "Invite friends with your link"}
-                  </Text>
-                </TouchableOpacity>
               </View>
             ) : (
               <SectionList
@@ -2427,6 +2406,7 @@ const styles = StyleSheet.create({
     maxWidth: 420,
     width: "100%",
     alignSelf: "center",
+    minHeight: 360,
   },
   emptyHeroBlock: {
     alignItems: "center",

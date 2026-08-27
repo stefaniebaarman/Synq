@@ -64,8 +64,13 @@ export default function InviteFriendsOnboardingScreen() {
   const [alertMessage, setAlertMessage] = useState("");
 
   useEffect(() => {
+    // Only skip if this user already finished invite onboarding (e.g. deep link
+    // re-open). Do not use a device-wide flag — that made the demo flash away
+    // for every subsequent signup on the same phone.
+    const uid = auth.currentUser?.uid;
+    if (!uid) return;
     let cancelled = false;
-    void isOnboardingInviteDone().then((done: boolean) => {
+    void isOnboardingInviteDone(uid).then((done: boolean) => {
       if (!cancelled && done) {
         router.replace("/(tabs)/friends");
       }
