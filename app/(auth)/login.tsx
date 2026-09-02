@@ -1,12 +1,8 @@
 import {
   ONBOARDING_BACK_BELOW_INSET,
   ONBOARDING_BACK_LEFT,
-  ONBOARDING_DIVIDER_MARGIN_TOP,
-  ONBOARDING_DIVIDER_WIDTH,
   ONBOARDING_H_PADDING,
   ONBOARDING_SCROLL_BOTTOM,
-  ONBOARDING_SUBTITLE_MARGIN_TOP,
-  ONBOARDING_SUBTITLE_SIZE,
   ONBOARDING_TITLE_LETTER_SPACING,
   ONBOARDING_TITLE_LINE_HEIGHT,
   ONBOARDING_TITLE_SIZE,
@@ -35,7 +31,6 @@ import {
   synqOutlineAddBtnDisabled,
   synqOutlineAddBtnText,
   synqOutlineAddBtnTextDisabled,
-  synqSvg,
 } from "@/constants/Variables";
 import BackButton from "@/src/components/BackButton";
 import { router } from "expo-router";
@@ -54,7 +49,6 @@ import {
   View
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { SvgXml } from "react-native-svg";
 import { auth } from "../../src/lib/firebase";
 import AlertModal from "../alert-modal";
 
@@ -120,9 +114,6 @@ export default function Login() {
   return (
     <TouchableWithoutFeedback onPress={Keyboard.dismiss} accessible={false}>
       <View style={styles.root}>
-        <View pointerEvents="none" style={styles.bgSvgWrap}>
-          <SvgXml xml={synqSvg} width="120%" height="120%" />
-        </View>
         <BackButton
           onPress={() => router.back()}
           style={[
@@ -153,8 +144,6 @@ export default function Login() {
           >
           <View style={styles.inner}>
             <Text style={styles.title}>Welcome back!</Text>
-            <View style={styles.divider} />
-            <Text style={styles.subtitle}>Sign in to your account</Text>
 
             <View style={styles.inputGroup}>
               <TextInput
@@ -281,16 +270,7 @@ export default function Login() {
 }
 
 const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: BG },
-  bgSvgWrap: {
-    position: "absolute",
-    top: -40,
-    left: -40,
-    right: -40,
-    bottom: -40,
-    opacity: 0.35,
-    transform: [{ rotate: "-8deg" }],
-  },
+  root: { flex: 1, backgroundColor: BG, overflow: "visible" },
   backBtn: {
     position: "absolute",
     left: ONBOARDING_BACK_LEFT,
@@ -305,20 +285,7 @@ const styles = StyleSheet.create({
     fontFamily: fonts.heavy,
     letterSpacing: ONBOARDING_TITLE_LETTER_SPACING,
     lineHeight: ONBOARDING_TITLE_LINE_HEIGHT,
-  },
-  divider: {
-    marginTop: ONBOARDING_DIVIDER_MARGIN_TOP,
-    height: 1,
-    backgroundColor: BORDER,
-    width: ONBOARDING_DIVIDER_WIDTH,
-  },
-  subtitle: {
-    color: MUTED,
-    fontSize: ONBOARDING_SUBTITLE_SIZE,
-    marginTop: ONBOARDING_SUBTITLE_MARGIN_TOP,
-    marginBottom: 26,
-    fontFamily: fonts.book,
-    lineHeight: 22,
+    marginBottom: 24,
   },
   inputGroup: { gap: 12 },
   input: {

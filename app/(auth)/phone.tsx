@@ -34,7 +34,6 @@ import {
   synqOutlineAddBtnDisabled,
   synqOutlineAddBtnText,
   synqOutlineAddBtnTextDisabled,
-  synqSvg,
 } from "@/constants/Variables";
 import BackButton from "@/src/components/BackButton";
 import AsyncStorage from "@react-native-async-storage/async-storage";
@@ -56,7 +55,6 @@ import {
   View,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { SvgXml } from "react-native-svg";
 import { app, auth, firebaseConfig } from "../../src/lib/firebase";
 import { usePreAuthTermsGate } from "../../src/lib/usePreAuthTermsGate";
 import AlertModal from "../alert-modal";
@@ -278,9 +276,6 @@ export default function Phone() {
   return (
     <TouchableWithoutFeedback onPress={Keyboard.dismiss} accessible={false}>
       <View style={styles.root}>
-        <View pointerEvents="none" style={styles.bgSvgWrap}>
-          <SvgXml xml={synqSvg} width="120%" height="120%" />
-        </View>
         <FirebaseRecaptchaVerifierModal
           ref={recaptchaVerifier}
           firebaseConfig={recaptchaConfig}
@@ -313,7 +308,7 @@ export default function Phone() {
               <Text style={styles.title}>
                 {isSignIn ? "Welcome back!" : "What’s your number?"}
               </Text>
-              <View style={styles.divider} />
+              {!isSignIn ? <View style={styles.divider} /> : null}
               <View style={styles.inputRow}>
                 <View style={styles.countryWrapper}>
                   <Text style={styles.countryInput}>{countryCode}</Text>
@@ -473,16 +468,7 @@ export default function Phone() {
 }
 
 const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: BG },
-  bgSvgWrap: {
-    position: "absolute",
-    top: -40,
-    left: -40,
-    right: -40,
-    bottom: -40,
-    opacity: 0.35,
-    transform: [{ rotate: "-8deg" }],
-  },
+  root: { flex: 1, backgroundColor: BG, overflow: "visible" },
   backBtn: {
     position: "absolute",
     left: ONBOARDING_BACK_LEFT,

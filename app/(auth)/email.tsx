@@ -27,7 +27,6 @@ import {
   synqOutlineAddBtnDisabled,
   synqOutlineAddBtnText,
   synqOutlineAddBtnTextDisabled,
-  synqSvg,
 } from "@/constants/Variables";
 import BackButton from "@/src/components/BackButton";
 import { router } from "expo-router";
@@ -46,7 +45,6 @@ import {
   View,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { SvgXml } from "react-native-svg";
 import { auth } from "../../src/lib/firebase";
 import { usePreAuthTermsGate } from "../../src/lib/usePreAuthTermsGate";
 import AlertModal from "../alert-modal";
@@ -95,9 +93,6 @@ export default function EmailSignup() {
   return (
     <TouchableWithoutFeedback onPress={Keyboard.dismiss} accessible={false}>
       <View style={styles.root}>
-        <View pointerEvents="none" style={styles.bgSvgWrap}>
-          <SvgXml xml={synqSvg} width="120%" height="120%" />
-        </View>
         <BackButton
           onPress={() => router.back()}
           style={[
@@ -189,17 +184,8 @@ export default function EmailSignup() {
 }
 
 const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: BG },
+  root: { flex: 1, backgroundColor: BG, overflow: "visible" },
 
-  bgSvgWrap: {
-    position: "absolute",
-    top: -40,
-    left: -40,
-    right: -40,
-    bottom: -40,
-    opacity: 0.35,
-    transform: [{ rotate: "-8deg" }],
-  },
   backBtn: {
     position: "absolute",
     left: ONBOARDING_BACK_LEFT,

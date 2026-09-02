@@ -1,4 +1,4 @@
-import { ONBOARDING_H_PADDING, onboardingContentTopPadding } from "@/constants/onboardingLayout";
+import { ONBOARDING_H_PADDING } from "@/constants/onboardingLayout";
 import {
   ACCENT,
   BG,
@@ -15,32 +15,38 @@ import {
   fonts,
   synqOutlineAddBtn,
   synqOutlineAddBtnText,
-  synqSvg,
 } from "@/constants/Variables";
 import { router } from "expo-router";
 import React from "react";
 import {
-  SafeAreaView,
+  Dimensions,
+  Platform,
   StatusBar,
   StyleSheet,
   Text,
   TouchableOpacity,
   View,
 } from "react-native";
-import { SvgXml } from "react-native-svg";
+import { SafeAreaView } from "react-native-safe-area-context";
+
 const CTA_WIDTH = "72%";
+const SCREEN_H = Dimensions.get("window").height;
+/** Pull headline + CTAs toward the vertical center on this screen only. */
+const GET_STARTED_TITLE_TOP = Math.round(SCREEN_H * 0.32);
+const GET_STARTED_BUTTONS_BOTTOM = Math.round(SCREEN_H * 0.22);
 
 export default function GetStartedScreen() {
   return (
-    <SafeAreaView style={styles.safe}>
-      <StatusBar barStyle="light-content" />
+    <SafeAreaView style={styles.safe} edges={["bottom", "left", "right"]}>
+      <StatusBar
+        barStyle="light-content"
+        backgroundColor={BG}
+        translucent={Platform.OS === "android"}
+      />
       <View style={styles.container}>
-        <View pointerEvents="none" style={styles.bgSvgWrap}>
-          <SvgXml xml={synqSvg} width="120%" height="120%" />
-        </View>
         <View
           style={{
-            paddingTop: onboardingContentTopPadding(),
+            paddingTop: GET_STARTED_TITLE_TOP,
             paddingHorizontal: ONBOARDING_H_PADDING,
           }}
         >
@@ -78,18 +84,9 @@ export default function GetStartedScreen() {
 }
 
 const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: BG },
-  container: { flex: 1, backgroundColor: BG },
+  safe: { flex: 1, backgroundColor: BG, overflow: "visible" },
+  container: { flex: 1, backgroundColor: BG, overflow: "visible" },
 
-  bgSvgWrap: {
-    position: "absolute",
-    top: -55,
-    left: -55,
-    right: -55,
-    bottom: -55,
-    opacity: 0.28,
-    transform: [{ rotate: "-10deg" }],
-  },
   title: {
     color: TEXT,
     fontFamily: fonts.heavy,
@@ -113,7 +110,7 @@ const styles = StyleSheet.create({
     position: "absolute",
     left: 0,
     right: 0,
-    bottom: 48,
+    bottom: GET_STARTED_BUTTONS_BOTTOM,
     paddingHorizontal: ONBOARDING_H_PADDING,
     alignItems: "center",
   },
