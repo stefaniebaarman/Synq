@@ -1,3 +1,4 @@
+import "@/src/lib/ensureExpoGlobal";
 import {
   activityNotificationId,
   dismissActivityNotification,
@@ -41,11 +42,13 @@ import * as SplashScreen from "expo-splash-screen";
 import { onAuthStateChanged, signOut, updateProfile, User } from "firebase/auth";
 import { doc, getDoc, updateDoc } from "firebase/firestore";
 import { getFunctions, httpsCallable } from "firebase/functions";
+import { DarkTheme, ThemeProvider } from "@react-navigation/native";
 import {
   createContext,
   useCallback,
   useContext,
   useEffect,
+  useMemo,
   useRef,
   useState,
 } from "react";
@@ -59,10 +62,12 @@ import {
 } from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { KeyboardProvider } from "react-native-keyboard-controller";
+import { SafeAreaProvider } from "react-native-safe-area-context";
 import { ErrorBoundary } from "../components/ErrorBoundary";
+import SynqStatusBar from "../src/components/SynqStatusBar";
 import LocationUpdateModal from "../components/LocationUpdateModal";
 import RequiredUpdateBlocker from "../components/RequiredUpdateBlocker";
-import { ACCENT, BG } from "../constants/Variables";
+import { ACCENT, BG, SURFACES } from "../constants/Variables";
 import { initAnalytics } from "../src/lib/analytics";
 import { checkAppUpdateRequired } from "../src/lib/appUpdateGate";
 import { BlockedUsersProvider } from "../src/lib/blockedUsers";
@@ -99,8 +104,24 @@ import {
 } from "../src/lib/userProfile";
 import AlertModal from "./alert-modal";
 
+/** Returning users should cold-start on tabs; signed-out routing sends them to welcome. */
+export const unstable_settings = {
+  initialRouteName: "(tabs)",
+};
+
 initSentry();
 void initAnalytics();
+
+const synqNavigationTheme = {
+  ...DarkTheme,
+  colors: {
+    ...DarkTheme.colors,
+    primary: Platform.OS === "android" ? SURFACES.elevated : ACCENT,
+    background: BG,
+    card: BG,
+    border: "#333333",
+  },
+};
 
 void SplashScreen.preventAutoHideAsync();
 
@@ -110,22 +131,6 @@ const SPLASH_LOGO = require("../assets/logo.png");
 /** Never block touches longer than this (App Store / slow Firestore). */
 const BOOT_SPLASH_MAX_MS = 6000;
 const PROFILE_GATE_TIMEOUT_MS = 12000;
-
-if (Platform.OS !== "web") {
-  Notifications.setNotificationHandler({
-    handleNotification: async (notification) => {
-      const type = notification.request.content.data?.type;
-      const silentInactive = type === "friend_synq_inactive";
-      return {
-        shouldShowAlert: !silentInactive,
-        shouldPlaySound: !silentInactive,
-        shouldSetBadge: !silentInactive,
-        shouldShowBanner: !silentInactive,
-        shouldShowList: !silentInactive,
-      };
-    },
-  });
-}
 
 async function registerForPushNotificationsAsync(): Promise<string | null> {
   if (Platform.OS === "web") return null;
@@ -175,6 +180,7 @@ async function registerForPushNotificationsAsync(): Promise<string | null> {
 const AuthContext = createContext({
   refreshAuth: () => {},
   user: null as User | null,
+  authReady: false,
   markCommunityTermsOk: () => {},
 });
 export const useAuthRefresh = () => useContext(AuthContext);
@@ -247,6 +253,7 @@ export default function RootLayout() {
   const [synqBoot, setSynqBoot] = useState<{
     cachedSynqActive: boolean;
   } | null>(null);
+  const [homeHydrated, setHomeHydrated] = useState(false);
   const synqBootUidRef = useRef<string | null>(null);
   const [showLocationModal, setShowLocationModal] = useState(false);
   const locationPromptInFlightRef = useRef(false);
@@ -406,6 +413,20 @@ export default function RootLayout() {
   useEffect(() => {
     if (Platform.OS === "web") return;
 
+    Notifications.setNotificationHandler({
+      handleNotification: async (notification) => {
+        const type = notification.request.content.data?.type;
+        const silentInactive = type === "friend_synq_inactive";
+        return {
+          shouldShowAlert: !silentInactive,
+          shouldPlaySound: !silentInactive,
+          shouldSetBadge: !silentInactive,
+          shouldShowBanner: !silentInactive,
+          shouldShowList: !silentInactive,
+        };
+      },
+    });
+
     const applyNotificationData = (data: Record<string, unknown> | undefined) => {
       const tap = parsePushNotificationTap(data);
       if (tap) {
@@ -537,10 +558,7 @@ export default function RootLayout() {
     let mounted = true;
     const preloadAssets = async () => {
       try {
-        await Asset.loadAsync([
-          require("../assets/logo.png"),
-          require("../assets/pulse.gif"),
-        ]);
+        await Asset.loadAsync([require("../assets/logo.png")]);
       } catch {} finally {
         if (mounted) setAssetsReady(true);
       }
@@ -552,27 +570,51 @@ export default function RootLayout() {
   }, []);
 
   useEffect(() => {
-    const unsub = onAuthStateChanged(auth, async (u) => {
+    setHomeHydrated(false);
+  }, [user?.uid]);
+
+  const synqBootProviderValue = useMemo(
+    () => ({
+      cachedSynqActive: synqBoot?.cachedSynqActive ?? false,
+      homeHydrated,
+      setHomeHydrated,
+    }),
+    [synqBoot?.cachedSynqActive, homeHydrated]
+  );
+
+  useEffect(() => {
+    const unsub = onAuthStateChanged(auth, (u) => {
       if (u) {
-        await Promise.all([
-          hydrateSocialCachesFromDisk(u.uid),
-          hydrateOwnProfileFromDisk(u.uid),
-          hydrateSynqStatusFromDisk(u.uid),
-        ]);
         setSynqBoot({ cachedSynqActive: getCachedSynqActiveSync(u.uid) });
-        prewarmMeTabScreen(u.uid);
         const cachedGate = profileGateFromCache(u.uid);
+        const hasNameFromAuth =
+          !!u.displayName || cachedGate?.hasDisplayName === true;
         if (cachedGate) {
           setUserProfileGate(cachedGate);
         } else {
-          setUserProfileGate({ hasDisplayName: false, hasLocation: false });
+          setUserProfileGate({
+            hasDisplayName: !!u.displayName,
+            hasLocation: false,
+          });
+        }
+        if (hasNameFromAuth) {
+          setCommunityTermsGate((prev) => (prev === null ? true : prev));
         }
         void getPreAuthTermsAccepted().then((accepted) => {
           if (accepted) setCommunityTermsGate(true);
         });
+        void Promise.all([
+          hydrateSocialCachesFromDisk(u.uid),
+          hydrateOwnProfileFromDisk(u.uid),
+          hydrateSynqStatusFromDisk(u.uid),
+        ]).then(() => {
+          setSynqBoot({ cachedSynqActive: getCachedSynqActiveSync(u.uid) });
+          prewarmMeTabScreen(u.uid);
+        });
       } else {
         setUserProfileGate(null);
         setCommunityTermsGate(null);
+        setSynqBoot(null);
       }
       setUser(u);
       setAuthReady(true);
@@ -790,8 +832,11 @@ export default function RootLayout() {
     const onProfilePhotoCropPage = segments[0] === "profile-photo-crop";
     const onCommunityTermsPage = segments[1] === "community-terms";
     const onFriendProfile = segments[0] === "friend-profile";
+    const cachedGateForRoute = user?.uid ? profileGateFromCache(user.uid) : null;
     const hasName =
-      !!user?.displayName || userProfileGate?.hasDisplayName === true;
+      !!user?.displayName ||
+      userProfileGate?.hasDisplayName === true ||
+      cachedGateForRoute?.hasDisplayName === true;
 
     if (!user) {
       if (!inAuthGroup) {
@@ -807,7 +852,18 @@ export default function RootLayout() {
       return;
     }
 
-    if (userProfileGate === null) return;
+    if (userProfileGate === null) {
+      if (!user.displayName && !cachedGateForRoute) return;
+    }
+
+    const profileGate =
+      userProfileGate ??
+      cachedGateForRoute ??
+      (user
+        ? { hasDisplayName: !!user.displayName, hasLocation: false }
+        : null);
+
+    if (!profileGate) return;
 
     if (!hasName) {
       if (!onDetailsPage && !onProfilePhotoCropPage) {
@@ -819,28 +875,42 @@ export default function RootLayout() {
     const termsAccepted =
       communityTermsOk === true || communityTermsOkRef.current === true;
 
-    if (!termsAccepted) {
-      if (communityTermsOk === false && !onCommunityTermsPage) {
+    if (communityTermsOk === false) {
+      if (!onCommunityTermsPage) {
         router.replace("/(auth)/community-terms?postAuth=1");
       }
       return;
     }
 
+    if (!termsAccepted && communityTermsOk === null && !hasName) {
+      return;
+    }
+
     // Already has location — don't keep returning users on the location step.
-    if (onLocationPage && userProfileGate.hasLocation) {
+    if (onLocationPage && profileGate.hasLocation) {
       router.replace("/(tabs)");
       return;
     }
 
     // Post-profile signup: location (until saved), interests, invite.
     if (
-      (onLocationPage && !userProfileGate.hasLocation) ||
+      (onLocationPage && !profileGate.hasLocation) ||
       onPostProfileOnboarding
     ) {
       return;
     }
 
     if (inAuthGroup && !onCommunityTermsPage) router.replace("/(tabs)");
+
+    const root = segments[0] as string | undefined;
+    if (
+      user &&
+      hasName &&
+      root !== "(tabs)" &&
+      (inAuthGroup || !root || root === "+not-found" || root === "index")
+    ) {
+      router.replace("/(tabs)");
+    }
   }, [authReady, navReady, user, segments, communityTermsOk, userProfileGate]);
 
   useEffect(() => {
@@ -1265,6 +1335,15 @@ export default function RootLayout() {
   const keepBootSplashForAuth =
     holdSplashForPendingTabsRedirect || (!!user && !authGateReady);
   const onMainTabs = segments[0] === "(tabs)";
+  const inAuthGroupForBoot = segments[0] === "(auth)";
+  /** Keep native logo splash up until the first real screen is ready to show. */
+  const nativeSplashAppReady =
+    authReady &&
+    navReady &&
+    assetsReady &&
+    minimumSplashElapsed &&
+    ((!!user && onMainTabs && (!__DEV__ ? homeHydrated : true)) ||
+      (!user && inAuthGroupForBoot));
   const shouldDismissBootSplash =
     !bootSplashDismissed &&
     !keepBootSplashForAuth &&
@@ -1290,14 +1369,24 @@ export default function RootLayout() {
   ]);
 
   const showBootSplashOverlay =
+    !__DEV__ &&
     !forceClearSplashOnTabs &&
     (!bootSplashDismissed || (keepBootSplashForAuth && !onMainTabs)) &&
     !hideBootSplashDuringSignup;
 
   useEffect(() => {
-    if (showBootSplashOverlay) return;
-    hideNativeSplash();
-  }, [showBootSplashOverlay, assetsReady]);
+    if (!assetsReady) return;
+    if (__DEV__) {
+      hideNativeSplash();
+      return;
+    }
+    if (nativeSplashAppReady) {
+      hideNativeSplash();
+      return;
+    }
+    const timeoutId = setTimeout(() => hideNativeSplash(), BOOT_SPLASH_MAX_MS);
+    return () => clearTimeout(timeoutId);
+  }, [assetsReady, nativeSplashAppReady]);
 
   const locationModals =
     user && authReady ? (
@@ -1316,25 +1405,34 @@ export default function RootLayout() {
 
   if (updateRequired.checked && updateRequired.required) {
     return (
-      <GestureHandlerRootView style={{ flex: 1 }}>
-        <RequiredUpdateBlocker storeUrl={updateRequired.storeUrl} />
+      <GestureHandlerRootView style={styles.appRoot}>
+        <SafeAreaProvider style={styles.appRoot}>
+          <SynqStatusBar />
+          <RequiredUpdateBlocker storeUrl={updateRequired.storeUrl} />
+        </SafeAreaProvider>
       </GestureHandlerRootView>
     );
   }
 
   return (
-    <GestureHandlerRootView style={{ flex: 1 }}>
+    <GestureHandlerRootView style={styles.appRoot}>
       <KeyboardProvider>
+      <SafeAreaProvider style={styles.appRoot}>
+      <ThemeProvider value={synqNavigationTheme}>
       <ErrorBoundary>
-        <AuthContext.Provider value={{ refreshAuth, user, markCommunityTermsOk }}>
-          <SynqBootProvider
-            value={synqBoot ?? { cachedSynqActive: false }}
-          >
+        <AuthContext.Provider value={{ refreshAuth, user, authReady, markCommunityTermsOk }}>
+          <SynqBootProvider value={synqBootProviderValue}>
             <BlockedUsersProvider>
             <View style={styles.root}>
-              <Stack screenOptions={{ headerShown: false }}>
-                <Stack.Screen name="(auth)" />
+              <SynqStatusBar />
+              <Stack
+                screenOptions={{
+                  headerShown: false,
+                  contentStyle: { backgroundColor: BG },
+                }}
+              >
                 <Stack.Screen name="(tabs)" />
+                <Stack.Screen name="(auth)" />
                 <Stack.Screen
                   name="friend-profile"
                   options={({ route }) => ({
@@ -1423,13 +1521,16 @@ export default function RootLayout() {
           </SynqBootProvider>
         </AuthContext.Provider>
       </ErrorBoundary>
+      </ThemeProvider>
+      </SafeAreaProvider>
       </KeyboardProvider>
     </GestureHandlerRootView>
   );
 }
 
 const styles = StyleSheet.create({
-  root: { flex: 1 },
+  appRoot: { flex: 1, backgroundColor: BG },
+  root: { flex: 1, backgroundColor: BG },
   bootSplashOverlay: {
     ...StyleSheet.absoluteFillObject,
     backgroundColor: BG,

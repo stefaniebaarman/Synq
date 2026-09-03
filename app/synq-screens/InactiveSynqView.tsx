@@ -68,6 +68,8 @@ type Props = {
 
 const PULSE_SIZE = 238;
 const ORB_STAGE = 312;
+/** Crop stippled/dithered edge baked into pulse.gif (especially visible on Android). */
+const ORB_LOGO_CLIP = PULSE_SIZE - 16;
 const CONTENT_W = 322;
 const IDLE_RING_COUNT = 2;
 const IDLE_RING_CYCLE_MS = 4000;
@@ -244,16 +246,22 @@ function ActivationOrb({
       <Animated.View style={[styles.orbHaloFar, haloFar]} pointerEvents="none" />
       <Animated.View style={[styles.orbHaloNear, haloNear]} pointerEvents="none" />
       <View style={styles.orbHaloCore} pointerEvents="none" />
-      <View style={styles.orbRingOuter} pointerEvents="none" />
-      <OrbEdgeShimmer disabled={reduced || isStartingSynq} />
-      <View style={styles.orbRingInner} pointerEvents="none" />
-      <ExpoImage
-        source={require("../../assets/pulse.gif")}
-        style={styles.orbLogo}
-        contentFit="contain"
-        transition={0}
-        cachePolicy="memory-disk"
-      />
+      {Platform.OS !== "android" ? (
+        <>
+          <View style={styles.orbRingOuter} pointerEvents="none" />
+          <OrbEdgeShimmer disabled={reduced || isStartingSynq} />
+          <View style={styles.orbRingInner} pointerEvents="none" />
+        </>
+      ) : null}
+      <View style={styles.orbLogoClip} pointerEvents="none">
+        <ExpoImage
+          source={require("../../assets/pulse.gif")}
+          style={styles.orbLogo}
+          contentFit="cover"
+          transition={0}
+          cachePolicy="memory-disk"
+        />
+      </View>
     </AnimatedPressable>
   );
 }
@@ -599,7 +607,7 @@ const styles = StyleSheet.create({
     width: PULSE_SIZE,
     height: PULSE_SIZE,
     borderRadius: PULSE_SIZE / 2,
-    borderWidth: StyleSheet.hairlineWidth,
+    borderWidth: Platform.OS === "android" ? 1 : StyleSheet.hairlineWidth,
     borderColor: ACCENT_BORDER_MUTED,
   },
   orbHaloFar: {
@@ -622,11 +630,15 @@ const styles = StyleSheet.create({
     height: PULSE_SIZE + 4,
     borderRadius: (PULSE_SIZE + 4) / 2,
     backgroundColor: ACCENT_FILL_WHISPER,
-    shadowColor: ACCENT,
-    shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 0.14,
-    shadowRadius: 12,
-    elevation: 2,
+    ...(Platform.OS === "android"
+      ? { elevation: 0 }
+      : {
+          shadowColor: ACCENT,
+          shadowOffset: { width: 0, height: 0 },
+          shadowOpacity: 0.14,
+          shadowRadius: 12,
+          elevation: 2,
+        }),
   },
   orbRingOuter: {
     position: "absolute",
@@ -651,6 +663,14 @@ const styles = StyleSheet.create({
     borderRadius: PULSE_SIZE / 2,
     borderWidth: StyleSheet.hairlineWidth,
     borderColor: ACCENT_BORDER_MUTED,
+  },
+  orbLogoClip: {
+    width: ORB_LOGO_CLIP,
+    height: ORB_LOGO_CLIP,
+    borderRadius: ORB_LOGO_CLIP / 2,
+    overflow: "hidden",
+    alignItems: "center",
+    justifyContent: "center",
   },
   orbLogo: {
     width: PULSE_SIZE,

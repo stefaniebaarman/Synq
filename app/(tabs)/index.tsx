@@ -1,4 +1,3 @@
-import { SynqBootSkeleton } from '@/src/components/loading/BrandSkeletons';
 import PlanGoingPeopleSheet, {
   type PlanGoingPerson,
 } from '@/src/components/plans/PlanGoingPeopleSheet';
@@ -75,6 +74,7 @@ import {
 } from 'firebase/firestore';
 import React, { useCallback, useEffect, useMemo, useRef, useState, type Dispatch, type SetStateAction } from 'react';
 import {
+  ActivityIndicator,
   BackHandler,
   DeviceEventEmitter,
   FlatList,
@@ -423,9 +423,14 @@ export default function SynqScreen() {
     (uid ? getCachedSynqActiveSync(uid) : false);
   const [synq, setSynq] = useState<SynqUi>(() => ({
     status: cachedSynqActiveOnMount ? "active" : "idle",
-    hydrated: cachedSynqActiveOnMount,
+    hydrated: false,
   }));
   const { status, hydrated } = synq;
+
+  useEffect(() => {
+    synqBoot?.setHomeHydrated(hydrated);
+  }, [hydrated, synqBoot]);
+
   const [availableFriends, setAvailableFriends] = useState<any[]>([]);
   const [availableFriendsReady, setAvailableFriendsReady] = useState(false);
   const [friendIdsHydrated, setFriendIdsHydrated] = useState(false);
@@ -1310,10 +1315,18 @@ export default function SynqScreen() {
 
   useEffect(() => {
     const effectUid = user?.uid;
-    if (!effectUid) return;
+    if (!effectUid) {
+      setSynq((s) => (s.hydrated ? s : { ...s, hydrated: true }));
+      return;
+    }
     chatsHydratedRef.current = false;
     setChatsHydrated(false);
     let cancelled = false;
+
+    const hydrateFallback = setTimeout(() => {
+      if (cancelled) return;
+      setSynq((s) => (s.hydrated ? s : { ...s, hydrated: true }));
+    }, 1500);
 
     const cachedProfile = getCachedOwnProfile(effectUid);
     if (cachedProfile) {
@@ -1402,6 +1415,7 @@ export default function SynqScreen() {
 
     return () => {
       cancelled = true;
+      clearTimeout(hydrateFallback);
       unsubChats();
     };
   }, [user?.uid]);
@@ -2588,13 +2602,10 @@ export default function SynqScreen() {
     );
   }, []);
 
-  const bootActive =
-    synqBoot?.cachedSynqActive === true ||
-    (uid ? getCachedSynqActiveSync(uid) : false);
-  if (!hydrated && !bootActive) {
+  if (!hydrated) {
     return (
-      <View style={[styles.darkFill, styles.bootLoading]}>
-        <SynqBootSkeleton />
+      <View style={styles.darkFill}>
+        <ActivityIndicator color={ACCENT} size="large" />
       </View>
     );
   }
@@ -3033,7 +3044,7 @@ export default function SynqScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: BG },
-  darkFill: { flex: 1, backgroundColor: BG, justifyContent: 'center' },
+  darkFill: { flex: 1, backgroundColor: BG, justifyContent: 'center', alignItems: 'center' },
   bootLoading: {
     alignItems: 'center',
     justifyContent: 'center',

@@ -8,6 +8,7 @@ import { FRIENDS_TAB_PRESS } from "../../src/lib/friendsTabEvents";
 import { SYNQ_TAB_LONG_PRESS } from "../../src/lib/synqTabEvents";
 import {
   ACCENT,
+  BG,
   MUTED3,
   SPACE_2,
   SPACE_3,
@@ -44,6 +45,7 @@ export default function TabsLayout() {
       initialRouteName="index"
       screenOptions={{
         headerShown: false,
+        sceneStyle: { backgroundColor: BG },
         tabBarBackground: () => <TabBarBackground />,
         tabBarStyle: styles.tabBar,
         tabBarActiveTintColor: ACCENT,

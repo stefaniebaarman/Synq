@@ -1,4 +1,4 @@
-import type { TextStyle, ViewStyle } from "react-native";
+import { Platform, type TextStyle, type ViewStyle } from "react-native";
 
 export {
   SYNQ_OPEN_WEB_BASE,
@@ -25,14 +25,6 @@ export const HEADER_ICON_SIZE = 26;
 export const DEFAULT_AVATAR =
   "https://www.gravatar.com/avatar/00000000000000000000000000000000?d=mp&s=256";
 export const EXPIRATION_HOURS = 12;
-export const synqSvg = `
-  <svg width="390" height="565" viewBox="0 0 390 565" fill="none" xmlns="http://www.w3.org/2000/svg">
-    <path fill-rule="evenodd" clip-rule="evenodd" d="M315.808 523.349C309.142 527.14 300.865 522.325 300.865 514.656V302.238C300.865 298.642 302.796 295.322 305.923 293.545L463.367 204.029C470.033 200.239 478.31 205.053 478.31 212.722V360.975C478.31 362.753 478.783 364.498 479.682 366.032L504.916 409.08C506.747 412.203 506.747 416.072 504.916 419.195L483.3 456.065C480.533 460.784 474.488 462.404 469.732 459.701L453.672 450.573C450.608 448.831 446.852 448.831 443.788 450.574L315.808 523.349ZM349.216 338.697C349.216 335.101 351.147 331.782 354.273 330.004L422.996 290.928C429.662 287.138 437.939 291.953 437.939 299.621V377.51C437.939 381.106 436.008 384.425 432.881 386.203L364.159 425.278C357.493 429.069 349.216 424.254 349.216 416.585V338.697Z" fill="#FFFFFF" fill-opacity="0.07"/>
-    <path d="M251.12 195.328C245.103 198.652 237.801 198.652 231.784 195.329L95.7129 120.195C81.9369 112.588 81.9361 92.7866 95.7115 85.1788L116.892 73.4815C120.939 71.2466 125.635 70.4826 130.181 71.3195L240.127 91.5575C251.28 93.6103 256.698 78.4499 246.771 72.9685L214.009 54.8785C200.232 47.2716 200.232 27.4694 214.009 19.8621L231.785 10.0464C237.801 6.72391 245.103 6.72386 251.12 10.0463L387.185 85.1778C400.963 92.7852 400.962 112.589 387.184 120.195L365.3 132.276C361.686 134.271 357.543 135.099 353.439 134.646L261.603 124.506C250.737 123.306 244.101 137.915 255.671 143.2L268.89 150.498C282.666 158.105 282.666 177.906 268.891 185.514L251.12 195.328Z" fill="#FFFFFF" fill-opacity="0.07"/>
-    <path d="M206.977 279.648C210.164 281.408 212.143 284.761 212.143 288.402V537.876C212.143 541.517 214.122 544.87 217.31 546.63L236.881 557.436C239.889 559.097 243.54 559.097 246.548 557.436L266.119 546.63C269.307 544.87 271.286 541.517 271.286 537.876V288.402C271.286 284.761 273.265 281.408 276.452 279.648L473.143 171.046C476.331 169.286 478.31 165.932 478.31 162.291V141.433C478.31 137.791 476.33 134.438 473.142 132.678L453.563 121.871C450.555 120.211 446.905 120.211 443.897 121.872L246.548 230.841C243.54 232.502 239.889 232.502 236.881 230.841L39.5239 121.872C36.5156 120.211 32.8651 120.211 29.8568 121.872L10.2856 132.678C7.09815 134.438 5.11914 137.791 5.11914 141.432V162.291C5.11914 165.932 7.09812 169.286 10.2855 171.046L206.977 279.648Z" fill="#FFFFFF" fill-opacity="0.07"/>
-    <path d="M5.11914 298.827V217.8C5.11914 210.186 13.2878 205.366 19.9526 209.045L177.397 295.975C180.584 297.735 182.563 301.088 182.563 304.729V347.207C182.563 354.82 174.394 359.641 167.729 355.961L79.1043 307.019C72.4394 303.339 64.2701 308.159 64.2701 315.773V325.588C64.2701 329.229 66.249 332.583 69.4364 334.343L177.397 393.954C180.585 395.714 182.563 399.068 182.563 402.709V510.505C182.563 518.118 174.395 522.939 167.73 519.259L10.2854 432.322C7.09804 430.562 5.11914 427.209 5.11914 423.568V381.097C5.11914 373.484 13.288 368.663 19.9529 372.343L108.579 421.279C115.244 424.959 123.413 420.138 123.413 412.525V402.709C123.413 399.068 121.434 395.714 118.246 393.954L10.2854 334.343C7.09806 332.583 5.11914 329.229 5.11914 325.588V298.827Z" fill="#FFFFFF" fill-opacity="0.07"/>
-  </svg>
-`;
 
 export const BG = "#090A0B";
 
@@ -43,6 +35,43 @@ export const SURFACES = {
   sheet: "#141414",
   elevated: "#1C1C1E",
 } as const;
+
+const IS_ANDROID = Platform.OS === "android";
+/** Matches interests pill stroke on Android. */
+const ANDROID_BORDER = "#333333";
+/**
+ * Android chrome matches add-interests: solid BG + SURFACE_INPUT wells/cards.
+ * Semi-transparent accent/white rgba reads as green on Android dark UI.
+ */
+const ANDROID_CHROME = {
+  SURFACE: SURFACES.inset,
+  BORDER: ANDROID_BORDER,
+  SURFACE_FAINT: SURFACES.inset,
+  SURFACE_SUBTLE: SURFACES.inset,
+  SURFACE_MUTED: SURFACES.inset,
+  SURFACE_SOFT: SURFACES.card,
+  GROUP_BORDER: ANDROID_BORDER,
+  BORDER_SOFT: ANDROID_BORDER,
+  BORDER_LIGHT: ANDROID_BORDER,
+  FRIENDS_BORDER: SURFACES.inset,
+  FRIENDS_SEARCH_BORDER: ANDROID_BORDER,
+  ACCENT_FILL: SURFACES.card,
+  ACCENT_FILL_SUBTLE: SURFACES.inset,
+  ACCENT_FILL_MUTED: SURFACES.inset,
+  ACCENT_FILL_FAINT: SURFACES.inset,
+  ACCENT_FILL_WHISPER: BG,
+  ACCENT_FILL_STRONG: SURFACES.elevated,
+  ACCENT_SELECTED_BG: SURFACES.card,
+  DISABLED_ACCENT_SUBTLE: SURFACES.inset,
+  ACCENT_GRADIENT_START: BG,
+  ACCENT_GRADIENT_END: BG,
+  SHARE_GRADIENT_ACCENT: BG,
+  RIPPLE: "#1A1B1D",
+} as const;
+/** Neutral Android press ripple (avoids Material accent green flash). */
+export const ANDROID_RIPPLE = IS_ANDROID
+  ? ({ color: ANDROID_CHROME.RIPPLE } as const)
+  : undefined;
 /** Charcoal behind tab icons and labels (slightly lifted off pure black). */
 export const TAB_BAR_BG = "#050607";
 /** Tab bar fade: transparent (content) → charcoal (icons). */
@@ -118,8 +147,10 @@ export const fonts = {
   book: "Avenir-Book",
   black: "Avenir-Black",
 };
-export const SURFACE = "rgba(255,255,255,0.06)";
-export const BORDER = "rgba(255,255,255,0.08)";
+export const SURFACE = IS_ANDROID
+  ? ANDROID_CHROME.SURFACE
+  : "rgba(255,255,255,0.06)";
+export const BORDER = IS_ANDROID ? ANDROID_CHROME.BORDER : "rgba(255,255,255,0.08)";
 export const MUTED2 = "rgba(255,255,255,0.45)";
 export const MUTED3 = "rgba(255,255,255,0.25)";
 export const CLOSE_ICON_NAME = "close" as const;
@@ -162,14 +193,14 @@ export const TYPE_FINE = 12;
 export const TYPE_MICRO = 11;
 export const TYPE_NANO = 9;
 
-/** Raised cards and group list surfaces → {@link SURFACES.card}. */
-export const SURFACE_RAISED = SURFACES.card;
-/** Elevated chips, avatars, and input wells → {@link SURFACES.elevated}. */
-export const SURFACE_ELEVATED = SURFACES.elevated;
+/** Raised cards and group list surfaces → interests card gray on Android. */
+export const SURFACE_RAISED = IS_ANDROID ? SURFACES.inset : SURFACES.card;
+/** Elevated chips, avatars, and input wells → interests inset gray on Android. */
+export const SURFACE_ELEVATED = IS_ANDROID ? SURFACES.inset : SURFACES.elevated;
 /** Memo and input field backgrounds → {@link SURFACES.inset}. */
 export const SURFACE_INPUT = SURFACES.inset;
 /** Bottom sheet and action sheet backgrounds → {@link SURFACES.sheet}. */
-export const SHEET_SURFACE = SURFACES.sheet;
+export const SHEET_SURFACE = IS_ANDROID ? BG : SURFACES.sheet;
 export const BORDER_STRONG = "#222";
 export const BORDER_MUTED = "#333";
 export const TEXT_MUTED_HEX = "#A8A8A8";
@@ -184,7 +215,9 @@ export const SHEET_OVERLAY = "rgba(0,0,0,0.55)";
 /** Disabled primary CTA fill (iOS system gray). */
 export const DISABLED_CTA = "#8E8E93";
 export const DISABLED_ACCENT = "rgba(125,255,166,0.30)";
-export const DISABLED_ACCENT_SUBTLE = "rgba(125,255,166,0.06)";
+export const DISABLED_ACCENT_SUBTLE = IS_ANDROID
+  ? ANDROID_CHROME.DISABLED_ACCENT_SUBTLE
+  : "rgba(125,255,166,0.06)";
 /** Drop shadow color for elevated cards. */
 export const SHADOW = "#000";
 export const OVERLAY_DIM = "rgba(0,0,0,0.45)";
@@ -192,10 +225,16 @@ export const OVERLAY_NEAR_FULL = "rgba(0,0,0,0.9)";
 export const BG_FADE_MID = "rgba(9,10,11,0.5)";
 export const BG_FADE_HEAVY = "rgba(9,10,11,0.88)";
 export const BG_TRANSPARENT = "rgba(9,10,11,0)";
-export const ACCENT_GRADIENT_START = "rgba(0,255,133,0.14)";
-export const ACCENT_GRADIENT_END = "rgba(0,255,133,0.03)";
+export const ACCENT_GRADIENT_START = IS_ANDROID
+  ? ANDROID_CHROME.ACCENT_GRADIENT_START
+  : "rgba(0,255,133,0.14)";
+export const ACCENT_GRADIENT_END = IS_ANDROID
+  ? ANDROID_CHROME.ACCENT_GRADIENT_END
+  : "rgba(0,255,133,0.03)";
 export const SHARE_GRADIENT_START = "#101215";
-export const SHARE_GRADIENT_ACCENT = "#0B100E";
+export const SHARE_GRADIENT_ACCENT = IS_ANDROID
+  ? ANDROID_CHROME.SHARE_GRADIENT_ACCENT
+  : "#0B100E";
 export const TEXT_BRIGHT_HEX = "#FFFFFF";
 export const OVERLAY_ZERO = "rgba(0,0,0,0)";
 export const OVERLAY_SOFT = "rgba(0,0,0,0.08)";
@@ -207,18 +246,36 @@ export const OVERLAY_WHISPER = "rgba(0,0,0,0.16)";
 export const DESTRUCTIVE_IOS_FILL = "rgba(255, 59, 48, 0.15)";
 export const ACCENT_SUBTLE = "rgba(0,255,133,0.28)";
 /** Selected row tint on accent-bordered lists. */
-export const ACCENT_SELECTED_BG = "rgba(120,255,120,0.08)";
+export const ACCENT_SELECTED_BG = IS_ANDROID
+  ? ANDROID_CHROME.ACCENT_SELECTED_BG
+  : "rgba(120,255,120,0.08)";
 /** Accent borders and fills for chips, selected rows, CTAs. */
 export const ACCENT_BORDER = "rgba(0,255,133,0.45)";
-export const ACCENT_BORDER_SUBTLE = "rgba(0,255,133,0.22)";
-export const ACCENT_BORDER_MUTED = "rgba(0,255,133,0.1)";
-export const ACCENT_FILL = "rgba(0,255,133,0.12)";
-export const ACCENT_FILL_SUBTLE = "rgba(0,255,133,0.08)";
-export const ACCENT_FILL_MUTED = "rgba(0,255,133,0.06)";
-export const ACCENT_FILL_FAINT = "rgba(0,255,133,0.04)";
-export const ACCENT_FILL_WHISPER = "rgba(0,255,133,0.02)";
+export const ACCENT_BORDER_SUBTLE = IS_ANDROID
+  ? ANDROID_BORDER
+  : "rgba(0,255,133,0.22)";
+export const ACCENT_BORDER_MUTED = IS_ANDROID
+  ? ANDROID_BORDER
+  : "rgba(0,255,133,0.1)";
+export const ACCENT_FILL = IS_ANDROID
+  ? ANDROID_CHROME.ACCENT_FILL
+  : "rgba(0,255,133,0.12)";
+export const ACCENT_FILL_SUBTLE = IS_ANDROID
+  ? ANDROID_CHROME.ACCENT_FILL_SUBTLE
+  : "rgba(0,255,133,0.08)";
+export const ACCENT_FILL_MUTED = IS_ANDROID
+  ? ANDROID_CHROME.ACCENT_FILL_MUTED
+  : "rgba(0,255,133,0.06)";
+export const ACCENT_FILL_FAINT = IS_ANDROID
+  ? ANDROID_CHROME.ACCENT_FILL_FAINT
+  : "rgba(0,255,133,0.04)";
+export const ACCENT_FILL_WHISPER = IS_ANDROID
+  ? ANDROID_CHROME.ACCENT_FILL_WHISPER
+  : "rgba(0,255,133,0.02)";
 export const ACCENT_ICON = "rgba(0,255,133,0.88)";
-export const ACCENT_FILL_STRONG = "rgba(0,255,133,0.32)";
+export const ACCENT_FILL_STRONG = IS_ANDROID
+  ? ANDROID_CHROME.ACCENT_FILL_STRONG
+  : "rgba(0,255,133,0.32)";
 export const ACCENT_REFRESH_TINT = "rgba(0,255,133,0.58)";
 /** Destructive borders and fills. */
 export const DESTRUCTIVE_BORDER = "rgba(255,69,58,0.35)";
@@ -243,21 +300,39 @@ export const HEART_LIKE = "#FF2D55";
 export const TEXT_ON_BRIGHT = "rgba(255,255,255,0.85)";
 export const CHAT_FAILED_SELF = "#8B0000";
 export const CHAT_FAILED_OTHER = "#FFB4B4";
-export const GROUP_BORDER = "rgba(255,255,255,0.06)";
+export const GROUP_BORDER = IS_ANDROID
+  ? ANDROID_CHROME.GROUP_BORDER
+  : "rgba(255,255,255,0.06)";
 /** Hairline dividers and faint wells. */
-export const SURFACE_FAINT = "rgba(255,255,255,0.03)";
-export const SURFACE_SUBTLE = "rgba(255,255,255,0.04)";
-export const SURFACE_MUTED = "rgba(255,255,255,0.05)";
-export const SURFACE_SOFT = "rgba(255,255,255,0.07)";
-export const BORDER_SOFT = "rgba(255,255,255,0.1)";
-export const BORDER_LIGHT = "rgba(255,255,255,0.12)";
+export const SURFACE_FAINT = IS_ANDROID
+  ? ANDROID_CHROME.SURFACE_FAINT
+  : "rgba(255,255,255,0.03)";
+export const SURFACE_SUBTLE = IS_ANDROID
+  ? ANDROID_CHROME.SURFACE_SUBTLE
+  : "rgba(255,255,255,0.04)";
+export const SURFACE_MUTED = IS_ANDROID
+  ? ANDROID_CHROME.SURFACE_MUTED
+  : "rgba(255,255,255,0.05)";
+export const SURFACE_SOFT = IS_ANDROID
+  ? ANDROID_CHROME.SURFACE_SOFT
+  : "rgba(255,255,255,0.07)";
+export const BORDER_SOFT = IS_ANDROID
+  ? ANDROID_CHROME.BORDER_SOFT
+  : "rgba(255,255,255,0.1)";
+export const BORDER_LIGHT = IS_ANDROID
+  ? ANDROID_CHROME.BORDER_LIGHT
+  : "rgba(255,255,255,0.12)";
 export const BORDER_HAIRLINE = "rgba(255,255,255,0.14)";
 export const DIVIDER = "rgba(255,255,255,0.16)";
 export const DIVIDER_STRONG = "rgba(255,255,255,0.22)";
 /** Friends tab list/card stroke. */
-export const FRIENDS_BORDER = "rgba(255,255,255,0.035)";
+export const FRIENDS_BORDER = IS_ANDROID
+  ? ANDROID_CHROME.FRIENDS_BORDER
+  : "rgba(255,255,255,0.035)";
 /** Search field stroke on Friends tab. */
-export const FRIENDS_SEARCH_BORDER = "rgba(255,255,255,0.12)";
+export const FRIENDS_SEARCH_BORDER = IS_ANDROID
+  ? ANDROID_CHROME.FRIENDS_SEARCH_BORDER
+  : "rgba(255,255,255,0.12)";
 /** Standard horizontal inset for scrollable screen content. */
 export const SCREEN_H_PADDING = SPACE_5;
 
@@ -555,7 +630,7 @@ export const synqOutlineAddBtnTextCompact: TextStyle = {
 
 export const synqOutlineAddBtnDisabled: ViewStyle = {
   borderColor: BORDER_SOFT,
-  backgroundColor: "transparent",
+  backgroundColor: IS_ANDROID ? SURFACES.inset : "transparent",
 };
 
 export const synqOutlineAddBtnTextDisabled: TextStyle = {
