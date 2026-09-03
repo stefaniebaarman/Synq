@@ -1,8 +1,6 @@
 import {
-  ACCENT,
-  ACCENT_BORDER_SUBTLE,
-  ACCENT_FILL,
-  BORDER_SOFT,
+  BORDER_SUBTLE_HEX,
+  MUTED2,
   SURFACE_ELEVATED,
 } from "@/constants/Variables";
 import { Ionicons } from "@expo/vector-icons";
@@ -39,7 +37,7 @@ export default function CommunityGroupListAvatar({
 
   return (
     <View style={styles.iconRing}>
-      <Ionicons name="people" size={22} color={ACCENT} />
+      <Ionicons name="people" size={22} color={MUTED2} />
     </View>
   );
 }
@@ -56,7 +54,7 @@ const styles = StyleSheet.create({
     height: AVATAR_SIZE,
     borderRadius: AVATAR_SIZE / 2,
     borderWidth: 2,
-    borderColor: BORDER_SOFT,
+    borderColor: BORDER_SUBTLE_HEX,
     backgroundColor: SURFACE_ELEVATED,
   },
   iconRing: {
@@ -65,8 +63,8 @@ const styles = StyleSheet.create({
     borderRadius: AVATAR_SIZE / 2,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: ACCENT_FILL,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: ACCENT_BORDER_SUBTLE,
+    backgroundColor: SURFACE_ELEVATED,
+    borderWidth: 1,
+    borderColor: BORDER_SUBTLE_HEX,
   },
 });

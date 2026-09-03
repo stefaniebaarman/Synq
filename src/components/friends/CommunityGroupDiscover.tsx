@@ -1,14 +1,11 @@
 import AlertModal from "@/app/alert-modal";
 import {
-  ACCENT_BORDER,
-  ACCENT_FILL,
   BG,
-  BORDER,
+  BORDER_SUBTLE_HEX,
   MUTED2,
   MUTED3,
   RADIUS_LG,
-  SURFACE,
-  SURFACE_MUTED,
+  SURFACE_ELEVATED,
   SYNQ_OUTLINE_CTA_RADIUS,
   TYPE_BODY,
   TYPE_CAPTION,
@@ -20,8 +17,10 @@ import {
 } from "@/constants/Variables";
 import { ListRowsSkeleton } from "@/src/components/loading/BrandSkeletons";
 import CommunityGroupListAvatar from "@/src/components/friends/CommunityGroupListAvatar";
+import GroupListCard, {
+  GROUP_LIST_ANDROID_RIPPLE,
+} from "@/src/components/friends/GroupListCard";
 import {
-  GROUP_BORDER,
   GROUP_SURFACE,
   groupsPageStyles,
 } from "@/src/components/friends/groupsListStyles";
@@ -212,13 +211,12 @@ export default function CommunityGroupDiscover() {
     const busy = joiningId === item.id;
 
     return (
-      <TouchableOpacity
-        style={groupsPageStyles.circleCard}
-        activeOpacity={0.78}
+      <GroupListCard
         onPress={() => {
           dismissKeyboard();
           openGroup(item.id);
         }}
+        accessibilityLabel={`${item.name}, ${formatMemberCount(item.memberIds.length)}`}
       >
         <CommunityGroupListAvatar
           coverPhotoUrl={item.coverPhotoUrl}
@@ -239,9 +237,12 @@ export default function CommunityGroupDiscover() {
             <Text style={styles.joinedPillText}>Joined</Text>
           </View>
         ) : (
-          <TouchableOpacity
+          <Pressable
             style={[groupsPageStyles.joinBtn, busy && groupsPageStyles.joinBtnDisabled]}
             disabled={busy}
+            android_ripple={
+              Platform.OS === "android" ? GROUP_LIST_ANDROID_RIPPLE : undefined
+            }
             onPress={() => void handleJoin(item)}
             accessibilityRole="button"
             accessibilityLabel={`Join ${item.name}`}
@@ -249,9 +250,9 @@ export default function CommunityGroupDiscover() {
             <Text style={[groupsPageStyles.joinBtnText, busy && { opacity: 0.5 }]}>
               Join
             </Text>
-          </TouchableOpacity>
+          </Pressable>
         )}
-      </TouchableOpacity>
+      </GroupListCard>
     );
   };
 
@@ -412,7 +413,7 @@ const styles = StyleSheet.create({
     borderRadius: 999,
     backgroundColor: GROUP_SURFACE,
     borderWidth: StyleSheet.hairlineWidth,
-    borderColor: BORDER,
+    borderColor: BORDER_SUBTLE_HEX,
     overflow: "visible",
   },
   categoryChipsScroll: {
@@ -427,16 +428,16 @@ const styles = StyleSheet.create({
     paddingHorizontal: CONTENT_PAD_X,
   },
   categoryChip: {
-    backgroundColor: SURFACE,
+    backgroundColor: SURFACE_ELEVATED,
     borderWidth: 1,
-    borderColor: BORDER,
+    borderColor: BORDER_SUBTLE_HEX,
     borderRadius: 999,
     paddingHorizontal: 14,
     paddingVertical: 8,
   },
   categoryChipOn: {
-    backgroundColor: ACCENT_FILL,
-    borderColor: ACCENT_BORDER,
+    backgroundColor: SURFACE_ELEVATED,
+    borderColor: BORDER_SUBTLE_HEX,
   },
   categoryChipText: profileInterestPillText,
   categoryChipTextOn: profileInterestPillTextActive,
@@ -469,9 +470,9 @@ const styles = StyleSheet.create({
     paddingHorizontal: 11,
     paddingVertical: 7,
     borderRadius: SYNQ_OUTLINE_CTA_RADIUS,
-    backgroundColor: SURFACE_MUTED,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: GROUP_BORDER,
+    backgroundColor: SURFACE_ELEVATED,
+    borderWidth: Platform.OS === "android" ? 1 : StyleSheet.hairlineWidth,
+    borderColor: BORDER_SUBTLE_HEX,
   },
   joinedPillText: {
     fontFamily: fonts.medium,
@@ -489,7 +490,7 @@ const styles = StyleSheet.create({
     borderRadius: RADIUS_LG,
     backgroundColor: GROUP_SURFACE,
     borderWidth: StyleSheet.hairlineWidth,
-    borderColor: GROUP_BORDER,
+    borderColor: BORDER_SUBTLE_HEX,
   },
   emptyHint: {
     ...cardMetaText,

@@ -22,10 +22,10 @@ import {
   ScrollView,
   StyleSheet,
   Text,
-  TouchableOpacity,
   View,
 } from "react-native";
 import { ListRowsSkeleton } from "@/src/components/loading/BrandSkeletons";
+import GroupListCard from "@/src/components/friends/GroupListCard";
 import CreateCircleModal from "./CreateCircleModal";
 import GroupListAvatar from "./GroupListAvatar";
 import GroupsSectionHeader from "./GroupsSectionHeader";
@@ -173,14 +173,11 @@ export default function GroupsListPane({
           ) : null}
 
           {groups.map((group) => (
-            <TouchableOpacity
+            <GroupListCard
               key={group.id}
-              style={groupsPageStyles.circleCard}
               onPress={() => openGroup(group.id)}
               onLongPress={() => promptDeleteGroup(group)}
               delayLongPress={400}
-              activeOpacity={0.8}
-              accessibilityRole="button"
               accessibilityLabel={`${group.name}, ${group.memberIds.length} members`}
               accessibilityHint="Long press to delete this circle"
             >
@@ -194,7 +191,7 @@ export default function GroupsListPane({
                 </Text>
               </View>
               <Ionicons name="chevron-forward" size={16} color={MUTED3} />
-            </TouchableOpacity>
+            </GroupListCard>
           ))}
 
         </View>

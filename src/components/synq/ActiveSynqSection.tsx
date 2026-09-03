@@ -16,6 +16,7 @@ import {
   ActivityIndicator,
   DeviceEventEmitter,
   FlatList,
+  Platform,
   Pressable,
   StyleSheet,
   Text,
@@ -33,18 +34,18 @@ import Animated, {
   withTiming,
 } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import Svg, { Defs, RadialGradient, Rect, Stop } from "react-native-svg";
 import SynqOptionsSheet from "../../../app/synq-screens/SynqOptionsSheet";
 import {
   ACCENT,
   ACCENT_BORDER,
-  ACCENT_FILL_SUBTLE,
   BG,
   BG_TRANSPARENT,
+  BORDER,
   MUTED,
   MUTED2,
   MUTED3,
   RADIUS_MD,
+  SURFACE_INPUT,
   TAB_BAR_SCROLL_INSET,
   TEXT,
   TYPE_BODY,
@@ -60,6 +61,8 @@ import {
 } from "../../../constants/Variables";
 
 const LIVE_PULSE_SIZE = 8;
+const FRIEND_CARD_BORDER_WIDTH =
+  Platform.OS === "android" ? 1 : StyleSheet.hairlineWidth;
 const MEMO_PLACEHOLDER = "Add a status…";
 const STATUS_DIVIDER = "rgba(255,255,255,0.08)";
 const ACTIVE_LIST_BOTTOM_FADE_HEIGHT = 72;
@@ -123,71 +126,6 @@ const pulseStyles = {
     backgroundColor: ACCENT,
   },
 };
-
-function AmbientGlow({ reduced }: { reduced: boolean }) {
-  const pulse = useSharedValue(0);
-
-  useEffect(() => {
-    if (reduced) {
-      pulse.value = 0.5;
-      return;
-    }
-    pulse.value = withRepeat(
-      withTiming(1, { duration: 3200, easing: Easing.inOut(Easing.sin) }),
-      -1,
-      true
-    );
-  }, [reduced, pulse]);
-
-  const style = useAnimatedStyle(() => {
-    const t = pulse.value;
-    return {
-      opacity: 0.35 + t * 0.3,
-      transform: [{ scale: 1 + t * 0.03 }],
-    };
-  });
-
-  return (
-    <Animated.View style={styles.glowWrap} pointerEvents="none">
-      <Animated.View style={[styles.glowPulse, style]}>
-        <Svg
-          width="100%"
-          height="100%"
-          viewBox="0 0 390 844"
-          preserveAspectRatio="xMidYMid slice"
-        >
-          <Defs>
-            <RadialGradient
-              id="activeGlowTop"
-              cx="50%"
-              cy="12%"
-              rx="95%"
-              ry="55%"
-            >
-              <Stop offset="0%" stopColor={ACCENT} stopOpacity="0.07" />
-              <Stop offset="40%" stopColor={ACCENT} stopOpacity="0.03" />
-              <Stop offset="75%" stopColor={ACCENT} stopOpacity="0.01" />
-              <Stop offset="100%" stopColor={ACCENT} stopOpacity="0" />
-            </RadialGradient>
-            <RadialGradient
-              id="activeGlowWash"
-              cx="50%"
-              cy="42%"
-              rx="85%"
-              ry="75%"
-            >
-              <Stop offset="0%" stopColor={ACCENT} stopOpacity="0.025" />
-              <Stop offset="55%" stopColor={ACCENT} stopOpacity="0.008" />
-              <Stop offset="100%" stopColor={ACCENT} stopOpacity="0" />
-            </RadialGradient>
-          </Defs>
-          <Rect x="0" y="0" width="390" height="844" fill="url(#activeGlowTop)" />
-          <Rect x="0" y="0" width="390" height="844" fill="url(#activeGlowWash)" />
-        </Svg>
-      </Animated.View>
-    </Animated.View>
-  );
-}
 
 type Props = {
   styles: any;
@@ -287,7 +225,6 @@ export default function ActiveSynqSection({
 
   return (
     <View style={parentStyles.activeSynqRoot}>
-      <AmbientGlow reduced={!!reducedMotion} />
       <View style={[styles.body, { paddingTop: insets.top + 8 }]}>
         <View style={styles.statusPanel}>
           <Animated.View
@@ -627,14 +564,6 @@ const styles = StyleSheet.create({
     height: 44,
     marginBottom: 16,
   },
-  glowWrap: {
-    ...StyleSheet.absoluteFillObject,
-    zIndex: 0,
-    overflow: "hidden",
-  },
-  glowPulse: {
-    ...StyleSheet.absoluteFillObject,
-  },
   statusRow: {
     flexDirection: "row",
     alignItems: "center",
@@ -730,13 +659,14 @@ const styles = StyleSheet.create({
     gap: 16,
     marginBottom: 10,
     borderRadius: RADIUS_MD,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: "rgba(255,255,255,0.06)",
-    backgroundColor: "rgba(255,255,255,0.03)",
+    borderWidth: FRIEND_CARD_BORDER_WIDTH,
+    borderColor: BORDER,
+    backgroundColor: SURFACE_INPUT,
+    overflow: "hidden",
   },
   friendCardSelected: {
     borderColor: ACCENT_BORDER,
-    backgroundColor: ACCENT_FILL_SUBTLE,
+    backgroundColor: SURFACE_INPUT,
   },
   friendAvatarWrap: {
     width: 52,

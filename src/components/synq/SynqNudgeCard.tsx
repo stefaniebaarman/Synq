@@ -1,8 +1,9 @@
-import { resolveAvatar } from "@/src/lib/helpers";
 import {
   BORDER_SOFT,
+  BORDER_SUBTLE_HEX,
   MUTED2,
   RADIUS_MD,
+  SURFACE_INPUT,
   TEXT,
   TYPE_BUTTON,
   TYPE_FINE,
@@ -12,18 +13,19 @@ import {
   synqOutlineAddBtnTextCompact,
   synqOutlineAddBtnTextDisabled,
 } from "@/constants/Variables";
-import {
-  GROUP_BORDER,
-  GROUP_SURFACE,
-} from "@/src/components/friends/groupsListStyles";
+import { resolveAvatar } from "@/src/lib/helpers";
 import { Image as ExpoImage } from "expo-image";
 import React from "react";
 import {
+  Platform,
   StyleSheet,
   Text,
   TouchableOpacity,
   View,
 } from "react-native";
+
+const NUDGE_CARD_BORDER_WIDTH =
+  Platform.OS === "android" ? 1 : StyleSheet.hairlineWidth;
 
 export type SynqNudgeCardProps = {
   onNudge: () => void;
@@ -111,16 +113,17 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: 10,
-    backgroundColor: GROUP_SURFACE,
+    backgroundColor: SURFACE_INPUT,
     borderRadius: RADIUS_MD,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: GROUP_BORDER,
+    borderWidth: NUDGE_CARD_BORDER_WIDTH,
+    borderColor: BORDER_SUBTLE_HEX,
     paddingVertical: 11,
     paddingHorizontal: 12,
+    overflow: "hidden",
   },
   cardSent: {
-    borderColor: GROUP_BORDER,
-    backgroundColor: GROUP_SURFACE,
+    borderColor: BORDER_SUBTLE_HEX,
+    backgroundColor: SURFACE_INPUT,
   },
   avatar: {
     width: 36,

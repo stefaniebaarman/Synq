@@ -23,7 +23,7 @@ import { LinearGradient } from "expo-linear-gradient";
 import { router } from "expo-router";
 import { useEffect, useRef, type ReactNode } from "react";
 import {
-  SafeAreaView,
+  Platform,
   StatusBar,
   StyleSheet,
   Text,
@@ -42,6 +42,10 @@ import Animated, {
   useSharedValue,
   withTiming,
 } from "react-native-reanimated";
+import {
+  SafeAreaView,
+  useSafeAreaInsets,
+} from "react-native-safe-area-context";
 
 type Props = {
   step: number;
@@ -73,6 +77,7 @@ export default function OnboardingImmersiveSlide({
   heroTop = ONBOARDING_HERO_TOP,
   children,
 }: Props) {
+  const insets = useSafeAreaInsets();
   const reduced = useReducedMotion();
   const locked = useRef(false);
   const enter = useSharedValue(reduced ? 1 : 0);
@@ -126,13 +131,17 @@ export default function OnboardingImmersiveSlide({
       activeOffsetX={[-15, 15]}
       failOffsetY={[-15, 15]}
     >
-      <SafeAreaView style={styles.safe}>
-        <StatusBar barStyle="light-content" />
+      <SafeAreaView style={styles.safe} edges={["bottom", "left", "right"]}>
+        <StatusBar
+          barStyle="light-content"
+          backgroundColor={BG}
+          translucent={Platform.OS === "android"}
+        />
         <View style={styles.root}>
           <TouchableOpacity
             onPress={handleSkip}
             activeOpacity={0.7}
-            style={styles.skip}
+            style={[styles.skip, { top: insets.top + (Platform.OS === "android" ? 6 : 8) }]}
             hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
             accessibilityRole="button"
             accessibilityLabel="Skip onboarding"
@@ -214,14 +223,17 @@ const styles = StyleSheet.create({
   },
   skip: {
     position: "absolute",
-    top: 8,
     right: 18,
     zIndex: 10,
+    paddingVertical: 4,
+    paddingLeft: 8,
   },
   skipText: {
     color: MUTED2,
     fontFamily: fonts.book,
     fontSize: TYPE_BODY,
+    lineHeight: TYPE_BODY + 6,
+    ...(Platform.OS === "android" ? { includeFontPadding: false } : null),
   },
   stage: {
     ...StyleSheet.absoluteFillObject,

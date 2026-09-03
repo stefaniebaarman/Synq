@@ -7,6 +7,9 @@ import CommunityGroupListAvatar from "@/src/components/friends/CommunityGroupLis
 import CreateCommunityModal, {
   type CreateCommunityInput,
 } from "@/src/components/community/CreateCommunityModal";
+import GroupListCard, {
+  GROUP_LIST_ANDROID_RIPPLE,
+} from "@/src/components/friends/GroupListCard";
 import GroupsFeatureInfoModal from "@/src/components/friends/GroupsFeatureInfoModal";
 import GroupsSectionHeader from "@/src/components/friends/GroupsSectionHeader";
 import { groupsPageStyles } from "@/src/components/friends/groupsListStyles";
@@ -21,8 +24,9 @@ import * as Haptics from "expo-haptics";
 import { useRouter } from "expo-router";
 import React, { useCallback, useEffect, useState } from "react";
 import {
+  Platform,
+  Pressable,
   Text,
-  TouchableOpacity,
   View,
 } from "react-native";
 
@@ -119,10 +123,12 @@ export default function CommunitySection({ userId }: Props) {
           />
         </View>
 
-        <TouchableOpacity
+        <Pressable
           style={groupsPageStyles.browseRow}
+          android_ripple={
+            Platform.OS === "android" ? GROUP_LIST_ANDROID_RIPPLE : undefined
+          }
           onPress={openSearch}
-          activeOpacity={0.75}
           accessibilityRole="button"
           accessibilityLabel="Find communities"
         >
@@ -131,15 +137,12 @@ export default function CommunitySection({ userId }: Props) {
           </View>
           <Text style={groupsPageStyles.browseRowTitle}>Find communities</Text>
           <Ionicons name="chevron-forward" size={16} color={MUTED3} />
-        </TouchableOpacity>
+        </Pressable>
 
         {joined.map((group) => (
-          <TouchableOpacity
+          <GroupListCard
             key={group.id}
-            style={groupsPageStyles.circleCard}
             onPress={() => openGroup(group.id)}
-            activeOpacity={0.75}
-            accessibilityRole="button"
             accessibilityLabel={`${group.name}, ${group.memberIds.length} members`}
           >
             <CommunityGroupListAvatar
@@ -155,7 +158,7 @@ export default function CommunitySection({ userId }: Props) {
               </Text>
             </View>
             <Ionicons name="chevron-forward" size={16} color={MUTED3} />
-          </TouchableOpacity>
+          </GroupListCard>
         ))}
       </View>
 
