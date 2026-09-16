@@ -11,6 +11,13 @@ const firebaseAuthRn = path.resolve(
 
 const defaultResolveRequest = config.resolver.resolveRequest;
 
+config.serializer = {
+  ...config.serializer,
+  getModulesRunBeforeMainModule: () => [
+    require.resolve("./src/lib/ensureExpoGlobal.ts"),
+  ],
+};
+
 config.resolver.resolveRequest = (context, moduleName, platform) => {
   if (moduleName === "@firebase/auth" && platform !== "web") {
     return { type: "sourceFile", filePath: firebaseAuthRn };

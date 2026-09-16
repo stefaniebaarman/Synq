@@ -14,7 +14,11 @@ function messageIdFromData(data) {
   return str(data.messageId ?? data.message_id);
 }
 
-const CHAT_NOTIFICATION_TYPES = new Set(["message", "message_reaction"]);
+const CHAT_NOTIFICATION_TYPES = new Set([
+  "message",
+  "message_reaction",
+  "poll_vote",
+]);
 
 /**
  * Map Expo push notification `data` to an in-app navigation target.
@@ -38,7 +42,7 @@ function parsePushNotificationTap(data) {
     }
   }
 
-  if (type === "friend_request") {
+  if (type === "friend_request" || type === "friend_request_reminder") {
     return { kind: "notifications" };
   }
 
@@ -50,7 +54,12 @@ function parsePushNotificationTap(data) {
     return { kind: "notifications" };
   }
 
-  if (type === "friend_synq_active" || type === "synq_nudge") {
+  if (
+    type === "friend_synq_active" ||
+    type === "synq_nudge" ||
+    type === "friends_free_digest" ||
+    type === "prime_time"
+  ) {
     return {
       kind: "synq_home",
       fromUserId: str(data.fromUserId),
@@ -71,6 +80,18 @@ function parsePushNotificationTap(data) {
   }
 
   if (type === "community_group_invite") {
+    const groupId = str(data.groupId);
+    if (groupId) {
+      return { kind: "community_group", groupId };
+    }
+    return { kind: "notifications" };
+  }
+
+  if (
+    type === "community_post_approval" ||
+    type === "community_post_approved" ||
+    type === "community_post_rejected"
+  ) {
     const groupId = str(data.groupId);
     if (groupId) {
       return { kind: "community_group", groupId };
