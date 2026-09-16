@@ -29,6 +29,12 @@ export const getOtherChatParticipants = (
     );
 };
 
+/** True when a chat has 3+ participants (renameable group thread). */
+export function isGroupChat(chat: { participants?: unknown } | null | undefined): boolean {
+  if (!chat || !Array.isArray(chat.participants)) return false;
+  return chat.participants.filter(Boolean).length >= 3;
+}
+
 /** Stable display title for inbox preview and open chat (names sorted A→Z). */
 export const getChatTitle = (chat: any, myId?: string) => {
   if (!chat) return "Synq Chat";
@@ -57,15 +63,6 @@ export const getCommunityChatInboxSubtitle = (chat: any): string | null => {
   const planTitle = String(chat.communityPlanTitle || "").trim();
   const groupName = String(chat.communityGroupName || "").trim();
   return planTitle || groupName || null;
-};
-
-export const getLeadingEmoji = (text: string) => {
-  if (!text) return null;
-  const firstChar = Array.from(text.trim())[0];
-  if (/\p{Extended_Pictographic}/u.test(firstChar)) {
-    return firstChar;
-  }
-  return null;
 };
 
 export const formatLastSynq = (date: Date) => {
@@ -241,7 +238,7 @@ export const prefetchResolvedAvatar = (url?: unknown) => {
   ExpoImage.Image.prefetch(resolved, "memory-disk").catch(() => {});
 };
 
-export const wrapChatTitle = (text: string, maxChars = 30) => {
+const wrapChatTitle = (text: string, maxChars = 30) => {
     const tokens = text.split(' ');
     const lines: string[] = [];
     let currentLine = '';

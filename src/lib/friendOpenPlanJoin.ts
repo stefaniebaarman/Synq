@@ -14,6 +14,8 @@ export type FriendOpenPlanEvent = {
   title: string;
   time?: string;
   location?: string;
+  /** Missing / "open" = friends can see & join. "private" = owner only. */
+  visibility?: "open" | "private";
   planHostUid?: string;
   joinedFromFriendUid?: string;
   joinedFromId?: string;
@@ -32,13 +34,20 @@ export function isInSharedPlanWithFriend(
   friendUid: string
 ): boolean {
   if (!event || !friendUid) return false;
-  if (event.joinedFromFriendUid === friendUid) return true;
+  const me = String(myUid || "").trim();
+  const friend = String(friendUid || "").trim();
+  if (!friend) return false;
+  if (String(event.joinedFromFriendUid || "").trim() === friend) return true;
+  // Viewer's copy of a plan hosted by this friend (join metadata can omit self).
+  if (String(event.planHostUid || "").trim() === friend) return true;
   const ids = new Set(
     [...(Array.isArray(event?.joinedFromIds) ? event.joinedFromIds : []), event?.joinedFromId]
       .map((id) => String(id || "").trim())
       .filter(Boolean)
   );
-  return ids.has(myUid) && ids.has(friendUid);
+  if (!ids.has(friend)) return false;
+  // Own calendar rows often omit the viewer uid from joinedFromIds.
+  return !me || ids.has(me);
 }
 
 export function isViewerHostOfFriendPlan(

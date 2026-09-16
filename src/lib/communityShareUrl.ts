@@ -1,5 +1,4 @@
 import { SYNQ_SHARE_WEB_BASE } from "@/constants/Variables";
-import * as Linking from "expo-linking";
 import {
   buildCommunityShareWebUrl as buildWebUrlCore,
   normalizeShareCode,
@@ -10,13 +9,6 @@ export const PENDING_COMMUNITY_SHARE_CODE_KEY = "synq:pendingCommunityShareCode"
 
 export function buildCommunityShareWebUrl(shareCode: string): string {
   return buildWebUrlCore(SYNQ_SHARE_WEB_BASE, shareCode);
-}
-
-/** Short in-message link (no Firebase hostname) — opens Synq when installed. */
-export function buildCommunityShareAppUrl(shareCode: string): string {
-  const code = normalizeShareCode(shareCode);
-  if (!code) return "";
-  return Linking.createURL(`c/${encodeURIComponent(code)}`);
 }
 
 export function parseCommunityShareCodeFromUrl(url: string): string | null {

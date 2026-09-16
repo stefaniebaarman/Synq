@@ -37,13 +37,27 @@ type JoinedCommunityGroupsListener = (groups: CommunityGroupLike[]) => void;
 
 const userDocHub = new Map<string, { unsub: Unsubscribe; listeners: Set<UserDocListener> }>();
 const friendsHub = new Map<string, { unsub: Unsubscribe; listeners: Set<FriendsListener> }>();
+type SnapshotErrorListener = (err: unknown) => void;
+
 const friendGroupsHub = new Map<
   string,
-  { unsub: Unsubscribe; listeners: Set<FriendGroupsListener> }
+  {
+    unsub: Unsubscribe;
+    listeners: Set<FriendGroupsListener>;
+    errorListeners: Set<SnapshotErrorListener>;
+    /** Undefined until the first successful snapshot (empty array is a valid value). */
+    lastValue?: FriendGroup[];
+  }
 >();
 const joinedCommunityGroupsHub = new Map<
   string,
-  { unsub: Unsubscribe; listeners: Set<JoinedCommunityGroupsListener> }
+  {
+    unsub: Unsubscribe;
+    listeners: Set<JoinedCommunityGroupsListener>;
+    errorListeners: Set<SnapshotErrorListener>;
+    /** Undefined until the first successful snapshot (empty array is a valid value). */
+    lastValue?: CommunityGroupLike[];
+  }
 >();
 
 function optionalTrimmed(value: unknown, maxLen: number): string | undefined {
@@ -174,14 +188,23 @@ function normalizeFriendGroupMemberIds(memberIds: string[]): string[] {
 
 export function subscribeFriendGroupsMultiplexed(
   uid: string,
-  listener: FriendGroupsListener
+  listener: FriendGroupsListener,
+  onError?: SnapshotErrorListener
 ): Unsubscribe {
   if (!uid) return () => {};
 
   let hub = friendGroupsHub.get(uid);
   if (!hub) {
     const listeners = new Set<FriendGroupsListener>();
-    const unsub = onSnapshot(
+    const errorListeners = new Set<SnapshotErrorListener>();
+    // Register before onSnapshot so a sync first emission can store lastValue.
+    hub = {
+      unsub: () => {},
+      listeners,
+      errorListeners,
+    };
+    friendGroupsHub.set(uid, hub);
+    hub.unsub = onSnapshot(
       collection(db, "users", uid, "friendGroups"),
       (snap) => {
         const groups = snap.docs
@@ -199,6 +222,8 @@ export function subscribeFriendGroupsMultiplexed(
             } satisfies FriendGroup;
           })
           .sort((a, b) => a.sortOrder - b.sortOrder || a.name.localeCompare(b.name));
+        const current = friendGroupsHub.get(uid);
+        if (current) current.lastValue = groups;
         for (const fn of listeners) {
           try {
             fn(groups);
@@ -207,17 +232,28 @@ export function subscribeFriendGroupsMultiplexed(
       },
       (err) => {
         ignoreSnapshotPermissionDenied(err);
+        for (const fn of errorListeners) {
+          try {
+            fn(err);
+          } catch {}
+        }
       }
     );
-    hub = { unsub, listeners };
-    friendGroupsHub.set(uid, hub);
   }
 
   hub.listeners.add(listener);
+  if (onError) hub.errorListeners.add(onError);
+  // Replay so late subscribers (e.g. Groups pane after Synq home) hydrate immediately.
+  if (hub.lastValue !== undefined) {
+    try {
+      listener(hub.lastValue);
+    } catch {}
+  }
   return () => {
     const current = friendGroupsHub.get(uid);
     if (!current) return;
     current.listeners.delete(listener);
+    if (onError) current.errorListeners.delete(onError);
     if (current.listeners.size === 0) {
       current.unsub();
       friendGroupsHub.delete(uid);
@@ -227,19 +263,29 @@ export function subscribeFriendGroupsMultiplexed(
 
 export function subscribeJoinedCommunityGroupsMultiplexed(
   uid: string,
-  listener: JoinedCommunityGroupsListener
+  listener: JoinedCommunityGroupsListener,
+  onError?: SnapshotErrorListener
 ): Unsubscribe {
   if (!uid) return () => {};
 
   let hub = joinedCommunityGroupsHub.get(uid);
   if (!hub) {
     const listeners = new Set<JoinedCommunityGroupsListener>();
-    const unsub = onSnapshot(
+    const errorListeners = new Set<SnapshotErrorListener>();
+    hub = {
+      unsub: () => {},
+      listeners,
+      errorListeners,
+    };
+    joinedCommunityGroupsHub.set(uid, hub);
+    hub.unsub = onSnapshot(
       query(collection(db, "communityGroups"), where("memberIds", "array-contains", uid)),
       (snap) => {
         const groups = snap.docs
           .map((d) => mapCommunityGroupLite(d.id, d.data() as Record<string, unknown>))
           .sort((a, b) => a.name.localeCompare(b.name));
+        const current = joinedCommunityGroupsHub.get(uid);
+        if (current) current.lastValue = groups;
         for (const fn of listeners) {
           try {
             fn(groups);
@@ -248,17 +294,27 @@ export function subscribeJoinedCommunityGroupsMultiplexed(
       },
       (err) => {
         ignoreSnapshotPermissionDenied(err);
+        for (const fn of errorListeners) {
+          try {
+            fn(err);
+          } catch {}
+        }
       }
     );
-    hub = { unsub, listeners };
-    joinedCommunityGroupsHub.set(uid, hub);
   }
 
   hub.listeners.add(listener);
+  if (onError) hub.errorListeners.add(onError);
+  if (hub.lastValue !== undefined) {
+    try {
+      listener(hub.lastValue);
+    } catch {}
+  }
   return () => {
     const current = joinedCommunityGroupsHub.get(uid);
     if (!current) return;
     current.listeners.delete(listener);
+    if (onError) current.errorListeners.delete(onError);
     if (current.listeners.size === 0) {
       current.unsub();
       joinedCommunityGroupsHub.delete(uid);

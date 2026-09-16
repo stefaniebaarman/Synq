@@ -2,6 +2,8 @@ import React, { createContext, useContext } from "react";
 
 export type SynqBootValue = {
   cachedSynqActive: boolean;
+  homeHydrated: boolean;
+  setHomeHydrated: (hydrated: boolean) => void;
 };
 
 const SynqBootContext = createContext<SynqBootValue | undefined>(undefined);

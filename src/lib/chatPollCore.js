@@ -27,9 +27,6 @@ function normalizePollOptions(options) {
 
 function validatePollDraft(question, options) {
   const trimmedQuestion = String(question ?? "").trim();
-  if (!trimmedQuestion) {
-    return { ok: false, reason: "Add a question for your poll." };
-  }
   if (trimmedQuestion.length > MAX_POLL_QUESTION_LENGTH) {
     return { ok: false, reason: "Keep the question a bit shorter." };
   }
@@ -40,7 +37,11 @@ function validatePollDraft(question, options) {
       reason: `Add at least ${MIN_POLL_OPTIONS} options.`,
     };
   }
-  return { ok: true, question: trimmedQuestion.slice(0, MAX_POLL_QUESTION_LENGTH), options: normalized };
+  return {
+    ok: true,
+    question: trimmedQuestion.slice(0, MAX_POLL_QUESTION_LENGTH),
+    options: normalized,
+  };
 }
 
 function parsePollVotes(raw) {

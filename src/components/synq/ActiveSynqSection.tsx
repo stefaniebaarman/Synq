@@ -38,6 +38,7 @@ import SynqOptionsSheet from "../../../app/synq-screens/SynqOptionsSheet";
 import {
   ACCENT,
   ACCENT_BORDER,
+  ACCENT_FILL_SUBTLE,
   BG,
   BG_TRANSPARENT,
   BORDER,
@@ -666,7 +667,7 @@ const styles = StyleSheet.create({
   },
   friendCardSelected: {
     borderColor: ACCENT_BORDER,
-    backgroundColor: SURFACE_INPUT,
+    backgroundColor: ACCENT_FILL_SUBTLE,
   },
   friendAvatarWrap: {
     width: 52,

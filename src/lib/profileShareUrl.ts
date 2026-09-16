@@ -1,4 +1,5 @@
 import { SYNQ_SHARE_WEB_BASE } from "@/constants/Variables";
+import { getFunctions, httpsCallable } from "firebase/functions";
 import * as Linking from "expo-linking";
 
 function normalizeInviteCode(raw: string): string {
@@ -9,22 +10,6 @@ export function buildProfileShareWebUrl(inviteCode: string): string {
   const code = normalizeInviteCode(inviteCode);
   if (!code) return "";
   return `${SYNQ_SHARE_WEB_BASE}/u/${encodeURIComponent(code)}`;
-}
-
-/** Short in-message link (no Firebase hostname) — opens Synq when installed. */
-export function buildProfileShareAppUrl(inviteCode: string): string {
-  const code = normalizeInviteCode(inviteCode);
-  if (!code) return "";
-  return Linking.createURL(`u/${encodeURIComponent(code)}`);
-}
-
-/** Custom-scheme deep link for in-app use (e.g. QR scanned from within Synq). */
-export function buildProfileDeepLinkUrl(friendId: string): string {
-  const id = friendId.trim();
-  if (!id) return "";
-  return Linking.createURL("/friend-profile", {
-    queryParams: { friendId: id },
-  });
 }
 
 export function parseProfileShareCodeFromUrl(url: string): string | null {
@@ -62,22 +47,39 @@ export function parseProfileShareCodeFromUrl(url: string): string | null {
   }
 }
 
-export async function resolveProfileShareCodeToFriendId(
+async function acceptInviteFromLinkCall(payload: {
+  inviteCode?: string;
+  fromUid?: string;
+}): Promise<string | null> {
+  const functions = getFunctions(undefined, "us-central1");
+  const acceptInviteFromLink = httpsCallable(functions, "acceptInviteFromLink");
+  const result = await acceptInviteFromLink(payload);
+  const fromUid = String(
+    (result.data as { fromUid?: unknown } | undefined)?.fromUid || ""
+  ).trim();
+  return fromUid || payload.fromUid?.trim() || null;
+}
+
+/**
+ * Profile share / QR codes should create a pending friend request so the
+ * profile is readable under Firestore rules (same as invite links).
+ * Does not open a profile id without a successful connect.
+ */
+export async function connectViaProfileShareCode(
   inviteCode: string
 ): Promise<string | null> {
   const code = normalizeInviteCode(inviteCode);
   if (!code) return null;
-  try {
-    const res = await fetch(
-      `${SYNQ_SHARE_WEB_BASE}/api/resolve-profile-share?code=${encodeURIComponent(code)}`
-    );
-    if (!res.ok) return null;
-    const data = (await res.json()) as { friendId?: unknown };
-    const friendId = typeof data.friendId === "string" ? data.friendId.trim() : "";
-    return friendId || null;
-  } catch {
-    return null;
-  }
+  return acceptInviteFromLinkCall({ inviteCode: code });
+}
+
+/** Connect via raw user id (legacy deep links / QR payloads). */
+export async function connectViaProfileUserId(
+  fromUid: string
+): Promise<string | null> {
+  const uid = String(fromUid || "").trim();
+  if (!uid) return null;
+  return acceptInviteFromLinkCall({ fromUid: uid });
 }
 
 function parseFriendProfileIdFromUrl(url: string): string | null {
@@ -106,12 +108,14 @@ export async function resolveFriendIdFromScannedProfileQr(
   const data = rawData.trim();
   if (!data) return null;
 
-  const fromProfileLink = parseFriendProfileIdFromUrl(data);
-  if (fromProfileLink) return fromProfileLink;
-
   const shareCode = parseProfileShareCodeFromUrl(data);
   if (shareCode) {
-    return resolveProfileShareCodeToFriendId(shareCode);
+    return connectViaProfileShareCode(shareCode);
+  }
+
+  const fromProfileLink = parseFriendProfileIdFromUrl(data);
+  if (fromProfileLink) {
+    return connectViaProfileUserId(fromProfileLink);
   }
 
   return null;

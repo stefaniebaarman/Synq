@@ -95,6 +95,55 @@ export function invalidateSynqActiveFriendsPoll(
   if (fetchedAtMap) delete fetchedAtMap[friendId];
 }
 
+/** Keep profile cache aligned with a realtime user-doc read (activate/deactivate). */
+export function cacheFriendProfileFromUserDoc(
+  viewerId: string,
+  friendId: string,
+  data: Record<string, unknown>
+) {
+  if (!viewerId || !friendId) return;
+  if (!friendProfileCacheByUser[viewerId]) {
+    friendProfileCacheByUser[viewerId] = {};
+  }
+  if (!friendProfileFetchedAtByUser[viewerId]) {
+    friendProfileFetchedAtByUser[viewerId] = {};
+  }
+  friendProfileCacheByUser[viewerId][friendId] = {
+    id: friendId,
+    ...(data as object),
+  } as Friend;
+  friendProfileFetchedAtByUser[viewerId][friendId] = Date.now();
+}
+
+/** Immediately drop a friend from the Synq-active poll result + refresh their profile cache. */
+export function noteFriendSynqBecameInactive(
+  viewerId: string,
+  friendId: string,
+  data?: Record<string, unknown>
+) {
+  if (!viewerId || !friendId) return;
+  const cached = synqActiveFriendsPollCache[viewerId];
+  if (cached) {
+    synqActiveFriendsPollCache[viewerId] = {
+      ...cached,
+      friends: cached.friends.filter((f) => f.id !== friendId),
+    };
+  }
+  if (data) {
+    cacheFriendProfileFromUserDoc(viewerId, friendId, data);
+  } else {
+    const existing = friendProfileCacheByUser[viewerId]?.[friendId];
+    if (existing) {
+      cacheFriendProfileFromUserDoc(viewerId, friendId, {
+        ...(existing as unknown as Record<string, unknown>),
+        status: "inactive",
+      });
+    } else {
+      invalidateSynqActiveFriendsPoll(viewerId, friendId);
+    }
+  }
+}
+
 const sortFriendsByName = (list: Friend[]) =>
   [...list].sort((a, b) => (a.displayName || "").localeCompare(b.displayName || ""));
 
@@ -639,11 +688,24 @@ export async function warmSuggestedCache(
         id: u.id,
         displayName: u.displayName,
         imageurl: u.imageurl,
+        city: u.city,
+        state: u.state,
+        locationDisplay: u.locationDisplay,
+        interests: u.interests,
         mutualCount: u.mutualCount ?? 0,
       }));
       setWarmMeta(userId, { suggestedAt: now });
       await persistSocialCache(userId);
     } catch (err) {
+      const code = String((err as { code?: string })?.code || "");
+      const msg = String((err as { message?: string })?.message || err || "");
+      // Rate limits are expected under heavy signup / double-warm; don't alarm.
+      if (
+        code.includes("resource-exhausted") ||
+        /too many requests/i.test(msg)
+      ) {
+        return;
+      }
       console.error("[warmSuggestedCache] failed:", err);
     }
   })();
@@ -714,9 +776,13 @@ export async function pollSynqActiveFriends(
   const now = Date.now();
   const pollKey = friendIdsKey(friendIds);
   const cached = synqActiveFriendsPollCache[viewerId];
+  // Empty results can be served from memory; non-empty lists must re-check
+  // anyone who looked active — local profile cache often keeps status:"available"
+  // after a friend ends Synq (no user-doc listener on every friend).
   if (
     !force &&
     cached &&
+    cached.friends.length === 0 &&
     now - cached.fetchedAt < SYNQ_FRIEND_POLL_TTL_MS &&
     cached.friendIdsKey === pollKey
   ) {
@@ -725,15 +791,24 @@ export async function pollSynqActiveFriends(
 
   const profileCache = friendProfileCacheByUser[viewerId] ?? {};
   const fetchedAtMap = friendProfileFetchedAtByUser[viewerId] ?? {};
+  const prevActiveIds = new Set((cached?.friends ?? []).map((f) => f.id));
   const active: Friend[] = [];
 
   await Promise.all(
     friendIds.map(async (fid) => {
       const cachedProfile = profileCache[fid];
       const profileAge = fetchedAtMap[fid] ?? 0;
-      // Force re-reads every friend, or just the activator when focusFriendId is set.
+      const cachedLooksActive =
+        !!cachedProfile &&
+        computeSynqActiveFromUserData(
+          cachedProfile as unknown as Record<string, unknown>
+        );
+      // Force re-reads every friend, or just the focus user when set.
+      // Always re-verify anyone we currently think is Synq-active.
       const mustRefresh =
-        force && (!focusFriendId || fid === focusFriendId);
+        (force && (!focusFriendId || fid === focusFriendId)) ||
+        cachedLooksActive ||
+        prevActiveIds.has(fid);
       const profileFresh =
         !mustRefresh &&
         cachedProfile &&
@@ -744,8 +819,8 @@ export async function pollSynqActiveFriends(
         data = cachedProfile as unknown as Record<string, unknown>;
       } else {
         try {
-          // Force / focus refreshes must bypass the local Firestore cache so a
-          // just-activated friend isn't treated as still inactive.
+          // Bypass local Firestore cache whenever we need a fresh active/inactive
+          // decision — getDoc alone can retain status:"available" indefinitely.
           const snap = mustRefresh
             ? await getDocFromServer(doc(db, "users", fid))
             : await getDoc(doc(db, "users", fid));

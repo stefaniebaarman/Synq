@@ -11,6 +11,10 @@ export type FetchCurrentCityStateResult =
   | { ok: true; data: ResolvedCityState }
   | { ok: false; reason: "denied" | "undetected" | "error" };
 
+/** One-shot autofill privacy copy (existing flows). */
+export const LOCATION_ONCE_PRIVACY_MESSAGE =
+  "Synq uses your location once to auto-fill your city and state.";
+
 /** Read foreground location permission without accessing GPS. */
 export async function getForegroundLocationPermission() {
   return Location.getForegroundPermissionsAsync();

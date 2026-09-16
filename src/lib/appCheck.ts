@@ -9,8 +9,8 @@
  * Set EXPO_PUBLIC_FIREBASE_APPCHECK_DEBUG_TOKEN in __DEV__ to register a debug
  * provider while native attestation is configured.
  */
+import { getApp } from "firebase/app";
 import { ENV_VARS } from "./config.js";
-import { app } from "./firebase";
 import { Platform } from "react-native";
 
 let initPromise: Promise<void> | null = null;
@@ -36,6 +36,7 @@ export function initAppCheck(): Promise<void> {
 
       const siteKey = env("EXPO_PUBLIC_FIREBASE_APPCHECK_SITE_KEY");
       const debugToken = env("EXPO_PUBLIC_FIREBASE_APPCHECK_DEBUG_TOKEN");
+      const app = getApp();
 
       if (Platform.OS === "web" && siteKey) {
         initializeAppCheck(app, {

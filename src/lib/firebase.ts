@@ -6,11 +6,8 @@ import {
 } from "@firebase/auth";
 import Constants, { ExecutionEnvironment } from "expo-constants";
 import { initializeApp } from "firebase/app";
-import {
-  createUserWithEmailAndPassword,
-  signInWithEmailAndPassword,
-  signInWithPhoneNumber,
-} from "firebase/auth";
+// Side-effect: registers the Auth component for getAuth / initializeAuth.
+import "firebase/auth";
 import { getFirestore } from "firebase/firestore";
 import { getStorage } from "firebase/storage";
 import { Platform } from "react-native";
@@ -64,10 +61,9 @@ if (isExpoGo) {
   auth.settings.appVerificationDisabledForTesting = true;
 }
 
-export {
-  app,
-  createUserWithEmailAndPassword,
-  firebaseConfig,
-  signInWithEmailAndPassword,
-  signInWithPhoneNumber,
-};
+// Best-effort App Check (web reCAPTCHA / debug token). Enforce in Firebase Console.
+void import("./appCheck")
+  .then((m) => m.initAppCheck())
+  .catch(() => {});
+
+export { app, firebaseConfig };

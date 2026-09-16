@@ -232,6 +232,45 @@ type LoadedContact = {
   phone: string;
 };
 
+/** True when Synq returned no usable name (stub profile / publicUserFields fallback). */
+export function isPlaceholderDisplayName(name: string | null | undefined): boolean {
+  const n = String(name || "").trim();
+  return !n || n.toLowerCase() === "user";
+}
+
+export function contactsMatchNeedsNameRefresh(
+  result: ContactsMatchResult | null | undefined
+): boolean {
+  if (!result?.matches?.length) return false;
+  return result.matches.some((m) => isPlaceholderDisplayName(m.displayName));
+}
+
+/**
+ * Prefer Synq displayName; if it's missing/"User", show the address-book name
+ * for that matched phone so Find from contacts isn't blank for stub profiles.
+ */
+function enrichMatchesWithContactNames(
+  matches: ContactMatchUser[],
+  contacts: LoadedContact[]
+): ContactMatchUser[] {
+  const nameByPhone = new Map<string, string>();
+  for (const c of contacts) {
+    if (!nameByPhone.has(c.phone)) nameByPhone.set(c.phone, c.name);
+  }
+  return matches.map((user) => {
+    if (!isPlaceholderDisplayName(user.displayName)) return user;
+    const contactName = user.phone ? nameByPhone.get(user.phone) : undefined;
+    if (
+      !contactName ||
+      isPlaceholderDisplayName(contactName) ||
+      contactName === "Contact"
+    ) {
+      return user;
+    }
+    return { ...user, displayName: contactName };
+  });
+}
+
 async function loadNormalizedContacts(): Promise<LoadedContact[]> {
   const { data } = await Contacts.getContactsAsync({
     fields: [
@@ -344,8 +383,8 @@ export async function findFriendsFromContacts(options?: {
   for (const user of matchedUsers) {
     if (!byId.has(user.id)) byId.set(user.id, user);
   }
-  const matches = [...byId.values()].sort((a, b) =>
-    String(a.displayName || "").localeCompare(String(b.displayName || ""))
+  const matches = enrichMatchesWithContactNames([...byId.values()], contacts).sort(
+    (a, b) => String(a.displayName || "").localeCompare(String(b.displayName || ""))
   );
 
   const invitees = contacts

@@ -3,6 +3,7 @@ const {
   resolveEffectiveHostUid,
   planLooseMatch,
 } = require("./planAttribution.js");
+const { filterToOpenPlans } = require("./planVisibility.js");
 
 function eventKeyLoose(event) {
   return `${String(event?.title || "").trim().toLowerCase()}|${String(event?.date || "").trim()}`;
@@ -260,7 +261,7 @@ function aggregateFriendPlans(friends, options = {}) {
 
   for (const friend of visibleFriends) {
     const rawEvents = Array.isArray(friend.events) ? friend.events : [];
-    const upcoming = filterOutPastOpenPlans(rawEvents);
+    const upcoming = filterToOpenPlans(filterOutPastOpenPlans(rawEvents));
 
     for (const event of upcoming) {
       if (!event?.id || !event?.date || !event?.title) continue;
@@ -304,15 +305,8 @@ function aggregateFriendPlans(friends, options = {}) {
   );
 }
 
-/** @deprecated Use resolveOpenPlanHostUid + friendIdSet check instead. */
-function isFriendHostedOpenPlan(event, friendId) {
-  const hostUid = resolveOpenPlanHostUid(event, friendId);
-  return hostUid === String(friendId || "").trim();
-}
-
 module.exports = {
   aggregateFriendPlans,
-  isFriendHostedOpenPlan,
   resolveOpenPlanHostUid,
   viewerContradictsFriendAsHost,
 };
