@@ -54,8 +54,10 @@ import {
   collectPlanInterestedFriendIds,
   filterOutPastOpenPlans,
   formatPlanTimeForStorage,
+  isPrivatePlan,
   parseOpenPlanDateTime,
   sortOpenPlansByDateTime,
+  type PlanVisibility,
 } from "@/src/lib/planEvents";
 import { Ionicons } from "@expo/vector-icons";
 import { useFocusEffect } from "@react-navigation/native";
@@ -88,6 +90,7 @@ type EventItem = {
   title: string;
   time?: string;
   location?: string;
+  visibility?: PlanVisibility;
   joinedFromId?: string;
   joinedFromIds?: string[];
   joinedFromName?: string;
@@ -108,7 +111,13 @@ type Props = {
   saveEvent: (event?: any) => void | Promise<boolean>;
   updateEvent: (
     id: string,
-    fields: { title: string; date: string; time: string; location: string },
+    fields: {
+      title: string;
+      date: string;
+      time: string;
+      location: string;
+      visibility: PlanVisibility;
+    },
     options?: { inviteFriendIds?: string[]; uninviteFriendIds?: string[] }
   ) => void | Promise<boolean>;
   deleteEvent: (id: string) => void;
@@ -222,12 +231,15 @@ export default function OpenPlans({
   const [createInviteFriendIds, setCreateInviteFriendIds] = useState<string[]>([]);
   const [editInviteFriendIds, setEditInviteFriendIds] = useState<string[]>([]);
   const [editUninviteFriendIds, setEditUninviteFriendIds] = useState<string[]>([]);
+  const [planVisibility, setPlanVisibility] = useState<PlanVisibility>("open");
   const [alertVisible, setAlertVisible] = useState(false);
   const [alertTitle, setAlertTitle] = useState("");
   const [alertMessage, setAlertMessage] = useState("");
   const isEditing = !!editingEvent;
   const activePlanId = isEditing ? editingEvent?.id : draftPlanId;
+  const isPrivateDraft = planVisibility === "private";
   const canInviteToPlan =
+    !isPrivateDraft &&
     !!activePlanId &&
     friends.length > 0 &&
     (isEditing
@@ -298,6 +310,7 @@ export default function OpenPlans({
     setCreateInviteFriendIds([]);
     setEditInviteFriendIds([]);
     setEditUninviteFriendIds([]);
+    setPlanVisibility("open");
     setSelectedDate(getInitialDate());
     setActivePicker(null);
     setInviteSheetVisible(false);
@@ -317,6 +330,7 @@ export default function OpenPlans({
     setCreateInviteFriendIds([]);
     setEditInviteFriendIds([]);
     setEditUninviteFriendIds([]);
+    setPlanVisibility(isPrivatePlan(event) ? "private" : "open");
     setEditingEvent(event);
     setSelectedDate(parseOpenPlanDateTime(event.date, event.time));
     setActivePicker(null);
@@ -343,6 +357,7 @@ export default function OpenPlans({
     setCreateInviteFriendIds([]);
     setEditInviteFriendIds([]);
     setEditUninviteFriendIds([]);
+    setPlanVisibility("open");
     setInviteSheetVisible(false);
     setKeyboardInset(0);
     setAlertVisible(false);
@@ -358,6 +373,7 @@ export default function OpenPlans({
     setCreateInviteFriendIds([]);
     setEditInviteFriendIds([]);
     setEditUninviteFriendIds([]);
+    setPlanVisibility("open");
     setKeyboardInset(0);
   }, [showEventModal]);
 
@@ -514,15 +530,27 @@ export default function OpenPlans({
           parseOpenPlanDateTime(editingEvent.date, editingEvent.time)
         )
       : "";
+    const storedVisibility: PlanVisibility = isPrivatePlan(editingEvent)
+      ? "private"
+      : "open";
     return (
       newEvent.title.trim() !== editingEvent.title.trim() ||
       localDate !== editingEvent.date ||
       formatPlanTimeForStorage(selectedDate) !== storedTime ||
       (newEvent.location || "").trim() !== (editingEvent.location || "").trim() ||
+      planVisibility !== storedVisibility ||
       editInviteFriendIds.length > 0 ||
       editUninviteFriendIds.length > 0
     );
-  }, [isEditing, editingEvent, newEvent, selectedDate, editInviteFriendIds, editUninviteFriendIds]);
+  }, [
+    isEditing,
+    editingEvent,
+    newEvent,
+    selectedDate,
+    planVisibility,
+    editInviteFriendIds,
+    editUninviteFriendIds,
+  ]);
 
   const canPost =
     newEvent.title.trim().length > 0 && (!isEditing || isPlanDirty);
@@ -570,13 +598,14 @@ export default function OpenPlans({
       ...newEvent,
       date: localDate,
       time: formatPlanTimeForStorage(selectedDate),
+      visibility: planVisibility,
     };
 
     let ok = false;
     if (isEditing && editingEvent?.id) {
       ok =
         (await updateEvent(editingEvent.id, payload, {
-          inviteFriendIds: editInviteFriendIds,
+          inviteFriendIds: isPrivateDraft ? [] : editInviteFriendIds,
           uninviteFriendIds: editUninviteFriendIds,
         })) !== false;
     } else {
@@ -584,7 +613,7 @@ export default function OpenPlans({
         (await saveEvent({
           ...payload,
           id: draftPlanId || undefined,
-          inviteFriendIds: createInviteFriendIds,
+          inviteFriendIds: isPrivateDraft ? [] : createInviteFriendIds,
         })) !== false;
     }
 
@@ -602,15 +631,20 @@ export default function OpenPlans({
 
       <View style={styles.plansBox}>
       {!visibleEvents.length && (
-        <Text style={styles.empty}>Nothing planned… yet 👀</Text>
+        <Text style={styles.empty}>
+          Nothing planned… yet
+        </Text>
       )}
 
       {sortOpenPlansByDateTime(visibleEvents).map((p, index, arr) => {
           const isLast = index === arr.length - 1;
           const d = parseDate(p.date);
           const isOwnPlan = canEditOpenPlan(p, viewerUid);
+          const privatePlan = isPrivatePlan(p);
           const { primary: hostLine, secondary: othersLine, goingPeople } =
-            planAttributionLines(p);
+            privatePlan
+              ? { primary: "", secondary: "", goingPeople: [] as PlanGoingPerson[] }
+              : planAttributionLines(p);
           const isHighlighted =
             !!highlightEventId && String(p.id) === String(highlightEventId);
 
@@ -623,9 +657,11 @@ export default function OpenPlans({
                 isLast && { marginBottom: 0 },
               ]}
               accessibilityLabel={
-                isOwnPlan
-                  ? `Your plan, ${p.title}`
-                  : `${hostLine || "Joined plan"}, ${p.title}`
+                privatePlan
+                  ? `Just for you, ${p.title}`
+                  : isOwnPlan
+                    ? `Your plan, ${p.title}`
+                    : `${hostLine || "Joined plan"}, ${p.title}`
               }
             >
               <Pressable
@@ -701,6 +737,12 @@ export default function OpenPlans({
                     <Text style={styles.meta} numberOfLines={1}>
                       {[p.location, p.time].filter(Boolean).join(" · ")}
                     </Text>
+                  ) : null}
+                  {privatePlan ? (
+                    <View style={styles.privateBadgeRow}>
+                      <Ionicons name="lock-closed-outline" size={12} color={MUTED2} />
+                      <Text style={styles.privateBadgeText}>Just for you</Text>
+                    </View>
                   ) : null}
                   {!isOwnPlan && hostLine ? (
                     <Text style={styles.hostLine} numberOfLines={1}>
@@ -894,6 +936,69 @@ export default function OpenPlans({
                     returnKeyType="done"
                     accessibilityLabel="Add location"
                   />
+                </View>
+              </View>
+
+              <View style={styles.visibilityBlock}>
+                <Text style={styles.visibilityLabel}>Who can see this?</Text>
+                <View style={styles.visibilityRow}>
+                  <TouchableOpacity
+                    style={[
+                      styles.visibilityChip,
+                      planVisibility === "open" && styles.visibilityChipActive,
+                    ]}
+                    onPress={() => setPlanVisibility("open")}
+                    activeOpacity={0.85}
+                    accessibilityRole="button"
+                    accessibilityState={{ selected: planVisibility === "open" }}
+                    accessibilityLabel="Open — friends can join"
+                  >
+                    <Text
+                      style={[
+                        styles.visibilityChipText,
+                        planVisibility === "open" && styles.visibilityChipTextActive,
+                      ]}
+                    >
+                      Open
+                    </Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={[
+                      styles.visibilityChip,
+                      planVisibility === "private" && styles.visibilityChipActive,
+                    ]}
+                    onPress={() => {
+                      setPlanVisibility("private");
+                      setCreateInviteFriendIds([]);
+                      setEditInviteFriendIds([]);
+                      setInviteSheetVisible(false);
+                      if (isEditing && savedPlanInvitedIds.length > 0) {
+                        setEditUninviteFriendIds((prev) => {
+                          const next = new Set(prev);
+                          savedPlanInvitedIds.forEach((id) => next.add(id));
+                          return [...next];
+                        });
+                      }
+                    }}
+                    activeOpacity={0.85}
+                    accessibilityRole="button"
+                    accessibilityState={{ selected: planVisibility === "private" }}
+                    accessibilityLabel="Just for you — only on your profile"
+                  >
+                    <Ionicons
+                      name="lock-closed-outline"
+                      size={14}
+                      color={planVisibility === "private" ? ACCENT : TEXT_MUTED_LIGHT}
+                    />
+                    <Text
+                      style={[
+                        styles.visibilityChipText,
+                        planVisibility === "private" && styles.visibilityChipTextActive,
+                      ]}
+                    >
+                      Just for you
+                    </Text>
+                  </TouchableOpacity>
                 </View>
               </View>
 
@@ -1208,6 +1313,18 @@ const styles = StyleSheet.create({
     fontFamily: fonts.medium,
     letterSpacing: 0.1,
   },
+  privateBadgeRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+    marginTop: 5,
+  },
+  privateBadgeText: {
+    color: MUTED2,
+    fontSize: TYPE_MICRO,
+    fontFamily: fonts.medium,
+    letterSpacing: 0.1,
+  },
   goingStatic: {
     alignSelf: "flex-start",
     marginTop: 6,
@@ -1302,6 +1419,42 @@ const styles = StyleSheet.create({
   },
   locationFieldWrap: {
     marginTop: 10,
+  },
+  visibilityBlock: {
+    marginTop: 14,
+  },
+  visibilityLabel: {
+    color: TEXT_MUTED_LIGHT,
+    fontSize: TYPE_MICRO,
+    fontFamily: fonts.medium,
+    marginBottom: 8,
+  },
+  visibilityRow: {
+    flexDirection: "row",
+    gap: 8,
+  },
+  visibilityChip: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 5,
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    borderRadius: BUTTON_RADIUS,
+    borderWidth: 1,
+    borderColor: GROUP_BORDER,
+    backgroundColor: SURFACE_INPUT,
+  },
+  visibilityChipActive: {
+    borderColor: ACCENT_BORDER,
+    backgroundColor: ACCENT_FILL_SUBTLE,
+  },
+  visibilityChipText: {
+    color: TEXT_MUTED_LIGHT,
+    fontSize: TYPE_FINE,
+    fontFamily: fonts.medium,
+  },
+  visibilityChipTextActive: {
+    color: ACCENT,
   },
   inviteFriendsBtn: {
     marginTop: 12,

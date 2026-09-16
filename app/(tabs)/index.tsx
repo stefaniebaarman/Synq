@@ -7,7 +7,7 @@ import { trackEvent } from '@/src/lib/analytics';
 import { useBlockedUsers } from '@/src/lib/blockedUsers';
 import { mergeMessages, pendingMatchesServer, type ChatMessage } from '@/src/lib/chatMessages';
 import { pollPreviewText, validatePollDraft } from '@/src/lib/chatPoll';
-import { deleteChat } from '@/src/lib/chats';
+import { deleteChat, renameChat } from '@/src/lib/chats';
 import { containsObjectionableContent, filterOrReject } from '@/src/lib/contentFilter';
 import { ignoreSnapshotPermissionDenied } from '@/src/lib/firestoreListeners';
 import { subscribeFriendGroups, type FriendGroup } from '@/src/lib/friendGroups';
@@ -186,6 +186,7 @@ import ActiveSynqSection from '../../src/components/synq/ActiveSynqSection';
 import MessagesChatPane from '../../src/components/synq/MessagesChatPane';
 import MessagesInboxPane from '../../src/components/synq/MessagesInboxPane';
 import MessagesModalStack from '../../src/components/synq/MessagesModalStack';
+import CreateGroupModal from '../../src/components/friends/CreateGroupModal';
 import {
   buildLocationPrompt,
   formatUserLocationLabel,
@@ -203,6 +204,10 @@ import { auth, db } from '../../src/lib/firebase';
 import { CHATS_LISTENER_LIMIT } from "../../src/lib/listenerLimits";
 import { registerDismissNavigationOverlaysHandler } from "../../src/lib/navigationOverlayEvents";
 import { getCachedOwnProfile } from "../../src/lib/ownProfileCache";
+import {
+  findSoonUpcomingPlan,
+  formatSoonPlanConfirmMessage,
+} from "../../src/lib/planEvents";
 import { consumePendingChatOpen, peekPendingChatOpen, subscribePendingChatOpen } from "../../src/lib/pendingChatOpen";
 import {
   subscribeFriendsIdsMultiplexed,
@@ -495,6 +500,8 @@ export default function SynqScreen() {
   const [pendingScrollToMessageId, setPendingScrollToMessageId] = useState<string | null>(null);
   const lastTapRef = useRef<{ [key: string]: number }>({});
   const [showEndSynqModal, setShowEndSynqModal] = useState(false);
+  const [showSoonPlanConfirm, setShowSoonPlanConfirm] = useState(false);
+  const [soonPlanConfirmMessage, setSoonPlanConfirmMessage] = useState("");
   const [endingSynq, setEndingSynq] = useState(false);
   const [savingMemo, setSavingMemo] = useState(false);
   const [isConnecting, setIsConnecting] = useState(false);
@@ -509,6 +516,10 @@ export default function SynqScreen() {
   const [nudgeCandidates, setNudgeCandidates] = useState<any[]>([]);
   const [showDeleteChatModal, setShowDeleteChatModal] = useState(false);
   const [pendingDeleteChatId, setPendingDeleteChatId] = useState<string | null>(null);
+  /** Instantly hide chats while deleteChat callable + message cleanup finish. */
+  const [pendingDeleteChatIds, setPendingDeleteChatIds] = useState<string[]>([]);
+  const [renameChatTarget, setRenameChatTarget] = useState<any | null>(null);
+  const [renameChatBusy, setRenameChatBusy] = useState(false);
   const [mergeSelectMode, setMergeSelectMode] = useState(false);
   const [selectedMergeChatIds, setSelectedMergeChatIds] = useState<string[]>([]);
   const [showMergeConfirmModal, setShowMergeConfirmModal] = useState(false);
@@ -554,7 +565,7 @@ export default function SynqScreen() {
   const visibleChats = useMemo(() => {
     const myId = auth.currentUser?.uid;
     if (!myId) return allChats;
-    const hidden = new Set(hiddenChatIds);
+    const hidden = new Set([...hiddenChatIds, ...pendingDeleteChatIds]);
     return allChats.filter(
       (c) =>
         !hidden.has(c.id) &&
@@ -562,7 +573,7 @@ export default function SynqScreen() {
           (p: string) => p && p !== myId && isBlocked(p)
         )
     );
-  }, [allChats, isBlocked, hiddenChatIds]);
+  }, [allChats, isBlocked, hiddenChatIds, pendingDeleteChatIds]);
 
   const unhideChat = useCallback(async (chatId: string) => {
     const id = String(chatId || "").trim();
@@ -2168,6 +2179,20 @@ export default function SynqScreen() {
     }
   };
 
+  const requestStartSynq = () => {
+    if (!auth.currentUser || isStartingSynq) return;
+    if (memo.trim() && rejectIfObjectionable(memo)) return;
+    const soon = findSoonUpcomingPlan(
+      Array.isArray(userProfile?.events) ? userProfile.events : []
+    );
+    if (soon) {
+      setSoonPlanConfirmMessage(formatSoonPlanConfirmMessage(soon));
+      setShowSoonPlanConfirm(true);
+      return;
+    }
+    void startSynq();
+  };
+
   const endSynq = () => {
     setShowEndSynqModal(true);
   };
@@ -2244,6 +2269,52 @@ export default function SynqScreen() {
     setPendingDeleteChatId(chatId);
     setShowDeleteChatModal(true);
   };
+
+  const handleRenameChat = useCallback(
+    async (name: string) => {
+      const chat = renameChatTarget;
+      const chatId = String(chat?.id || "").trim();
+      if (!chatId) return;
+      const trimmed = name.trim();
+      const previousName =
+        typeof chat?.customName === "string" ? chat.customName : undefined;
+
+      setRenameChatBusy(true);
+      setAllChats((prev) =>
+        prev.map((c) => (c.id === chatId ? { ...c, customName: trimmed } : c))
+      );
+      if (seededActiveChat?.id === chatId) {
+        setSeededActiveChat((prev: any) =>
+          prev ? { ...prev, customName: trimmed } : prev
+        );
+      }
+
+      try {
+        await renameChat(chatId, trimmed);
+        setRenameChatTarget(null);
+        void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+      } catch (e) {
+        setAllChats((prev) =>
+          prev.map((c) =>
+            c.id === chatId
+              ? { ...c, customName: previousName }
+              : c
+          )
+        );
+        if (seededActiveChat?.id === chatId) {
+          setSeededActiveChat((prev: any) =>
+            prev ? { ...prev, customName: previousName } : prev
+          );
+        }
+        showActionError(
+          e instanceof Error ? e.message : "Could not rename chat. Please try again."
+        );
+      } finally {
+        setRenameChatBusy(false);
+      }
+    },
+    [renameChatTarget, seededActiveChat?.id, showActionError]
+  );
 
   const resetMergeSelect = () => {
     setMergeSelectMode(false);
@@ -2649,7 +2720,7 @@ export default function SynqScreen() {
             <InactiveSynqView
               memo={memo}
               setMemo={setMemo}
-              onStartSynq={startSynq}
+              onStartSynq={requestStartSynq}
               isStartingSynq={isStartingSynq || status === "activating"}
               friendGroups={friendGroups}
               audienceSelection={audienceSelection}
@@ -2723,6 +2794,10 @@ export default function SynqScreen() {
                 inboxActionChat={inboxActionChat}
                 onCloseInboxAction={() => setInboxActionChat(null)}
                 onCombineChat={startCombineWithChat}
+                onRenameFromAction={(chat) => {
+                  setRenameChatTarget(chat);
+                  setInboxActionChat(null);
+                }}
                 onDeleteFromAction={(chatId) => {
                   setInboxActionChat(null);
                   handleDeleteChat(chatId);
@@ -2740,6 +2815,26 @@ export default function SynqScreen() {
                     confirmDisabled={isMergingChats || !mergePreviewChat}
                     onCancel={() => setShowMergeConfirmModal(false)}
                     onConfirm={() => void executeMergeChats()}
+                  />
+                }
+                renderRenameModal={
+                  <CreateGroupModal
+                    visible={!!renameChatTarget}
+                    busy={renameChatBusy}
+                    title="Rename chat"
+                    hint=""
+                    submitLabel="Save"
+                    placeholder="Chat name"
+                    initialName={
+                      typeof renameChatTarget?.customName === "string"
+                        ? renameChatTarget.customName
+                        : ""
+                    }
+                    onClose={() => {
+                      if (renameChatBusy) return;
+                      setRenameChatTarget(null);
+                    }}
+                    onCreate={(name) => void handleRenameChat(name)}
                   />
                 }
                 renderDeleteConfirmModal={
@@ -2764,10 +2859,19 @@ export default function SynqScreen() {
                         clearMessages();
                         navigateMessagesPane("inbox");
                       }
+                      setPendingDeleteChatIds((prev) =>
+                        prev.includes(chatId) ? prev : [...prev, chatId]
+                      );
+                      void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
                       try {
                         await deleteChat(chatId);
-                        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+                        setPendingDeleteChatIds((prev) =>
+                          prev.filter((id) => id !== chatId)
+                        );
                       } catch {
+                        setPendingDeleteChatIds((prev) =>
+                          prev.filter((id) => id !== chatId)
+                        );
                         showActionError("Could not delete chat. Please try again.");
                       }
                     }}
@@ -2992,6 +3096,18 @@ export default function SynqScreen() {
           title={contentAlertTitle}
           message={contentAlertMessage}
           onClose={() => setContentAlertVisible(false)}
+        />
+        <ConfirmModal
+          visible={showSoonPlanConfirm}
+          title="You have a plan soon"
+          message={soonPlanConfirmMessage}
+          confirmText="Go Synq active"
+          cancelText="Not now"
+          onCancel={() => setShowSoonPlanConfirm(false)}
+          onConfirm={() => {
+            setShowSoonPlanConfirm(false);
+            void startSynq();
+          }}
         />
         <ConfirmModal
           visible={showEndSynqModal}

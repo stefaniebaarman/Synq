@@ -443,7 +443,8 @@ export default function RootLayout() {
       if (
         type !== "friend_synq_active" &&
         type !== "friend_synq_inactive" &&
-        type !== "synq_nudge"
+        type !== "synq_nudge" &&
+        type !== "friends_free_digest"
       ) {
         return;
       }

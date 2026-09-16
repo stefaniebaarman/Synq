@@ -86,7 +86,8 @@ type ActivityFeedKind =
   | "community_post_approved"
   | "community_post_rejected"
   | "friend_synq_active"
-  | "synq_nudge";
+  | "synq_nudge"
+  | "friends_free_digest";
 
 type ActivityFeedSource = "notifications" | "legacy";
 
@@ -316,7 +317,29 @@ function mapActivity(item: Record<string, unknown> & { id: string }, cache: Acto
   const planTitle = String(item.planTitle || "").trim();
   const groupName = String(item.groupName || "").trim();
   const title = String(item.title || "").trim();
+  const storedBody = String(item.body || "").trim();
   const name = displayPersonName(actorName);
+
+  if (type === "friends_free_digest") {
+    return {
+      ...item,
+      type,
+      fromUserId,
+      actorName: name,
+      actorImageUrl,
+      planTitle: planTitle || null,
+      title: normalizeNotificationTitle(title) || "Synq",
+      body: storedBody || "Friends are free — see who",
+      sortMs: timestampMillis(item.createdAt) || Date.now(),
+      read: item.read === true,
+      eventId: item.eventId ? String(item.eventId) : null,
+      planHostUid: item.planHostUid ? String(item.planHostUid) : null,
+      groupId: item.groupId ? String(item.groupId) : null,
+      planId: item.planId ? String(item.planId) : null,
+      groupName: item.groupName ? String(item.groupName) : null,
+    };
+  }
+
   const parts = activityMessageParts(
     type,
     type === "community_post_approval" ||
@@ -472,6 +495,8 @@ function activityMessageParts(
       return { rest: " is free" };
     case "synq_nudge":
       return { rest: " wants to know if you're free right now" };
+    case "friends_free_digest":
+      return { rest: "" };
     default:
       return { rest: "" };
   }
@@ -866,6 +891,7 @@ export default function NotificationsScreen() {
           "community_post_rejected",
           "friend_synq_active",
           "synq_nudge",
+          "friends_free_digest",
         ].includes(a.type)
       )
       .map((a) => {
@@ -1134,7 +1160,11 @@ export default function NotificationsScreen() {
       return;
     }
 
-    if (item.kind === "friend_synq_active" || item.kind === "synq_nudge") {
+    if (
+      item.kind === "friend_synq_active" ||
+      item.kind === "synq_nudge" ||
+      item.kind === "friends_free_digest"
+    ) {
       void dismissActivity(item);
       router.push("/(tabs)");
       return;
@@ -1383,17 +1413,23 @@ export default function NotificationsScreen() {
             </View>
 
             <View style={{ flex: 1 }}>
-              <NotificationMessage
-                name={item.actorName}
-                {...activityMessageParts(
-                  item.kind,
-                  item.kind === "community_post_approval" ||
-                  item.kind === "community_post_approved" ||
-                  item.kind === "community_post_rejected"
-                    ? item.groupName
-                    : item.planTitle
-                )}
-              />
+              {item.kind === "friends_free_digest" ? (
+                <Text style={styles.rowText}>
+                  <Text style={styles.messageRest}>{item.body}</Text>
+                </Text>
+              ) : (
+                <NotificationMessage
+                  name={item.actorName}
+                  {...activityMessageParts(
+                    item.kind,
+                    item.kind === "community_post_approval" ||
+                    item.kind === "community_post_approved" ||
+                    item.kind === "community_post_rejected"
+                      ? item.groupName
+                      : item.planTitle
+                  )}
+                />
+              )}
             </View>
           </View>
         </TouchableOpacity>

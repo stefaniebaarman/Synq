@@ -697,6 +697,7 @@ export interface Friend {
     title: string;
     time?: string;
     location?: string;
+    visibility?: "open" | "private";
     planHostUid?: string;
     joinedFromFriendUid?: string;
     joinedFromId?: string;

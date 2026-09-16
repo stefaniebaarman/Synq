@@ -110,7 +110,9 @@ export default function AboutUsScreen() {
               <Text style={styles.bulletDot}>•</Text>
               <Text style={styles.bulletText}>
                 Post <Text style={styles.bold}>Open plans</Text> on your profile
-                for upcoming hangouts friends can join
+                for upcoming hangouts friends can join, or mark a plan{" "}
+                <Text style={styles.bold}>Just for you</Text> to track private
+                commitments only you see
               </Text>
             </View>
           </View>

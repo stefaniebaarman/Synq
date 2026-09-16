@@ -126,6 +126,7 @@ import {
   eventKey,
   eventKeyLoose,
   filterOutPastOpenPlans,
+  filterToOpenPlans,
   sortOpenPlansByDateTime,
 } from "../src/lib/planEvents";
 import {
@@ -389,14 +390,16 @@ export default function FriendProfile({
   }, [friendKey, goBackOrHome]);
 
   const showFriendOpenPlansSection = useMemo(
-    () => isFriend && filterOutPastOpenPlans(friend?.events).length > 0,
+    () =>
+      isFriend &&
+      filterToOpenPlans(filterOutPastOpenPlans(friend?.events)).length > 0,
     [isFriend, friend?.events]
   );
 
   const profileOpenPlans = useMemo((): FriendOpenPlanEvent[] => {
     const events = Array.isArray(friend?.events) ? friend.events : [];
     return sortOpenPlansByDateTime(
-      filterOutPastOpenPlans(events)
+      filterToOpenPlans(filterOutPastOpenPlans(events))
     ) as FriendOpenPlanEvent[];
   }, [friend?.events]);
 

@@ -27,7 +27,7 @@ import {
   GROUP_SURFACE,
 } from "@/src/components/friends/groupsListStyles";
 import { resolvePlanAttribution } from "@/src/lib/planAttribution";
-import { filterOutPastOpenPlans, sortOpenPlansByDateTime } from "@/src/lib/planEvents";
+import { filterOutPastOpenPlans, filterToOpenPlans, sortOpenPlansByDateTime } from "@/src/lib/planEvents";
 import { useMemo } from "react";
 import { StyleSheet, Text, TouchableOpacity, View, type ViewStyle } from "react-native";
 
@@ -86,7 +86,7 @@ export default function FriendOpenPlans({
   viewerEvents,
 }: Props) {
   const visibleEvents = useMemo(
-    () => sortOpenPlansByDateTime(filterOutPastOpenPlans(events)),
+    () => sortOpenPlansByDateTime(filterToOpenPlans(filterOutPastOpenPlans(events))),
     [events]
   );
 
