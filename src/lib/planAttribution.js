@@ -1,40 +1,8 @@
-const MAX_VISIBLE_GOING_NAMES = 3;
-
-function firstNameFromDisplay(name) {
-  return String(name || "").trim().split(/\s+/)[0] || "";
-}
-
-/** Truncated "X, Y and N more are going" line for plan cards. */
-function formatTruncatedGoingLine(names) {
-  const firsts = Array.from(
-    new Set(names.map(firstNameFromDisplay).filter(Boolean))
-  );
-  if (firsts.length === 0) return null;
-  if (firsts.length === 1) return `${firsts[0]} is going`;
-  if (firsts.length === 2) return `${firsts[0]} and ${firsts[1]} are going`;
-  if (firsts.length === 3) {
-    return `${firsts[0]}, ${firsts[1]} and ${firsts[2]} are going`;
-  }
-  const visible = firsts.slice(0, MAX_VISIBLE_GOING_NAMES);
-  const remaining = firsts.length - MAX_VISIBLE_GOING_NAMES;
-  return `${visible.join(", ")} and ${remaining} more are going`;
-}
-
-/** "You and X are going" when the viewer joined someone else's plan. */
-function formatYouAndGoingLine(names) {
-  const firsts = Array.from(
-    new Set(names.map(firstNameFromDisplay).filter(Boolean))
-  );
-  if (firsts.length === 0) return "You are going";
-  if (firsts.length === 1) return `You and ${firsts[0]} are going`;
-  if (firsts.length === 2) return `You, ${firsts[0]} and ${firsts[1]} are going`;
-  if (firsts.length === 3) {
-    return `You, ${firsts[0]}, ${firsts[1]} and ${firsts[2]} are going`;
-  }
-  const visible = firsts.slice(0, MAX_VISIBLE_GOING_NAMES);
-  const remaining = firsts.length - MAX_VISIBLE_GOING_NAMES;
-  return `You, ${visible.join(", ")} and ${remaining} more are going`;
-}
+const {
+  firstNameFromDisplay,
+  formatTruncatedGoingLine,
+  formatOthersGoingLine,
+} = require("./planGoingNames.js");
 
 function collectJoinedIds(event) {
   return Array.from(
@@ -364,13 +332,15 @@ function resolveHostFirstName(event, hostUid, viewerUid, anchorUid, hostDisplayN
 /**
  * Resolve host label and who's going for an open-plan card.
  * profileSubjectUid: whose plans are shown (friend profile) or viewer on Me tab.
+ * friendIds: viewer's friend uids — used for "N friends and M others" when crowded.
  */
 function resolvePlanAttribution(
   event,
   viewerUid,
   hostDisplayNameByUid = {},
   profileSubjectUid,
-  viewerEvents
+  viewerEvents,
+  friendIds = []
 ) {
   const profileSubject = String(profileSubjectUid || viewerUid || "").trim();
   const effectiveEvent = enrichEventForFriendProfileAttribution(
@@ -467,10 +437,13 @@ function resolvePlanAttribution(
     if (hostFn && firstNameFromDisplay(name).toLowerCase() === String(hostFn).toLowerCase()) {
       continue;
     }
-    // Skip if this name is already represented by first-name match on a uid row.
+    // Skip first-name-only legacy rows when a uid row already covers that first name.
+    // Keep full names that distinguish another person with the same first name.
+    const nameParts = name.split(/\s+/).filter(Boolean);
     const first = firstNameFromDisplay(name).toLowerCase();
     if (
       first &&
+      nameParts.length < 2 &&
       goingPeople.some(
         (p) => firstNameFromDisplay(p.displayName).toLowerCase() === first
       )
@@ -498,44 +471,52 @@ function resolvePlanAttribution(
     coveredNames.add(key);
   }
 
-  // Card subtitle omits the host (shown as "X's plan") and the viewer ("You and …").
+  // Sheet order: host, then viewer ("You"), then everyone else.
+  if (viewerKey) {
+    const viewerIdx = goingPeople.findIndex(
+      (p) => String(p.userId || "").trim() === viewerKey
+    );
+    if (viewerIdx >= 0) {
+      const existing = goingPeople[viewerIdx];
+      const viewerPerson = existing.isHost
+        ? existing
+        : { ...existing, isYou: true };
+      goingPeople.splice(viewerIdx, 1);
+      const hostIdx = goingPeople.findIndex((p) => p.isHost);
+      const insertAt = hostIdx >= 0 ? hostIdx + 1 : 0;
+      goingPeople.splice(insertAt, 0, viewerPerson);
+    }
+  }
+
+  // Card subtitle omits the viewer (shown as "You" in the going sheet) and the
+  // host (shown as "X's plan"). 1–2 joiners keep names; 3+ use "N others".
   const viewerFirst = firstNameFromDisplay(
     displayNameForUid(viewerKey, effectiveEvent, hostDisplayNameByUid)
   ).toLowerCase();
-  const othersFirsts = Array.from(
-    new Set(
-      goingPeople
-        .filter((p) => {
-          if (p.isHost) return false;
-          if (viewerKey && String(p.userId || "").trim() === viewerKey) return false;
-          if (
-            viewerFirst &&
-            firstNameFromDisplay(p.displayName).toLowerCase() === viewerFirst
-          ) {
-            return false;
-          }
-          return true;
-        })
-        .map((p) => firstNameFromDisplay(p.displayName))
-        .filter(Boolean)
-    )
-  );
-
-  const viewerAttending = !!(
-    viewerUid &&
-    joinedIds.includes(String(viewerUid).trim()) &&
-    !hostIsViewer
-  );
+  const previewPeople = goingPeople.filter((p) => {
+    if (p.isHost) return false;
+    if (viewerKey && String(p.userId || "").trim() === viewerKey) return false;
+    if (
+      viewerFirst &&
+      firstNameFromDisplay(p.displayName).toLowerCase() === viewerFirst
+    ) {
+      return false;
+    }
+    return true;
+  });
+  const othersNames = previewPeople
+    .map((p) => String(p.displayName || "").trim())
+    .filter(Boolean);
 
   const primary =
     hostIsViewer || !hostUid ? null : hostFn ? `${hostFn}'s plan` : null;
-  const secondary = viewerAttending
-    ? othersFirsts.length > 0
-      ? formatYouAndGoingLine(othersFirsts)
-      : null
-    : othersFirsts.length > 0
-      ? formatTruncatedGoingLine(othersFirsts)
-      : null;
+
+  let secondary = null;
+  if (previewPeople.length > 2) {
+    secondary = formatOthersGoingLine(previewPeople.length);
+  } else if (othersNames.length > 0) {
+    secondary = formatTruncatedGoingLine(othersNames);
+  }
 
   return { primary, secondary, goingPeople };
 }

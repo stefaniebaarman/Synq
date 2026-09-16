@@ -54,4 +54,4 @@ function logWarn(operation, fields = {}) {
   logger.warn("synq_fn_warn", { operation, ...fields });
 }
 
-module.exports = { logError, logInfo, logWarn, serializeError };
+module.exports = { logError, logInfo, logWarn };

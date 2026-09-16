@@ -3,6 +3,8 @@ export type PlanAttributionPerson = {
   displayName: string;
   imageUrl?: string | null;
   isHost?: boolean;
+  /** Viewer is attending and is not the host — shown like Host with a "You" label. */
+  isYou?: boolean;
 };
 
 export function collectJoinedIds(event: unknown): string[];
@@ -19,7 +21,8 @@ export function resolvePlanAttribution(
   viewerUid?: string | null,
   hostDisplayNameByUid?: Record<string, string>,
   profileSubjectUid?: string | null,
-  viewerEvents?: unknown[]
+  viewerEvents?: unknown[],
+  friendIds?: string[]
 ): {
   primary: string | null;
   secondary: string | null;

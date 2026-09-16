@@ -9,6 +9,38 @@
 const admin = require("firebase-admin");
 const { logError, logInfo } = require("./serverLog");
 
+function fieldValue() {
+  return admin.firestore.FieldValue;
+}
+
+/** Missing / unknown visibility = open (friends can see). */
+function isPrivatePlan(event) {
+  return String(event?.visibility || "").trim().toLowerCase() === "private";
+}
+
+function isOpenPlan(event) {
+  return !isPrivatePlan(event);
+}
+
+/** Let friends of these hosts open the joiner's profile to add them. */
+async function ensurePlanDiscoveryHosts(db, joinerUid, hostUids) {
+  const hosts = [
+    ...new Set(
+      (hostUids || [])
+        .map((id) => String(id || "").trim())
+        .filter((id) => id && id !== joinerUid)
+    ),
+  ];
+  if (!joinerUid || hosts.length === 0) return;
+  try {
+    await db.collection("users").doc(joinerUid).update({
+      planDiscoveryHosts: fieldValue().arrayUnion(...hosts),
+    });
+  } catch (e) {
+    logError("openPlanSync_planDiscoveryHosts", e, { joinerUid, hosts });
+  }
+}
+
 function eventKey(e) {
   return `${String(e?.title || "").trim().toLowerCase()}|${String(e?.date || "").trim()}|${String(
     e?.time || ""
@@ -139,21 +171,24 @@ function joinerStillOnHostedPlan(joinerUid, beforeCopy, afterEvents) {
   return false;
 }
 
-async function loadDisplayNames(db, uids) {
+async function loadAttendeeProfiles(db, uids) {
   const names = {};
+  const images = {};
   await Promise.all(
     [...uids].map(async (uid) => {
       try {
         const snap = await db.collection("users").doc(uid).get();
         if (snap.exists) {
           names[uid] = String(snap.data()?.displayName || "").trim();
+          const img = String(snap.data()?.imageurl || "").trim();
+          if (img) images[uid] = img;
         }
       } catch (e) {
-        logError("openPlanSync_loadDisplayName", e, { uid });
+        logError("openPlanSync_loadAttendeeProfile", e, { uid });
       }
     })
   );
-  return names;
+  return { names, images };
 }
 
 function buildRosterNames(mergedIds, targetUid, displayNameById) {
@@ -191,7 +226,10 @@ async function mergeRosterOntoUser(db, targetUid, planSnapshot, allAttendeeIds, 
       ? [host, ...mergedIds.filter((id) => id !== host)]
       : mergedIds;
 
-  const displayNameById = await loadDisplayNames(db, orderedIds);
+  const { names: displayNameById, images: imageById } = await loadAttendeeProfiles(
+    db,
+    orderedIds
+  );
   const otherNames = buildRosterNames(orderedIds, targetUid, displayNameById);
 
   const prevKey = [...collectJoinedIds(row)].map(String).sort().join("|");
@@ -214,7 +252,18 @@ async function mergeRosterOntoUser(db, targetUid, planSnapshot, allAttendeeIds, 
   } else {
     nextHost = host || prevHost || undefined;
   }
-  if (prevKey === nextKey && prevNamesStr === nextNamesStr && prevHost === String(nextHost || "")) {
+  const prevImages = JSON.stringify(row.attendeeImages || {});
+  const nextImagesMerged = {
+    ...(row.attendeeImages && typeof row.attendeeImages === "object" ? row.attendeeImages : {}),
+    ...imageById,
+  };
+  const nextImages = JSON.stringify(nextImagesMerged);
+  if (
+    prevKey === nextKey &&
+    prevNamesStr === nextNamesStr &&
+    prevHost === String(nextHost || "") &&
+    prevImages === nextImages
+  ) {
     return false;
   }
 
@@ -231,6 +280,7 @@ async function mergeRosterOntoUser(db, targetUid, planSnapshot, allAttendeeIds, 
         : {}),
       ...displayNameById,
     },
+    attendeeImages: nextImagesMerged,
   };
   if (isHostDoc) {
     delete updated.joinedFromFriendUid;
@@ -259,7 +309,7 @@ async function removeJoinerFromUser(db, targetUid, planSnapshot, joinerUid, plan
 
   existingIds.delete(joinerUid);
   const mergedIds = Array.from(existingIds);
-  const displayNameById = await loadDisplayNames(db, mergedIds);
+  const { names: displayNameById } = await loadAttendeeProfiles(db, mergedIds);
   const otherNames = buildRosterNames(mergedIds, targetUid, displayNameById);
 
   events[idx] = {
@@ -279,6 +329,7 @@ async function removeJoinerFromUser(db, targetUid, planSnapshot, joinerUid, plan
  */
 async function syncUnjoinFromAttendees(db, joinerUid, beforeEvents, afterEvents) {
   const beforeJoinCopies = beforeEvents.filter((e) => {
+    if (isPrivatePlan(e)) return false;
     const host = String(e?.planHostUid || "").trim();
     return host && host !== joinerUid;
   });
@@ -341,13 +392,20 @@ function findRemovedHostedPlans(hostUid, beforeEvents, afterEvents) {
   const removed = [];
   for (const beforeEv of beforeEvents) {
     if (String(beforeEv?.planHostUid || "").trim() !== hostUid) continue;
-    const stillThere = afterEvents.some((ae) => {
+    // Already private: never had social fan-out to cascade.
+    if (isPrivatePlan(beforeEv)) continue;
+
+    const afterMatch = afterEvents.find((ae) => {
       const bid = String(beforeEv?.id || "").trim();
       const aid = String(ae?.id || "").trim();
       if (bid && aid && bid === aid) return true;
       return matchesPlanEvent(ae, beforeEv, afterEvents);
     });
-    if (!stillThere) removed.push(beforeEv);
+
+    // Deleted, or became private → treat as social removal.
+    if (!afterMatch || isPrivatePlan(afterMatch)) {
+      removed.push(beforeEv);
+    }
   }
   return removed;
 }
@@ -380,12 +438,14 @@ function findChangedHostedPlans(hostUid, beforeEvents, afterEvents) {
   const changes = [];
   for (const afterEv of afterEvents) {
     if (String(afterEv?.planHostUid || "").trim() !== hostUid) continue;
+    if (isPrivatePlan(afterEv)) continue;
     const afterId = String(afterEv?.id || "").trim();
     if (!afterId) continue;
 
     const beforeEv = beforeEvents.find((e) => String(e?.id || "").trim() === afterId);
     if (!beforeEv) continue;
     if (String(beforeEv?.planHostUid || "").trim() !== hostUid) continue;
+    if (isPrivatePlan(beforeEv)) continue;
     if (!planContentChanged(beforeEv, afterEv)) continue;
 
     changes.push({ before: beforeEv, after: afterEv });
@@ -518,6 +578,7 @@ async function correctJoinerPlanHostUid(db, joinerUid, joinCopy, hostUid) {
  */
 async function syncJoinerInterestToAttendees(db, joinerUid, beforeEvents, afterEvents) {
   const joinCopies = afterEvents.filter((e) => {
+    if (isPrivatePlan(e)) return false;
     const host = String(e?.planHostUid || "").trim();
     const via = String(e?.joinedFromFriendUid || "").trim();
     // Include rows that only have via set (mis-labeled host still needs sync).
@@ -532,6 +593,9 @@ async function syncJoinerInterestToAttendees(db, joinerUid, beforeEvents, afterE
     const joinerIds = collectJoinedIds(joinCopy);
     if (!joinerIds.has(joinerUid)) continue;
 
+    const viaUid = String(joinCopy?.joinedFromFriendUid || "").trim();
+    await ensurePlanDiscoveryHosts(db, joinerUid, [hostUid, viaUid]);
+
     const beforeCopy = beforeEvents.find((e) => matchesPlanEvent(e, joinCopy, beforeEvents));
     const beforeJoinerIds = beforeCopy ? collectJoinedIds(beforeCopy) : new Set();
     if (beforeJoinerIds.has(joinerUid) && beforeCopy) {
@@ -540,7 +604,63 @@ async function syncJoinerInterestToAttendees(db, joinerUid, beforeEvents, afterE
         const prevIds = [...beforeJoinerIds].sort().join("|");
         const nextIds = [...joinerIds].sort().join("|");
         const prevHost = String(beforeCopy?.planHostUid || "").trim();
-        if (prevIds === nextIds && prevHost === hostUid) continue;
+        if (prevIds === nextIds && prevHost === hostUid) {
+          const allAttendeeIds = Array.from(
+            new Set(
+              [...joinerIds, hostUid, joinerUid]
+                .map((id) => String(id || "").trim())
+                .filter(Boolean)
+            )
+          );
+          for (const attendeeId of allAttendeeIds) {
+            if (attendeeId === hostUid) continue;
+            await ensurePlanDiscoveryHosts(db, attendeeId, [hostUid, viaUid]);
+          }
+          let needsImageRefresh = false;
+          try {
+            const hostSnap = await db.collection("users").doc(hostUid).get();
+            if (hostSnap.exists) {
+              const events = Array.isArray(hostSnap.data()?.events)
+                ? hostSnap.data().events
+                : [];
+              const hostRow = events.find((e) =>
+                matchesPlanEvent(e, { ...joinCopy, planHostUid: hostUid }, events)
+              );
+              const imgs =
+                hostRow?.attendeeImages && typeof hostRow.attendeeImages === "object"
+                  ? hostRow.attendeeImages
+                  : {};
+              needsImageRefresh = allAttendeeIds.some(
+                (id) => id !== hostUid && !String(imgs[id] || "").trim()
+              );
+            } else {
+              needsImageRefresh = true;
+            }
+          } catch {
+            needsImageRefresh = true;
+          }
+          if (needsImageRefresh) {
+            for (const targetUid of allAttendeeIds) {
+              if (targetUid === joinerUid) continue;
+              try {
+                await mergeRosterOntoUser(
+                  db,
+                  targetUid,
+                  { ...joinCopy, planHostUid: hostUid },
+                  allAttendeeIds,
+                  hostUid
+                );
+              } catch (e) {
+                logError("openPlanSync_interest_refresh", e, {
+                  hostUid,
+                  joinerUid,
+                  targetUid,
+                });
+              }
+            }
+          }
+          continue;
+        }
       }
     }
 
@@ -560,6 +680,12 @@ async function syncJoinerInterestToAttendees(db, joinerUid, beforeEvents, afterE
           .filter(Boolean)
       )
     );
+
+    // Existing joiners also need discovery hosts so friends of the host can open them.
+    for (const attendeeId of allAttendeeIds) {
+      if (attendeeId === hostUid) continue;
+      await ensurePlanDiscoveryHosts(db, attendeeId, [hostUid, viaUid]);
+    }
 
     for (const targetUid of allAttendeeIds) {
       if (targetUid === joinerUid) continue;
@@ -627,6 +753,22 @@ async function cascadeDeletedPlans(db, hostUid, beforeEvents, afterEvents) {
 }
 
 /**
+ * When a host's open plans list changes, mark every joiner discoverable by friends of the host.
+ */
+async function ensureDiscoveryHostsForHostedPlans(db, hostUid, afterEvents) {
+  for (const ev of afterEvents) {
+    if (isPrivatePlan(ev)) continue;
+    const host = String(ev?.planHostUid || "").trim();
+    const isHostedByUser = !host || host === hostUid;
+    if (!isHostedByUser) continue;
+    const joiners = [...collectJoinedIds(ev)].filter((id) => id && id !== hostUid);
+    for (const joinerId of joiners) {
+      await ensurePlanDiscoveryHosts(db, joinerId, [hostUid]);
+    }
+  }
+}
+
+/**
  * @param {FirebaseFirestore.Firestore} db
  * @param {string} userId
  * @param {object[]} beforeEvents
@@ -638,18 +780,16 @@ async function handleUserEventsChange(db, userId, beforeEvents, afterEvents) {
   await syncUnjoinFromAttendees(db, userId, beforeEvents, afterEvents);
   await syncJoinerInterestToAttendees(db, userId, beforeEvents, afterEvents);
   await syncHostPlanFieldUpdates(db, userId, beforeEvents, afterEvents);
+  await ensureDiscoveryHostsForHostedPlans(db, userId, afterEvents);
   await cascadeDeletedPlans(db, userId, beforeEvents, afterEvents);
 }
 
 module.exports = {
-  eventKey,
-  eventKeyLoose,
   matchesPlanEvent,
-  collectJoinedIds,
   findHostPlanIndex,
-  findMatchingPlanIndex,
-  findRemovedHostedPlans,
   findChangedHostedPlans,
-  planContentChanged,
+  findRemovedHostedPlans,
+  isPrivatePlan,
+  isOpenPlan,
   handleUserEventsChange,
 };

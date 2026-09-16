@@ -29,8 +29,14 @@ function normalizePhoneE164(raw) {
 function phoneLookupSecret() {
   const secret = String(process.env.PHONE_LOOKUP_SECRET || "").trim();
   if (secret) return secret;
-  // Fallback keeps local/dev usable; production must set PHONE_LOOKUP_SECRET.
-  return "synq-dev-phone-lookup-secret";
+  // Local emulator / non-deployed runs only. Production must set PHONE_LOOKUP_SECRET.
+  if (
+    process.env.FUNCTIONS_EMULATOR === "true" ||
+    process.env.NODE_ENV === "test"
+  ) {
+    return "synq-dev-phone-lookup-secret";
+  }
+  throw new Error("PHONE_LOOKUP_SECRET is not configured");
 }
 
 function hashPhoneE164(e164) {

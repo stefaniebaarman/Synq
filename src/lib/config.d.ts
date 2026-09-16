@@ -13,7 +13,3 @@ export const ENV_VARS: {
 export const SYNQ_SHARE_WEB_BASE: string;
 export const SYNQ_OPEN_WEB_BASE: string;
 export const SYNQ_SHARE_HOST: string;
-export const IOS_BUNDLE_ID: string;
-export const ANDROID_PACKAGE: string;
-
-export function synqShareHostFromBase(base?: string): string;

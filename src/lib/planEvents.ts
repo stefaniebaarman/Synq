@@ -1,4 +1,15 @@
 
+export type { PlanVisibility } from "./planVisibility";
+
+export {
+  isPrivatePlan,
+  isOpenPlan,
+  filterToOpenPlans,
+  findSoonUpcomingPlan,
+  formatSoonPlanConfirmMessage,
+  SOON_PLAN_WINDOW_MS,
+} from "./planVisibility";
+
 export function eventKey(event: any): string {
   return `${String(event?.title || "").trim().toLowerCase()}|${String(event?.date || "").trim()}|${String(
     event?.time || ""

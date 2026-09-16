@@ -17,10 +17,21 @@ const {
   readVenueCache,
   writeVenueCache,
 } = require("./synqSuggestionsCache");
+const {
+  PHONE_HASHES,
+  normalizePhoneE164,
+  hashPhoneE164,
+  deletePhoneHashesForUid,
+  upsertPhoneHashForUid,
+} = require("./phoneHashes");
+const { createReengagement } = require("./reengagement");
 
 if (admin.apps.length === 0) {
     admin.initializeApp();
 }
+
+/** Populated after Synq status helpers exist (see below). */
+let reengagement = null;
 
 async function deleteCollectionInChunks(db, colRef, chunkSize = 400) {
   while (true) {
@@ -58,12 +69,37 @@ async function reserveUniqueInviteCode(db, maxAttempts = 25) {
   throw new HttpsError("resource-exhausted", "Could not reserve invite code.");
 }
 
+async function reserveUniqueCommunityShareCode(db, maxAttempts = 25) {
+  for (let i = 0; i < maxAttempts; i += 1) {
+    const code = randomInviteCode();
+    const snap = await db
+      .collection("communityGroups")
+      .where("shareCode", "==", code)
+      .limit(1)
+      .get();
+    if (snap.empty) return code;
+  }
+  throw new HttpsError("resource-exhausted", "Could not reserve community share code.");
+}
+
 async function friendIdForInviteCode(db, rawCode) {
   const code = String(rawCode || "").trim().toUpperCase();
   if (!code) return null;
   const snap = await db
     .collection("users")
     .where("inviteCode", "==", code)
+    .limit(1)
+    .get();
+  if (snap.empty) return null;
+  return snap.docs[0].id;
+}
+
+async function groupIdForCommunityShareCode(db, rawCode) {
+  const code = String(rawCode || "").trim().toUpperCase();
+  if (!code) return null;
+  const snap = await db
+    .collection("communityGroups")
+    .where("shareCode", "==", code)
     .limit(1)
     .get();
   if (snap.empty) return null;
@@ -141,8 +177,10 @@ exports.onUserPushTokenWrite = onDocumentWritten(
 const moderation = registerModerationExports();
 exports.filterMessageOnCreate = moderation.filterMessageOnCreate;
 exports.submitReport = moderation.submitReport;
+exports.submitFeedback = moderation.submitFeedback;
 exports.blockUser = moderation.blockUser;
 exports.unblockUser = moderation.unblockUser;
+exports.listBlockedUsers = moderation.listBlockedUsers;
 exports.moderateContent = moderation.moderateContent;
 exports.checkOpenModerationReports = moderation.checkOpenModerationReports;
 
@@ -181,7 +219,15 @@ exports.onMessageSent = onDocumentCreated({
         const sentTokens = new Set();
 
         for (const recipientId of recipientIds) {
-            const userDoc = await admin.firestore().collection("users").doc(recipientId).get();
+            const userRef = admin.firestore().collection("users").doc(recipientId);
+            // Combined/merged source threads are hidden only for the merger; a new
+            // message should bring the thread back into their inbox.
+            await userRef.set(
+                { hiddenChatIds: admin.firestore.FieldValue.arrayRemove(chatId) },
+                { merge: true }
+            );
+
+            const userDoc = await userRef.get();
             const userData = userDoc.data();
             const token = userData?.pushToken;
 
@@ -207,12 +253,17 @@ exports.onMessageSent = onDocumentCreated({
             const senderName =
                 chatData.participantNames?.[senderId] ||
                 chatData.participantNames?.[messageData.senderId] ||
-                "New Message";
+                "New message";
+            const isPoll = messageData.type === "poll";
+            const question = String(messageData.text || "").trim();
+            const body = isPoll
+                ? (question ? `Poll: ${question}` : "New poll")
+                : messageData.text;
             await axios.post("https://exp.host/--/api/v2/push/send", {
                 to: token,
                 sound: "default",
                 title: senderName,
-                body: messageData.text,
+                body,
                 data: {
                     chatId: String(chatId),
                     messageId: String(event.params.messageId ?? ""),
@@ -307,6 +358,104 @@ exports.onMessageReaction = onDocumentUpdated(
   }
 );
 
+/** Notify the poll author when someone else casts or changes a vote. */
+exports.onPollVote = onDocumentUpdated(
+  {
+    document: "chats/{chatId}/messages/{messageId}",
+    region: "us-central1",
+  },
+  async (event) => {
+    const before = event.data.before.data();
+    const after = event.data.after.data();
+    if (!after || after.type !== "poll") return;
+
+    const { chatId, messageId } = event.params;
+    const senderId = String(after.senderId ?? "").trim();
+    if (!senderId) return;
+
+    const beforeVotes =
+      before && before.pollVotes && typeof before.pollVotes === "object"
+        ? before.pollVotes
+        : {};
+    const afterVotes =
+      after.pollVotes && typeof after.pollVotes === "object" ? after.pollVotes : {};
+
+    const changedVoterIds = Object.keys(afterVotes).filter((uid) => {
+      const next = afterVotes[uid];
+      if (!Number.isInteger(next) || next < 0) return false;
+      const prev = beforeVotes[uid];
+      return prev !== next;
+    });
+    if (changedVoterIds.length === 0) return;
+
+    let chatData = {};
+    try {
+      const chatDoc = await admin.firestore().collection("chats").doc(chatId).get();
+      if (!chatDoc.exists) return;
+      chatData = chatDoc.data() || {};
+    } catch (e) {
+      logError("onPollVote_chat_read", e, { chatId });
+      return;
+    }
+
+    const question = String(after.text || "").trim().slice(0, 120);
+    const options = Array.isArray(after.pollOptions) ? after.pollOptions : [];
+
+    for (const voterId of changedVoterIds) {
+      const vid = String(voterId || "").trim();
+      if (!vid || vid === senderId) continue;
+
+      try {
+        const authorDoc = await admin.firestore().collection("users").doc(senderId).get();
+        const voterDoc = await admin.firestore().collection("users").doc(vid).get();
+        const authorToken = authorDoc.data()?.pushToken;
+        if (!authorToken) continue;
+
+        const voterToken = voterDoc.data()?.pushToken || null;
+        if (voterToken && authorToken === voterToken) {
+          logWarn("onPollVote_skip_same_device_token", {
+            chatId,
+            messageId,
+          });
+          continue;
+        }
+
+        let voterName =
+          chatData.participantNames?.[vid] ||
+          voterDoc.data()?.displayName ||
+          "Someone";
+        voterName = String(voterName).trim() || "Someone";
+
+        const optionIndex = afterVotes[vid];
+        const optionText = String(options[optionIndex] ?? "").trim();
+        const title = `${voterName} voted on your poll`;
+        let body = title;
+        if (optionText && question) {
+          body = `${optionText} · ${question}${question.length >= 120 ? "…" : ""}`;
+        } else if (optionText) {
+          body = optionText;
+        } else if (question) {
+          body = `${question}${question.length >= 120 ? "…" : ""}`;
+        }
+
+        await axios.post("https://exp.host/--/api/v2/push/send", {
+          to: authorToken,
+          sound: "default",
+          title,
+          body,
+          data: {
+            type: "poll_vote",
+            chatId: String(chatId),
+            messageId: String(messageId),
+          },
+        });
+      } catch (err) {
+        logError("onPollVote_push", err, { chatId, messageId });
+      }
+    }
+  }
+);
+
 exports.deleteMyAccount = onCall(
   { region: "us-central1" },
   async (request) => {
@@ -349,6 +498,59 @@ exports.deleteMyAccount = onCall(
       await deleteCollectionInChunks(db, db.collection("users").doc(uid).collection("notificationLocks"), 400);
       await deleteCollectionInChunks(db, db.collection("users").doc(uid).collection("notifications"), 400);
       await deleteCollectionInChunks(db, db.collection("users").doc(uid).collection("friendGroups"), 400);
+      await deleteCollectionInChunks(
+        db,
+        db.collection("users").doc(uid).collection("communityGroupInvites"),
+        400
+      );
+      await deleteCollectionInChunks(
+        db,
+        db.collection("users").doc(uid).collection("blocked"),
+        400
+      );
+
+      // Leave or delete community groups this user belongs to / owns.
+      const communitySnap = await db
+        .collection("communityGroups")
+        .where("memberIds", "array-contains", uid)
+        .get();
+      for (const groupDoc of communitySnap.docs) {
+        const data = groupDoc.data() || {};
+        const memberIds = Array.isArray(data.memberIds)
+          ? data.memberIds.map(String).filter(Boolean)
+          : [];
+        const isCreator = String(data.creatorId || "") === uid;
+        const postsRef = groupDoc.ref.collection("posts");
+        const plansRef = groupDoc.ref.collection("plans");
+        if (isCreator || memberIds.filter((id) => id !== uid).length === 0) {
+          await deleteCollectionInChunks(db, postsRef, 400);
+          await deleteCollectionInChunks(db, plansRef, 400);
+          await deleteCollectionInChunks(db, groupDoc.ref.collection("invites"), 400);
+          await groupDoc.ref.delete().catch(() => {});
+        } else {
+          const nextMembers = memberIds.filter((id) => id !== uid);
+          const previews =
+            data.memberPreviews && typeof data.memberPreviews === "object"
+              ? { ...data.memberPreviews }
+              : {};
+          delete previews[uid];
+          const authorPosts = await postsRef.where("authorId", "==", uid).get();
+          const batch = db.batch();
+          authorPosts.docs.forEach((d) => batch.delete(d.ref));
+          batch.update(groupDoc.ref, {
+            memberIds: nextMembers,
+            memberPreviews: previews,
+            updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+          });
+          await batch.commit().catch(() => {});
+        }
+      }
+
+      try {
+        await deletePhoneHashesForUid(db, uid);
+      } catch (phoneHashErr) {
+        logWarn("deleteMyAccount_phoneHashes", { uid, message: phoneHashErr?.message });
+      }
       const bucket = admin.storage().bucket();
       await Promise.allSettled([
         bucket.file(`profiles/${uid}`).delete(),
@@ -393,15 +595,13 @@ exports.deleteChat = onCall(
         throw new HttpsError("permission-denied", "Not a chat participant.");
       }
 
-      await deleteCollectionInChunks(
-        db,
-        chatRef.collection("messages"),
-        400
-      );
+      // Remove the chat doc first so inbox listeners update immediately.
+      // Message docs are orphaned until the chunked cleanup below finishes.
       await chatRef.delete();
 
-      await Promise.all(
-        participants.map((participantUid) =>
+      await Promise.all([
+        deleteCollectionInChunks(db, chatRef.collection("messages"), 400),
+        ...participants.map((participantUid) =>
           db
             .collection("users")
             .doc(participantUid)
@@ -409,14 +609,163 @@ exports.deleteChat = onCall(
               pinnedChatIds: admin.firestore.FieldValue.arrayRemove(chatId),
             })
             .catch(() => {})
-        )
-      );
+        ),
+      ]);
 
       return { ok: true };
     } catch (error) {
       if (error instanceof HttpsError) throw error;
       logError("deleteChat", error, { uid, chatId });
       throw new HttpsError("internal", error?.message || "Failed to delete chat.");
+    }
+  }
+);
+
+/**
+ * Combines two chats the caller participates in into one group thread.
+ * Admin SDK bypasses friendship-only create rules so community / legacy
+ * co-participants can still be merged when the user is already in both threads.
+ */
+exports.mergeChats = onCall(
+  { region: "us-central1", invoker: "public" },
+  async (request) => {
+    if (!request.auth?.uid) {
+      throw new HttpsError("unauthenticated", "Must be logged in.");
+    }
+    const uid = request.auth.uid;
+    const chatIdA = String(request.data?.chatIdA || "").trim();
+    const chatIdB = String(request.data?.chatIdB || "").trim();
+    if (!chatIdA || !chatIdB || chatIdA === chatIdB) {
+      throw new HttpsError("invalid-argument", "Two different chat ids are required.");
+    }
+
+    const db = admin.firestore();
+
+    try {
+      const [snapA, snapB, userSnap] = await Promise.all([
+        db.collection("chats").doc(chatIdA).get(),
+        db.collection("chats").doc(chatIdB).get(),
+        db.collection("users").doc(uid).get(),
+      ]);
+      if (!snapA.exists || !snapB.exists) {
+        throw new HttpsError("not-found", "One of those conversations is no longer available.");
+      }
+
+      const dataA = snapA.data() || {};
+      const dataB = snapB.data() || {};
+      const participantsA = Array.isArray(dataA.participants)
+        ? dataA.participants.map((id) => String(id || "").trim()).filter(Boolean)
+        : [];
+      const participantsB = Array.isArray(dataB.participants)
+        ? dataB.participants.map((id) => String(id || "").trim()).filter(Boolean)
+        : [];
+      if (!participantsA.includes(uid) || !participantsB.includes(uid)) {
+        throw new HttpsError("permission-denied", "Not a chat participant.");
+      }
+
+      const mergedParticipants = [
+        ...new Set([...participantsA, ...participantsB]),
+      ].sort();
+      if (mergedParticipants.length < 2 || mergedParticipants.length > 15) {
+        throw new HttpsError("invalid-argument", "Invalid participant count for group chat.");
+      }
+
+      const samePeople =
+        participantsA.length === participantsB.length &&
+        [...participantsA].sort().every((id, i) => id === [...participantsB].sort()[i]);
+      if (samePeople) {
+        throw new HttpsError(
+          "failed-precondition",
+          "These conversations already include the same people."
+        );
+      }
+
+      const namesA =
+        dataA.participantNames && typeof dataA.participantNames === "object"
+          ? dataA.participantNames
+          : {};
+      const namesB =
+        dataB.participantNames && typeof dataB.participantNames === "object"
+          ? dataB.participantNames
+          : {};
+      const imagesA =
+        dataA.participantImages && typeof dataA.participantImages === "object"
+          ? dataA.participantImages
+          : {};
+      const imagesB =
+        dataB.participantImages && typeof dataB.participantImages === "object"
+          ? dataB.participantImages
+          : {};
+
+      const participantNames = {};
+      const participantImages = {};
+      const missingProfileUids = [];
+      for (const participantUid of mergedParticipants) {
+        const name = String(namesA[participantUid] || namesB[participantUid] || "").trim();
+        const image = String(imagesA[participantUid] || imagesB[participantUid] || "").trim();
+        participantNames[participantUid] = name;
+        participantImages[participantUid] = image;
+        if (!name || !image) missingProfileUids.push(participantUid);
+      }
+
+      if (missingProfileUids.length) {
+        const profileSnaps = await Promise.all(
+          missingProfileUids.map((id) => db.collection("users").doc(id).get())
+        );
+        profileSnaps.forEach((profileSnap, index) => {
+          const participantUid = missingProfileUids[index];
+          if (!profileSnap.exists) return;
+          const profile = profileSnap.data() || {};
+          if (!participantNames[participantUid]) {
+            participantNames[participantUid] = String(profile.displayName || "").trim();
+          }
+          if (!participantImages[participantUid]) {
+            participantImages[participantUid] = String(profile.imageurl || "").trim();
+          }
+        });
+      }
+
+      const myDisplayName =
+        String(participantNames[uid] || userSnap.data()?.displayName || "").trim() ||
+        "Someone";
+      const firstName = myDisplayName.split(/\s+/)[0] || "Someone";
+      const systemText = `${firstName} combined two conversations`;
+
+      const groupIdA = String(dataA.communityGroupId || "").trim();
+      const groupIdB = String(dataB.communityGroupId || "").trim();
+      const sharedCommunityGroupId =
+        groupIdA && groupIdA === groupIdB ? groupIdA : "";
+
+      const chatPayload = {
+        participants: mergedParticipants,
+        participantNames,
+        participantImages,
+        createdAt: admin.firestore.FieldValue.serverTimestamp(),
+        updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+        lastMessage: systemText,
+        lastMessageSenderId: uid,
+        mergedFrom: [chatIdA, chatIdB],
+      };
+      if (sharedCommunityGroupId) {
+        chatPayload.communityGroupId = sharedCommunityGroupId;
+      }
+
+      const chatRef = await db.collection("chats").add(chatPayload);
+      await chatRef.collection("messages").add({
+        text: systemText,
+        senderId: uid,
+        type: "system",
+        imageurl: String(
+          participantImages[uid] || userSnap.data()?.imageurl || ""
+        ).trim(),
+        createdAt: admin.firestore.FieldValue.serverTimestamp(),
+      });
+
+      return { ok: true, chatId: chatRef.id, reused: false };
+    } catch (error) {
+      if (error instanceof HttpsError) throw error;
+      logError("mergeChats", error, { uid, chatIdA, chatIdB });
+      throw new HttpsError("internal", error?.message || "Failed to combine chats.");
     }
   }
 );
@@ -669,6 +1018,687 @@ exports.profileSharePageHttp = onRequest(
   }
 );
 
+/** Normalize ambassador codes: uppercase, allow A-Z 0-9 hyphen. */
+function normalizeAmbassadorCode(raw) {
+  return String(raw || "")
+    .trim()
+    .toUpperCase()
+    .replace(/[^A-Z0-9-]/g, "");
+}
+
+function isValidAmbassadorCodeShape(code) {
+  return /^[A-Z0-9][A-Z0-9-]{1,31}$/.test(code);
+}
+
+function extractAmbassadorCodeFromPath(pathname) {
+  const match = String(pathname || "").match(/\/a\/([^/?#]+)/i);
+  if (!match) return "";
+  return normalizeAmbassadorCode(decodeURIComponent(match[1] || ""));
+}
+
+async function ambassadorDocForCode(db, rawCode) {
+  const code = normalizeAmbassadorCode(rawCode);
+  if (!code || !isValidAmbassadorCodeShape(code)) return null;
+  const snap = await db
+    .collection("ambassadors")
+    .where("code", "==", code)
+    .limit(1)
+    .get();
+  if (snap.empty) return null;
+  const doc = snap.docs[0];
+  return { id: doc.id, ref: doc.ref, data: doc.data() || {} };
+}
+
+function looksLikeBotRequest(req) {
+  const ua = String(req.headers["user-agent"] || "").toLowerCase();
+  if (!ua) return true;
+  if (
+    /bot|crawl|spider|slurp|facebookexternalhit|twitterbot|linkedinbot|whatsapp|telegrambot|preview|embedly|quora|pinterest|discordbot|slackbot/i.test(
+      ua
+    )
+  ) {
+    return true;
+  }
+  const dest = String(req.headers["sec-fetch-dest"] || "").toLowerCase();
+  if (dest === "image" || dest === "style" || dest === "script" || dest === "font") {
+    return true;
+  }
+  return false;
+}
+
+/** HTML landing page for ambassador referral links (`/a/{code}`). */
+exports.ambassadorSharePageHttp = onRequest(
+  { region: "us-central1" },
+  async (req, res) => {
+    const code = extractAmbassadorCodeFromPath(req.path);
+    if (!code || !isValidAmbassadorCodeShape(code)) {
+      res.status(404).send("Not found");
+      return;
+    }
+
+    try {
+      const db = admin.firestore();
+      const ambassador = await ambassadorDocForCode(db, code);
+      if (!ambassador || String(ambassador.data.status || "") !== "active") {
+        res.status(404).send("This referral link is no longer available.");
+        return;
+      }
+
+      if (!looksLikeBotRequest(req)) {
+        try {
+          await ambassador.ref.update({
+            clickCount: admin.firestore.FieldValue.increment(1),
+            updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+          });
+        } catch (e) {
+          logError("ambassadorSharePageHttp_click", e, { code, ambassadorId: ambassador.id });
+        }
+      }
+
+      const deepLink = `synq://a/${encodeURIComponent(code)}`;
+      const clipboardPayload = `SYNQ-A:${code}`;
+      const iosStore =
+        "https://apps.apple.com/us/app/synq-see-whos-free/id6757319173";
+      const playReferrer = encodeURIComponent(
+        `utm_source=ambassador&utm_medium=referral&utm_content=${code}&ambassador=${code}`
+      );
+      const androidStore = `https://play.google.com/store/apps/details?id=com.stefaniebaarman.synq&referrer=${playReferrer}`;
+      const protocol = String(req.headers["x-forwarded-proto"] || "https")
+        .split(",")[0]
+        .trim();
+      const host = String(req.headers.host || "join.synqapp.com").trim();
+      const shareUrl = `${protocol}://${host}/a/${encodeURIComponent(code)}`;
+      const displayName = String(ambassador.data.displayName || "a Synq ambassador").trim();
+
+      res.set("Cache-Control", "no-store");
+      res.status(200).send(`<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Join Synq</title>
+    <meta property="og:title" content="Join Synq" />
+    <meta property="og:description" content="Get Synq via ${escapeHtml(displayName)}." />
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="${escapeHtml(shareUrl)}" />
+    <meta name="twitter:card" content="summary" />
+    <style>
+      body {
+        margin: 0;
+        min-height: 100vh;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+        background: #090a0b;
+        color: #f5f5f5;
+        text-align: center;
+        padding: 24px;
+      }
+      a { color: #7c5cff; }
+    </style>
+  </head>
+  <body>
+    <div>
+      <p>Opening Synq…</p>
+      <p><a id="store-link" href="#">Get Synq in the app store</a></p>
+    </div>
+    <script>
+      (function () {
+        var deepLink = ${JSON.stringify(deepLink)};
+        var iosStore = ${JSON.stringify(iosStore)};
+        var androidStore = ${JSON.stringify(androidStore)};
+        var clipboardPayload = ${JSON.stringify(clipboardPayload)};
+        var ua = navigator.userAgent || "";
+        var isIOS = /iPad|iPhone|iPod/i.test(ua);
+        var isAndroid = /Android/i.test(ua);
+        var storeUrl = isIOS ? iosStore : isAndroid ? androidStore : iosStore;
+        var storeLink = document.getElementById("store-link");
+        if (storeLink) storeLink.href = storeUrl;
+        try {
+          if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(clipboardPayload).catch(function () {});
+          }
+        } catch (e) {}
+        window.location.replace(deepLink);
+        window.setTimeout(function () {
+          window.location.replace(storeUrl);
+        }, 1200);
+      })();
+    </script>
+  </body>
+</html>`);
+    } catch (e) {
+      logError("ambassadorSharePageHttp", e, { code });
+      res.status(500).send("Something went wrong.");
+    }
+  }
+);
+
+/** First-touch ambassador signup attribution (no friend request). */
+exports.claimAmbassadorReferral = onCall(
+  { region: "us-central1" },
+  async (request) => {
+    if (!request.auth?.uid) {
+      throw new HttpsError("unauthenticated", "Must be logged in.");
+    }
+    const uid = String(request.auth.uid || "").trim();
+    const code = normalizeAmbassadorCode(request.data?.code);
+    const methodRaw = String(request.data?.method || "manual").trim().toLowerCase();
+    const allowedMethods = new Set([
+      "universal_link",
+      "clipboard",
+      "play_referrer",
+      "manual",
+    ]);
+    const method = allowedMethods.has(methodRaw) ? methodRaw : "manual";
+
+    if (!code || !isValidAmbassadorCodeShape(code)) {
+      throw new HttpsError("invalid-argument", "Invalid ambassador code.");
+    }
+
+    const db = admin.firestore();
+    const userRef = db.collection("users").doc(uid);
+    const attributionRef = db.collection("ambassadorAttributions").doc(uid);
+
+    const result = await db.runTransaction(async (tx) => {
+      const ambassadorQuery = db
+        .collection("ambassadors")
+        .where("code", "==", code)
+        .limit(1);
+      const [userSnap, attributionSnap, ambassadorSnap] = await Promise.all([
+        tx.get(userRef),
+        tx.get(attributionRef),
+        tx.get(ambassadorQuery),
+      ]);
+
+      if (!userSnap.exists) {
+        throw new HttpsError("failed-precondition", "User profile missing.");
+      }
+
+      const userData = userSnap.data() || {};
+      if (userData.referredByAmbassadorId) {
+        return {
+          ok: true,
+          status: "already_attributed",
+          ambassadorId: String(userData.referredByAmbassadorId),
+          code: String(userData.referredByAmbassadorCode || ""),
+        };
+      }
+      if (attributionSnap.exists) {
+        const prev = attributionSnap.data() || {};
+        return {
+          ok: true,
+          status: "already_attributed",
+          ambassadorId: String(prev.ambassadorId || ""),
+          code: String(prev.code || ""),
+        };
+      }
+
+      if (ambassadorSnap.empty) {
+        throw new HttpsError("failed-precondition", "Ambassador code not found.");
+      }
+      const ambDoc = ambassadorSnap.docs[0];
+      const ambData = ambDoc.data() || {};
+      if (String(ambData.status || "") !== "active") {
+        throw new HttpsError("failed-precondition", "Ambassador link is disabled.");
+      }
+
+      const ambassadorId = ambDoc.id;
+      const now = admin.firestore.FieldValue.serverTimestamp();
+      tx.set(
+        userRef,
+        {
+          referredByAmbassadorId: ambassadorId,
+          referredByAmbassadorCode: code,
+          referredAt: now,
+        },
+        { merge: true }
+      );
+      tx.set(attributionRef, {
+        ambassadorId,
+        code,
+        method,
+        createdAt: now,
+      });
+      tx.update(ambDoc.ref, {
+        signupCount: admin.firestore.FieldValue.increment(1),
+        updatedAt: now,
+      });
+
+      return {
+        ok: true,
+        status: "attributed",
+        ambassadorId,
+        code,
+      };
+    });
+
+    return result;
+  }
+);
+
+exports.getOrCreateCommunityShareCode = onCall(
+  { region: "us-central1" },
+  async (request) => {
+    if (!request.auth?.uid) {
+      throw new HttpsError("unauthenticated", "Must be logged in.");
+    }
+    const uid = String(request.auth.uid || "").trim();
+    const groupId = String(request.data?.groupId || "").trim();
+    if (!groupId) {
+      throw new HttpsError("invalid-argument", "groupId is required.");
+    }
+    const db = admin.firestore();
+    const groupRef = db.collection("communityGroups").doc(groupId);
+    const groupSnap = await groupRef.get();
+    if (!groupSnap.exists) {
+      throw new HttpsError("not-found", "Community not found.");
+    }
+    const data = groupSnap.data() || {};
+    const memberIds = Array.isArray(data.memberIds) ? data.memberIds : [];
+    if (!memberIds.includes(uid)) {
+      throw new HttpsError("permission-denied", "Join this community to share it.");
+    }
+    const existing = String(data.shareCode || "").trim().toUpperCase();
+    if (existing) {
+      return { shareCode: existing };
+    }
+    const shareCode = await reserveUniqueCommunityShareCode(db);
+    await groupRef.set(
+      {
+        shareCode,
+        shareCodeCreatedAt: admin.firestore.FieldValue.serverTimestamp(),
+      },
+      { merge: true }
+    );
+    return { shareCode };
+  }
+);
+
+/** Admin-backed member cards so co-members see names/photos without N user getDocs. */
+exports.syncCommunityMemberPreviews = onCall(
+  { region: "us-central1" },
+  async (request) => {
+    if (!request.auth?.uid) {
+      throw new HttpsError("unauthenticated", "Must be logged in.");
+    }
+    const uid = String(request.auth.uid || "").trim();
+    const groupId = String(request.data?.groupId || "").trim();
+    if (!groupId) {
+      throw new HttpsError("invalid-argument", "groupId is required.");
+    }
+
+    const db = admin.firestore();
+    const groupRef = db.collection("communityGroups").doc(groupId);
+    const groupSnap = await groupRef.get();
+    if (!groupSnap.exists) {
+      throw new HttpsError("not-found", "Community not found.");
+    }
+
+    const data = groupSnap.data() || {};
+    const memberIds = Array.isArray(data.memberIds)
+      ? [
+          ...new Set(
+            data.memberIds
+              .map((id) => String(id || "").trim())
+              .filter(Boolean)
+          ),
+        ]
+      : [];
+    if (!memberIds.includes(uid)) {
+      throw new HttpsError(
+        "permission-denied",
+        "Join this community to view members."
+      );
+    }
+
+    const existing =
+      data.memberPreviews && typeof data.memberPreviews === "object"
+        ? { ...data.memberPreviews }
+        : {};
+    const previews = {};
+
+    for (let i = 0; i < memberIds.length; i += 40) {
+      const chunk = memberIds.slice(i, i + 40);
+      const refs = chunk.map((id) => db.collection("users").doc(id));
+      const snaps = await db.getAll(...refs);
+      snaps.forEach((snap, index) => {
+        const memberId = chunk[index];
+        const prev = existing[memberId] || {};
+        if (!snap.exists) {
+          const displayName = String(prev.displayName || "").trim() || "Member";
+          const imageurl = String(prev.imageurl || "").trim();
+          previews[memberId] = {
+            displayName,
+            ...(imageurl ? { imageurl } : {}),
+          };
+          return;
+        }
+        const user = snap.data() || {};
+        const displayName =
+          String(user.displayName || "").trim() ||
+          String(prev.displayName || "").trim() ||
+          "Member";
+        const imageurl =
+          String(user.imageurl || "").trim() ||
+          String(prev.imageurl || "").trim();
+        previews[memberId] = {
+          displayName,
+          ...(imageurl ? { imageurl } : {}),
+        };
+      });
+    }
+
+    await groupRef.set(
+      {
+        memberPreviews: previews,
+        updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+      },
+      { merge: true }
+    );
+
+    return { memberPreviews: previews };
+  }
+);
+
+/** Creator removes a member (client rules freeze memberIds to self-join/leave only). */
+exports.removeCommunityGroupMember = onCall(
+  { region: "us-central1" },
+  async (request) => {
+    if (!request.auth?.uid) {
+      throw new HttpsError("unauthenticated", "Must be logged in.");
+    }
+    const uid = String(request.auth.uid || "").trim();
+    const groupId = String(request.data?.groupId || "").trim();
+    const memberId = String(request.data?.memberId || "").trim();
+    if (!groupId || !memberId) {
+      throw new HttpsError("invalid-argument", "groupId and memberId are required.");
+    }
+    if (memberId === uid) {
+      throw new HttpsError(
+        "invalid-argument",
+        "Leave the community instead of removing yourself."
+      );
+    }
+
+    const db = admin.firestore();
+    const groupRef = db.collection("communityGroups").doc(groupId);
+    const groupSnap = await groupRef.get();
+    if (!groupSnap.exists) {
+      throw new HttpsError("not-found", "Community not found.");
+    }
+
+    const data = groupSnap.data() || {};
+    const creatorId = String(data.creatorId || "").trim();
+    if (creatorId !== uid) {
+      throw new HttpsError("permission-denied", "Only the admin can remove members.");
+    }
+    if (memberId === creatorId) {
+      throw new HttpsError("invalid-argument", "Cannot remove the community admin.");
+    }
+
+    const memberIds = Array.isArray(data.memberIds)
+      ? [
+          ...new Set(
+            data.memberIds
+              .map((id) => String(id || "").trim())
+              .filter(Boolean)
+          ),
+        ]
+      : [];
+    if (!memberIds.includes(memberId)) {
+      return { ok: true, memberIds };
+    }
+
+    const nextMemberIds = memberIds.filter((id) => id !== memberId);
+    const previews =
+      data.memberPreviews && typeof data.memberPreviews === "object"
+        ? { ...data.memberPreviews }
+        : {};
+    delete previews[memberId];
+
+    const batch = db.batch();
+    batch.update(groupRef, {
+      memberIds: nextMemberIds,
+      memberPreviews: previews,
+      updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+    });
+    batch.set(
+      db.collection("users").doc(memberId),
+      {
+        communityGroupIds: admin.firestore.FieldValue.arrayRemove(groupId),
+      },
+      { merge: true }
+    );
+    // Drop any pending invite for this user into this group.
+    batch.delete(
+      db.collection("users").doc(memberId).collection("communityGroupInvites").doc(groupId)
+    );
+    batch.delete(
+      groupRef.collection("invites").doc(memberId)
+    );
+    await batch.commit();
+
+    return { ok: true, memberIds: nextMemberIds };
+  }
+);
+
+/** Creator deletes a community and clears members' communityGroupIds. */
+exports.deleteCommunityGroup = onCall(
+  { region: "us-central1" },
+  async (request) => {
+    if (!request.auth?.uid) {
+      throw new HttpsError("unauthenticated", "Must be logged in.");
+    }
+    const uid = String(request.auth.uid || "").trim();
+    const groupId = String(request.data?.groupId || "").trim();
+    if (!groupId) {
+      throw new HttpsError("invalid-argument", "groupId is required.");
+    }
+
+    const db = admin.firestore();
+    const groupRef = db.collection("communityGroups").doc(groupId);
+    const groupSnap = await groupRef.get();
+    if (!groupSnap.exists) {
+      return { ok: true };
+    }
+
+    const data = groupSnap.data() || {};
+    if (String(data.creatorId || "").trim() !== uid) {
+      throw new HttpsError("permission-denied", "Only the admin can delete this community.");
+    }
+
+    const memberIds = Array.isArray(data.memberIds)
+      ? [
+          ...new Set(
+            data.memberIds
+              .map((id) => String(id || "").trim())
+              .filter(Boolean)
+          ),
+        ]
+      : [];
+
+    // Delete invites + plans/posts in chunks is heavy; mirror client cover delete separately.
+    const invitesSnap = await groupRef.collection("invites").limit(200).get();
+    let batch = db.batch();
+    let ops = 0;
+    const commitBatch = async () => {
+      if (ops === 0) return;
+      await batch.commit();
+      batch = db.batch();
+      ops = 0;
+    };
+
+    for (const inviteDoc of invitesSnap.docs) {
+      batch.delete(inviteDoc.ref);
+      ops += 1;
+      if (ops >= 400) await commitBatch();
+    }
+
+    for (const memberId of memberIds) {
+      batch.set(
+        db.collection("users").doc(memberId),
+        {
+          communityGroupIds: admin.firestore.FieldValue.arrayRemove(groupId),
+        },
+        { merge: true }
+      );
+      batch.delete(
+        db.collection("users").doc(memberId).collection("communityGroupInvites").doc(groupId)
+      );
+      ops += 2;
+      if (ops >= 400) await commitBatch();
+    }
+
+    batch.delete(groupRef);
+    ops += 1;
+    await commitBatch();
+
+    return { ok: true };
+  }
+);
+
+/** Public lookup for community share links (`/c/{shareCode}`). */
+exports.resolveCommunityShareCodeHttp = onRequest(
+  { region: "us-central1", cors: true },
+  async (req, res) => {
+    res.set("Access-Control-Allow-Origin", "*");
+    if (req.method === "OPTIONS") {
+      res.status(204).send("");
+      return;
+    }
+    const code = String(req.query.code || "").trim().toUpperCase();
+    if (!code) {
+      res.status(400).json({ error: "invalid_code" });
+      return;
+    }
+    try {
+      const groupId = await groupIdForCommunityShareCode(admin.firestore(), code);
+      if (!groupId) {
+        res.status(404).json({ error: "not_found" });
+        return;
+      }
+      res.status(200).json({ groupId, shareCode: code });
+    } catch (e) {
+      logError("resolveCommunityShareCodeHttp", e, { code });
+      res.status(500).json({ error: "internal" });
+    }
+  }
+);
+
+function extractCommunityShareCodeFromPath(pathname) {
+  const match = String(pathname || "").match(/\/c\/([^/?#]+)/i);
+  return match ? decodeURIComponent(match[1] || "").trim().toUpperCase() : "";
+}
+
+/** HTML landing page for /c/{shareCode} with Open Graph preview. */
+exports.communitySharePageHttp = onRequest(
+  { region: "us-central1" },
+  async (req, res) => {
+    const code = extractCommunityShareCodeFromPath(req.path);
+    if (!code) {
+      res.status(404).send("Not found");
+      return;
+    }
+
+    try {
+      const db = admin.firestore();
+      const groupId = await groupIdForCommunityShareCode(db, code);
+      if (!groupId) {
+        res.status(404).send("This community link is no longer available.");
+        return;
+      }
+
+      const groupSnap = await db.collection("communityGroups").doc(groupId).get();
+      const group = groupSnap.exists ? groupSnap.data() || {} : {};
+      const name = String(group.name || "").trim() || "Community";
+      const about = String(group.about || "").trim();
+      const location = String(group.location || "").trim();
+      const category = String(group.category || "").trim();
+      const ogImage = String(group.coverPhotoUrl || group.coverPhotoThumbUrl || "").trim();
+      const descriptionParts = [
+        about || "Join this community on Synq.",
+        [category, location].filter(Boolean).join(" · "),
+      ].filter(Boolean);
+      const description = descriptionParts.join(" ");
+
+      const deepLink = `synq://c/${encodeURIComponent(code)}`;
+      const iosStore =
+        "https://apps.apple.com/us/app/synq-see-whos-free/id6757319173";
+      const androidStore =
+        "https://play.google.com/store/search?q=Synq&c=apps";
+      const protocol = String(req.headers["x-forwarded-proto"] || "https")
+        .split(",")[0]
+        .trim();
+      const host = String(req.headers.host || "new-synq-main.web.app").trim();
+      const shareUrl = `${protocol}://${host}/c/${encodeURIComponent(code)}`;
+      const ogTitle = `Join ${name} on Synq`;
+      const ogImageTags = ogImage
+        ? `<meta property="og:image" content="${escapeHtml(ogImage)}" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:image" content="${escapeHtml(ogImage)}" />`
+        : `<meta name="twitter:card" content="summary" />`;
+
+      res.set("Cache-Control", "public, max-age=60");
+      res.status(200).send(`<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>${escapeHtml(ogTitle)}</title>
+    <meta property="og:title" content="${escapeHtml(ogTitle)}" />
+    <meta property="og:description" content="${escapeHtml(description)}" />
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="${escapeHtml(shareUrl)}" />
+    ${ogImageTags}
+    <style>
+      body {
+        margin: 0;
+        min-height: 100vh;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+        background: #090a0b;
+        color: #f5f5f5;
+        text-align: center;
+        padding: 24px;
+      }
+      a { color: #7c5cff; }
+    </style>
+  </head>
+  <body>
+    <div>
+      <p>Opening ${escapeHtml(name)}…</p>
+      <p><a id="store-link" href="#">Get Synq in the app store</a></p>
+    </div>
+    <script>
+      (function () {
+        var deepLink = ${JSON.stringify(deepLink)};
+        var iosStore = ${JSON.stringify(iosStore)};
+        var androidStore = ${JSON.stringify(androidStore)};
+        var ua = navigator.userAgent || "";
+        var isIOS = /iPad|iPhone|iPod/i.test(ua);
+        var isAndroid = /Android/i.test(ua);
+        var storeUrl = isIOS ? iosStore : isAndroid ? androidStore : iosStore;
+        var storeLink = document.getElementById("store-link");
+        if (storeLink) storeLink.href = storeUrl;
+        window.location.replace(deepLink);
+        window.setTimeout(function () {
+          window.location.replace(storeUrl);
+        }, 1200);
+      })();
+    </script>
+  </body>
+</html>`);
+    } catch (e) {
+      logError("communitySharePageHttp", e, { code });
+      res.status(500).send("Something went wrong.");
+    }
+  }
+);
+
 function normalizeSearchText(str) {
   return String(str || "")
     .toLowerCase()
@@ -678,6 +1708,20 @@ function normalizeSearchText(str) {
 
 function publicUserFields(doc) {
   const data = doc.data() || {};
+  const city = typeof data.city === "string" ? data.city.trim() : "";
+  const state = typeof data.state === "string" ? data.state.trim() : "";
+  const locationDisplay =
+    typeof data.locationDisplay === "string" && data.locationDisplay.trim()
+      ? data.locationDisplay.trim()
+      : city && state
+        ? `${city}, ${state}`
+        : city || "";
+  const interests = Array.isArray(data.interests)
+    ? data.interests
+        .filter((item) => typeof item === "string" && item.trim())
+        .map((item) => item.trim())
+        .slice(0, 40)
+    : [];
   return {
     id: doc.id,
     displayName: data.displayName || "User",
@@ -685,6 +1729,24 @@ function publicUserFields(doc) {
     firstName: data.firstName || "",
     lastName: data.lastName || "",
     email: data.email || null,
+    city,
+    state,
+    locationDisplay,
+    interests,
+  };
+}
+
+function discoveryUserPayload(fields, extra = {}) {
+  return {
+    id: fields.id,
+    displayName: fields.displayName,
+    imageurl: fields.imageurl,
+    email: fields.email,
+    city: fields.city,
+    state: fields.state,
+    locationDisplay: fields.locationDisplay,
+    interests: fields.interests,
+    ...extra,
   };
 }
 
@@ -711,13 +1773,7 @@ function pushSearchUser(users, seen, exclude, userDoc, extra = {}) {
   if (seen.has(userDoc.id) || exclude.has(userDoc.id)) return;
   const fields = publicUserFields(userDoc);
   seen.add(userDoc.id);
-  users.push({
-    id: fields.id,
-    displayName: fields.displayName,
-    imageurl: fields.imageurl,
-    email: fields.email,
-    ...extra,
-  });
+  users.push(discoveryUserPayload(fields, extra));
 }
 
 function userMatchesSearchQuery(data, query) {
@@ -912,7 +1968,7 @@ exports.getSuggestedFriends = onCall(
     }
     const myId = String(request.auth.uid || "").trim();
     const db = admin.firestore();
-
+    await assertCallableRateLimit(db, myId, "getSuggestedFriends", 60 * 60 * 1000, 20);
     const myFriendsSnap = await db
       .collection("users")
       .doc(myId)
@@ -947,12 +2003,7 @@ exports.getSuggestedFriends = onCall(
           const snap = await db.collection("users").doc(uid).get();
           if (!snap.exists) return null;
           const fields = publicUserFields(snap);
-          return {
-            id: fields.id,
-            displayName: fields.displayName,
-            imageurl: fields.imageurl,
-            mutualCount,
-          };
+          return discoveryUserPayload(fields, { mutualCount });
         })
       )
     ).filter(Boolean);
@@ -960,6 +2011,154 @@ exports.getSuggestedFriends = onCall(
     return { users };
   }
 );
+
+/** Index the caller's Auth phone number for contact matching. */
+exports.syncMyPhoneHash = onCall(
+  { region: "us-central1", secrets: ["PHONE_LOOKUP_SECRET"] },
+  async (request) => {
+    if (!request.auth?.uid) {
+      throw new HttpsError("unauthenticated", "Must be logged in.");
+    }
+    const uid = String(request.auth.uid || "").trim();
+    try {
+      const phone = await upsertPhoneHashForUid(uid);
+      return { ok: true, hasPhone: !!phone };
+    } catch (err) {
+      logError("syncMyPhoneHash", err, { uid });
+      throw new HttpsError("internal", "Could not sync phone lookup.");
+    }
+  }
+);
+
+/**
+ * Match uploaded contact phone numbers to Synq users.
+ * Client sends normalized E.164 phones; hashes stay server-side.
+ */
+exports.matchContacts = onCall(
+  { region: "us-central1", secrets: ["PHONE_LOOKUP_SECRET"] },
+  async (request) => {
+    if (!request.auth?.uid) {
+      throw new HttpsError("unauthenticated", "Must be logged in.");
+    }
+    const myId = String(request.auth.uid || "").trim();
+    const db = admin.firestore();
+
+    // Per-chunk calls; client caches scans for 30m so reopening the sheet does not hit this.
+    await assertCallableRateLimit(db, myId, "matchContacts", 60 * 60 * 1000, 60);
+
+    const rawPhones = Array.isArray(request.data?.phones) ? request.data.phones : [];
+    if (rawPhones.length === 0) {
+      return { users: [] };
+    }
+    if (rawPhones.length > 150) {
+      throw new HttpsError(
+        "invalid-argument",
+        "Too many phone numbers. Send at most 150 per request."
+      );
+    }
+
+    // Ensure caller's own hash is present when they have an Auth phone.
+    try {
+      await upsertPhoneHashForUid(myId);
+    } catch (syncErr) {
+      logWarn("matchContacts_sync_self", { myId, message: syncErr?.message });
+    }
+
+    const normalized = [];
+    const seenPhone = new Set();
+    for (const raw of rawPhones) {
+      const e164 = normalizePhoneE164(raw);
+      if (!e164 || seenPhone.has(e164)) continue;
+      seenPhone.add(e164);
+      normalized.push(e164);
+    }
+
+    const myFriendsSnap = await db.collection("users").doc(myId).collection("friends").get();
+    const exclude = new Set([myId, ...myFriendsSnap.docs.map((d) => d.id)]);
+
+    const users = [];
+    const seenUid = new Set();
+
+    // Batch get hash docs (Firestore getAll max 100 / call — chunk).
+    const hashEntries = normalized
+      .map((phone) => ({ phone, hash: hashPhoneE164(phone) }))
+      .filter((e) => e.hash);
+
+    for (let i = 0; i < hashEntries.length; i += 100) {
+      const chunk = hashEntries.slice(i, i + 100);
+      const refs = chunk.map((e) => db.collection(PHONE_HASHES).doc(e.hash));
+      const hashSnaps = await db.getAll(...refs);
+      const phoneByUid = new Map();
+      for (let j = 0; j < hashSnaps.length; j += 1) {
+        const snap = hashSnaps[j];
+        if (!snap.exists) continue;
+        const uid = String(snap.data()?.uid || "").trim();
+        if (!uid || exclude.has(uid) || seenUid.has(uid)) continue;
+        seenUid.add(uid);
+        phoneByUid.set(uid, chunk[j].phone);
+      }
+      if (phoneByUid.size === 0) continue;
+
+      const userRefs = [...phoneByUid.keys()].map((uid) => db.collection("users").doc(uid));
+      const userSnaps = await db.getAll(...userRefs);
+      for (const userSnap of userSnaps) {
+        if (!userSnap.exists) continue;
+        const fields = publicUserFields(userSnap);
+        users.push(
+          discoveryUserPayload(fields, {
+            phone: phoneByUid.get(userSnap.id) || null,
+          })
+        );
+      }
+    }
+
+    users.sort((a, b) =>
+      String(a.displayName || "").localeCompare(String(b.displayName || ""))
+    );
+    return { users };
+  }
+);
+
+/** Public city/interests preview for profiles the client cannot fully read yet. */
+exports.getPublicProfilePreview = onCall(
+  { region: "us-central1" },
+  async (request) => {
+    if (!request.auth?.uid) {
+      throw new HttpsError("unauthenticated", "Must be logged in.");
+    }
+    const myId = String(request.auth.uid || "").trim();
+    const uid = String(request.data?.uid || "").trim();
+    if (!uid) {
+      throw new HttpsError("invalid-argument", "Missing profile id.");
+    }
+    if (uid === myId) {
+      throw new HttpsError("invalid-argument", "Cannot preview your own profile.");
+    }
+
+    const db = admin.firestore();
+    await assertCallableRateLimit(db, myId, "getPublicProfilePreview", 60 * 1000, 40);
+
+    const snap = await db.collection("users").doc(uid).get();
+    if (!snap.exists) {
+      throw new HttpsError("not-found", "Profile not found.");
+    }
+    return { user: discoveryUserPayload(publicUserFields(snap)) };
+  }
+);
+
+/** Keep phoneHashes in sync when a phone Auth user is created. */
+const functionsV1 = require("firebase-functions/v1");
+exports.onAuthUserCreatedPhoneHash = functionsV1
+  .runWith({ secrets: ["PHONE_LOOKUP_SECRET"] })
+  .auth.user()
+  .onCreate(async (user) => {
+    try {
+      if (!user?.uid || !user.phoneNumber) return;
+      await upsertPhoneHashForUid(user.uid);
+    } catch (err) {
+      logError("onAuthUserCreatedPhoneHash", err, { uid: user?.uid });
+    }
+  });
 
 /** Accepts invite-link attribution and creates a safe friend request to inviter. */
 exports.acceptInviteFromLink = onCall(
@@ -1038,7 +2237,7 @@ exports.acceptInviteFromLink = onCall(
         },
         { merge: true }
       );
-      return { ok: true, status: "already_friends" };
+      return { ok: true, status: "already_friends", fromUid };
     }
 
     if (recipientToInviterReqSnap.exists || inviterToRecipientReqSnap.exists) {
@@ -1053,7 +2252,7 @@ exports.acceptInviteFromLink = onCall(
         },
         { merge: true }
       );
-      return { ok: true, status: "request_exists" };
+      return { ok: true, status: "request_exists", fromUid };
     }
 
     const recipientData = recipientSnap.data() || {};
@@ -1088,7 +2287,7 @@ exports.acceptInviteFromLink = onCall(
       { merge: true }
     );
     await batch.commit();
-    return { ok: true, status: "request_created" };
+    return { ok: true, status: "request_created", fromUid };
   }
 );
 
@@ -1118,10 +2317,14 @@ exports.onFriendRequestSent = onDocumentCreated({
 
         const senderName = requestData.senderName || "A user";
 
+        if (reengagement) {
+            void reengagement.enqueueFriendRequestReminder(userId, requestId);
+        }
+
         await axios.post("https://exp.host/--/api/v2/push/send", {
             to: token,
             sound: "default",
-            title: "New Friend Request 🤝",
+            title: "New Synq request",
             body: `${senderName} wants to Synq with you!`,
             data: {
                 type: "friend_request",
@@ -1172,7 +2375,7 @@ exports.onCommunityGroupInviteCreated = onDocumentCreated({
         await axios.post("https://exp.host/--/api/v2/push/send", {
             to: token,
             sound: "default",
-            title: "Group invite",
+            title: "Community invite",
             body: `${inviterName} invited you to join ${groupName}`,
             data: {
                 type: "community_group_invite",
@@ -1184,6 +2387,176 @@ exports.onCommunityGroupInviteCreated = onDocumentCreated({
         logError("onCommunityGroupInviteCreated", error, { userId, groupId });
     }
 });
+
+/** Notify community admin when a member submits a post for approval. */
+exports.onCommunityGroupPostCreated = onDocumentCreated(
+  {
+    document: "communityGroups/{groupId}/posts/{postId}",
+    region: "us-central1",
+  },
+  async (event) => {
+    const post = event.data?.data();
+    if (!post) return;
+    if (String(post.status || "").trim() !== "pending") return;
+
+    const { groupId, postId } = event.params;
+    const authorId = String(post.authorId || "").trim();
+    const authorName =
+      String(post.authorDisplayName || "").trim() || "A member";
+    const preview = String(post.body || "")
+      .trim()
+      .replace(/\s+/g, " ")
+      .slice(0, 80);
+
+    try {
+      const db = admin.firestore();
+      const groupSnap = await db.collection("communityGroups").doc(groupId).get();
+      if (!groupSnap.exists) return;
+      const group = groupSnap.data() || {};
+      const creatorId = String(group.creatorId || "").trim();
+      const groupName = String(group.name || "").trim() || "your community";
+      if (!creatorId || creatorId === authorId) return;
+
+      const notifId = `community_post_approval_${groupId}_${postId}`.slice(0, 1400);
+      await writeInAppNotification(creatorId, notifId, {
+        type: "community_post_approval",
+        fromUserId: authorId,
+        groupId,
+        postId,
+        groupName,
+        title: "Please review a post",
+        body: `${authorName} submitted a post in ${groupName}`,
+        postPreview: preview || null,
+      });
+
+      const adminSnap = await db.collection("users").doc(creatorId).get();
+      const token = adminSnap.data()?.pushToken;
+      if (!token) return;
+
+      let authorPushToken = null;
+      if (authorId) {
+        const authorSnap = await db.collection("users").doc(authorId).get();
+        authorPushToken = authorSnap.data()?.pushToken || null;
+      }
+      if (authorPushToken && token === authorPushToken) {
+        logWarn("onCommunityGroupPostCreated_skip_same_device_token", {
+          groupId,
+          postId,
+          creatorId,
+          authorId,
+        });
+        return;
+      }
+
+      await axios.post("https://exp.host/--/api/v2/push/send", {
+        to: token,
+        sound: "default",
+        title: "Please review a post",
+        body: `${authorName} submitted a post in ${groupName}`,
+        data: {
+          type: "community_post_approval",
+          groupId: String(groupId),
+          postId: String(postId),
+          fromUserId: authorId || undefined,
+        },
+      });
+    } catch (error) {
+      logError("onCommunityGroupPostCreated", error, { groupId, postId });
+    }
+  }
+);
+
+/** Notify author when a post is approved/rejected; clear admin approval notifications. */
+exports.onCommunityGroupPostReviewed = onDocumentUpdated(
+  {
+    document: "communityGroups/{groupId}/posts/{postId}",
+    region: "us-central1",
+  },
+  async (event) => {
+    const before = event.data?.before?.data();
+    const after = event.data?.after?.data();
+    if (!before || !after) return;
+    const prevStatus = String(before.status || "").trim();
+    const nextStatus = String(after.status || "").trim();
+    if (prevStatus !== "pending") return;
+    if (nextStatus !== "approved" && nextStatus !== "rejected") return;
+
+    const { groupId, postId } = event.params;
+    const authorId = String(after.authorId || "").trim();
+    const db = admin.firestore();
+
+    try {
+      const groupSnap = await db.collection("communityGroups").doc(groupId).get();
+      const group = groupSnap.exists ? groupSnap.data() || {} : {};
+      const creatorId = String(group.creatorId || "").trim();
+      const groupName = String(group.name || "").trim() || "your community";
+
+      const approvalNotifId = `community_post_approval_${groupId}_${postId}`.slice(
+        0,
+        1400
+      );
+      if (creatorId) {
+        await db
+          .collection("users")
+          .doc(creatorId)
+          .collection("notifications")
+          .doc(approvalNotifId)
+          .delete()
+          .catch(() => {});
+      }
+
+      if (!authorId || authorId === creatorId) {
+        if (nextStatus === "rejected") {
+          await event.data.after.ref.delete().catch(() => {});
+        }
+        return;
+      }
+
+      const notifId = `community_post_${nextStatus}_${groupId}_${postId}`.slice(
+        0,
+        1400
+      );
+      const approved = nextStatus === "approved";
+      await writeInAppNotification(authorId, notifId, {
+        type: approved ? "community_post_approved" : "community_post_rejected",
+        fromUserId: creatorId || null,
+        groupId,
+        postId,
+        groupName,
+        title: approved ? "Post approved" : "Post not approved",
+        body: approved
+          ? `Your post is now live in ${groupName}.`
+          : `Your post in ${groupName} was not approved.`,
+      });
+
+      const authorSnap = await db.collection("users").doc(authorId).get();
+      const token = authorSnap.data()?.pushToken;
+      if (token) {
+        await axios.post("https://exp.host/--/api/v2/push/send", {
+          to: token,
+          sound: "default",
+          title: approved ? "Post approved" : "Post not approved",
+          body: approved
+            ? `Your post is now live in ${groupName}.`
+            : `Your post in ${groupName} was not approved.`,
+          data: {
+            type: approved
+              ? "community_post_approved"
+              : "community_post_rejected",
+            groupId: String(groupId),
+            postId: String(postId),
+          },
+        });
+      }
+
+      if (nextStatus === "rejected") {
+        await event.data.after.ref.delete().catch(() => {});
+      }
+    } catch (error) {
+      logError("onCommunityGroupPostReviewed", error, { groupId, postId });
+    }
+  }
+);
 
 function collectInvitedIds(e) {
   const ids = new Set();
@@ -1339,13 +2712,26 @@ const synqBroadcastClearFields = {
   synqVisibleTo: admin.firestore.FieldValue.delete(),
 };
 
+reengagement = createReengagement({
+  admin,
+  axios,
+  onSchedule,
+  isSynqActive,
+  writeInAppNotification,
+  logError,
+  logWarn,
+  logInfo,
+});
+exports.processReengagementQueue = reengagement.processReengagementQueue;
+exports.runPrimeTimeReengagement = reengagement.runPrimeTimeReengagement;
+
 /**
  * Deactivates Synq for users past the window (server-side, no app open required).
- * Also clears legacy rows that are still `available` but missing `synqStartedAt`.
+ * Indexed query only — legacy full scans removed to avoid thousands of reads/run.
  */
 exports.expireStaleSynq = onSchedule(
   {
-    schedule: "every 15 minutes",
+    schedule: "every 30 minutes",
     region: "us-central1",
     timeZone: "Etc/UTC",
   },
@@ -1382,50 +2768,6 @@ exports.expireStaleSynq = onSchedule(
           count: expiredByTime.size,
         });
       }
-
-      const FieldPath = admin.firestore.FieldPath;
-      let lastDoc = null;
-      let legacyTotal = 0;
-      let reads = 0;
-      const maxLegacyReads = 8000;
-
-      while (reads < maxLegacyReads) {
-        let q = db
-          .collection("users")
-          .where("status", "==", "available")
-          .orderBy(FieldPath.documentId())
-          .limit(500);
-        if (lastDoc) q = q.startAfter(lastDoc);
-        const page = await q.get();
-        if (page.empty) break;
-        reads += page.size;
-
-        const refs = page.docs.filter((d) => !d.data().synqStartedAt).map((d) => d.ref);
-        if (refs.length) {
-          let lb = db.batch();
-          let c = 0;
-          for (const ref of refs) {
-            lb.update(ref, deactivatePayload);
-            legacyTotal += 1;
-            c += 1;
-            if (c >= 500) {
-              await lb.commit();
-              lb = db.batch();
-              c = 0;
-            }
-          }
-          if (c > 0) await lb.commit();
-        }
-
-        lastDoc = page.docs[page.docs.length - 1];
-        if (page.size < 500) break;
-      }
-
-      if (legacyTotal) {
-        logInfo("expireStaleSynq_legacy_missing_started_at", {
-          count: legacyTotal,
-        });
-      }
     } catch (e) {
       logError("expireStaleSynq", e, {});
     }
@@ -1433,7 +2775,7 @@ exports.expireStaleSynq = onSchedule(
 );
 
 /**
- * Propagate open-plan interest to hosts and cascade plan deletions to interested friends.
+ * Propagate open-plan interest, host field edits (title/time/location), and cascade plan deletions.
  * Clients cannot write other users' calendars (firestore.rules); this runs with admin access.
  */
 exports.syncOpenPlanEvents = onDocumentUpdated(
@@ -1515,7 +2857,7 @@ exports.onOpenPlanInterest = onDocumentUpdated(
 
         const planTitle = String(ev?.title || "").trim();
         const body = planTitle
-          ? `${firstNameFromDisplay(joinerName)} is going to ${planTitle}`
+          ? `${firstNameFromDisplay(joinerName)} is going to your plan ${planTitle}`
           : `${firstNameFromDisplay(joinerName)} is going to your plan`;
 
         const eventIdForClient =
@@ -1766,8 +3108,8 @@ exports.onFriendAccepted = onDocumentCreated({
     await axios.post("https://exp.host/--/api/v2/push/send", {
       to: friendUserData.pushToken,
       sound: "default",
-      title: "Request Accepted! ✨",
-      body: `${accepterData?.displayName || "A user"} accepted your friend request.`,
+      title: "Request accepted! ✨",
+      body: `${accepterData?.displayName || "A user"} added you on Synq`,
       data: { type: "friend_accepted", fromUserId: userId },
     });
 
@@ -1781,8 +3123,8 @@ exports.onFriendAccepted = onDocumentCreated({
     await writeInAppNotification(friendId, notifId, {
       type: "friend_accepted",
       fromUserId: userId,
-      title: "Request Accepted! ✨",
-      body: `${accepterData?.displayName || "A user"} accepted your friend request.`,
+      title: "Request accepted! ✨",
+      body: `${accepterData?.displayName || "A user"} added you on Synq`,
     });
   } catch (error) {
     logError("onFriendAccepted", error, { userId, friendId });
@@ -2374,6 +3716,39 @@ exports.onFriendSynqActivated = onDocumentUpdated(
 
       if (wasActive && !isActive) {
         await clearFriendSynqActiveNotifications(activatedUserId, friendIds);
+
+        // Tell currently-active friends to drop this user from their Synq list immediately.
+        const deactivatedPushToken = before?.pushToken || after?.pushToken || null;
+        const friendDocs = await Promise.all(
+          friendIds.map((fid) => admin.firestore().collection("users").doc(fid).get())
+        );
+        for (const friendDoc of friendDocs) {
+          if (!friendDoc.exists) continue;
+          const friendData = friendDoc.data() || {};
+          const recipientId = friendDoc.id;
+          const recipientToken = friendData?.pushToken;
+          if (!recipientToken) continue;
+          if (!isSynqActive(friendData)) continue;
+          // Audience was based on their visibility while active (before).
+          if (!isRecipientInSynqVisibleTo(recipientId, before)) continue;
+          if (deactivatedPushToken && recipientToken === deactivatedPushToken) continue;
+
+          try {
+            await axios.post("https://exp.host/--/api/v2/push/send", {
+              to: recipientToken,
+              priority: "high",
+              data: {
+                type: "friend_synq_inactive",
+                fromUserId: activatedUserId,
+              },
+            });
+          } catch (pushErr) {
+            logError("onFriendSynqActivated_inactive_push", pushErr, {
+              activatedUserId,
+              recipientId,
+            });
+          }
+        }
         return;
       }
 
@@ -2389,12 +3764,46 @@ exports.onFriendSynqActivated = onDocumentUpdated(
         const friendData = friendDoc.data() || {};
         const recipientId = friendDoc.id;
         const recipientToken = friendData?.pushToken;
-        if (!recipientToken) continue;
+        if (!isRecipientInSynqVisibleTo(recipientId, after)) continue;
+
         if (!isSynqActive(friendData)) {
           await expireSynqOnRead(admin.firestore(), recipientId, friendData);
+          // Inactive recipients: maybe queue “N of your friends are free” (2+).
+          if (reengagement && recipientToken) {
+            if (activatedPushToken && recipientToken === activatedPushToken) {
+              logWarn("onFriendSynqActivated_skip_same_device_token_inactive", {
+                activatedUserId,
+                recipientId,
+              });
+            } else {
+              void reengagement.maybeEnqueueFriendsFreeDigest(recipientId, friendData);
+            }
+          }
           continue;
         }
-        if (!isRecipientInSynqVisibleTo(recipientId, after)) continue;
+
+        if (!recipientToken) continue;
+
+        const synqBody = `${firstNameFromDisplay(activatedName)} is free`;
+        // Always mirror in-app so active clients can discover activations in
+        // realtime even when Expo push is delayed, missing, or same-device.
+        try {
+          await writeInAppNotification(
+            recipientId,
+            friendSynqActiveNotifId(activatedUserId, recipientId),
+            {
+              type: "friend_synq_active",
+              fromUserId: activatedUserId,
+              title: "Friend active on Synq",
+              body: synqBody,
+            }
+          );
+        } catch (notifErr) {
+          logError("onFriendSynqActivated_notif", notifErr, {
+            activatedUserId,
+            recipientId,
+          });
+        }
 
         if (activatedPushToken && recipientToken === activatedPushToken) {
           logWarn("onFriendSynqActivated_skip_same_device_token", {
@@ -2404,7 +3813,6 @@ exports.onFriendSynqActivated = onDocumentUpdated(
           continue;
         }
 
-        const synqBody = `${firstNameFromDisplay(activatedName)} just activated Synq.`;
         try {
           await axios.post("https://exp.host/--/api/v2/push/send", {
             to: recipientToken,
@@ -2416,16 +3824,6 @@ exports.onFriendSynqActivated = onDocumentUpdated(
               fromUserId: activatedUserId,
             },
           });
-          await writeInAppNotification(
-            recipientId,
-            friendSynqActiveNotifId(activatedUserId, recipientId),
-            {
-              type: "friend_synq_active",
-              fromUserId: activatedUserId,
-              title: "Friend active on Synq",
-              body: synqBody,
-            }
-          );
         } catch (pushErr) {
           logError("onFriendSynqActivated_push", pushErr, {
             activatedUserId,
@@ -2443,7 +3841,7 @@ const PLACES_FIELD_MASK =
     "places.displayName,places.rating,places.photos,places.shortFormattedAddress,places.formattedAddress";
 
 /** Kill switch for client AI UI — backend returns immediately when false. */
-const AI_SUGGESTIONS_PUBLIC_ENABLED = true;
+const AI_SUGGESTIONS_PUBLIC_ENABLED = false;
 
 const GEMINI_MODELS = ["gemini-2.5-flash", "gemini-2.0-flash"];
 
@@ -2717,13 +4115,20 @@ async function enrichVenueFromPlaces(venue, location, googleKey, db) {
 }
 
 exports.getSynqSuggestions = onCall(
-    {
-        secrets: ["GEMINI_API_KEY", "GOOGLE_MAPS_API_KEY"],
-        region: "us-central1",
-        invoker: "public",
-        timeoutSeconds: 120,
-        memory: "512MiB",
-    },
+    AI_SUGGESTIONS_PUBLIC_ENABLED
+        ? {
+              secrets: ["GEMINI_API_KEY", "GOOGLE_MAPS_API_KEY"],
+              region: "us-central1",
+              invoker: "public",
+              timeoutSeconds: 120,
+              memory: "512MiB",
+          }
+        : {
+              region: "us-central1",
+              invoker: "public",
+              timeoutSeconds: 10,
+              memory: "256MiB",
+          },
     async (request) => {
         if (!request.auth) {
             throw new HttpsError("unauthenticated", "Must be logged in.");
