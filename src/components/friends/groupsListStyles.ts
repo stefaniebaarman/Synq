@@ -2,11 +2,10 @@ import {
   ACCENT,
   ACCENT_BORDER,
   ACCENT_FILL_SUBTLE,
-  BORDER,
-  GROUP_BORDER,
+  BORDER_SUBTLE_HEX,
   RADIUS_LG,
   SURFACE_ELEVATED,
-  SURFACE_MUTED,
+  SURFACE_INPUT,
   SURFACE_RAISED,
   SYNQ_OUTLINE_CTA_RADIUS,
   TYPE_MICRO,
@@ -20,11 +19,20 @@ import {
   synqOutlineAddBtnTextCompact,
   RADIUS_SM,
 } from "@/constants/Variables";
-import { StyleSheet } from "react-native";
+import { StyleSheet, Platform } from "react-native";
 
-export const GROUP_SURFACE = SURFACE_RAISED;
+/** List/card wells — interests pill gray on Android, raised card on iOS. */
+export const GROUP_SURFACE = Platform.OS === "android" ? SURFACE_INPUT : SURFACE_RAISED;
 export { GROUP_BORDER } from "@/constants/Variables";
 export const GROUP_ROW_INSET = 72;
+/** Solid gray card stroke — Android tints semi-transparent borders/fills green on dark UI. */
+const GROUP_CARD_BORDER = BORDER_SUBTLE_HEX;
+const GROUP_CARD_BORDER_WIDTH = Platform.OS === "android" ? 1 : StyleSheet.hairlineWidth;
+/** Neutral list chips/buttons on cards (Join, section +). */
+const GROUP_NEUTRAL_BTN = {
+  borderColor: BORDER_SUBTLE_HEX,
+  backgroundColor: SURFACE_ELEVATED,
+} as const;
 
 export const groupsPageStyles = StyleSheet.create({
   scrollContent: {
@@ -59,9 +67,9 @@ export const groupsPageStyles = StyleSheet.create({
     height: 24,
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: ACCENT_BORDER,
     alignItems: "center",
     justifyContent: "center",
+    borderColor: ACCENT_BORDER,
     backgroundColor: ACCENT_FILL_SUBTLE,
   },
   sectionSubtitle: {
@@ -82,8 +90,9 @@ export const groupsPageStyles = StyleSheet.create({
     paddingHorizontal: 16,
     backgroundColor: GROUP_SURFACE,
     borderRadius: RADIUS_LG,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: GROUP_BORDER,
+    borderWidth: GROUP_CARD_BORDER_WIDTH,
+    borderColor: GROUP_CARD_BORDER,
+    overflow: "hidden",
   },
   circleCardMain: {
     flex: 1,
@@ -105,8 +114,9 @@ export const groupsPageStyles = StyleSheet.create({
     paddingHorizontal: 16,
     backgroundColor: GROUP_SURFACE,
     borderRadius: RADIUS_LG,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: GROUP_BORDER,
+    borderWidth: GROUP_CARD_BORDER_WIDTH,
+    borderColor: GROUP_CARD_BORDER,
+    overflow: "hidden",
   },
   browseRowIcon: {
     width: 44,
@@ -114,7 +124,7 @@ export const groupsPageStyles = StyleSheet.create({
     borderRadius: RADIUS_SM,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: SURFACE_MUTED,
+    backgroundColor: SURFACE_ELEVATED,
   },
   browseRowTitle: {
     ...listRowTitleText,
@@ -129,8 +139,8 @@ export const groupsPageStyles = StyleSheet.create({
     paddingVertical: 10,
     borderRadius: 999,
     backgroundColor: GROUP_SURFACE,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: BORDER,
+    borderWidth: GROUP_CARD_BORDER_WIDTH,
+    borderColor: BORDER_SUBTLE_HEX,
   },
   searchBarPlaceholder: {
     ...searchPlaceholderText,
@@ -150,8 +160,8 @@ export const groupsPageStyles = StyleSheet.create({
     marginRight: 12,
     backgroundColor: GROUP_SURFACE,
     borderRadius: RADIUS_LG,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: GROUP_BORDER,
+    borderWidth: GROUP_CARD_BORDER_WIDTH,
+    borderColor: GROUP_CARD_BORDER,
   },
   discoverCardIcon: {
     width: 44,
@@ -159,7 +169,7 @@ export const groupsPageStyles = StyleSheet.create({
     borderRadius: RADIUS_SM,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: SURFACE_MUTED,
+    backgroundColor: SURFACE_ELEVATED,
     marginBottom: 12,
   },
   discoverCardCover: {
@@ -190,13 +200,12 @@ export const groupsPageStyles = StyleSheet.create({
     alignSelf: "flex-start",
     minWidth: 58,
     borderWidth: 1,
-    borderColor: ACCENT_BORDER,
     borderRadius: SYNQ_OUTLINE_CTA_RADIUS,
     paddingVertical: 7,
     paddingHorizontal: 12,
-    backgroundColor: ACCENT_FILL_SUBTLE,
     alignItems: "center",
     justifyContent: "center",
+    ...GROUP_NEUTRAL_BTN,
   },
   joinBtnText: {
     ...synqOutlineAddBtnTextCompact,
@@ -207,8 +216,8 @@ export const groupsPageStyles = StyleSheet.create({
   communityListSurface: {
     backgroundColor: GROUP_SURFACE,
     borderRadius: RADIUS_LG,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: GROUP_BORDER,
+    borderWidth: GROUP_CARD_BORDER_WIDTH,
+    borderColor: GROUP_CARD_BORDER,
     overflow: "hidden",
   },
   communityRow: {
@@ -240,7 +249,7 @@ export const groupsPageStyles = StyleSheet.create({
   },
   rowSeparator: {
     height: StyleSheet.hairlineWidth,
-    backgroundColor: GROUP_BORDER,
+    backgroundColor: GROUP_CARD_BORDER,
     marginLeft: GROUP_ROW_INSET,
   },
   loadingInline: {

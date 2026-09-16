@@ -14,6 +14,7 @@ import {
 import {
   formatInboxMessageTime,
   getCommunityChatInboxSubtitle,
+  isGroupChat,
 } from "@/src/lib/helpers";
 import { Ionicons } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
@@ -46,9 +47,11 @@ type Props = {
   onToggleMergeChatSelection?: (chatId: string) => void;
   onConfirmMerge?: () => void;
   renderMergeConfirmModal?: React.ReactNode;
+  renderRenameModal?: React.ReactNode;
   inboxActionChat?: any | null;
   onCloseInboxAction?: () => void;
   onCombineChat?: (chatId: string) => void;
+  onRenameFromAction?: (chat: any) => void;
   onDeleteFromAction?: (chatId: string) => void;
 };
 
@@ -83,9 +86,11 @@ export default function MessagesInboxPane({
   onToggleMergeChatSelection,
   onConfirmMerge,
   renderMergeConfirmModal,
+  renderRenameModal,
   inboxActionChat = null,
   onCloseInboxAction,
   onCombineChat,
+  onRenameFromAction,
   onDeleteFromAction,
 }: Props) {
   const insets = useSafeAreaInsets();
@@ -372,9 +377,13 @@ export default function MessagesInboxPane({
         visible={!!inboxActionChat}
         chatTitle={inboxActionChat ? getChatTitle(inboxActionChat) : ""}
         canCombine={canCombine}
+        canRename={isGroupChat(inboxActionChat)}
         onClose={() => onCloseInboxAction?.()}
         onCombine={() => {
           if (inboxActionChat) onCombineChat?.(inboxActionChat.id);
+        }}
+        onRename={() => {
+          if (inboxActionChat) onRenameFromAction?.(inboxActionChat);
         }}
         onDelete={() => {
           if (inboxActionChat) onDeleteFromAction?.(inboxActionChat.id);
@@ -383,6 +392,7 @@ export default function MessagesInboxPane({
 
       {renderDeleteConfirmModal}
       {renderMergeConfirmModal}
+      {renderRenameModal}
     </View>
   );
 }

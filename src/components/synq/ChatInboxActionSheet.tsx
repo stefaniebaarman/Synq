@@ -17,8 +17,10 @@ type Props = {
   visible: boolean;
   chatTitle: string;
   canCombine: boolean;
+  canRename?: boolean;
   onClose: () => void;
   onCombine: () => void;
+  onRename?: () => void;
   onDelete: () => void;
 };
 
@@ -26,8 +28,10 @@ export default function ChatInboxActionSheet({
   visible,
   chatTitle,
   canCombine,
+  canRename = false,
   onClose,
   onCombine,
+  onRename,
   onDelete,
 }: Props) {
   const insets = useSafeAreaInsets();
@@ -59,6 +63,19 @@ export default function ChatInboxActionSheet({
         </TouchableOpacity>
       }
     >
+      {canRename ? (
+        <TouchableOpacity
+          style={styles.option}
+          onPress={onRename}
+          activeOpacity={0.75}
+          accessibilityRole="button"
+          accessibilityLabel="Rename chat"
+        >
+          <Ionicons name="create-outline" size={22} color={TEXT} />
+          <Text style={styles.optionText}>Rename chat</Text>
+        </TouchableOpacity>
+      ) : null}
+      {canRename ? <View style={styles.divider} /> : null}
       {canCombine ? (
         <TouchableOpacity
           style={styles.option}

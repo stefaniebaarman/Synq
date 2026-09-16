@@ -454,7 +454,7 @@ const styles = StyleSheet.create({
   },
   separator: {
     height: StyleSheet.hairlineWidth,
-    backgroundColor: "rgba(255,255,255,0.06)",
+    backgroundColor: SURFACE_INPUT,
   },
   centered: {
     flex: 1,
