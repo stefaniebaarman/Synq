@@ -26,7 +26,6 @@ import {
   cardTitleText,
   fonts,
   formInputText,
-  modalTitleText,
   profileScreenSectionTitle,
   synqOutlineAddBtn,
   synqOutlineAddBtnDisabled,
@@ -806,9 +805,6 @@ export default function OpenPlans({
               >
                 <View>
                   <View style={styles.popupTitleRow}>
-                    <Text style={styles.popupTitle}>
-                      {isEditing ? "Edit plan" : "Add a plan"}
-                    </Text>
                     <CloseButton onPress={closeModal} accessibilityLabel="Close" />
                   </View>
                 </View>
@@ -940,7 +936,6 @@ export default function OpenPlans({
               </View>
 
               <View style={styles.visibilityBlock}>
-                <Text style={styles.visibilityLabel}>Who can see this?</Text>
                 <View style={styles.visibilityRow}>
                   <TouchableOpacity
                     style={[
@@ -1369,13 +1364,8 @@ const styles = StyleSheet.create({
   popupTitleRow: {
     flexDirection: "row",
     alignItems: "center",
-    justifyContent: "space-between",
+    justifyContent: "flex-end",
     marginBottom: 6,
-  },
-  popupTitle: {
-    ...modalTitleText,
-    flex: 1,
-    letterSpacing: -0.2,
   },
   popupScrollContent: {
     paddingBottom: 4,
@@ -1422,12 +1412,6 @@ const styles = StyleSheet.create({
   },
   visibilityBlock: {
     marginTop: 14,
-  },
-  visibilityLabel: {
-    color: TEXT_MUTED_LIGHT,
-    fontSize: TYPE_MICRO,
-    fontFamily: fonts.medium,
-    marginBottom: 8,
   },
   visibilityRow: {
     flexDirection: "row",

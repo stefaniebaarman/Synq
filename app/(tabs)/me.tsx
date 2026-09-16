@@ -124,7 +124,7 @@ import {
   topSynqRowsToCache,
   type TopSynqRow,
 } from "../../src/lib/ownProfileCache";
-import { filterOutPastOpenPlans, findHostOpenPlanIndex, hostPlanRowWithIdentity, matchesPlanEvent, sortOpenPlansByDateTime } from "../../src/lib/planEvents";
+import { filterOutPastOpenPlans, findHostOpenPlanIndex, hostPlanRowWithIdentity, isPrivatePlan, matchesPlanEvent, sortOpenPlansByDateTime, type PlanVisibility } from "../../src/lib/planEvents";
 import { revokePlanInvite, revokePlanInviteErrorMessage, sendPlanInvites, type PlanInviteHint } from "../../src/lib/planInvite";
 import { reconcileHostOpenPlansFromFriends } from "../../src/lib/reconcileHostOpenPlans";
 import {
@@ -402,6 +402,7 @@ export default function ProfileScreen() {
     title: string;
     time?: string;
     location?: string;
+    visibility?: PlanVisibility;
     planHostUid?: string;
     joinedFromId?: string;
     joinedFromIds?: string[];
@@ -410,6 +411,7 @@ export default function ProfileScreen() {
     joinedFromFriendUid?: string;
     planInvitedIds?: string[];
     attendeeDisplayNames?: Record<string, string>;
+    attendeeImages?: Record<string, string>;
   };
 
   const [events, setEvents] = useState<OpenPlanEvent[]>(
@@ -612,6 +614,12 @@ export default function ProfileScreen() {
           .filter(Boolean)
       : [];
 
+    const visibility: PlanVisibility =
+      String(eventToSave.visibility || "").trim().toLowerCase() === "private"
+        ? "private"
+        : "open";
+    const isPrivate = visibility === "private";
+
     const ref = doc(db, "users", auth.currentUser.uid);
     try {
       const snap = await getDoc(ref);
@@ -622,12 +630,13 @@ export default function ProfileScreen() {
       const hostName =
         String(hostData.displayName || auth.currentUser.displayName || "").trim() || "You";
       const hostImage = String(hostData.imageurl || "").trim();
-      const newItem = {
+      const newItem: OpenPlanEvent = {
         id: String(eventToSave.id || Date.now().toString()),
         date: eventToSave.date,
         title: eventToSave.title,
         time: eventToSave.time || "",
         location: eventToSave.location || "",
+        visibility,
         planHostUid: hostUid,
         joinedFromIds: [hostUid],
         joinedFromId: hostUid,
@@ -645,7 +654,7 @@ export default function ProfileScreen() {
       setShowEventModal(false);
       setNewEvent({ title: "", date: "", time: "", location: "" });
 
-      if (inviteFriendIds.length > 0) {
+      if (!isPrivate && inviteFriendIds.length > 0) {
         void sendPlanInvitesWhenReady(
           auth.currentUser.uid,
           newItem.id,
@@ -654,8 +663,8 @@ export default function ProfileScreen() {
           {
             title: newItem.title,
             date: newItem.date,
-            time: newItem.time,
-            location: newItem.location,
+            time: newItem.time || "",
+            location: newItem.location || "",
           },
           markPlanInvited,
           showAlert,
@@ -672,7 +681,13 @@ export default function ProfileScreen() {
 
   const updateEvent = async (
     id: string,
-    fields: { title: string; date: string; time: string; location: string },
+    fields: {
+      title: string;
+      date: string;
+      time: string;
+      location: string;
+      visibility?: PlanVisibility;
+    },
     options?: { inviteFriendIds?: string[]; uninviteFriendIds?: string[] }
   ): Promise<boolean> => {
     if (!auth.currentUser) return false;
@@ -705,11 +720,19 @@ export default function ProfileScreen() {
       }
     }
 
+    const visibility: PlanVisibility =
+      String(fields.visibility || "").trim().toLowerCase() === "private"
+        ? "private"
+        : "open";
+    const makingPrivate = visibility === "private";
+    const wasPrivate = isPrivatePlan(existing);
+
     const updatedPayload = {
       title: fields.title.trim(),
       date: fields.date,
       time: fields.time || "",
       location: fields.location || "",
+      visibility,
     };
 
     const oldSnapshot = {
@@ -728,11 +751,34 @@ export default function ProfileScreen() {
         fields: updatedPayload,
       });
       if (hostIdx < 0) return;
-      const next = evs.map((e: any, i: number) =>
-        i === hostIdx
-          ? hostPlanRowWithIdentity({ ...e, ...updatedPayload }, planId, myUid)
-          : e
-      );
+      const hostName =
+        String((snap.data() as { displayName?: string })?.displayName || "").trim() ||
+        String(auth.currentUser?.displayName || "").trim() ||
+        "You";
+      const hostImage = String(
+        (snap.data() as { imageurl?: string })?.imageurl || ""
+      ).trim();
+      const next = evs.map((e: any, i: number) => {
+        if (i !== hostIdx) return e;
+        const merged = hostPlanRowWithIdentity(
+          { ...e, ...updatedPayload },
+          planId,
+          myUid
+        );
+        if (!makingPrivate) return merged;
+        // Private: strip social join/invite metadata so it stays just for you.
+        return {
+          ...merged,
+          planInvitedIds: [],
+          joinedFromIds: [myUid],
+          joinedFromId: myUid,
+          joinedFromName: undefined,
+          joinedFromNames: undefined,
+          joinedFromFriendUid: undefined,
+          attendeeDisplayNames: { [myUid]: hostName },
+          attendeeImages: hostImage ? { [myUid]: hostImage } : {},
+        };
+      });
       await updateDoc(ref, { events: sortOpenPlansByDateTime(next) });
     };
 
@@ -743,11 +789,14 @@ export default function ProfileScreen() {
       return false;
     }
 
-    const inviteFriendIds = Array.isArray(options?.inviteFriendIds)
-      ? options.inviteFriendIds
-          .map((friendId) => String(friendId || "").trim())
-          .filter(Boolean)
-      : [];
+    const inviteFriendIds =
+      makingPrivate
+        ? []
+        : Array.isArray(options?.inviteFriendIds)
+          ? options.inviteFriendIds
+              .map((friendId) => String(friendId || "").trim())
+              .filter(Boolean)
+          : [];
     const uninviteFriendIds = Array.isArray(options?.uninviteFriendIds)
       ? options.uninviteFriendIds
           .map((friendId) => String(friendId || "").trim())
@@ -783,16 +832,35 @@ export default function ProfileScreen() {
           }
         }
 
-        await sendPlanInvitesWhenReady(
-          myUid,
-          planId,
-          oldSnapshot,
-          inviteFriendIds,
-          updatedPayload,
-          markPlanInvited,
-          showAlert
-        );
+        if (!makingPrivate && inviteFriendIds.length > 0) {
+          await sendPlanInvitesWhenReady(
+            myUid,
+            planId,
+            oldSnapshot,
+            inviteFriendIds,
+            updatedPayload,
+            markPlanInvited,
+            showAlert
+          );
+        }
       })();
+    } else if (makingPrivate && !wasPrivate) {
+      // Open → private: revoke any remaining invites even if UI didn't list them.
+      const leftoverInvites = Array.isArray(existing.planInvitedIds)
+        ? existing.planInvitedIds.map((id) => String(id || "").trim()).filter(Boolean)
+        : [];
+      if (leftoverInvites.length > 0) {
+        void (async () => {
+          for (const friendId of leftoverInvites) {
+            try {
+              await revokePlanInvite(friendId, planId);
+              unmarkPlanInvited(planId, friendId);
+            } catch {
+              // Best-effort; openPlanSync also cascades copies off friend calendars.
+            }
+          }
+        })();
+      }
     }
 
     return true;
@@ -1856,7 +1924,7 @@ const styles = StyleSheet.create({
   qrToggleInner: { alignItems: "center", justifyContent: "center" },
   nameAccent: {
     ...profileNameText,
-    color: ACCENT,
+    color: TEXT,
     letterSpacing: 0.2,
     marginTop: 14,
     textAlign: "center",
