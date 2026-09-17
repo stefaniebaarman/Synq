@@ -125,6 +125,7 @@ import {
   type TopSynqRow,
 } from "../../src/lib/ownProfileCache";
 import { filterOutPastOpenPlans, findHostOpenPlanIndex, hostPlanRowWithIdentity, isPrivatePlan, matchesPlanEvent, sortOpenPlansByDateTime, type PlanVisibility } from "../../src/lib/planEvents";
+import { applyPlanPlaceFields, readPlanPlaceFields } from "../../src/lib/planPlaceFields";
 import { revokePlanInvite, revokePlanInviteErrorMessage, sendPlanInvites, type PlanInviteHint } from "../../src/lib/planInvite";
 import { reconcileHostOpenPlansFromFriends } from "../../src/lib/reconcileHostOpenPlans";
 import {
@@ -148,6 +149,9 @@ type OpenPlanFields = {
   date: string;
   time: string;
   location: string;
+  locationLat?: number;
+  locationLng?: number;
+  placeId?: string;
 };
 
 type FirestorePlanRow = {
@@ -156,6 +160,9 @@ type FirestorePlanRow = {
   time?: string;
   title?: string;
   location?: string;
+  locationLat?: number;
+  locationLng?: number;
+  placeId?: string;
   planHostUid?: string;
   [key: string]: unknown;
 };
@@ -181,7 +188,13 @@ async function ensureHostPlanReadyForInvite(
   }
   if (idx < 0) return null;
 
-  const merged: FirestorePlanRow = fields ? { ...evs[idx], ...fields } : { ...evs[idx] };
+  const mergedRaw: FirestorePlanRow = fields ? { ...evs[idx], ...fields } : { ...evs[idx] };
+  const merged: FirestorePlanRow = fields
+    ? (applyPlanPlaceFields(
+        mergedRaw as Record<string, unknown>,
+        readPlanPlaceFields(fields as unknown as Record<string, unknown>)
+      ) as FirestorePlanRow)
+    : mergedRaw;
   const nextRow = hostPlanRowWithIdentity(merged, planId, hostUid);
   const storedId = String(evs[idx]?.id || "").trim();
   const storedHost = String(evs[idx]?.planHostUid || "").trim();
@@ -394,6 +407,8 @@ export default function ProfileScreen() {
   const [interests, setInterests] = useState<string[]>(() => meBootstrap?.interests ?? []);
   const [city, setCity] = useState<string | null>(() => meBootstrap?.city ?? null);
   const [state, setState] = useState<string | null>(() => meBootstrap?.state ?? null);
+  const [profileLat, setProfileLat] = useState<number | null>(null);
+  const [profileLng, setProfileLng] = useState<number | null>(null);
   const [requestCount, setRequestCount] = useState(0);
   const [unreadActivityCount, setUnreadActivityCount] = useState(0);
   type OpenPlanEvent = {
@@ -402,6 +417,9 @@ export default function ProfileScreen() {
     title: string;
     time?: string;
     location?: string;
+    locationLat?: number;
+    locationLng?: number;
+    placeId?: string;
     visibility?: PlanVisibility;
     planHostUid?: string;
     joinedFromId?: string;
@@ -503,7 +521,27 @@ export default function ProfileScreen() {
     date: "",
     time: "",
     location: "",
+  } as {
+    title: string;
+    date: string;
+    time: string;
+    location: string;
+    locationLat?: number;
+    locationLng?: number;
+    placeId?: string;
   });
+
+  const planLocationBias = useMemo(() => {
+    if (
+      typeof profileLat === "number" &&
+      typeof profileLng === "number" &&
+      Number.isFinite(profileLat) &&
+      Number.isFinite(profileLng)
+    ) {
+      return { lat: profileLat, lng: profileLng };
+    }
+    return null;
+  }, [profileLat, profileLng]);
 
   const hostDisplayNameByUid = useMemo(() => {
     const m: Record<string, string> = {};
@@ -630,19 +668,22 @@ export default function ProfileScreen() {
       const hostName =
         String(hostData.displayName || auth.currentUser.displayName || "").trim() || "You";
       const hostImage = String(hostData.imageurl || "").trim();
-      const newItem: OpenPlanEvent = {
-        id: String(eventToSave.id || Date.now().toString()),
-        date: eventToSave.date,
-        title: eventToSave.title,
-        time: eventToSave.time || "",
-        location: eventToSave.location || "",
-        visibility,
-        planHostUid: hostUid,
-        joinedFromIds: [hostUid],
-        joinedFromId: hostUid,
-        attendeeDisplayNames: { [hostUid]: hostName },
-        attendeeImages: hostImage ? { [hostUid]: hostImage } : {},
-      };
+      const place = readPlanPlaceFields(eventToSave as Record<string, unknown>);
+      const newItem: OpenPlanEvent = applyPlanPlaceFields(
+        {
+          id: String(eventToSave.id || Date.now().toString()),
+          date: eventToSave.date,
+          title: eventToSave.title,
+          time: eventToSave.time || "",
+          visibility,
+          planHostUid: hostUid,
+          joinedFromIds: [hostUid],
+          joinedFromId: hostUid,
+          attendeeDisplayNames: { [hostUid]: hostName },
+          attendeeImages: hostImage ? { [hostUid]: hostImage } : {},
+        },
+        place
+      );
       const raw = hostData.events;
       const existing = Array.isArray(raw) ? (raw as OpenPlanEvent[]) : [];
       const updatedEvents = sortOpenPlansByDateTime([...existing, newItem]);
@@ -665,6 +706,9 @@ export default function ProfileScreen() {
             date: newItem.date,
             time: newItem.time || "",
             location: newItem.location || "",
+            locationLat: newItem.locationLat,
+            locationLng: newItem.locationLng,
+            placeId: newItem.placeId,
           },
           markPlanInvited,
           showAlert,
@@ -686,6 +730,9 @@ export default function ProfileScreen() {
       date: string;
       time: string;
       location: string;
+      locationLat?: number;
+      locationLng?: number;
+      placeId?: string;
       visibility?: PlanVisibility;
     },
     options?: { inviteFriendIds?: string[]; uninviteFriendIds?: string[] }
@@ -727,13 +774,16 @@ export default function ProfileScreen() {
     const makingPrivate = visibility === "private";
     const wasPrivate = isPrivatePlan(existing);
 
-    const updatedPayload = {
-      title: fields.title.trim(),
-      date: fields.date,
-      time: fields.time || "",
-      location: fields.location || "",
-      visibility,
-    };
+    const place = readPlanPlaceFields(fields as unknown as Record<string, unknown>);
+    const updatedPayload = applyPlanPlaceFields(
+      {
+        title: fields.title.trim(),
+        date: fields.date,
+        time: fields.time || "",
+        visibility,
+      },
+      place
+    );
 
     const oldSnapshot = {
       ...existing,
@@ -761,7 +811,10 @@ export default function ProfileScreen() {
       const next = evs.map((e: any, i: number) => {
         if (i !== hostIdx) return e;
         const merged = hostPlanRowWithIdentity(
-          { ...e, ...updatedPayload },
+          applyPlanPlaceFields(
+            { ...e, ...updatedPayload } as Record<string, unknown>,
+            readPlanPlaceFields(updatedPayload as unknown as Record<string, unknown>)
+          ),
           planId,
           myUid
         );
@@ -944,6 +997,10 @@ export default function ProfileScreen() {
 
       setCity(nextCity);
       setState(stateAbbr);
+      const nextLat = typeof userData.lat === "number" ? userData.lat : null;
+      const nextLng = typeof userData.lng === "number" ? userData.lng : null;
+      setProfileLat(nextLat);
+      setProfileLng(nextLng);
       setEvents(prunedEvents);
       setInterests(nextInterests);
       setSelectedInterests(nextInterests);
@@ -1535,6 +1592,7 @@ export default function ProfileScreen() {
           highlightEventId={planHighlightId}
           friends={friendsForHostNames}
           onPlanUninvited={unmarkPlanInvited}
+          locationBias={planLocationBias}
         />
       </View>
       <View style={styles.section}>

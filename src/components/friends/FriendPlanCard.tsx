@@ -24,6 +24,7 @@ import PlanGoingPeopleSheet, {
   type PlanGoingPerson,
 } from "@/src/components/plans/PlanGoingPeopleSheet";
 import type { FriendOpenPlanEvent } from "@/src/lib/friendOpenPlanJoin";
+import { openInMaps } from "@/src/lib/openInMaps";
 import { mergeEventsForGoingAttribution, planLooseMatch, resolvePlanAttribution } from "@/src/lib/planAttribution";
 import type { AggregatedFriendPlan } from "@/src/lib/useFriendPlansFeed";
 import { useFocusEffect } from "@react-navigation/native";
@@ -235,11 +236,39 @@ export default function FriendPlanCard({
               </TouchableOpacity>
             ) : null}
           </View>
-          <Text style={styles.meta} numberOfLines={2}>
-            {item.event.location
-              ? `${item.event.location}${item.event.time ? ` · ${item.event.time}` : ""}`
-              : item.event.time}
-          </Text>
+          {item.event.location || item.event.time ? (
+            <View style={styles.metaRow}>
+              {item.event.location ? (
+                <Pressable
+                  onPress={() => {
+                    const lat = Number(item.event.locationLat);
+                    const lng = Number(item.event.locationLng);
+                    void openInMaps({
+                      name: String(item.event.location || "").trim(),
+                      ...(Number.isFinite(lat) && Number.isFinite(lng)
+                        ? { lat, lng }
+                        : {}),
+                    });
+                  }}
+                  hitSlop={6}
+                  accessibilityRole="link"
+                  accessibilityLabel={`Open ${item.event.location} in Maps`}
+                >
+                  <Text style={[styles.meta, styles.metaLocation]} numberOfLines={2}>
+                    {item.event.location}
+                  </Text>
+                </Pressable>
+              ) : null}
+              {item.event.location && item.event.time ? (
+                <Text style={[styles.meta, styles.metaSep]}> · </Text>
+              ) : null}
+              {item.event.time ? (
+                <Text style={[styles.meta, styles.metaTime]} numberOfLines={1}>
+                  {item.event.time}
+                </Text>
+              ) : null}
+            </View>
+          ) : null}
           {!viewerOwnsPlan ? (
             <Text style={styles.planOwnerLine} numberOfLines={1}>
               {ownerLine}
@@ -386,6 +415,25 @@ const styles = StyleSheet.create({
   meta: {
     ...cardMetaText,
     marginTop: 3,
+  },
+  metaRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    flexWrap: "wrap",
+    marginTop: 3,
+    minWidth: 0,
+  },
+  metaLocation: {
+    marginTop: 0,
+    textDecorationLine: "underline",
+    flexShrink: 1,
+  },
+  metaSep: {
+    marginTop: 0,
+  },
+  metaTime: {
+    marginTop: 0,
+    flexShrink: 0,
   },
   planOwnerLine: {
     ...cardMetaText,

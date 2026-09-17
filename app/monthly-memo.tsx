@@ -45,8 +45,12 @@ import PlanInviteFriendsSheet, {
   type PlanInviteFriend,
 } from "@/src/components/plans/PlanInviteFriendsSheet";
 import PlanTimePicker from "@/src/components/PlanTimePicker";
+import PlanLocationField, {
+  planLocationChanged,
+} from "@/src/components/plans/PlanLocationField";
 import SynqPlusAddButton from "@/src/components/SynqPlusAddButton";
 import { resolvePlanAttribution } from "@/src/lib/planAttribution";
+import { openInMaps } from "@/src/lib/openInMaps";
 import { friendProfileCacheByUser } from "@/src/lib/socialCache";
 import {
   canEditOpenPlan,
@@ -58,6 +62,7 @@ import {
   sortOpenPlansByDateTime,
   type PlanVisibility,
 } from "@/src/lib/planEvents";
+import type { PlacesLocationBias } from "@/src/lib/placesAutocomplete";
 import { Ionicons } from "@expo/vector-icons";
 import { useFocusEffect } from "@react-navigation/native";
 import * as Haptics from "expo-haptics";
@@ -89,6 +94,9 @@ type EventItem = {
   title: string;
   time?: string;
   location?: string;
+  locationLat?: number;
+  locationLng?: number;
+  placeId?: string;
   visibility?: PlanVisibility;
   joinedFromId?: string;
   joinedFromIds?: string[];
@@ -101,11 +109,21 @@ type EventItem = {
   planInvitedIds?: string[];
 };
 
+type PlanFormEvent = {
+  title: string;
+  date: string;
+  time: string;
+  location: string;
+  locationLat?: number;
+  locationLng?: number;
+  placeId?: string;
+};
+
 type Props = {
   ACCENT: string;
   showEventModal: boolean;
   setShowEventModal: (val: boolean) => void;
-  newEvent: { title: string; date: string; time: string; location: string };
+  newEvent: PlanFormEvent;
   setNewEvent: React.Dispatch<any>;
   saveEvent: (event?: any) => void | Promise<boolean>;
   updateEvent: (
@@ -115,6 +133,9 @@ type Props = {
       date: string;
       time: string;
       location: string;
+      locationLat?: number;
+      locationLng?: number;
+      placeId?: string;
       visibility: PlanVisibility;
     },
     options?: { inviteFriendIds?: string[]; uninviteFriendIds?: string[] }
@@ -127,6 +148,7 @@ type Props = {
   friends?: PlanInviteFriend[];
   onPlanInvited?: (eventId: string, friendIds: string[]) => void;
   onPlanUninvited?: (eventId: string, friendId: string) => void;
+  locationBias?: PlacesLocationBias | null;
 };
 
 const getInitialDate = () => {
@@ -154,6 +176,7 @@ export default function OpenPlans({
   friends = [],
   onPlanInvited,
   onPlanUninvited,
+  locationBias = null,
 }: Props) {
   const insets = useSafeAreaInsets();
   const modalMaxHeight = useMemo(() => {
@@ -334,11 +357,18 @@ export default function OpenPlans({
     setSelectedDate(parseOpenPlanDateTime(event.date, event.time));
     setActivePicker(null);
     setInviteSheetVisible(false);
+    const lat = Number(event.locationLat);
+    const lng = Number(event.locationLng);
+    const hasCoords = Number.isFinite(lat) && Number.isFinite(lng);
     setNewEvent({
       title: event.title,
       date: event.date,
       time: event.time || "",
       location: event.location || "",
+      ...(hasCoords ? { locationLat: lat, locationLng: lng } : {}),
+      ...(String(event.placeId || "").trim()
+        ? { placeId: String(event.placeId).trim() }
+        : {}),
     });
     setKeyboardInset(0);
     setShowEventModal(true);
@@ -536,7 +566,20 @@ export default function OpenPlans({
       newEvent.title.trim() !== editingEvent.title.trim() ||
       localDate !== editingEvent.date ||
       formatPlanTimeForStorage(selectedDate) !== storedTime ||
-      (newEvent.location || "").trim() !== (editingEvent.location || "").trim() ||
+      planLocationChanged(
+        {
+          location: newEvent.location || "",
+          locationLat: newEvent.locationLat,
+          locationLng: newEvent.locationLng,
+          placeId: newEvent.placeId,
+        },
+        {
+          location: editingEvent.location || "",
+          locationLat: editingEvent.locationLat,
+          locationLng: editingEvent.locationLng,
+          placeId: editingEvent.placeId,
+        }
+      ) ||
       planVisibility !== storedVisibility ||
       editInviteFriendIds.length > 0 ||
       editUninviteFriendIds.length > 0
@@ -733,9 +776,37 @@ export default function OpenPlans({
                     </View>
                   </View>
                   {(p.time || p.location) ? (
-                    <Text style={styles.meta} numberOfLines={1}>
-                      {[p.location, p.time].filter(Boolean).join(" · ")}
-                    </Text>
+                    <View style={styles.metaRow}>
+                      {p.location ? (
+                        <Pressable
+                          onPress={() => {
+                            const lat = Number(p.locationLat);
+                            const lng = Number(p.locationLng);
+                            void openInMaps({
+                              name: String(p.location || "").trim(),
+                              ...(Number.isFinite(lat) && Number.isFinite(lng)
+                                ? { lat, lng }
+                                : {}),
+                            });
+                          }}
+                          hitSlop={6}
+                          accessibilityRole="link"
+                          accessibilityLabel={`Open ${p.location} in Maps`}
+                        >
+                          <Text style={[styles.meta, styles.metaLocation]} numberOfLines={1}>
+                            {p.location}
+                          </Text>
+                        </Pressable>
+                      ) : null}
+                      {p.location && p.time ? (
+                        <Text style={[styles.meta, styles.metaSep]}> · </Text>
+                      ) : null}
+                      {p.time ? (
+                        <Text style={[styles.meta, styles.metaTime]} numberOfLines={1}>
+                          {p.time}
+                        </Text>
+                      ) : null}
+                    </View>
                   ) : null}
                   {privatePlan ? (
                     <View style={styles.privateBadgeRow}>
@@ -912,28 +983,26 @@ export default function OpenPlans({
                 />
               ) : null}
 
-              <View style={styles.locationFieldWrap}>
-                <View style={styles.planInputShellSecondary}>
-                  {!String(newEvent.location || "").trim() ? (
-                    <Text style={styles.planInputPlaceholder} pointerEvents="none">
-                      Add location
-                    </Text>
-                  ) : null}
-                  <TextInput
-                    ref={locationInputRef}
-                    placeholder=""
-                    placeholderTextColor={PLACEHOLDER_DARK}
-                    style={styles.planInputSecondary}
-                    value={newEvent.location}
-                    onFocus={dismissPickers}
-                    onChangeText={(t) =>
-                      setNewEvent((p: any) => ({ ...p, location: t }))
-                    }
-                    returnKeyType="done"
-                    accessibilityLabel="Add location"
-                  />
-                </View>
-              </View>
+              <PlanLocationField
+                inputRef={locationInputRef}
+                locationBias={locationBias}
+                value={{
+                  location: newEvent.location || "",
+                  locationLat: newEvent.locationLat,
+                  locationLng: newEvent.locationLng,
+                  placeId: newEvent.placeId,
+                }}
+                onFocus={dismissPickers}
+                onChange={(next) =>
+                  setNewEvent((p: any) => ({
+                    ...p,
+                    location: next.location,
+                    locationLat: next.locationLat,
+                    locationLng: next.locationLng,
+                    placeId: next.placeId,
+                  }))
+                }
+              />
 
               <View style={styles.visibilityBlock}>
                 <View style={styles.visibilityRow}>
@@ -1300,6 +1369,25 @@ const styles = StyleSheet.create({
     ...cardMetaText,
     marginTop: 5,
     lineHeight: 18,
+  },
+  metaRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    flexWrap: "nowrap",
+    marginTop: 5,
+    minWidth: 0,
+  },
+  metaLocation: {
+    marginTop: 0,
+    textDecorationLine: "underline",
+    flexShrink: 1,
+  },
+  metaSep: {
+    marginTop: 0,
+  },
+  metaTime: {
+    marginTop: 0,
+    flexShrink: 0,
   },
   hostLine: {
     color: MUTED3,
