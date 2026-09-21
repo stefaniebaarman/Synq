@@ -1,6 +1,4 @@
 import {
-  ONBOARDING_DIVIDER_MARGIN_TOP,
-  ONBOARDING_DIVIDER_WIDTH,
   ONBOARDING_H_PADDING,
   ONBOARDING_SCROLL_BOTTOM,
   ONBOARDING_SUBTITLE_MARGIN_TOP,
@@ -246,7 +244,6 @@ export default function Details() {
         <View style={styles.innerContent}>
           <View style={styles.headerSection}>
             <Text style={styles.title}>What's your name?</Text>
-            <View style={styles.divider} />
             <Text style={styles.subtitle}>Add a photo and your name to get started</Text>
           </View>
 
@@ -378,12 +375,6 @@ const styles = StyleSheet.create({
     lineHeight: ONBOARDING_TITLE_LINE_HEIGHT,
     fontFamily: fonts.heavy,
     letterSpacing: ONBOARDING_TITLE_LETTER_SPACING,
-  },
-  divider: {
-    marginTop: ONBOARDING_DIVIDER_MARGIN_TOP,
-    height: 1,
-    backgroundColor: BORDER,
-    width: ONBOARDING_DIVIDER_WIDTH,
   },
   subtitle: {
     color: MUTED,

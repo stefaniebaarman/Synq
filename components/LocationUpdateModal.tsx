@@ -13,9 +13,13 @@ import {
   TYPE_CTA,
   TYPE_LEAD,
   fonts,
+  synqOutlineAddBtn,
+  synqOutlineAddBtnDisabled,
+  synqOutlineAddBtnText,
+  synqOutlineAddBtnTextDisabled,
 } from "@/constants/Variables";
 import { doc, updateDoc } from "firebase/firestore";
-import React, { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import {
   Modal,
   StyleSheet,
@@ -196,12 +200,17 @@ export default function LocationUpdateModal({
           <TouchableOpacity
             onPress={handleUpdateFromCurrentLocation}
             disabled={isUpdating || locating}
-            style={[styles.saveBtn, (isUpdating || locating) && { opacity: 0.7 }]}
+            style={[
+              synqOutlineAddBtn,
+              styles.saveBtn,
+              (isUpdating || locating) && synqOutlineAddBtnDisabled,
+            ]}
             activeOpacity={0.85}
           >
             <Text
               style={[
-                styles.saveBtnText,
+                synqOutlineAddBtnText,
+                (isUpdating || locating) && synqOutlineAddBtnTextDisabled,
                 (isUpdating || locating) && { opacity: 0.5 },
               ]}
             >
@@ -253,14 +262,9 @@ const styles = StyleSheet.create({
   },
   saveBtn: {
     alignSelf: "center",
-    width: "62%",
-    height: 50,
-    borderRadius: BUTTON_RADIUS,
-    backgroundColor: ACCENT,
-    alignItems: "center",
-    justifyContent: "center",
+    width: "70%",
+    paddingVertical: 14,
   },
-  saveBtnText: sheetStyles.primaryBtnText,
   cancelBtn: {
     marginTop: 12,
     alignSelf: "center",

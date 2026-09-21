@@ -1,8 +1,6 @@
 import {
   ONBOARDING_BACK_BELOW_INSET,
   ONBOARDING_BACK_LEFT,
-  ONBOARDING_DIVIDER_MARGIN_TOP,
-  ONBOARDING_DIVIDER_WIDTH,
   ONBOARDING_H_PADDING,
   ONBOARDING_SCROLL_BOTTOM,
   ONBOARDING_TITLE_LETTER_SPACING,
@@ -121,7 +119,6 @@ export default function EmailSignup() {
               ]}
             >
               <Text style={styles.title}>Sign up with email</Text>
-              <View style={styles.divider} />
 
               <View style={styles.fields}>
                 <TextInput
@@ -200,12 +197,6 @@ const styles = StyleSheet.create({
     fontFamily: fonts.heavy,
     letterSpacing: ONBOARDING_TITLE_LETTER_SPACING,
     lineHeight: ONBOARDING_TITLE_LINE_HEIGHT,
-  },
-  divider: {
-    marginTop: ONBOARDING_DIVIDER_MARGIN_TOP,
-    height: 1,
-    backgroundColor: BORDER,
-    width: ONBOARDING_DIVIDER_WIDTH,
   },
   fields: {
     marginTop: 28,

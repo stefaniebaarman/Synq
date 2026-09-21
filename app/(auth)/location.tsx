@@ -16,8 +16,6 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { stateAbbreviations } from "../../assets/Mocks";
 import {
-  ONBOARDING_DIVIDER_MARGIN_TOP,
-  ONBOARDING_DIVIDER_WIDTH,
   ONBOARDING_H_PADDING,
   ONBOARDING_SCROLL_BOTTOM,
   ONBOARDING_SUBTITLE_MARGIN_TOP,
@@ -291,7 +289,6 @@ export default function LocationDetails() {
         <View style={styles.innerContent}>
           <View style={styles.headerSection}>
             <Text style={styles.title}>Where do you live?</Text>
-            <View style={styles.divider} />
             <Text style={styles.subtitle}>
               This helps friends see who is nearby for a quick Synq.
             </Text>
@@ -429,12 +426,6 @@ const styles = StyleSheet.create({
     lineHeight: ONBOARDING_TITLE_LINE_HEIGHT,
     fontFamily: fonts.heavy,
     letterSpacing: ONBOARDING_TITLE_LETTER_SPACING,
-  },
-  divider: {
-    marginTop: ONBOARDING_DIVIDER_MARGIN_TOP,
-    height: 1,
-    backgroundColor: BORDER,
-    width: ONBOARDING_DIVIDER_WIDTH,
   },
   subtitle: {
     color: MUTED,

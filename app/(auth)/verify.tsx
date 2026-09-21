@@ -21,8 +21,6 @@ import {
   onboardingAuthInnerMarginTop,
   ONBOARDING_BACK_BELOW_INSET,
   ONBOARDING_BACK_LEFT,
-  ONBOARDING_DIVIDER_MARGIN_TOP,
-  ONBOARDING_DIVIDER_WIDTH,
   ONBOARDING_H_PADDING,
   ONBOARDING_SCROLL_BOTTOM,
   ONBOARDING_SUBTITLE_MARGIN_TOP,
@@ -125,7 +123,6 @@ export default function Verify() {
         >
           <View style={styles.inner}>
             <Text style={styles.title}>Enter code</Text>
-            <View style={styles.divider} />
             <Text style={styles.subtitle}>Sent to {phone ?? "your phone"}.</Text>
 
             <TextInput
@@ -173,12 +170,6 @@ const styles = StyleSheet.create({
     fontFamily: fonts.heavy,
     color: TEXT,
     letterSpacing: ONBOARDING_TITLE_LETTER_SPACING,
-  },
-  divider: {
-    marginTop: ONBOARDING_DIVIDER_MARGIN_TOP,
-    height: 1,
-    backgroundColor: BORDER,
-    width: ONBOARDING_DIVIDER_WIDTH,
   },
   subtitle: {
     marginTop: ONBOARDING_SUBTITLE_MARGIN_TOP,

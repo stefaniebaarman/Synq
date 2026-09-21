@@ -324,10 +324,12 @@ export default function FriendsScreen() {
   const isFriendsTabFocused = useIsFocused();
   const { openAddFriends } = useLocalSearchParams<{ openAddFriends?: string }>();
   const myId = user?.uid ?? "";
-  const cachedFriends = myId ? friendsListCacheByUser[myId] ?? [] : [];
+  const hasCachedFriendsList = !!(myId && friendsListCacheByUser[myId] !== undefined);
+  const cachedFriends = hasCachedFriendsList ? friendsListCacheByUser[myId]! : [];
   const [friends, setFriends] = useState<Friend[]>(cachedFriends);
   const [searchModalVisible, setSearchModalVisible] = useState(false);
-  const [isFriendsInitialLoading, setIsFriendsInitialLoading] = useState(cachedFriends.length === 0);
+  // Empty list is a valid loaded state — only skeleton when we've never hydrated.
+  const [isFriendsInitialLoading, setIsFriendsInitialLoading] = useState(!hasCachedFriendsList);
   const [friendsLoadError, setFriendsLoadError] = useState(false);
   const [searchText, setSearchText] = useState("");
   const [sortMode, setSortMode] = useState<FriendsSortMode>("alphabetical");
@@ -477,6 +479,21 @@ export default function FriendsScreen() {
             .map((id) => profileCache[id])
             .filter(Boolean) as Friend[]
         );
+
+        if (friendIds.length === 0) {
+          // New accounts: empty friends is the final state — show Add friends, don't skeleton.
+          friendsListCacheByUser[myId] = [];
+          setFriends([]);
+          setIsFriendsInitialLoading(false);
+          setFriendsLoadError(false);
+          void warmOutgoingFriendRequestsCache(myId);
+          void warmFriendsAndConnectionsCache(myId, {
+            friendIds,
+            force: friendIdsKey(friendIds) !== lastFriendsIdsKeyRef.current,
+          });
+          lastFriendsIdsKeyRef.current = friendIdsKey(friendIds);
+          return;
+        }
 
         if (cachedVisible.length > 0) {
           setFriends(cachedVisible);

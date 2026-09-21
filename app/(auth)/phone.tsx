@@ -1,8 +1,6 @@
 import {
   ONBOARDING_BACK_BELOW_INSET,
   ONBOARDING_BACK_LEFT,
-  ONBOARDING_DIVIDER_MARGIN_TOP,
-  ONBOARDING_DIVIDER_WIDTH,
   ONBOARDING_H_PADDING,
   ONBOARDING_SCROLL_BOTTOM,
   ONBOARDING_SUBTITLE_MARGIN_TOP,
@@ -308,7 +306,6 @@ export default function Phone() {
               <Text style={styles.title}>
                 {isSignIn ? "Welcome back!" : "What’s your number?"}
               </Text>
-              {!isSignIn ? <View style={styles.divider} /> : null}
               <View style={styles.inputRow}>
                 <View style={styles.countryWrapper}>
                   <Text style={styles.countryInput}>{countryCode}</Text>
@@ -374,7 +371,6 @@ export default function Phone() {
           ) : (
             <View style={[styles.innerContent, { marginTop: onboardingAuthInnerMarginTop() }]}>
               <Text style={styles.title}>Enter code</Text>
-              <View style={styles.divider} />
               <Text style={styles.subtitle}>Sent to {maskedPhone}</Text>
 
               <View style={styles.otpRow}>
@@ -490,12 +486,6 @@ const styles = StyleSheet.create({
     marginTop: ONBOARDING_SUBTITLE_MARGIN_TOP,
     fontFamily: fonts.book,
     lineHeight: 22,
-  },
-  divider: {
-    marginTop: ONBOARDING_DIVIDER_MARGIN_TOP,
-    height: 1,
-    backgroundColor: BORDER,
-    width: ONBOARDING_DIVIDER_WIDTH,
   },
   inputRow: { flexDirection: "row", marginTop: 28, height: 58 },
   countryWrapper: {

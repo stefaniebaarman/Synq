@@ -1,6 +1,6 @@
+import { ONBOARDING_HERO_TOP_COMPACT } from "@/constants/onboardingLayout";
 import OnboardingImmersiveSlide from "@/src/components/onboarding/OnboardingImmersiveSlide";
 import { WhosFreeGraphic } from "@/src/components/onboarding/onboardingGraphics";
-import { ONBOARDING_HERO_TOP_COMPACT } from "@/constants/onboardingLayout";
 import { router } from "expo-router";
 import { Dimensions } from "react-native";
 

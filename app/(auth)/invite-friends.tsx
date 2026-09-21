@@ -1,7 +1,5 @@
 import AlertModal from "@/app/alert-modal";
 import {
-  ONBOARDING_DIVIDER_MARGIN_TOP,
-  ONBOARDING_DIVIDER_WIDTH,
   ONBOARDING_H_PADDING,
   ONBOARDING_SUBTITLE_MARGIN_TOP,
   ONBOARDING_SUBTITLE_SIZE,
@@ -13,7 +11,6 @@ import {
 import {
   ACCENT,
   BG,
-  DIVIDER,
   MUTED,
   MUTED2,
   PRIMARY_CTA_HEIGHT,
@@ -180,7 +177,6 @@ export default function InviteFriendsOnboardingScreen() {
       >
         <Text style={styles.kicker}>ALMOST THERE</Text>
         <Text style={styles.title}>Invite your people</Text>
-        <View style={styles.divider} />
         <Text style={styles.subtitle}>
           Synq only works with your friends. Share your link so they can join
           you.
@@ -293,12 +289,6 @@ const styles = StyleSheet.create({
     fontSize: ONBOARDING_TITLE_SIZE,
     lineHeight: ONBOARDING_TITLE_LINE_HEIGHT,
     letterSpacing: ONBOARDING_TITLE_LETTER_SPACING,
-  },
-  divider: {
-    width: ONBOARDING_DIVIDER_WIDTH,
-    height: StyleSheet.hairlineWidth,
-    backgroundColor: DIVIDER,
-    marginTop: ONBOARDING_DIVIDER_MARGIN_TOP,
   },
   subtitle: {
     marginTop: ONBOARDING_SUBTITLE_MARGIN_TOP,
