@@ -44,6 +44,7 @@ import PlanGoingPeopleSheet, {
 import PlanInviteFriendsSheet, {
   type PlanInviteFriend,
 } from "@/src/components/plans/PlanInviteFriendsSheet";
+import PlansScheduleSheet from "@/src/components/plans/PlansScheduleSheet";
 import PlanTimePicker from "@/src/components/PlanTimePicker";
 import PlanLocationField, {
   planLocationChanged,
@@ -51,6 +52,7 @@ import PlanLocationField, {
 import SynqPlusAddButton from "@/src/components/SynqPlusAddButton";
 import { resolvePlanAttribution } from "@/src/lib/planAttribution";
 import { openInMaps } from "@/src/lib/openInMaps";
+import { formPlaceFieldsFromValue } from "@/src/lib/planPlaceFields";
 import { friendProfileCacheByUser } from "@/src/lib/socialCache";
 import {
   canEditOpenPlan,
@@ -250,6 +252,8 @@ export default function OpenPlans({
   const [pendingDeleteEvent, setPendingDeleteEvent] = useState<EventItem | null>(null);
   const [inviteSheetVisible, setInviteSheetVisible] = useState(false);
   const [draftPlanId, setDraftPlanId] = useState<string | null>(null);
+  const [savingPlan, setSavingPlan] = useState(false);
+  const [scheduleSheetVisible, setScheduleSheetVisible] = useState(false);
   const [createInviteFriendIds, setCreateInviteFriendIds] = useState<string[]>([]);
   const [editInviteFriendIds, setEditInviteFriendIds] = useState<string[]>([]);
   const [editUninviteFriendIds, setEditUninviteFriendIds] = useState<string[]>([]);
@@ -390,6 +394,7 @@ export default function OpenPlans({
     setInviteSheetVisible(false);
     setKeyboardInset(0);
     setAlertVisible(false);
+    setSavingPlan(false);
     setShowEventModal(false);
   }, [setShowEventModal]);
 
@@ -595,7 +600,7 @@ export default function OpenPlans({
   ]);
 
   const canPost =
-    newEvent.title.trim().length > 0 && (!isEditing || isPlanDirty);
+    newEvent.title.trim().length > 0 && (!isEditing || isPlanDirty) && !savingPlan;
 
   const parseDate = (s: string) => {
     const [y, m, d] = s.split("-").map(Number);
@@ -631,32 +636,44 @@ export default function OpenPlans({
   };
 
   const handleSave = async () => {
-    if (!canPost) return;
+    if (!canPost || savingPlan) return;
     const year = selectedDate.getFullYear();
     const month = String(selectedDate.getMonth() + 1).padStart(2, "0");
     const day = String(selectedDate.getDate()).padStart(2, "0");
     const localDate = `${year}-${month}-${day}`;
+    const place = formPlaceFieldsFromValue({
+      location: newEvent.location || "",
+      locationLat: newEvent.locationLat,
+      locationLng: newEvent.locationLng,
+      placeId: newEvent.placeId,
+    });
     const payload = {
-      ...newEvent,
+      title: newEvent.title,
       date: localDate,
       time: formatPlanTimeForStorage(selectedDate),
       visibility: planVisibility,
+      ...place,
     };
 
+    setSavingPlan(true);
     let ok = false;
-    if (isEditing && editingEvent?.id) {
-      ok =
-        (await updateEvent(editingEvent.id, payload, {
-          inviteFriendIds: isPrivateDraft ? [] : editInviteFriendIds,
-          uninviteFriendIds: editUninviteFriendIds,
-        })) !== false;
-    } else {
-      ok =
-        (await saveEvent({
-          ...payload,
-          id: draftPlanId || undefined,
-          inviteFriendIds: isPrivateDraft ? [] : createInviteFriendIds,
-        })) !== false;
+    try {
+      if (isEditing && editingEvent?.id) {
+        ok =
+          (await updateEvent(editingEvent.id, payload, {
+            inviteFriendIds: isPrivateDraft ? [] : editInviteFriendIds,
+            uninviteFriendIds: editUninviteFriendIds,
+          })) !== false;
+      } else {
+        ok =
+          (await saveEvent({
+            ...payload,
+            id: draftPlanId || undefined,
+            inviteFriendIds: isPrivateDraft ? [] : createInviteFriendIds,
+          })) !== false;
+      }
+    } finally {
+      setSavingPlan(false);
     }
 
     if (ok) resetPlanEditorState();
@@ -669,7 +686,21 @@ export default function OpenPlans({
 
   return (
     <View style={styles.container}>
-      <Text style={styles.sectionTitle}>Your plans</Text>
+      <View style={styles.sectionHeaderRow}>
+        <Text style={styles.sectionTitle}>Your plans</Text>
+        <TouchableOpacity
+          onPress={() => {
+            void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+            setScheduleSheetVisible(true);
+          }}
+          hitSlop={8}
+          style={styles.calendarBtn}
+          accessibilityRole="button"
+          accessibilityLabel="Open schedule calendar"
+        >
+          <Ionicons name="calendar-outline" size={20} color={ACCENT} />
+        </TouchableOpacity>
+      </View>
 
       <View style={styles.plansBox}>
       {!visibleEvents.length && (
@@ -776,9 +807,10 @@ export default function OpenPlans({
                     </View>
                   </View>
                   {(p.time || p.location) ? (
-                    <View style={styles.metaRow}>
+                    <Text style={styles.meta}>
                       {p.location ? (
-                        <Pressable
+                        <Text
+                          style={styles.metaLocation}
                           onPress={() => {
                             const lat = Number(p.locationLat);
                             const lng = Number(p.locationLng);
@@ -789,24 +821,17 @@ export default function OpenPlans({
                                 : {}),
                             });
                           }}
-                          hitSlop={6}
                           accessibilityRole="link"
                           accessibilityLabel={`Open ${p.location} in Maps`}
                         >
-                          <Text style={[styles.meta, styles.metaLocation]} numberOfLines={1}>
-                            {p.location}
-                          </Text>
-                        </Pressable>
-                      ) : null}
-                      {p.location && p.time ? (
-                        <Text style={[styles.meta, styles.metaSep]}> · </Text>
-                      ) : null}
-                      {p.time ? (
-                        <Text style={[styles.meta, styles.metaTime]} numberOfLines={1}>
-                          {p.time}
+                          {p.location}
                         </Text>
                       ) : null}
-                    </View>
+                      {p.location && p.time ? (
+                        <Text style={styles.metaSep}> · </Text>
+                      ) : null}
+                      {p.time ? <Text style={styles.metaTime}>{p.time}</Text> : null}
+                    </Text>
                   ) : null}
                   {privatePlan ? (
                     <View style={styles.privateBadgeRow}>
@@ -994,13 +1019,18 @@ export default function OpenPlans({
                 }}
                 onFocus={dismissPickers}
                 onChange={(next) =>
-                  setNewEvent((p: any) => ({
-                    ...p,
-                    location: next.location,
-                    locationLat: next.locationLat,
-                    locationLng: next.locationLng,
-                    placeId: next.placeId,
-                  }))
+                  setNewEvent((p: any) => {
+                    const {
+                      locationLat: _lat,
+                      locationLng: _lng,
+                      placeId: _placeId,
+                      ...rest
+                    } = p;
+                    return {
+                      ...rest,
+                      ...formPlaceFieldsFromValue(next),
+                    };
+                  })
                 }
               />
 
@@ -1101,7 +1131,7 @@ export default function OpenPlans({
                     !canPost && synqOutlineAddBtnTextDisabled,
                   ]}
                 >
-                  {isEditing ? "Save" : "Post"}
+                  {savingPlan ? "Saving…" : isEditing ? "Save" : "Post"}
                 </Text>
               </TouchableOpacity>
               </View>
@@ -1192,6 +1222,22 @@ export default function OpenPlans({
         }}
       />
 
+      <PlansScheduleSheet
+        visible={scheduleSheetVisible}
+        events={visibleEvents}
+        accentColor={ACCENT}
+        onClose={() => setScheduleSheetVisible(false)}
+        onPressPlan={(plan) => {
+          setScheduleSheetVisible(false);
+          const full = visibleEvents.find((e) => e.id === plan.id);
+          if (!full) return;
+          if (canEditOpenPlan(full, viewerUid)) {
+            // Let the sheet finish dismissing before opening the editor modal.
+            setTimeout(() => openEditModal(full), 280);
+          }
+        }}
+      />
+
       {pendingDeleteEvent ? (
       <ConfirmModal
         visible
@@ -1263,7 +1309,20 @@ const DateBtn = ({
 
 const styles = StyleSheet.create({
   container: { width: "100%", alignSelf: "stretch" },
-  sectionTitle: profileScreenSectionTitle,
+  sectionHeaderRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginBottom: 12,
+  },
+  sectionTitle: {
+    ...profileScreenSectionTitle,
+    marginBottom: 0,
+  },
+  calendarBtn: {
+    padding: 4,
+    marginLeft: 8,
+  },
   plansBox: {
     paddingVertical: 0,
     paddingHorizontal: 0,
@@ -1370,24 +1429,18 @@ const styles = StyleSheet.create({
     marginTop: 5,
     lineHeight: 18,
   },
-  metaRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    flexWrap: "nowrap",
-    marginTop: 5,
-    minWidth: 0,
-  },
   metaLocation: {
-    marginTop: 0,
+    ...cardMetaText,
+    lineHeight: 18,
     textDecorationLine: "underline",
-    flexShrink: 1,
   },
   metaSep: {
-    marginTop: 0,
+    ...cardMetaText,
+    lineHeight: 18,
   },
   metaTime: {
-    marginTop: 0,
-    flexShrink: 0,
+    ...cardMetaText,
+    lineHeight: 18,
   },
   hostLine: {
     color: MUTED3,

@@ -125,7 +125,11 @@ import {
   type TopSynqRow,
 } from "../../src/lib/ownProfileCache";
 import { filterOutPastOpenPlans, findHostOpenPlanIndex, hostPlanRowWithIdentity, isPrivatePlan, matchesPlanEvent, sortOpenPlansByDateTime, type PlanVisibility } from "../../src/lib/planEvents";
-import { applyPlanPlaceFields, readPlanPlaceFields } from "../../src/lib/planPlaceFields";
+import {
+  applyPlanPlaceFields,
+  readPlanPlaceFields,
+  stripUndefinedDeep,
+} from "../../src/lib/planPlaceFields";
 import { revokePlanInvite, revokePlanInviteErrorMessage, sendPlanInvites, type PlanInviteHint } from "../../src/lib/planInvite";
 import { reconcileHostOpenPlansFromFriends } from "../../src/lib/reconcileHostOpenPlans";
 import {
@@ -203,7 +207,7 @@ async function ensureHostPlanReadyForInvite(
   const needsWrite =
     storedId !== planId || !storedHost || storedHost !== hostUid || !!fields;
   if (needsWrite) {
-    await updateDoc(ref, { events: sortOpenPlansByDateTime(evs) });
+    await updateDoc(ref, { events: stripUndefinedDeep(sortOpenPlansByDateTime(evs)) });
   }
 
   const canonicalId = String(nextRow.id || planId).trim();
@@ -689,7 +693,7 @@ export default function ProfileScreen() {
       const updatedEvents = sortOpenPlansByDateTime([...existing, newItem]);
 
       await updateDoc(ref, {
-        events: updatedEvents,
+        events: stripUndefinedDeep(updatedEvents),
       });
 
       setShowEventModal(false);
@@ -718,6 +722,7 @@ export default function ProfileScreen() {
 
       return true;
     } catch (e) {
+      setShowEventModal(false);
       showAlert("Error", "Could not save event.");
       return false;
     }
@@ -794,13 +799,17 @@ export default function ProfileScreen() {
     const patchHostCalendar = async () => {
       const ref = doc(db, "users", myUid);
       const snap = await getDoc(ref);
-      if (!snap.exists()) return;
+      if (!snap.exists()) {
+        throw new Error("missing_user");
+      }
       const evs = (snap.data() as any).events || [];
       const hostIdx = findHostOpenPlanIndex(evs, planId, oldSnapshot, {
         hostUid: myUid,
         fields: updatedPayload,
       });
-      if (hostIdx < 0) return;
+      if (hostIdx < 0) {
+        throw new Error("missing_plan");
+      }
       const hostName =
         String((snap.data() as { displayName?: string })?.displayName || "").trim() ||
         String(auth.currentUser?.displayName || "").trim() ||
@@ -820,24 +829,28 @@ export default function ProfileScreen() {
         );
         if (!makingPrivate) return merged;
         // Private: strip social join/invite metadata so it stays just for you.
-        return {
+        const privateRow: Record<string, unknown> = {
           ...merged,
           planInvitedIds: [],
           joinedFromIds: [myUid],
           joinedFromId: myUid,
-          joinedFromName: undefined,
-          joinedFromNames: undefined,
-          joinedFromFriendUid: undefined,
           attendeeDisplayNames: { [myUid]: hostName },
           attendeeImages: hostImage ? { [myUid]: hostImage } : {},
         };
+        delete privateRow.joinedFromName;
+        delete privateRow.joinedFromNames;
+        delete privateRow.joinedFromFriendUid;
+        return privateRow;
       });
-      await updateDoc(ref, { events: sortOpenPlansByDateTime(next) });
+      await updateDoc(ref, {
+        events: stripUndefinedDeep(sortOpenPlansByDateTime(next)),
+      });
     };
 
     try {
       await patchHostCalendar();
     } catch {
+      setShowEventModal(false);
       showAlert("Error", "Could not update event.");
       return false;
     }

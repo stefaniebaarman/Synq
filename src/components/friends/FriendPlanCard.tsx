@@ -237,9 +237,10 @@ export default function FriendPlanCard({
             ) : null}
           </View>
           {item.event.location || item.event.time ? (
-            <View style={styles.metaRow}>
+            <Text style={styles.meta}>
               {item.event.location ? (
-                <Pressable
+                <Text
+                  style={styles.metaLocation}
                   onPress={() => {
                     const lat = Number(item.event.locationLat);
                     const lng = Number(item.event.locationLng);
@@ -250,24 +251,19 @@ export default function FriendPlanCard({
                         : {}),
                     });
                   }}
-                  hitSlop={6}
                   accessibilityRole="link"
                   accessibilityLabel={`Open ${item.event.location} in Maps`}
                 >
-                  <Text style={[styles.meta, styles.metaLocation]} numberOfLines={2}>
-                    {item.event.location}
-                  </Text>
-                </Pressable>
-              ) : null}
-              {item.event.location && item.event.time ? (
-                <Text style={[styles.meta, styles.metaSep]}> · </Text>
-              ) : null}
-              {item.event.time ? (
-                <Text style={[styles.meta, styles.metaTime]} numberOfLines={1}>
-                  {item.event.time}
+                  {item.event.location}
                 </Text>
               ) : null}
-            </View>
+              {item.event.location && item.event.time ? (
+                <Text style={styles.metaSep}> · </Text>
+              ) : null}
+              {item.event.time ? (
+                <Text style={styles.metaTime}>{item.event.time}</Text>
+              ) : null}
+            </Text>
           ) : null}
           {!viewerOwnsPlan ? (
             <Text style={styles.planOwnerLine} numberOfLines={1}>
@@ -415,25 +411,20 @@ const styles = StyleSheet.create({
   meta: {
     ...cardMetaText,
     marginTop: 3,
-  },
-  metaRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    flexWrap: "wrap",
-    marginTop: 3,
-    minWidth: 0,
+    lineHeight: 18,
   },
   metaLocation: {
-    marginTop: 0,
+    ...cardMetaText,
+    lineHeight: 18,
     textDecorationLine: "underline",
-    flexShrink: 1,
   },
   metaSep: {
-    marginTop: 0,
+    ...cardMetaText,
+    lineHeight: 18,
   },
   metaTime: {
-    marginTop: 0,
-    flexShrink: 0,
+    ...cardMetaText,
+    lineHeight: 18,
   },
   planOwnerLine: {
     ...cardMetaText,

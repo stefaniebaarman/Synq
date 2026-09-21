@@ -6,6 +6,7 @@ import {
   matchesPlanEvent,
   openPlanSortValue,
 } from "@/src/lib/planEvents";
+import { applyPlanPlaceFields, readPlanPlaceFields } from "@/src/lib/planPlaceFields";
 import { collection, doc, getDoc, getDocs, updateDoc, arrayUnion } from "firebase/firestore";
 
 export type FriendOpenPlanEvent = {
@@ -14,6 +15,9 @@ export type FriendOpenPlanEvent = {
   title: string;
   time?: string;
   location?: string;
+  locationLat?: number;
+  locationLng?: number;
+  placeId?: string;
   /** Missing / "open" = friends can see & join. "private" = owner only. */
   visibility?: "open" | "private";
   planHostUid?: string;
@@ -299,22 +303,24 @@ export async function joinFriendOpenPlan(
     return "updated";
   }
 
-  const newEvent: FriendOpenPlanEvent = {
-    id: `${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
-    title: String(event.title || "").trim(),
-    date: String(event.date || "").trim(),
-    time: String(event.time || "").trim(),
-    location: String(event.location || "").trim(),
-    planHostUid,
-    joinedFromId: friendKey,
-    joinedFromIds: sourceIds,
-    joinedFromName: sourceNames.join(", "),
-    joinedFromNames: sourceNames,
-    mergedIntoExisting: false,
-    joinedFromFriendUid: friendKey,
-    attendeeDisplayNames: displayNameById,
-    attendeeImages: imageById,
-  };
+  const newEvent: FriendOpenPlanEvent = applyPlanPlaceFields(
+    {
+      id: `${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+      title: String(event.title || "").trim(),
+      date: String(event.date || "").trim(),
+      time: String(event.time || "").trim(),
+      planHostUid,
+      joinedFromId: friendKey,
+      joinedFromIds: sourceIds,
+      joinedFromName: sourceNames.join(", "),
+      joinedFromNames: sourceNames,
+      mergedIntoExisting: false,
+      joinedFromFriendUid: friendKey,
+      attendeeDisplayNames: displayNameById,
+      attendeeImages: imageById,
+    },
+    readPlanPlaceFields(event as unknown as Record<string, unknown>)
+  );
 
   const nextEvents = [...existingEvents, newEvent].sort(
     (a, b) => openPlanSortValue(a) - openPlanSortValue(b)
