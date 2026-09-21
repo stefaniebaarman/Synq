@@ -286,7 +286,8 @@ export default function RootLayout() {
     | {
         kind: "synq_home";
         fromUserId?: string;
-        notificationType?: "friend_synq_active" | "synq_nudge";
+        notificationType?: "friend_synq_active" | "synq_nudge" | "friend_drop_in";
+        openChatWith?: string;
       }
     | { kind: "me"; focusEventId?: string; notificationId?: string }
     | null
@@ -444,7 +445,8 @@ export default function RootLayout() {
         type !== "friend_synq_active" &&
         type !== "friend_synq_inactive" &&
         type !== "synq_nudge" &&
-        type !== "friends_free_digest"
+        type !== "friends_free_digest" &&
+        type !== "friend_drop_in"
       ) {
         return;
       }
@@ -1241,14 +1243,26 @@ export default function RootLayout() {
     if (pending.kind === "synq_home") {
       const fromUserId = pending.fromUserId;
       const notificationType = pending.notificationType;
-      if (fromUserId && notificationType) {
+      if (
+        fromUserId &&
+        (notificationType === "friend_synq_active" ||
+          notificationType === "synq_nudge" ||
+          notificationType === "friend_drop_in")
+      ) {
         void dismissActivityNotification(
           user.uid,
           activityNotificationId(notificationType, fromUserId, user.uid)
         ).catch(() => {});
       }
       DeviceEventEmitter.emit(SYNQ_ACTIVE_FRIENDS_REFRESH, { fromUserId });
-      router.push("/(tabs)");
+      if (pending.openChatWith) {
+        router.push({
+          pathname: "/(tabs)",
+          params: { openChatWith: pending.openChatWith },
+        });
+      } else {
+        router.push("/(tabs)");
+      }
       clearPendingTap();
       return;
     }

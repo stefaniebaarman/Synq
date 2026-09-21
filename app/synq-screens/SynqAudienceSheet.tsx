@@ -9,8 +9,7 @@ import {
   OVERLAY_NEAR_FULL,
   SHEET_SURFACE,
   SPACE_4,
-  SPACE_5,
-  SURFACE_FAINT,
+  SURFACE_ELEVATED,
   TEXT,
   TYPE_BODY,
   TYPE_BUTTON,
@@ -18,7 +17,7 @@ import {
   fonts,
   sheetTitleText,
   synqOutlineAddBtn,
-  synqOutlineAddBtnText
+  synqOutlineAddBtnText,
 } from "@/constants/Variables";
 import type { FriendGroup } from "@/src/lib/friendGroups";
 import type { SynqAudienceSelection } from "@/src/lib/synqBroadcast";
@@ -32,6 +31,7 @@ import {
   Text,
   TouchableOpacity,
   TouchableWithoutFeedback,
+  useWindowDimensions,
   View,
 } from "react-native";
 
@@ -41,6 +41,16 @@ type Props = {
   selection: SynqAudienceSelection;
   onChangeSelection: (next: SynqAudienceSelection) => void;
   onClose: () => void;
+  /**
+   * `modal` — standalone RN Modal (default).
+   * `embedded` — absolute overlay for nesting inside another Modal/sheet
+   * (avoids stacked-Modal freezes).
+   */
+  presentation?: "modal" | "embedded";
+  /** Optional subtitle override (drop-in vs Synq visibility). */
+  subtitle?: string;
+  /** Optional title override. */
+  title?: string;
 };
 
 function peopleLabel(count: number) {
@@ -53,7 +63,11 @@ export default function SynqAudienceSheet({
   selection,
   onChangeSelection,
   onClose,
+  presentation = "modal",
+  subtitle = "Pick a circle to be visible to",
+  title = "Sharing with",
 }: Props) {
+  const { height: windowHeight } = useWindowDimensions();
   const [draft, setDraft] = useState<SynqAudienceSelection>(selection);
 
   useEffect(() => {
@@ -67,110 +81,136 @@ export default function SynqAudienceSheet({
   };
 
   const allSelected = draft.mode === "all";
+  // Fixed pixel height — % maxHeight collapses when nested inside another Modal,
+  // which left a blank band over the group list above Done.
+  const panelHeight = Math.round(windowHeight * 0.72);
+
+  const panel = (
+    <View style={[styles.panel, { height: panelHeight }]}>
+      <View style={styles.header}>
+        <Text style={styles.title}>{title}</Text>
+        <Text style={styles.subtitle}>{subtitle}</Text>
+      </View>
+
+      <ScrollView
+        style={styles.listScroll}
+        contentContainerStyle={styles.list}
+        showsVerticalScrollIndicator={false}
+        bounces={false}
+        nestedScrollEnabled
+      >
+        <Pressable
+          onPress={() => setDraft({ mode: "all", groupIds: [] })}
+          style={({ pressed }) => [
+            styles.row,
+            allSelected && styles.rowSelected,
+            pressed && styles.rowPressed,
+          ]}
+          accessibilityRole="button"
+          accessibilityState={{ selected: allSelected }}
+          accessibilityLabel="All friends"
+        >
+          <View style={styles.rowIcon}>
+            <Ionicons name="people-outline" size={20} color={TEXT} />
+          </View>
+          <View style={styles.rowCopy}>
+            <Text style={styles.rowLabel}>All friends</Text>
+            <Text style={styles.rowMeta}>Everyone you're friends with</Text>
+          </View>
+          {allSelected ? (
+            <Ionicons name="checkmark-circle" size={22} color={ACCENT} />
+          ) : (
+            <View style={styles.checkPlaceholder} />
+          )}
+        </Pressable>
+
+        {groups.map((group) => {
+          const count = group.memberIds.length;
+          const disabled = count === 0;
+          const selected =
+            draft.mode === "groups" && draft.groupIds.includes(group.id);
+          return (
+            <Pressable
+              key={group.id}
+              onPress={() => {
+                if (disabled) return;
+                setDraft({ mode: "groups", groupIds: [group.id] });
+              }}
+              disabled={disabled}
+              style={({ pressed }) => [
+                styles.row,
+                selected && styles.rowSelected,
+                disabled && styles.rowDisabled,
+                pressed && !disabled && styles.rowPressed,
+              ]}
+              accessibilityRole="button"
+              accessibilityState={{ selected, disabled }}
+              accessibilityLabel={group.name}
+            >
+              <View style={styles.rowIcon}>
+                <Ionicons name="people-outline" size={20} color={TEXT} />
+              </View>
+              <View style={styles.rowCopy}>
+                <Text style={styles.rowLabel} numberOfLines={1}>
+                  {group.name}
+                </Text>
+                <Text style={styles.rowMeta}>{peopleLabel(count)}</Text>
+              </View>
+              {selected ? (
+                <Ionicons name="checkmark-circle" size={22} color={ACCENT} />
+              ) : (
+                <View style={styles.checkPlaceholder} />
+              )}
+            </Pressable>
+          );
+        })}
+      </ScrollView>
+
+      <View style={styles.actions}>
+        <TouchableOpacity
+          style={[synqOutlineAddBtn, styles.doneBtn]}
+          onPress={handleDone}
+          activeOpacity={0.85}
+          accessibilityRole="button"
+          accessibilityLabel="Done"
+        >
+          <Text style={synqOutlineAddBtnText}>Done</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          onPress={onClose}
+          style={styles.cancelBtn}
+          activeOpacity={0.8}
+          accessibilityRole="button"
+          accessibilityLabel="Cancel"
+        >
+          <Text style={styles.cancelText}>Cancel</Text>
+        </TouchableOpacity>
+      </View>
+    </View>
+  );
+
+  if (presentation === "embedded") {
+    if (!visible) return null;
+    return (
+      <View style={styles.embeddedRoot} pointerEvents="box-none">
+        <Pressable
+          style={styles.embeddedScrim}
+          onPress={onClose}
+          accessibilityLabel="Close"
+        />
+        <View style={styles.embeddedCenter} pointerEvents="box-none">
+          {panel}
+        </View>
+      </View>
+    );
+  }
 
   return (
     <Modal visible={visible} transparent animationType={DIALOG_ANIMATION}>
       <TouchableWithoutFeedback onPress={onClose}>
         <View style={styles.overlay}>
-          <TouchableWithoutFeedback>
-            <View style={styles.panel}>
-              <Text style={styles.title}>Sharing with</Text>
-              <Text style={styles.subtitle}>Pick a circle to be visible to</Text>
-
-              <ScrollView
-                style={styles.listScroll}
-                contentContainerStyle={styles.list}
-                showsVerticalScrollIndicator={false}
-                bounces={false}
-              >
-                <Pressable
-                  onPress={() => setDraft({ mode: "all", groupIds: [] })}
-                  style={({ pressed }) => [
-                    styles.row,
-                    allSelected && styles.rowSelected,
-                    pressed && styles.rowPressed,
-                  ]}
-                  accessibilityRole="button"
-                  accessibilityState={{ selected: allSelected }}
-                  accessibilityLabel="All friends"
-                >
-                  <View style={styles.rowIcon}>
-                    <Ionicons name="people-outline" size={20} color={TEXT} />
-                  </View>
-                  <View style={styles.rowCopy}>
-                    <Text style={styles.rowLabel}>All friends</Text>
-                    <Text style={styles.rowMeta}>Everyone you're friends with</Text>
-                  </View>
-                  {allSelected ? (
-                    <Ionicons name="checkmark-circle" size={22} color={ACCENT} />
-                  ) : (
-                    <View style={styles.checkPlaceholder} />
-                  )}
-                </Pressable>
-
-                {groups.map((group) => {
-                  const count = group.memberIds.length;
-                  const disabled = count === 0;
-                  const selected =
-                    draft.mode === "groups" && draft.groupIds.includes(group.id);
-                  return (
-                    <Pressable
-                      key={group.id}
-                      onPress={() => {
-                        if (disabled) return;
-                        setDraft({ mode: "groups", groupIds: [group.id] });
-                      }}
-                      disabled={disabled}
-                      style={({ pressed }) => [
-                        styles.row,
-                        selected && styles.rowSelected,
-                        disabled && styles.rowDisabled,
-                        pressed && !disabled && styles.rowPressed,
-                      ]}
-                      accessibilityRole="button"
-                      accessibilityState={{ selected, disabled }}
-                      accessibilityLabel={group.name}
-                    >
-                      <View style={styles.rowIcon}>
-                        <Ionicons name="people-outline" size={20} color={TEXT} />
-                      </View>
-                      <View style={styles.rowCopy}>
-                        <Text style={styles.rowLabel} numberOfLines={1}>
-                          {group.name}
-                        </Text>
-                        <Text style={styles.rowMeta}>{peopleLabel(count)}</Text>
-                      </View>
-                      {selected ? (
-                        <Ionicons name="checkmark-circle" size={22} color={ACCENT} />
-                      ) : (
-                        <View style={styles.checkPlaceholder} />
-                      )}
-                    </Pressable>
-                  );
-                })}
-              </ScrollView>
-
-              <TouchableOpacity
-                style={[synqOutlineAddBtn, styles.doneBtn]}
-                onPress={handleDone}
-                activeOpacity={0.85}
-                accessibilityRole="button"
-                accessibilityLabel="Done"
-              >
-                <Text style={synqOutlineAddBtnText}>Done</Text>
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                onPress={onClose}
-                style={styles.cancelBtn}
-                activeOpacity={0.8}
-                accessibilityRole="button"
-                accessibilityLabel="Cancel"
-              >
-                <Text style={styles.cancelText}>Cancel</Text>
-              </TouchableOpacity>
-            </View>
-          </TouchableWithoutFeedback>
+          <TouchableWithoutFeedback>{panel}</TouchableWithoutFeedback>
         </View>
       </TouchableWithoutFeedback>
     </Modal>
@@ -186,6 +226,23 @@ const styles = StyleSheet.create({
     padding: 25,
     paddingBottom: 72,
   },
+  embeddedRoot: {
+    ...StyleSheet.absoluteFillObject,
+    zIndex: 40,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  embeddedScrim: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: OVERLAY_NEAR_FULL,
+  },
+  embeddedCenter: {
+    ...StyleSheet.absoluteFillObject,
+    paddingHorizontal: 25,
+    paddingBottom: 72,
+    justifyContent: "center",
+    alignItems: "center",
+  },
   panel: {
     width: "100%",
     backgroundColor: SHEET_SURFACE,
@@ -194,7 +251,10 @@ const styles = StyleSheet.create({
     paddingTop: 24,
     paddingBottom: 22,
     alignItems: "stretch",
-    maxHeight: "78%",
+    overflow: "hidden",
+  },
+  header: {
+    flexShrink: 0,
   },
   title: {
     ...sheetTitleText,
@@ -207,7 +267,8 @@ const styles = StyleSheet.create({
     marginBottom: SPACE_4,
   },
   listScroll: {
-    flexGrow: 0,
+    flex: 1,
+    minHeight: 0,
   },
   list: {
     gap: 10,
@@ -222,17 +283,17 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     borderWidth: 1,
     borderColor: BORDER,
-    backgroundColor: SURFACE_FAINT,
+    backgroundColor: SURFACE_ELEVATED,
   },
   rowSelected: {
     borderColor: ACCENT_BORDER,
     backgroundColor: ACCENT_FILL_FAINT,
   },
   rowPressed: {
-    opacity: 0.85,
+    opacity: 0.92,
   },
   rowDisabled: {
-    opacity: 0.4,
+    opacity: 0.45,
   },
   rowIcon: {
     width: 28,
@@ -257,8 +318,12 @@ const styles = StyleSheet.create({
     width: 22,
     height: 22,
   },
+  actions: {
+    flexShrink: 0,
+    paddingTop: SPACE_4,
+    backgroundColor: SHEET_SURFACE,
+  },
   doneBtn: {
-    marginTop: SPACE_5,
     alignSelf: "center",
   },
   cancelBtn: {

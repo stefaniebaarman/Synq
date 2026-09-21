@@ -61,6 +61,8 @@ import FriendsGroupsHeaderTitle, {
 } from "@/src/components/friends/FriendsGroupsSegment";
 import FriendsPlansPreview from "@/src/components/friends/FriendsPlansPreview";
 import FriendsPlansSheet from "@/src/components/friends/FriendsPlansSheet";
+import FriendsDropInsStrip from "@/src/components/dropin/FriendsDropInsStrip";
+import { pollActiveFriendDropIns, type FriendDropIn } from "@/src/lib/dropIn";
 import {
   FriendsSortMenu,
   FriendsSortTrigger,
@@ -336,6 +338,7 @@ export default function FriendsScreen() {
   const [listScrollY, setListScrollY] = useState(0);
   const [friendsTabMode, setFriendsTabMode] = useState<FriendsTabMode>("friends");
   const [plansSheetVisible, setPlansSheetVisible] = useState(false);
+  const [friendDropIns, setFriendDropIns] = useState<FriendDropIn[]>([]);
   const friendsListRef = useRef<FlatList<Friend>>(null);
   const friendsRefreshInFlightRef = useRef(false);
   const lastFriendsIdsKeyRef = useRef("");
@@ -540,6 +543,35 @@ export default function FriendsScreen() {
 
   const { isBlocked } = useBlockedUsers();
 
+  const friendIdsForDropInKey = useMemo(
+    () => friendIdsKey(friends.map((f) => f.id)),
+    [friends]
+  );
+
+  useEffect(() => {
+    if (!myId || friends.length === 0) {
+      setFriendDropIns([]);
+      return;
+    }
+    let cancelled = false;
+    const ids = friends.map((f) => f.id);
+    const load = () => {
+      void pollActiveFriendDropIns(myId, ids)
+        .then((rows) => {
+          if (!cancelled) setFriendDropIns(rows);
+        })
+        .catch(() => {
+          if (!cancelled) setFriendDropIns([]);
+        });
+    };
+    load();
+    const timer = setInterval(load, 60_000);
+    return () => {
+      cancelled = true;
+      clearInterval(timer);
+    };
+  }, [myId, friendIdsForDropInKey]);
+
   const openFriendProfileFromFriendsTab = useCallback(
     (
       friendId: string,
@@ -590,11 +622,32 @@ export default function FriendsScreen() {
     !isFriendsInitialLoading &&
     friendPlansFeed.aggregatedPlans.length > 0;
 
+  const showDropInsStrip =
+    friendsTabMode === "friends" &&
+    !isFriendsInitialLoading &&
+    friendDropIns.length > 0;
+
   const friendsListHeader = useMemo(() => {
-    if (!showFriendsPlansPreview && !showFriendSearch) return null;
+    if (!showFriendsPlansPreview && !showFriendSearch && !showDropInsStrip) {
+      return null;
+    }
 
     return (
       <View>
+        {showDropInsStrip ? (
+          <View style={[styles.screenPadding, { marginBottom: 8 }]}>
+            <FriendsDropInsStrip
+              dropIns={friendDropIns}
+              onMessage={(friendId) => {
+                void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                router.push({
+                  pathname: "/(tabs)",
+                  params: { openChatWith: friendId },
+                });
+              }}
+            />
+          </View>
+        ) : null}
         {showFriendsPlansPreview ? (
           <FriendsPlansPreview
             userId={myId}
@@ -615,7 +668,9 @@ export default function FriendsScreen() {
           <View
             style={[
               styles.friendsSection,
-              showFriendsPlansPreview ? styles.friendsSectionAfterPlans : null,
+              showFriendsPlansPreview || showDropInsStrip
+                ? styles.friendsSectionAfterPlans
+                : null,
               styles.screenPadding,
             ]}
           >
@@ -634,10 +689,13 @@ export default function FriendsScreen() {
     );
   }, [
     showFriendsPlansPreview,
+    showDropInsStrip,
     showFriendSearch,
     searchText,
     sortMode,
     myId,
+    friendDropIns,
+    router,
     friendPlansFeed.aggregatedPlans,
     friendPlansFeed.hostDisplayNameByUid,
     friendPlansFeed.viewerEvents,

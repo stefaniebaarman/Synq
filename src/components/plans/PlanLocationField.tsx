@@ -24,10 +24,13 @@ import {
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import {
   Pressable,
+  ScrollView,
   StyleSheet,
   Text,
   TextInput,
   View,
+  type StyleProp,
+  type ViewStyle,
 } from "react-native";
 
 export type PlanLocationValue = {
@@ -45,6 +48,8 @@ type Props = {
   inputRef?: React.RefObject<TextInput | null>;
   placeholder?: string;
   accessibilityLabel?: string;
+  style?: StyleProp<ViewStyle>;
+  inputStyle?: StyleProp<ViewStyle>;
 };
 
 const DEBOUNCE_MS = 280;
@@ -65,6 +70,8 @@ export default function PlanLocationField({
   inputRef,
   placeholder = "Add location",
   accessibilityLabel = "Add location",
+  style,
+  inputStyle,
 }: Props) {
   const [suggestions, setSuggestions] = useState<PlaceSuggestion[]>([]);
   const [loading, setLoading] = useState(false);
@@ -205,7 +212,7 @@ export default function PlanLocationField({
     (loading || suggestions.length > 0 || resolvingPlaceId);
 
   return (
-    <View style={styles.wrap}>
+    <View style={[styles.wrap, style]}>
       <View style={styles.inputShell}>
         {showPlaceholder ? (
           <Text style={styles.placeholder} pointerEvents="none">
@@ -216,7 +223,7 @@ export default function PlanLocationField({
           ref={resolvedInputRef as React.RefObject<TextInput>}
           placeholder=""
           placeholderTextColor={PLACEHOLDER_DARK}
-          style={styles.input}
+          style={[styles.input, inputStyle]}
           value={value.location}
           onFocus={() => {
             onFocus?.();
@@ -233,7 +240,12 @@ export default function PlanLocationField({
       </View>
 
       {showDropdown ? (
-        <View style={styles.dropdown}>
+        <ScrollView
+          style={styles.dropdown}
+          keyboardShouldPersistTaps="handled"
+          nestedScrollEnabled
+          bounces={false}
+        >
           {suggestions.map((row) => (
             <Pressable
               key={row.placeId}
@@ -263,7 +275,7 @@ export default function PlanLocationField({
           {!loading && suggestions.length === 0 && !resolvingPlaceId ? (
             <Text style={styles.emptyHint}>No matching places</Text>
           ) : null}
-        </View>
+        </ScrollView>
       ) : null}
 
     </View>
@@ -316,6 +328,7 @@ const styles = StyleSheet.create({
     borderColor: BORDER,
     borderRadius: BUTTON_RADIUS,
     overflow: "hidden",
+    maxHeight: 180,
   },
   suggestionRow: {
     flexDirection: "row",

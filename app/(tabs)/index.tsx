@@ -45,6 +45,7 @@ import {
   formatSynqAudienceLabel,
   getMyAudienceSet,
   loadSynqAudiencePreference,
+  resolveSynqVisibleTo,
   saveSynqAudiencePreference,
   selectionFromUserBroadcastFields,
   type SynqAudienceSelection,
@@ -232,6 +233,16 @@ import EditSynqModal from '../synq-screens/EditSynqModal';
 import InactiveSynqView from '../synq-screens/InactiveSynqView';
 import SynqActivatingView from '../synq-screens/SynqActivatingView';
 import SynqAudienceSheet from '../synq-screens/SynqAudienceSheet';
+import CreateDropInSheet from '@/src/components/dropin/CreateDropInSheet';
+import FriendsDropInsStrip from '@/src/components/dropin/FriendsDropInsStrip';
+import {
+  cancelDropIn,
+  dropInErrorMessage,
+  parseDropInState,
+  pollActiveFriendDropIns,
+  type DropInPlace,
+  type FriendDropIn,
+} from '@/src/lib/dropIn';
 
 type MessagesPane = "inbox" | "chat" | "profile";
 
@@ -412,6 +423,7 @@ export default function SynqScreen() {
   const routeParams = useLocalSearchParams<{
     openChatId?: string | string[];
     openPendingChat?: string;
+    openChatWith?: string | string[];
   }>();
   const isIndexFocused = useIsFocused();
   const { width: windowWidth } = useWindowDimensions();
@@ -442,6 +454,16 @@ export default function SynqScreen() {
   const [selectedFriends, setSelectedFriends] = useState<string[]>([]);
   const [userProfile, setUserProfile] = useState<any>(null);
   const [isEditModalVisible, setIsEditModalVisible] = useState(false);
+  const [dropInComposeVisible, setDropInComposeVisible] = useState(false);
+  const [cancelDropInBusy, setCancelDropInBusy] = useState(false);
+  /** Keeps the live card visible if a stale profile snapshot briefly lacks drop-in fields. */
+  const [dropInLocal, setDropInLocal] = useState<{
+    text: string;
+    place: DropInPlace | null;
+    expiresAtMs: number;
+    visibleTo: string[];
+  } | null>(null);
+  const [friendDropIns, setFriendDropIns] = useState<FriendDropIn[]>([]);
   const [messagesModalVisible, setMessagesModalVisible] = useState(false);
   const [messagesPane, setMessagesPane] = useState<MessagesPane>("inbox");
   const messagesPaneRef = useRef<MessagesPane>("inbox");
@@ -1113,6 +1135,13 @@ export default function SynqScreen() {
     return () => task.cancel();
   }, [openChatIdParam, openChatById, router]);
 
+  const openChatWithParam = useMemo(() => {
+    const raw = routeParams.openChatWith;
+    if (typeof raw === "string") return raw.trim();
+    if (Array.isArray(raw)) return raw[0]?.trim() ?? "";
+    return "";
+  }, [routeParams.openChatWith]);
+
   useEffect(() => {
     if (routeParams.openPendingChat !== "1") return;
     router.setParams({ openPendingChat: "" });
@@ -1175,6 +1204,130 @@ export default function SynqScreen() {
       setFriendIdsHydrated(true);
     });
   }, [user?.uid]);
+
+  const myDropIn = useMemo(() => {
+    const fromProfile = parseDropInState(
+      userProfile as Record<string, unknown> | null
+    );
+    // Prefer optimistic local while the profile listener catches up — otherwise a
+    // stale snap without drop-in fields briefly/ permanently kills the live card.
+    if (dropInLocal && dropInLocal.expiresAtMs > Date.now()) {
+      if (!fromProfile.active) {
+        return {
+          active: true,
+          text: dropInLocal.text,
+          place: dropInLocal.place,
+          startedAtMs: Date.now(),
+          expiresAtMs: dropInLocal.expiresAtMs,
+          audienceMode: "all" as const,
+          visibleTo: dropInLocal.visibleTo,
+        };
+      }
+      return {
+        ...fromProfile,
+        // Prefer the freshest expiry / audience count from the Share response.
+        expiresAtMs: fromProfile.expiresAtMs ?? dropInLocal.expiresAtMs,
+        visibleTo:
+          fromProfile.visibleTo.length > 0
+            ? fromProfile.visibleTo
+            : dropInLocal.visibleTo,
+        text: fromProfile.text || dropInLocal.text,
+        place: fromProfile.place || dropInLocal.place,
+      };
+    }
+    return fromProfile;
+  }, [userProfile, dropInLocal]);
+
+  useEffect(() => {
+    const viewerId = user?.uid;
+    if (!viewerId || friendIds.length === 0) {
+      setFriendDropIns([]);
+      return;
+    }
+    let cancelled = false;
+    const ids = [...friendIds];
+    const load = () => {
+      void pollActiveFriendDropIns(viewerId, ids)
+        .then((rows) => {
+          if (!cancelled) setFriendDropIns(rows);
+        })
+        .catch(() => {
+          if (!cancelled) setFriendDropIns([]);
+        });
+    };
+    load();
+    const id = setInterval(load, 60_000);
+    return () => {
+      cancelled = true;
+      clearInterval(id);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user?.uid, friendIds.join("|")]);
+
+  const handleCancelDropIn = useCallback(async () => {
+    if (cancelDropInBusy) return;
+    setCancelDropInBusy(true);
+    setDropInLocal(null);
+    setUserProfile((prev: Record<string, unknown> | null) => {
+      if (!prev) return prev;
+      const next = { ...prev, dropInActive: false };
+      delete next.dropInText;
+      delete next.dropInPlace;
+      delete next.dropInStartedAt;
+      delete next.dropInExpiresAt;
+      delete next.dropInAudienceMode;
+      delete next.dropInAudienceGroupIds;
+      delete next.dropInVisibleTo;
+      return next;
+    });
+    try {
+      await cancelDropIn();
+    } catch (err) {
+      showActionError(dropInErrorMessage(err), "Couldn't end live status");
+    } finally {
+      setCancelDropInBusy(false);
+    }
+  }, [cancelDropInBusy, showActionError]);
+
+  const handleDropInSent = useCallback(
+    (payload: {
+      text: string;
+      place: DropInPlace | null;
+      expiresAtMs: number;
+      audience: SynqAudienceSelection;
+    }) => {
+      const visibleTo = resolveSynqVisibleTo(
+        payload.audience,
+        friendGroups,
+        friendIds
+      );
+      // Keep optimistic state only in dropInLocal — writing into userProfile races
+      // with the profile listener and can wipe the live card if a stale snap arrives.
+      setDropInLocal({
+        text: payload.text,
+        place: payload.place,
+        expiresAtMs: payload.expiresAtMs,
+        visibleTo,
+      });
+    },
+    [friendGroups, friendIds]
+  );
+
+  const handleDropInSendFailed = useCallback(() => {
+    setDropInLocal(null);
+  }, []);
+
+  const openDropInCompose = useCallback(() => {
+    setDropInComposeVisible(true);
+  }, []);
+
+  const messageDropInFriend = useCallback(
+    (friendId: string) => {
+      if (!friendId) return;
+      router.setParams({ openChatWith: friendId });
+    },
+    [router]
+  );
 
   useEffect(() => {
     const uid = user?.uid;
@@ -2252,6 +2405,18 @@ export default function SynqScreen() {
     }
   };
 
+  useEffect(() => {
+    if (!openChatWithParam || !auth.currentUser?.uid || !hydrated) return;
+    const friendId = openChatWithParam;
+    router.setParams({ openChatWith: "" });
+    const me = auth.currentUser.uid;
+    const task = InteractionManager.runAfterInteractions(() => {
+      void executeConnection([me, friendId].sort());
+    });
+    return () => task.cancel();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [openChatWithParam, hydrated, router]);
+
   const sendMessage = async () => {
     if (!inputText.trim() || !auth.currentUser) return;
     if (!pendingNewChat && !activeChatId) {
@@ -2709,6 +2874,21 @@ export default function SynqScreen() {
                 changeAudienceVisible ||
                 audienceUpdating
               }
+              onOpenDropIn={openDropInCompose}
+              dropInLive={
+                myDropIn.active
+                  ? {
+                      text: myDropIn.text,
+                      place: myDropIn.place,
+                      expiresAtMs: myDropIn.expiresAtMs,
+                      notifiedCount: myDropIn.visibleTo.length,
+                    }
+                  : null
+              }
+              onCancelDropIn={() => void handleCancelDropIn()}
+              cancelDropInBusy={cancelDropInBusy}
+              friendDropIns={friendDropIns}
+              onMessageDropInFriend={messageDropInFriend}
             />
           </View>
         )}
@@ -2730,9 +2910,39 @@ export default function SynqScreen() {
                   void saveSynqAudiencePreference(auth.currentUser.uid, next);
                 }
               }}
+              dropInLive={
+                myDropIn.active
+                  ? {
+                      text: myDropIn.text,
+                      place: myDropIn.place,
+                      expiresAtMs: myDropIn.expiresAtMs,
+                      notifiedCount: myDropIn.visibleTo.length,
+                    }
+                  : null
+              }
+              onCancelDropIn={() => void handleCancelDropIn()}
+              cancelDropInBusy={cancelDropInBusy}
             />
           </View>
         )}
+        {status === "idle" && hydrated && friendDropIns.length > 0 ? (
+          <View
+            style={{
+              position: "absolute",
+              left: 0,
+              right: 0,
+              top: insets.top + 8,
+              paddingHorizontal: 20,
+              zIndex: 4,
+            }}
+            pointerEvents="box-none"
+          >
+            <FriendsDropInsStrip
+              dropIns={friendDropIns}
+              onMessage={messageDropInFriend}
+            />
+          </View>
+        ) : null}
         {launchOverlay && (
           <Reanimated.View
             exiting={FadeOut.duration(240)}
@@ -3152,6 +3362,17 @@ export default function SynqScreen() {
             });
           }}
           onClose={() => setChangeAudienceVisible(false)}
+        />
+        <CreateDropInSheet
+          visible={dropInComposeVisible}
+          onClose={() => setDropInComposeVisible(false)}
+          friendGroups={friendGroups}
+          initialAudience={audienceSelection}
+          onSent={handleDropInSent}
+          onSendFailed={handleDropInSendFailed}
+          onError={(message) =>
+            showActionError(message, "Couldn't share live status")
+          }
         />
       </View>
     </TouchableWithoutFeedback>

@@ -26,6 +26,8 @@ import {
 } from "@/constants/Variables";
 import type { FriendGroup } from "@/src/lib/friendGroups";
 import { formatAudienceSelectionLabel, type SynqAudienceSelection } from "@/src/lib/synqBroadcast";
+import type { DropInPlace } from "@/src/lib/dropIn";
+import DropInLiveBanner from "@/src/components/dropin/DropInLiveBanner";
 import { Ionicons } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
 import { Image as ExpoImage } from "expo-image";
@@ -64,6 +66,14 @@ type Props = {
   friendGroups: FriendGroup[];
   audienceSelection: SynqAudienceSelection;
   onAudienceSelectionChange: (next: SynqAudienceSelection) => void;
+  dropInLive?: {
+    text: string;
+    place: DropInPlace | null;
+    expiresAtMs: number | null;
+    notifiedCount?: number;
+  } | null;
+  onCancelDropIn?: () => void;
+  cancelDropInBusy?: boolean;
 };
 
 const PULSE_SIZE = 238;
@@ -274,6 +284,9 @@ export default function InactiveSynqView({
   friendGroups,
   audienceSelection,
   onAudienceSelectionChange,
+  dropInLive,
+  onCancelDropIn,
+  cancelDropInBusy,
 }: Props) {
   const insets = useSafeAreaInsets();
   const reduced = useReducedMotion();
@@ -406,6 +419,19 @@ export default function InactiveSynqView({
           {isStartingSynq ? "ACTIVATING…" : "TAP TO ACTIVATE"}
         </Animated.Text>
       </Pressable>
+
+      {dropInLive ? (
+        <View style={styles.dropInBannerWrap}>
+          <DropInLiveBanner
+            text={dropInLive.text}
+            place={dropInLive.place}
+            expiresAtMs={dropInLive.expiresAtMs}
+            notifiedCount={dropInLive.notifiedCount}
+            onCancel={() => onCancelDropIn?.()}
+            cancelBusy={cancelDropInBusy}
+          />
+        </View>
+      ) : null}
     </Animated.View>
   );
 
@@ -589,6 +615,12 @@ const styles = StyleSheet.create({
     fontFamily: fonts.heavy,
     letterSpacing: 1.2,
     textAlign: "center",
+  },
+  dropInBannerWrap: {
+    marginTop: SPACE_4,
+    width: "100%",
+    maxWidth: CONTENT_W,
+    alignSelf: "center",
   },
   stage: {
     width: ORB_STAGE,

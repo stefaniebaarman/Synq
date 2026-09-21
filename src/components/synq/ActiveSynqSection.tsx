@@ -1,7 +1,10 @@
 import type { Friend } from "@/constants/Variables";
+import DropInLiveBanner from "@/src/components/dropin/DropInLiveBanner";
+import FriendsDropInsStrip from "@/src/components/dropin/FriendsDropInsStrip";
 import { SkeletonBlock } from "@/src/components/loading/BrandSkeletons";
 import ActiveSynqEmptyState from "@/src/components/synq/ActiveSynqEmptyState";
 import NotificationBadge from "@/src/components/NotificationBadge";
+import type { DropInPlace, FriendDropIn } from "@/src/lib/dropIn";
 import { friendLocationWithDistance } from "@/src/lib/friendDistance";
 import { friendLocationLine, resolveAvatar } from "@/src/lib/helpers";
 import { SYNQ_TAB_LONG_PRESS } from "@/src/lib/synqTabEvents";
@@ -146,6 +149,17 @@ type Props = {
   viewerId?: string;
   nudgeCandidates?: Friend[];
   friendsLoading?: boolean;
+  onOpenDropIn?: () => void;
+  dropInLive?: {
+    text: string;
+    place: DropInPlace | null;
+    expiresAtMs: number | null;
+    notifiedCount?: number;
+  } | null;
+  onCancelDropIn?: () => void;
+  cancelDropInBusy?: boolean;
+  friendDropIns?: FriendDropIn[];
+  onMessageDropInFriend?: (friendId: string) => void;
 };
 
 export default function ActiveSynqSection({
@@ -166,6 +180,12 @@ export default function ActiveSynqSection({
   viewerId,
   nudgeCandidates = [],
   friendsLoading = false,
+  onOpenDropIn,
+  dropInLive,
+  onCancelDropIn,
+  cancelDropInBusy,
+  friendDropIns = [],
+  onMessageDropInFriend,
 }: Props) {
   const insets = useSafeAreaInsets();
   const [optionsVisible, setOptionsVisible] = useState(false);
@@ -321,6 +341,69 @@ export default function ActiveSynqSection({
             </Pressable>
           </Animated.View>
 
+          {dropInLive ? (
+            <>
+              <View style={styles.statusDivider} />
+              <Animated.View
+                entering={
+                  reducedMotion ? undefined : FadeIn.delay(90).duration(400)
+                }
+                style={styles.dropInBannerInPanel}
+              >
+                <DropInLiveBanner
+                  text={dropInLive.text}
+                  place={dropInLive.place}
+                  expiresAtMs={dropInLive.expiresAtMs}
+                  notifiedCount={dropInLive.notifiedCount}
+                  onCancel={() => onCancelDropIn?.()}
+                  cancelBusy={cancelDropInBusy}
+                />
+              </Animated.View>
+            </>
+          ) : onOpenDropIn ? (
+            <>
+              <View style={styles.statusDivider} />
+              <Animated.View
+                entering={
+                  reducedMotion ? undefined : FadeIn.delay(90).duration(400)
+                }
+              >
+                <Pressable
+                  onPress={() => {
+                    void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                    onOpenDropIn();
+                  }}
+                  style={({ pressed }) => [
+                    styles.dropInRow,
+                    pressed && styles.statusRowPressed,
+                  ]}
+                  accessibilityRole="button"
+                  accessibilityLabel="Share live status"
+                  accessibilityHint="Let friends know where you are"
+                >
+                  <Ionicons
+                    name="location-outline"
+                    size={22}
+                    color={ACCENT}
+                    style={styles.dropInRowIcon}
+                  />
+                  <View style={styles.dropInRowCopy}>
+                    <Text style={styles.dropInRowTitle}>Share live status</Text>
+                    <Text style={styles.dropInRowSubtitle}>
+                      Let friends know where you are
+                    </Text>
+                  </View>
+                  <Ionicons
+                    name="chevron-forward"
+                    size={18}
+                    color={MUTED2}
+                    style={styles.statusRowIcon}
+                  />
+                </Pressable>
+              </Animated.View>
+            </>
+          ) : null}
+
           {audienceLabel || openChangeAudience ? (
             <>
               <View style={styles.statusDivider} />
@@ -357,6 +440,15 @@ export default function ActiveSynqSection({
             </>
           ) : null}
         </View>
+
+        {friendDropIns.length > 0 && onMessageDropInFriend ? (
+          <View style={styles.dropInsStripWrap}>
+            <FriendsDropInsStrip
+              dropIns={friendDropIns}
+              onMessage={onMessageDropInFriend}
+            />
+          </View>
+        ) : null}
 
         <View style={styles.listPad}>
           <FlatList
@@ -639,6 +731,36 @@ const styles = StyleSheet.create({
     color: ACCENT,
     fontFamily: fonts.medium,
   },
+  dropInRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingVertical: 14,
+    gap: 12,
+  },
+  dropInRowIcon: {
+    flexShrink: 0,
+    marginTop: 1,
+  },
+  dropInRowCopy: {
+    flex: 1,
+    minWidth: 0,
+    gap: 2,
+  },
+  dropInRowTitle: {
+    color: TEXT,
+    fontFamily: fonts.medium,
+    fontSize: TYPE_BODY,
+    lineHeight: 20,
+  },
+  dropInRowSubtitle: {
+    color: MUTED3,
+    fontFamily: fonts.book,
+    fontSize: TYPE_CAPTION,
+    lineHeight: 17,
+  },
+  dropInBannerInPanel: {
+    paddingVertical: 10,
+  },
   listPad: {
     flex: 1,
     minHeight: 0,
@@ -731,5 +853,9 @@ const styles = StyleSheet.create({
     height: 10,
     borderRadius: 5,
     marginTop: 8,
+  },
+  dropInsStripWrap: {
+    paddingHorizontal: 20,
+    marginBottom: 4,
   },
 });

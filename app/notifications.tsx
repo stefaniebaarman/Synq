@@ -87,6 +87,7 @@ type ActivityFeedKind =
   | "community_post_rejected"
   | "friend_synq_active"
   | "synq_nudge"
+  | "friend_drop_in"
   | "friends_free_digest";
 
 type ActivityFeedSource = "notifications" | "legacy";
@@ -138,6 +139,7 @@ type StandardActivityFeedItem = {
   groupId?: string | null;
   planId?: string | null;
   groupName?: string | null;
+  dropInPlaceName?: string | null;
   raw: Record<string, unknown>;
 };
 
@@ -340,6 +342,35 @@ function mapActivity(item: Record<string, unknown> & { id: string }, cache: Acto
     };
   }
 
+  if (type === "friend_drop_in") {
+    let placeName = String(item.dropInPlaceName || "").trim();
+    if (!placeName && storedBody) {
+      const match = storedBody.match(/\bis at\s+(.+?),\s*come join\s*$/i);
+      if (match?.[1]) placeName = match[1].trim();
+    }
+    const fallback = placeName
+      ? `${name} is at ${placeName}, come join`
+      : `${name} wants you to come join`;
+    return {
+      ...item,
+      type,
+      fromUserId,
+      actorName: name,
+      actorImageUrl,
+      planTitle: planTitle || null,
+      title: normalizeNotificationTitle(title) || "Come join",
+      body: storedBody || fallback,
+      dropInPlaceName: placeName || null,
+      sortMs: timestampMillis(item.createdAt) || Date.now(),
+      read: item.read === true,
+      eventId: item.eventId ? String(item.eventId) : null,
+      planHostUid: item.planHostUid ? String(item.planHostUid) : null,
+      groupId: item.groupId ? String(item.groupId) : null,
+      planId: item.planId ? String(item.planId) : null,
+      groupName: item.groupName ? String(item.groupName) : null,
+    };
+  }
+
   const parts = activityMessageParts(
     type,
     type === "community_post_approval" ||
@@ -461,7 +492,8 @@ function normalizeNotificationTitle(title: string): string {
 
 function activityMessageParts(
   kind: PlanInviteFeedItem["kind"] | ActivityFeedKind,
-  planTitle?: string | null
+  planTitle?: string | null,
+  placeName?: string | null
 ): { rest: string; emphasis?: string } {
   const title = String(planTitle || "").trim();
   switch (kind) {
@@ -495,6 +527,12 @@ function activityMessageParts(
       return { rest: " is free" };
     case "synq_nudge":
       return { rest: " wants to know if you're free right now" };
+    case "friend_drop_in": {
+      const at = String(placeName || "").trim();
+      return at
+        ? { rest: ` is at ${at}, come join` }
+        : { rest: " wants you to come join" };
+    }
     case "friends_free_digest":
       return { rest: "" };
     default:
@@ -891,6 +929,7 @@ export default function NotificationsScreen() {
           "community_post_rejected",
           "friend_synq_active",
           "synq_nudge",
+          "friend_drop_in",
           "friends_free_digest",
         ].includes(a.type)
       )
@@ -915,6 +954,11 @@ export default function NotificationsScreen() {
           groupId: a.groupId,
           planId: a.planId,
           groupName: a.groupName,
+          dropInPlaceName:
+            "dropInPlaceName" in a
+              ? ((a as { dropInPlaceName?: string | null }).dropInPlaceName ??
+                null)
+              : null,
           raw: a,
         };
 
@@ -1167,6 +1211,19 @@ export default function NotificationsScreen() {
     ) {
       void dismissActivity(item);
       router.push("/(tabs)");
+      return;
+    }
+
+    if (item.kind === "friend_drop_in") {
+      void dismissActivity(item);
+      if (item.fromUserId) {
+        router.push({
+          pathname: "/(tabs)",
+          params: { openChatWith: item.fromUserId },
+        });
+      } else {
+        router.push("/(tabs)");
+      }
       return;
     }
 
@@ -1426,7 +1483,10 @@ export default function NotificationsScreen() {
                     item.kind === "community_post_approved" ||
                     item.kind === "community_post_rejected"
                       ? item.groupName
-                      : item.planTitle
+                      : item.planTitle,
+                    item.kind === "friend_drop_in"
+                      ? item.dropInPlaceName
+                      : undefined
                   )}
                 />
               )}

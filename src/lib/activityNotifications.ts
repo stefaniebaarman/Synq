@@ -12,14 +12,21 @@ export function friendSynqActiveNotifId(
   return `synq_active_${activatedUserId}_${recipientId}`.slice(0, 1400);
 }
 
-export function activityNotificationId(
-  type: "friend_synq_active" | "synq_nudge",
+export function friendDropInNotifId(
   fromUserId: string,
   recipientId: string
 ): string {
-  return type === "synq_nudge"
-    ? synqNudgeNotifId(fromUserId, recipientId)
-    : friendSynqActiveNotifId(fromUserId, recipientId);
+  return `friend_drop_in_${fromUserId}_${recipientId}`.slice(0, 1400);
+}
+
+export function activityNotificationId(
+  type: "friend_synq_active" | "synq_nudge" | "friend_drop_in",
+  fromUserId: string,
+  recipientId: string
+): string {
+  if (type === "synq_nudge") return synqNudgeNotifId(fromUserId, recipientId);
+  if (type === "friend_drop_in") return friendDropInNotifId(fromUserId, recipientId);
+  return friendSynqActiveNotifId(fromUserId, recipientId);
 }
 
 /** Deletes mirrored notification docs (notifications + notificationLocks). */
