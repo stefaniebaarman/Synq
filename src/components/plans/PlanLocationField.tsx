@@ -30,6 +30,7 @@ import {
   TextInput,
   View,
   type StyleProp,
+  type TextStyle,
   type ViewStyle,
 } from "react-native";
 
@@ -49,7 +50,7 @@ type Props = {
   placeholder?: string;
   accessibilityLabel?: string;
   style?: StyleProp<ViewStyle>;
-  inputStyle?: StyleProp<ViewStyle>;
+  inputStyle?: StyleProp<TextStyle>;
 };
 
 const DEBOUNCE_MS = 280;

@@ -67,6 +67,16 @@ function parsePushNotificationTap(data) {
     };
   }
 
+  if (type === "friend_drop_in") {
+    const fromUserId = str(data.fromUserId);
+    return {
+      kind: "synq_home",
+      fromUserId,
+      notificationType: type,
+      openChatWith: fromUserId,
+    };
+  }
+
   if (type === "open_plan_interest") {
     return {
       kind: "me",

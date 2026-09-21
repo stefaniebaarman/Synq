@@ -28,6 +28,7 @@ export const MAX_COMMUNITY_GROUPS_JOINED = 50;
 export const MAX_COMMUNITY_GROUPS_CREATED = 10;
 export const COMMUNITY_GROUP_SEARCH_LIMIT = 25;
 export const ALL_COMMUNITY_GROUPS_LIMIT = 200;
+const CREATOR_ID_IN_CHUNK = 10;
 
 export type CommunityGroup = {
   id: string;
@@ -217,6 +218,7 @@ export async function searchCommunityGroups(searchText: string): Promise<Communi
   return snap.docs.map((d) => mapCommunityGroupDoc(d.id, d.data() as Record<string, unknown>));
 }
 
+/** @deprecated Use fetchFriendCreatedCommunityGroups — public browse is removed. */
 export async function fetchAllCommunityGroups(
   limitCount = ALL_COMMUNITY_GROUPS_LIMIT
 ): Promise<CommunityGroup[]> {
@@ -227,6 +229,99 @@ export async function fetchAllCommunityGroups(
   return snap.docs
     .map((d) => mapCommunityGroupDoc(d.id, d.data() as Record<string, unknown>))
     .filter((g) => g.memberIds.length > 0);
+}
+
+/**
+ * Communities created by the viewer or any of their friends.
+ * Does not include communities a friend merely joined.
+ */
+export async function fetchFriendCreatedCommunityGroups(
+  uid: string,
+  friendIds: string[]
+): Promise<CommunityGroup[]> {
+  const creatorIds = [
+    ...new Set(
+      [uid, ...friendIds]
+        .map((id) => String(id || "").trim())
+        .filter(Boolean)
+    ),
+  ];
+  if (creatorIds.length === 0) return [];
+
+  const byId = new Map<string, CommunityGroup>();
+  for (let i = 0; i < creatorIds.length; i += CREATOR_ID_IN_CHUNK) {
+    const chunk = creatorIds.slice(i, i + CREATOR_ID_IN_CHUNK);
+    const snap = await getDocs(
+      query(communityGroupsCollection(), where("creatorId", "in", chunk))
+    );
+    for (const d of snap.docs) {
+      const group = mapCommunityGroupDoc(d.id, d.data() as Record<string, unknown>);
+      if (group.memberIds.length > 0) {
+        byId.set(group.id, group);
+      }
+    }
+  }
+
+  return [...byId.values()].sort((a, b) => a.name.localeCompare(b.name));
+}
+
+export function filterCommunityGroupsByName(
+  groups: CommunityGroup[],
+  searchText: string
+): CommunityGroup[] {
+  const q = normalizeNameLower(searchText);
+  if (!q) return groups;
+  return groups.filter(
+    (g) =>
+      g.nameLower.includes(q) ||
+      normalizeNameLower(g.name).includes(q)
+  );
+}
+
+export async function joinCommunityViaShareCode(
+  shareCode: string
+): Promise<{ groupId: string; memberIds: string[] }> {
+  const code = String(shareCode || "").trim().toUpperCase();
+  if (!code) {
+    throw new Error("Invalid community link.");
+  }
+  const functions = getFunctions(undefined, "us-central1");
+  const join = httpsCallable(functions, "joinCommunityViaShareCode");
+  const result = await join({ shareCode: code });
+  const data = (result.data || {}) as {
+    groupId?: unknown;
+    memberIds?: unknown;
+  };
+  const groupId = String(data.groupId || "").trim();
+  const memberIds = Array.isArray(data.memberIds)
+    ? data.memberIds.map((id) => String(id || "").trim()).filter(Boolean)
+    : [];
+  if (!groupId) {
+    throw new Error("Could not join community.");
+  }
+  return { groupId, memberIds };
+}
+
+export async function getCommunityPreviewByShareCode(
+  shareCode: string
+): Promise<CommunityGroup | null> {
+  const code = String(shareCode || "").trim().toUpperCase();
+  if (!code) return null;
+  const functions = getFunctions(undefined, "us-central1");
+  const preview = httpsCallable(functions, "getCommunityPreviewByShareCode");
+  const result = await preview({ shareCode: code });
+  const data = (result.data || {}) as { group?: Record<string, unknown> };
+  const group = data.group;
+  if (!group || typeof group !== "object") return null;
+  const id = String(group.id || "").trim();
+  if (!id) return null;
+  const memberCount = Math.max(
+    0,
+    Math.min(MAX_COMMUNITY_GROUP_MEMBERS, Number(group.memberCount) || 0)
+  );
+  // Preview omits real member ids; pad placeholders so UI member counts stay accurate.
+  const memberIds = Array.from({ length: memberCount }, (_, i) => `preview:${i}`);
+  return mapCommunityGroupDoc(id, { ...group, memberIds });
 }
 
 export async function createCommunityGroup(

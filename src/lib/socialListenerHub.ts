@@ -36,7 +36,15 @@ type CommunityGroupLike = {
 type JoinedCommunityGroupsListener = (groups: CommunityGroupLike[]) => void;
 
 const userDocHub = new Map<string, { unsub: Unsubscribe; listeners: Set<UserDocListener> }>();
-const friendsHub = new Map<string, { unsub: Unsubscribe; listeners: Set<FriendsListener> }>();
+const friendsHub = new Map<
+  string,
+  {
+    unsub: Unsubscribe;
+    listeners: Set<FriendsListener>;
+    /** Undefined until the first successful snapshot (empty array is a valid value). */
+    lastValue?: string[];
+  }
+>();
 type SnapshotErrorListener = (err: unknown) => void;
 
 const friendGroupsHub = new Map<
@@ -149,10 +157,15 @@ export function subscribeFriendsIdsMultiplexed(
   let hub = friendsHub.get(uid);
   if (!hub) {
     const listeners = new Set<FriendsListener>();
-    const unsub = onSnapshot(
+    // Register before onSnapshot so a sync first emission can store lastValue.
+    hub = { unsub: () => {}, listeners };
+    friendsHub.set(uid, hub);
+    hub.unsub = onSnapshot(
       collection(db, "users", uid, "friends"),
       (snap) => {
         const ids = snap.docs.map((d) => d.id);
+        const current = friendsHub.get(uid);
+        if (current) current.lastValue = ids;
         for (const fn of listeners) {
           try {
             fn(ids);
@@ -163,11 +176,15 @@ export function subscribeFriendsIdsMultiplexed(
         ignoreSnapshotPermissionDenied(err);
       }
     );
-    hub = { unsub, listeners };
-    friendsHub.set(uid, hub);
   }
 
   hub.listeners.add(listener);
+  // Replay so late subscribers (e.g. Friends tab after Synq/Me) hydrate immediately.
+  if (hub.lastValue !== undefined) {
+    try {
+      listener(hub.lastValue);
+    } catch {}
+  }
   return () => {
     const current = friendsHub.get(uid);
     if (!current) return;

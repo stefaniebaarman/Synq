@@ -56,7 +56,7 @@ type SocialWarmMeta = {
 };
 
 const socialWarmMetaByUser: Record<string, SocialWarmMeta> = {};
-const friendProfileFetchedAtByUser: Record<string, Record<string, number>> = {};
+export const friendProfileFetchedAtByUser: Record<string, Record<string, number>> = {};
 const friendsOfFriendIdsByUser: Record<
   string,
   Record<string, { ids: string[]; fetchedAt: number }>
@@ -482,7 +482,7 @@ export async function warmFriendsAndConnectionsCache(
     let friendDocs: { id: string; synqCount: number }[];
     let friendsSnapDocs: { id: string; data: () => Record<string, unknown> }[] = [];
 
-    if (options.friendIds?.length) {
+    if (options.friendIds) {
       friendDocs = options.friendIds.map((id) => ({
         id,
         synqCount: friendRelationCacheByUser[userId]?.[id]?.synqCount ?? 0,

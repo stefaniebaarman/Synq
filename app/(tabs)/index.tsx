@@ -1268,7 +1268,7 @@ export default function SynqScreen() {
     if (cancelDropInBusy) return;
     setCancelDropInBusy(true);
     setDropInLocal(null);
-    setUserProfile((prev: Record<string, unknown> | null) => {
+    setUserProfile((prev: any) => {
       if (!prev) return prev;
       const next = { ...prev, dropInActive: false };
       delete next.dropInText;

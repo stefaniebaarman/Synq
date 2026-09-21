@@ -411,11 +411,18 @@ function findRemovedHostedPlans(hostUid, beforeEvents, afterEvents) {
 }
 
 function planContentFields(e) {
+  const location = String(e?.location || "").trim();
+  const lat = Number(e?.locationLat);
+  const lng = Number(e?.locationLng);
+  const placeId = String(e?.placeId || "").trim();
+  const hasCoords = Number.isFinite(lat) && Number.isFinite(lng);
   return {
     title: String(e?.title || "").trim(),
     date: String(e?.date || "").trim(),
     time: String(e?.time || "").trim(),
-    location: String(e?.location || "").trim(),
+    location,
+    ...(hasCoords ? { locationLat: lat, locationLng: lng } : {}),
+    ...(placeId ? { placeId } : {}),
   };
 }
 
@@ -426,7 +433,10 @@ function planContentChanged(beforeEv, afterEv) {
     before.title !== after.title ||
     before.date !== after.date ||
     before.time !== after.time ||
-    before.location !== after.location
+    before.location !== after.location ||
+    before.locationLat !== after.locationLat ||
+    before.locationLng !== after.locationLng ||
+    before.placeId !== after.placeId
   );
 }
 
@@ -472,18 +482,34 @@ async function patchPlanFieldsOnUser(db, targetUid, beforeSnapshot, afterFields,
     prevFields.title === nextFields.title &&
     prevFields.date === nextFields.date &&
     prevFields.time === nextFields.time &&
-    prevFields.location === nextFields.location
+    prevFields.location === nextFields.location &&
+    prevFields.locationLat === nextFields.locationLat &&
+    prevFields.locationLng === nextFields.locationLng &&
+    prevFields.placeId === nextFields.placeId
   ) {
     return false;
   }
 
-  events[idx] = {
+  const patched = {
     ...row,
     title: nextFields.title,
     date: nextFields.date,
     time: nextFields.time,
     location: nextFields.location,
   };
+  delete patched.locationLat;
+  delete patched.locationLng;
+  delete patched.placeId;
+  if (
+    nextFields.location &&
+    Number.isFinite(nextFields.locationLat) &&
+    Number.isFinite(nextFields.locationLng)
+  ) {
+    patched.locationLat = nextFields.locationLat;
+    patched.locationLng = nextFields.locationLng;
+    if (nextFields.placeId) patched.placeId = nextFields.placeId;
+  }
+  events[idx] = patched;
   await targetRef.update({ events });
   return true;
 }
