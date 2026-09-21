@@ -514,7 +514,7 @@ const styles = StyleSheet.create({
   },
   authorName: {
     ...listRowTitleText,
-    color: ACCENT,
+    color: TEXT,
     fontFamily: fonts.heavy,
   },
   meta: {

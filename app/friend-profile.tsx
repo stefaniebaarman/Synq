@@ -1945,7 +1945,7 @@ const styles = StyleSheet.create({
     backgroundColor: PROFILE_SURFACE,
     borderWidth: StyleSheet.hairlineWidth,
     borderColor: GROUP_BORDER,
-    borderRadius: 999,
+    borderRadius: SYNQ_OUTLINE_CTA_RADIUS,
     paddingHorizontal: 12,
     paddingVertical: 7,
   },

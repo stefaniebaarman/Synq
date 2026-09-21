@@ -1174,7 +1174,7 @@ export default function RootLayout() {
       }
       router.push({
         pathname: "/community-group/[id]",
-        params: { id: groupId },
+        params: { id: groupId, shareCode },
       });
       await AsyncStorage.removeItem(PENDING_COMMUNITY_SHARE_CODE_KEY);
     };

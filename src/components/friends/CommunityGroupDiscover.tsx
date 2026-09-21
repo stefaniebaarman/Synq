@@ -28,13 +28,14 @@ import StackScreenHeader from "@/src/components/StackScreenHeader";
 import { COMMUNITY_GROUP_CATEGORIES } from "@/src/lib/communityGroupCategories";
 import {
   CommunityGroup,
-  fetchAllCommunityGroups,
+  fetchFriendCreatedCommunityGroups,
+  filterCommunityGroupsByName,
   joinCommunityGroup,
-  searchCommunityGroups,
   subscribeJoinedCommunityGroups,
 } from "@/src/lib/communityGroups";
 import { auth } from "@/src/lib/firebase";
-import { communityGroupsCacheByUser } from "@/src/lib/socialCache";
+import { communityGroupsCacheByUser, friendsListCacheByUser } from "@/src/lib/socialCache";
+import { subscribeFriendsIdsMultiplexed } from "@/src/lib/socialListenerHub";
 import { Ionicons } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
 import { useRouter } from "expo-router";
@@ -83,16 +84,17 @@ export default function CommunityGroupDiscover() {
   const cached = userId ? communityGroupsCacheByUser[userId] ?? [] : [];
   const [joined, setJoined] = useState<CommunityGroup[]>(cached);
   const [query, setQuery] = useState("");
-  const [results, setResults] = useState<CommunityGroup[]>([]);
-  const [searching, setSearching] = useState(false);
   const [joiningId, setJoiningId] = useState<string | null>(null);
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
-  const [allGroups, setAllGroups] = useState<CommunityGroup[]>([]);
-  const [allGroupsLoading, setAllGroupsLoading] = useState(true);
-  const searchTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [friendIds, setFriendIds] = useState<string[]>(() =>
+    userId ? (friendsListCacheByUser[userId] ?? []).map((f) => f.id) : []
+  );
+  const [friendGroups, setFriendGroups] = useState<CommunityGroup[]>([]);
+  const [friendGroupsLoading, setFriendGroupsLoading] = useState(true);
   const [alertVisible, setAlertVisible] = useState(false);
   const [alertTitle, setAlertTitle] = useState<string | undefined>();
   const [alertMessage, setAlertMessage] = useState("");
+  const loadGenRef = useRef(0);
 
   const joinedGroupIds = useMemo(() => new Set(joined.map((g) => g.id)), [joined]);
 
@@ -129,54 +131,52 @@ export default function CommunityGroupDiscover() {
   }, [userId]);
 
   useEffect(() => {
-    const trimmed = query.trim();
-    if (!trimmed) {
-      setResults([]);
-      setSearching(false);
+    if (!userId) return;
+    return subscribeFriendsIdsMultiplexed(userId, setFriendIds);
+  }, [userId]);
+
+  const friendIdsKey = useMemo(
+    () => [...friendIds].sort().join(","),
+    [friendIds]
+  );
+
+  useEffect(() => {
+    if (!userId) {
+      setFriendGroups([]);
+      setFriendGroupsLoading(false);
       return;
     }
 
-    setSearching(true);
-    if (searchTimerRef.current) clearTimeout(searchTimerRef.current);
-    searchTimerRef.current = setTimeout(() => {
-      void searchCommunityGroups(trimmed)
-        .then((groups) => setResults(sortGroupsByName(groups)))
-        .catch(() => setResults([]))
-        .finally(() => setSearching(false));
-    }, 280);
-
-    return () => {
-      if (searchTimerRef.current) clearTimeout(searchTimerRef.current);
-    };
-  }, [query]);
-
-  useEffect(() => {
     let cancelled = false;
-    setAllGroupsLoading(true);
-    void fetchAllCommunityGroups()
+    const gen = ++loadGenRef.current;
+    setFriendGroupsLoading(true);
+    void fetchFriendCreatedCommunityGroups(userId, friendIds)
       .then((groups) => {
-        if (!cancelled) setAllGroups(sortGroupsByName(groups));
+        if (cancelled || gen !== loadGenRef.current) return;
+        setFriendGroups(sortGroupsByName(groups));
       })
       .catch(() => {
-        if (!cancelled) setAllGroups([]);
+        if (cancelled || gen !== loadGenRef.current) return;
+        setFriendGroups([]);
       })
       .finally(() => {
-        if (!cancelled) setAllGroupsLoading(false);
+        if (cancelled || gen !== loadGenRef.current) return;
+        setFriendGroupsLoading(false);
       });
 
     return () => {
       cancelled = true;
     };
-  }, []);
+    // friendIdsKey stabilizes array identity from the friends listener.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [userId, friendIdsKey]);
 
   const trimmed = query.trim();
 
   const displayGroups = useMemo(() => {
-    const base = trimmed ? results : allGroups;
-    return sortGroupsByName(filterGroupsByCategory(base, selectedCategory));
-  }, [trimmed, results, allGroups, selectedCategory]);
-
-  const listLoading = trimmed ? searching : allGroupsLoading;
+    const named = filterCommunityGroupsByName(friendGroups, trimmed);
+    return sortGroupsByName(filterGroupsByCategory(named, selectedCategory));
+  }, [friendGroups, trimmed, selectedCategory]);
 
   const handleJoin = async (group: CommunityGroup) => {
     if (!userId || joiningId) return;
@@ -209,6 +209,7 @@ export default function CommunityGroupDiscover() {
   const renderGroupRow = (item: CommunityGroup) => {
     const isJoined = joinedGroupIds.has(item.id);
     const busy = joiningId === item.id;
+    const createdByYou = item.creatorId === userId;
 
     return (
       <GroupListCard
@@ -227,6 +228,7 @@ export default function CommunityGroupDiscover() {
             {item.name}
           </Text>
           <Text style={groupsPageStyles.circleCardMeta} numberOfLines={1}>
+            {createdByYou ? "Created by you · " : ""}
             {formatMemberCount(item.memberIds.length)}
             {item.category ? ` · ${item.category}` : ""}
             {item.location ? ` · ${item.location}` : ""}
@@ -304,15 +306,15 @@ export default function CommunityGroupDiscover() {
 
   const emptyMessage = trimmed
     ? selectedCategory
-      ? `No groups found for "${trimmed}" in ${selectedCategory}.`
-      : `No groups found for "${trimmed}".`
+      ? `No friend communities found for "${trimmed}" in ${selectedCategory}.`
+      : `No friend communities found for "${trimmed}".`
     : selectedCategory
-      ? `No communities in ${selectedCategory} yet.`
-      : "No communities yet.";
+      ? `No friend communities in ${selectedCategory} yet.`
+      : "Communities your friends create show up here. Invite people to grow them.";
 
   let listContent: React.ReactNode;
 
-  if (listLoading) {
+  if (friendGroupsLoading) {
     listContent = (
       <Pressable style={styles.centered} onPress={dismissKeyboard}>
         <ListRowsSkeleton />
@@ -352,7 +354,7 @@ export default function CommunityGroupDiscover() {
 
   return (
     <SafeAreaView style={styles.screen} edges={["bottom", "left", "right"]}>
-      <StackScreenHeader title="Discover" onBack={goBack} />
+      <StackScreenHeader title="Find communities" onBack={goBack} />
 
       <View style={styles.body}>
         <View style={styles.searchRow}>

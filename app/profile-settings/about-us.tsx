@@ -102,8 +102,8 @@ export default function AboutUsScreen() {
               <Text style={styles.bulletDot}>•</Text>
               <Text style={styles.bulletText}>
                 Use <Text style={styles.bold}>Circles</Text> for private friend
-                lists and <Text style={styles.bold}>Communities</Text> for open
-                interest groups
+                lists and <Text style={styles.bold}>Communities</Text> for
+                friend-created spaces you grow by invite
               </Text>
             </View>
             <View style={styles.bulletRow}>

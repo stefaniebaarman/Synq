@@ -133,7 +133,7 @@ export default function CommunitySection({ userId }: Props) {
           accessibilityLabel="Find communities"
         >
           <View style={groupsPageStyles.browseRowIcon}>
-            <Ionicons name="compass-outline" size={20} color={MUTED2} />
+            <Ionicons name="people-outline" size={20} color={MUTED2} />
           </View>
           <Text style={groupsPageStyles.browseRowTitle}>Find communities</Text>
           <Ionicons name="chevron-forward" size={16} color={MUTED3} />

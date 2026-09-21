@@ -38,7 +38,7 @@ const COPY: Record<
   community: {
     title: "Communities",
     body:
-      "Open communities around a shared interest. Anyone can join to meet people beyond your circle.",
+      "Spaces friends create for shared hangouts. You only see communities you or a friend started — grow them by inviting people or sharing a join link.",
   },
 };
 

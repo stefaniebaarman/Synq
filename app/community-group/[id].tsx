@@ -66,7 +66,9 @@ import {
   communityGroupRef,
   deleteCommunityGroup,
   ensureCommunityGroupIdOnUser,
+  getCommunityPreviewByShareCode,
   joinCommunityGroup,
+  joinCommunityViaShareCode,
   leaveCommunityGroup,
   mapCommunityGroupDoc,
   removeMemberFromCommunityGroup,
@@ -140,16 +142,24 @@ type MemberRow = {
 export default function CommunityGroupDetailScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const { id: groupId, planId: initialPlanId } = useLocalSearchParams<{
-    id?: string;
-    planId?: string;
-  }>();
+  const { id: groupId, planId: initialPlanId, shareCode: shareCodeParam } =
+    useLocalSearchParams<{
+      id?: string;
+      planId?: string;
+      shareCode?: string;
+    }>();
   const uid = auth.currentUser?.uid ?? "";
   const friends = uid ? friendsListCacheByUser[uid] ?? [] : [];
+  const shareCode = String(
+    Array.isArray(shareCodeParam) ? shareCodeParam[0] : shareCodeParam || ""
+  )
+    .trim()
+    .toUpperCase();
 
   const [group, setGroup] = useState<CommunityGroup | null>(null);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<"not_found" | "permission" | null>(null);
+  const [sharePreview, setSharePreview] = useState(false);
   const [memberProfiles, setMemberProfiles] = useState<Record<string, MemberRow>>({});
   const [addSheetVisible, setAddSheetVisible] = useState(false);
   const [inviteBusy, setInviteBusy] = useState(false);
@@ -198,11 +208,13 @@ export default function CommunityGroupDetailScreen() {
       (snap) => {
         if (!snap.exists()) {
           setGroup(null);
+          setSharePreview(false);
           setLoadError("not_found");
           setLoading(false);
           return;
         }
         setLoadError(null);
+        setSharePreview(false);
         const data = snap.data() as Record<string, unknown>;
         const serverMemberIds = Array.isArray(data.memberIds)
           ? [...new Set((data.memberIds as string[]).filter(Boolean))]
@@ -222,16 +234,43 @@ export default function CommunityGroupDetailScreen() {
       },
       (err) => {
         const code = (err as { code?: string }).code;
+        if (code === "permission-denied" && shareCode) {
+          void getCommunityPreviewByShareCode(shareCode)
+            .then((preview) => {
+              if (!preview || preview.id !== groupId) {
+                setGroup(null);
+                setSharePreview(false);
+                setLoadError("permission");
+                setLoading(false);
+                return;
+              }
+              setGroup(preview);
+              setSharePreview(true);
+              setLoadError(null);
+              setLoading(false);
+            })
+            .catch(() => {
+              setGroup(null);
+              setSharePreview(false);
+              setLoadError("permission");
+              setLoading(false);
+            });
+          return;
+        }
         setLoadError(code === "permission-denied" ? "permission" : "not_found");
         setGroup(null);
+        setSharePreview(false);
         setLoading(false);
       }
     );
     return unsub;
-  }, [groupId]);
+  }, [groupId, shareCode]);
 
   useEffect(() => {
-    if (!group) return;
+    if (!group || sharePreview) {
+      if (sharePreview) setMemberProfiles({});
+      return;
+    }
 
     let cancelled = false;
 
@@ -306,16 +345,16 @@ export default function CommunityGroupDetailScreen() {
     return () => {
       cancelled = true;
     };
-  }, [group, friends, uid]);
+  }, [group, friends, uid, sharePreview]);
 
   // Keep this group's id prioritized on the viewer for co-member profile reads.
   useEffect(() => {
-    if (!uid || !group?.id || !group.memberIds.includes(uid)) return;
+    if (!uid || !group?.id || sharePreview || !group.memberIds.includes(uid)) return;
     void ensureCommunityGroupIdOnUser(uid, group.id).catch(() => {});
-  }, [uid, group?.id, group?.memberIds]);
+  }, [uid, group?.id, group?.memberIds, sharePreview]);
 
-  const isMember = !!group && !!uid && group.memberIds.includes(uid);
-  const isCreator = !!group && !!uid && group.creatorId === uid;
+  const isMember = !!group && !!uid && !sharePreview && group.memberIds.includes(uid);
+  const isCreator = !!group && !!uid && !sharePreview && group.creatorId === uid;
 
   const memberRows = useMemo(() => {
     if (!group) return [];
@@ -400,10 +439,18 @@ export default function CommunityGroupDetailScreen() {
             : undefined,
           createdAt: data.createdAt,
         });
+      } else if (shareCode) {
+        await joinCommunityViaShareCode(shareCode);
       } else {
         await joinCommunityGroup(uid, group.id, group.memberIds);
       }
       void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      if (sharePreview || shareCode) {
+        router.replace({
+          pathname: "/community-group/[id]",
+          params: { id: group.id },
+        });
+      }
     } catch (e: unknown) {
       showAlert("Could not join", e instanceof Error ? e.message : "Try again.");
     } finally {
