@@ -1432,7 +1432,7 @@ const styles = StyleSheet.create({
   metaLocation: {
     ...cardMetaText,
     lineHeight: 18,
-    textDecorationLine: "underline",
+    fontFamily: fonts.medium,
   },
   metaSep: {
     ...cardMetaText,

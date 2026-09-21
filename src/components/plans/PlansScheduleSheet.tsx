@@ -493,6 +493,6 @@ const styles = StyleSheet.create({
   planLocation: {
     ...cardMetaText,
     lineHeight: 18,
-    textDecorationLine: "underline",
+    fontFamily: fonts.medium,
   },
 });
