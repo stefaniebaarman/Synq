@@ -1,26 +1,26 @@
 import {
   ACCENT,
+  BG,
+  BG_TRANSPARENT,
   MUTED2,
-  MUTED3,
-  SPACE_2,
   SPACE_3,
+  SPACE_4,
+  SPACE_5,
+  SPACE_6,
   SURFACE_ELEVATED,
   TEXT,
   TYPE_BODY,
   TYPE_CAPTION,
   fonts,
-  synqOutlineAddBtnCompact,
-  synqOutlineAddBtnTextCompact,
+  listSectionTitle,
 } from "@/constants/Variables";
 import SpringBottomSheet from "@/src/components/sheets/SpringBottomSheet";
 import { sheetStyles } from "@/constants/sheetStyles";
-import {
-  formatDropInRemaining,
-  type FriendDropIn,
-} from "@/src/lib/dropIn";
+import type { FriendDropIn } from "@/src/lib/dropIn";
 import { resolveAvatar } from "@/src/lib/helpers";
 import { openInMaps } from "@/src/lib/openInMaps";
 import { Image as ExpoImage } from "expo-image";
+import { LinearGradient } from "expo-linear-gradient";
 import { useEffect, useState } from "react";
 import {
   Pressable,
@@ -32,14 +32,13 @@ import {
 
 type Props = {
   dropIns: FriendDropIn[];
-  onMessage: (friendId: string) => void;
 };
 
 function firstName(name: string): string {
   return String(name || "").trim().split(/\s+/)[0] || "Friend";
 }
 
-export default function FriendsDropInsStrip({ dropIns, onMessage }: Props) {
+export default function FriendsDropInsStrip({ dropIns }: Props) {
   const [selected, setSelected] = useState<FriendDropIn | null>(null);
 
   useEffect(() => {
@@ -52,110 +51,111 @@ export default function FriendsDropInsStrip({ dropIns, onMessage }: Props) {
   if (dropIns.length === 0) return null;
 
   const place = selected?.place;
+  const placeName = place?.name?.trim() || "";
+  const locationLabel =
+    placeName || selected?.text?.trim() || "somewhere nearby";
   const canOpenMaps =
-    !!place &&
-    (!!place.name ||
-      (typeof place.lat === "number" && typeof place.lng === "number"));
+    !!selected &&
+    (!!placeName ||
+      (typeof place?.lat === "number" && typeof place?.lng === "number"));
 
   return (
     <>
       <View style={styles.wrap}>
-        <Text style={styles.heading}>Dropped in</Text>
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={styles.row}
-        >
-          {dropIns.map((item) => {
-            const uri = resolveAvatar(item.imageurl);
-            return (
-              <Pressable
-                key={item.friendId}
-                style={styles.card}
-                onPress={() => setSelected(item)}
-                accessibilityRole="button"
-                accessibilityLabel={`${item.displayName} is at ${item.place?.name || item.text}`}
-              >
-                <View style={styles.avatarWrap}>
-                  {uri ? (
-                    <ExpoImage
-                      source={{ uri }}
-                      style={styles.avatar}
-                      contentFit="cover"
-                    />
-                  ) : (
-                    <View style={[styles.avatar, styles.avatarFallback]}>
-                      <Text style={styles.avatarInitial}>
-                        {firstName(item.displayName).charAt(0).toUpperCase()}
-                      </Text>
-                    </View>
-                  )}
-                  <View style={styles.liveDot} />
-                </View>
-                <Text style={styles.name} numberOfLines={1}>
-                  {firstName(item.displayName)}
-                </Text>
-                <Text style={styles.snippet} numberOfLines={2}>
-                  {item.text}
-                </Text>
-              </Pressable>
-            );
-          })}
-        </ScrollView>
+        <Text style={styles.title}>Where friends are</Text>
+        <View style={styles.listShell}>
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.row}
+          >
+            {dropIns.map((item) => {
+              const uri = resolveAvatar(item.imageurl);
+              const name = firstName(item.displayName);
+              const placeLabel =
+                item.place?.name?.trim() || item.text?.trim() || "Nearby";
+              return (
+                <Pressable
+                  key={item.friendId}
+                  style={styles.card}
+                  onPress={() => setSelected(item)}
+                  accessibilityRole="button"
+                  accessibilityLabel={`${name} is at ${placeLabel}`}
+                >
+                  <View style={styles.avatarWrap}>
+                    {uri ? (
+                      <ExpoImage
+                        source={{ uri }}
+                        style={styles.avatar}
+                        contentFit="cover"
+                      />
+                    ) : (
+                      <View style={[styles.avatar, styles.avatarFallback]}>
+                        <Text style={styles.avatarInitial}>
+                          {name.charAt(0).toUpperCase()}
+                        </Text>
+                      </View>
+                    )}
+                    <View style={styles.liveDot} />
+                  </View>
+                  <Text style={styles.isAtLine} numberOfLines={1}>
+                    <Text style={styles.namePart}>{name}</Text>
+                    <Text style={styles.isAtPart}> is at</Text>
+                  </Text>
+                  <Text style={styles.location} numberOfLines={2}>
+                    {placeLabel}
+                  </Text>
+                </Pressable>
+              );
+            })}
+          </ScrollView>
+          <LinearGradient
+            pointerEvents="none"
+            colors={[BG_TRANSPARENT, BG]}
+            start={{ x: 0, y: 0.5 }}
+            end={{ x: 1, y: 0.5 }}
+            style={styles.rightFade}
+          />
+        </View>
       </View>
 
       <SpringBottomSheet
         visible={!!selected}
         onClose={() => setSelected(null)}
         contentStyle={styles.detailPad}
-        cardStyle={sheetStyles.sheetCard}
+        cardStyle={[sheetStyles.sheetCard, styles.detailCard]}
       >
         {selected ? (
-          <>
+          <View style={styles.detailBody}>
             <Text style={styles.detailTitle}>
-              {firstName(selected.displayName)} is at{" "}
-              {selected.place?.name || selected.text}
+              {firstName(selected.displayName)} is at
             </Text>
-            <Text style={styles.detailMeta}>
-              {formatDropInRemaining(selected.expiresAtMs)}
-            </Text>
-            <Text style={styles.detailBody}>{selected.text}</Text>
-            {place?.name ? (
-              <Text style={styles.detailPlace}>{place.name}</Text>
-            ) : null}
-
-            <View style={styles.actions}>
-              <Pressable
-                style={styles.actionBtn}
-                onPress={() => {
-                  const id = selected.friendId;
-                  setSelected(null);
-                  onMessage(id);
-                }}
-                accessibilityRole="button"
-                accessibilityLabel="Message"
+            <Pressable
+              onPress={() => {
+                if (!canOpenMaps) return;
+                void openInMaps({
+                  name: locationLabel,
+                  address: place?.address || placeName || "",
+                  lat: place?.lat,
+                  lng: place?.lng,
+                });
+              }}
+              disabled={!canOpenMaps}
+              accessibilityRole={canOpenMaps ? "link" : undefined}
+              accessibilityLabel={
+                canOpenMaps ? `Open ${locationLabel} in Maps` : locationLabel
+              }
+            >
+              <Text
+                style={[
+                  styles.detailPlace,
+                  canOpenMaps && styles.detailPlaceLink,
+                ]}
               >
-                <Text style={styles.actionBtnText}>Message</Text>
-              </Pressable>
-              {canOpenMaps ? (
-                <Pressable
-                  style={styles.actionBtn}
-                  onPress={() => {
-                    void openInMaps({
-                      name: place?.name || selected.text,
-                      address: place?.address || place?.name || "",
-                      lat: place?.lat,
-                      lng: place?.lng,
-                    });
-                  }}
-                  accessibilityRole="button"
-                  accessibilityLabel="Open in Maps"
-                >
-                  <Text style={styles.actionBtnText}>Open in Maps</Text>
-                </Pressable>
-              ) : null}
-            </View>
-          </>
+                {locationLabel}
+              </Text>
+            </Pressable>
+          </View>
         ) : null}
       </SpringBottomSheet>
     </>
@@ -164,20 +164,27 @@ export default function FriendsDropInsStrip({ dropIns, onMessage }: Props) {
 
 const styles = StyleSheet.create({
   wrap: {
+    marginBottom: 0,
+    paddingTop: SPACE_3,
+  },
+  title: {
+    ...listSectionTitle,
     marginBottom: SPACE_3,
   },
-  heading: {
-    fontFamily: fonts.heavy,
-    fontSize: TYPE_CAPTION,
-    color: MUTED2,
-    letterSpacing: 0.6,
-    textTransform: "uppercase",
-    marginBottom: SPACE_2,
-    paddingHorizontal: 2,
+  listShell: {
+    position: "relative",
   },
   row: {
     gap: 10,
-    paddingRight: 8,
+    paddingRight: 36,
+  },
+  rightFade: {
+    position: "absolute",
+    top: 0,
+    right: 0,
+    bottom: 0,
+    width: 40,
+    zIndex: 1,
   },
   card: {
     width: 118,
@@ -218,54 +225,51 @@ const styles = StyleSheet.create({
     borderWidth: 2,
     borderColor: SURFACE_ELEVATED,
   },
-  name: {
-    fontFamily: fonts.medium,
+  isAtLine: {
     fontSize: TYPE_CAPTION,
-    color: TEXT,
     marginBottom: 2,
   },
-  snippet: {
+  namePart: {
+    fontFamily: fonts.medium,
+    color: TEXT,
+  },
+  isAtPart: {
     fontFamily: fonts.book,
-    fontSize: 11,
-    color: MUTED3,
-    lineHeight: 14,
+    color: MUTED2,
+  },
+  location: {
+    fontFamily: fonts.medium,
+    fontSize: 12,
+    color: ACCENT,
+    lineHeight: 15,
   },
   detailPad: {
-    paddingHorizontal: 16,
-    paddingBottom: 12,
+    paddingHorizontal: SPACE_5,
+    paddingTop: SPACE_5,
+    paddingBottom: SPACE_6,
   },
-  detailTitle: {
-    fontFamily: fonts.heavy,
-    fontSize: TYPE_BODY,
-    color: TEXT,
-    marginBottom: 4,
-  },
-  detailMeta: {
-    fontFamily: fonts.medium,
-    fontSize: TYPE_CAPTION,
-    color: ACCENT,
-    marginBottom: SPACE_3,
+  detailCard: {
+    paddingTop: SPACE_5,
   },
   detailBody: {
+    paddingHorizontal: SPACE_6,
+    paddingTop: SPACE_4,
+    paddingBottom: SPACE_5,
+  },
+  detailTitle: {
     fontFamily: fonts.book,
     fontSize: TYPE_BODY,
-    color: TEXT,
+    color: MUTED2,
     lineHeight: 22,
-    marginBottom: 6,
+    marginBottom: SPACE_4,
   },
   detailPlace: {
-    fontFamily: fonts.medium,
-    fontSize: TYPE_CAPTION,
-    color: MUTED2,
-    marginBottom: SPACE_3,
+    fontFamily: fonts.heavy,
+    fontSize: 22,
+    color: TEXT,
+    lineHeight: 28,
   },
-  actions: {
-    gap: 10,
-    marginTop: SPACE_2,
+  detailPlaceLink: {
+    color: ACCENT,
   },
-  actionBtn: {
-    ...synqOutlineAddBtnCompact,
-    alignSelf: "stretch",
-  },
-  actionBtnText: synqOutlineAddBtnTextCompact,
 });

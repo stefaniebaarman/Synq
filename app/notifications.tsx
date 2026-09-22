@@ -345,12 +345,14 @@ function mapActivity(item: Record<string, unknown> & { id: string }, cache: Acto
   if (type === "friend_drop_in") {
     let placeName = String(item.dropInPlaceName || "").trim();
     if (!placeName && storedBody) {
-      const match = storedBody.match(/\bis at\s+(.+?),\s*come join\s*$/i);
+      const match = storedBody.match(
+        /\bis at\s+(.+?)(?:,\s*come join)?\s*$/i
+      );
       if (match?.[1]) placeName = match[1].trim();
     }
     const fallback = placeName
-      ? `${name} is at ${placeName}, come join`
-      : `${name} wants you to come join`;
+      ? `${name} is at ${placeName}`
+      : `${name} shared a live status`;
     return {
       ...item,
       type,
@@ -358,7 +360,7 @@ function mapActivity(item: Record<string, unknown> & { id: string }, cache: Acto
       actorName: name,
       actorImageUrl,
       planTitle: planTitle || null,
-      title: normalizeNotificationTitle(title) || "Come join",
+      title: normalizeNotificationTitle(title) || "Come join!",
       body: storedBody || fallback,
       dropInPlaceName: placeName || null,
       sortMs: timestampMillis(item.createdAt) || Date.now(),
@@ -486,6 +488,7 @@ function normalizeNotificationTitle(title: string): string {
     "New friend request": "New Synq request",
     "New Synq Request": "New Synq request",
     "New Message": "New message",
+    "Come join": "Come join!",
   };
   return known[trimmed] || trimmed;
 }
@@ -530,8 +533,8 @@ function activityMessageParts(
     case "friend_drop_in": {
       const at = String(placeName || "").trim();
       return at
-        ? { rest: ` is at ${at}, come join` }
-        : { rest: " wants you to come join" };
+        ? { rest: ` is at ${at}` }
+        : { rest: " shared a live status" };
     }
     case "friends_free_digest":
       return { rest: "" };
@@ -1216,14 +1219,7 @@ export default function NotificationsScreen() {
 
     if (item.kind === "friend_drop_in") {
       void dismissActivity(item);
-      if (item.fromUserId) {
-        router.push({
-          pathname: "/(tabs)",
-          params: { openChatWith: item.fromUserId },
-        });
-      } else {
-        router.push("/(tabs)");
-      }
+      router.push("/(tabs)/friends");
       return;
     }
 

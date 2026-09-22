@@ -1,10 +1,9 @@
 import type { Friend } from "@/constants/Variables";
 import DropInLiveBanner from "@/src/components/dropin/DropInLiveBanner";
-import FriendsDropInsStrip from "@/src/components/dropin/FriendsDropInsStrip";
 import { SkeletonBlock } from "@/src/components/loading/BrandSkeletons";
 import ActiveSynqEmptyState from "@/src/components/synq/ActiveSynqEmptyState";
 import NotificationBadge from "@/src/components/NotificationBadge";
-import type { DropInPlace, FriendDropIn } from "@/src/lib/dropIn";
+import type { DropInPlace } from "@/src/lib/dropIn";
 import { friendLocationWithDistance } from "@/src/lib/friendDistance";
 import { friendLocationLine, resolveAvatar } from "@/src/lib/helpers";
 import { SYNQ_TAB_LONG_PRESS } from "@/src/lib/synqTabEvents";
@@ -69,11 +68,12 @@ const FRIEND_CARD_BORDER_WIDTH =
   Platform.OS === "android" ? 1 : StyleSheet.hairlineWidth;
 const MEMO_PLACEHOLDER = "Add a status…";
 const STATUS_DIVIDER = "rgba(255,255,255,0.08)";
-const ACTIVE_LIST_BOTTOM_FADE_HEIGHT = 72;
-const ACTIVE_CTA_BOTTOM_NUDGE = 64;
+/** Soft fade above the CTA — readable through mid stops, opaque only at the bottom. */
+const ACTIVE_LIST_BOTTOM_FADE_HEIGHT = 120;
+const ACTIVE_CTA_BOTTOM_NUDGE = 48;
 const ACTIVE_CTA_HEIGHT = 48;
 const SHORT_LIST_MAX = 3;
-const ACTIVE_CTA_BOTTOM_NUDGE_SHORT = 44;
+const ACTIVE_CTA_BOTTOM_NUDGE_SHORT = 36;
 
 function ActiveLiveDot() {
   const reduced = useReducedMotion();
@@ -158,8 +158,6 @@ type Props = {
   } | null;
   onCancelDropIn?: () => void;
   cancelDropInBusy?: boolean;
-  friendDropIns?: FriendDropIn[];
-  onMessageDropInFriend?: (friendId: string) => void;
 };
 
 export default function ActiveSynqSection({
@@ -184,8 +182,6 @@ export default function ActiveSynqSection({
   dropInLive,
   onCancelDropIn,
   cancelDropInBusy,
-  friendDropIns = [],
-  onMessageDropInFriend,
 }: Props) {
   const insets = useSafeAreaInsets();
   const [optionsVisible, setOptionsVisible] = useState(false);
@@ -222,27 +218,95 @@ export default function ActiveSynqSection({
   const sharingLabel = audienceLabel?.trim() || "All friends";
 
   const footerLayout = useMemo(() => {
-    const ctaPadTop = 10;
     const ctaBottomPad =
       TAB_BAR_SCROLL_INSET +
       (isShortList ? ACTIVE_CTA_BOTTOM_NUDGE_SHORT : ACTIVE_CTA_BOTTOM_NUDGE);
-    const dockHeight = ctaPadTop + ACTIVE_CTA_HEIGHT + ctaBottomPad;
+    const dockHeight = ACTIVE_CTA_HEIGHT + ctaBottomPad;
     return {
-      ctaPadTop,
       ctaBottomPad,
       dockHeight,
-      listBottomPad: dockHeight + ACTIVE_LIST_BOTTOM_FADE_HEIGHT,
+      listBottomPad: dockHeight + 12,
     };
   }, [isShortList]);
 
-  const toggleFriend = (friendId: string) => {
+  const toggleFriend = useCallback((friendId: string) => {
     void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     setSelectedFriends((prev) =>
       prev.includes(friendId)
         ? prev.filter((id) => id !== friendId)
         : [...prev, friendId]
     );
-  };
+  }, [setSelectedFriends]);
+
+  const renderFriendItem = useCallback(
+    ({ item }: { item: Friend }) => {
+      const friendMemo = item.memo?.trim();
+      const locationLine = friendLocationWithDistance(
+        friendLocationLine(item),
+        distancesKm[item.id]
+      );
+      const selected = selectedFriends.includes(item.id);
+      return (
+        <TouchableOpacity
+          onPress={() => toggleFriend(item.id)}
+          style={[styles.friendCard, selected && styles.friendCardSelected]}
+          activeOpacity={0.85}
+          accessibilityRole="button"
+          accessibilityState={{ selected }}
+          accessibilityLabel={item.displayName}
+        >
+          <View style={styles.friendAvatarWrap}>
+            <ExpoImage
+              source={{ uri: resolveAvatar(item.imageurl) }}
+              style={styles.friendAvatar}
+              cachePolicy="memory-disk"
+              transition={0}
+            />
+            <View style={styles.friendAvailDot} />
+          </View>
+          <View style={styles.friendCopy}>
+            <Text style={styles.friendName} numberOfLines={1}>
+              {item.displayName}
+            </Text>
+            {friendMemo ? (
+              <Text style={styles.friendMemo} numberOfLines={1}>
+                {friendMemo}
+              </Text>
+            ) : null}
+            {locationLine ? (
+              <View style={styles.friendMetaRow}>
+                <Ionicons
+                  name="location-outline"
+                  size={12}
+                  color={MUTED2}
+                  style={styles.friendMetaIcon}
+                />
+                <Text style={styles.friendMeta} numberOfLines={1}>
+                  {locationLine}
+                </Text>
+              </View>
+            ) : null}
+          </View>
+        </TouchableOpacity>
+      );
+    },
+    [distancesKm, selectedFriends, toggleFriend]
+  );
+
+  const listEmpty = friendsLoading ? (
+    <ActiveFriendsSkeleton />
+  ) : viewerId ? (
+    <ActiveSynqEmptyState viewerId={viewerId} candidates={nudgeCandidates} />
+  ) : null;
+
+  const listFooter =
+    showSeeWhoElseNudge && viewerId ? (
+      <ActiveSynqEmptyState
+        viewerId={viewerId}
+        candidates={nudgeCandidates}
+        variant="seeWhoElse"
+      />
+    ) : null;
 
   return (
     <View style={parentStyles.activeSynqRoot}>
@@ -441,15 +505,6 @@ export default function ActiveSynqSection({
           ) : null}
         </View>
 
-        {friendDropIns.length > 0 && onMessageDropInFriend ? (
-          <View style={styles.dropInsStripWrap}>
-            <FriendsDropInsStrip
-              dropIns={friendDropIns}
-              onMessage={onMessageDropInFriend}
-            />
-          </View>
-        ) : null}
-
         <View style={styles.listPad}>
           <FlatList
             ref={listRef}
@@ -457,79 +512,13 @@ export default function ActiveSynqSection({
             data={friendsLoading ? [] : sortedAvailableFriends}
             keyExtractor={(item) => item.id}
             showsVerticalScrollIndicator={false}
-            ListEmptyComponent={
-              friendsLoading ? (
-                <ActiveFriendsSkeleton />
-              ) : viewerId ? (
-                <ActiveSynqEmptyState
-                  viewerId={viewerId}
-                  candidates={nudgeCandidates}
-                />
-              ) : null
-            }
-            ListFooterComponent={
-              showSeeWhoElseNudge && viewerId ? (
-                <ActiveSynqEmptyState
-                  viewerId={viewerId}
-                  candidates={nudgeCandidates}
-                  variant="seeWhoElse"
-                />
-              ) : null
-            }
-            renderItem={({ item }) => {
-              const friendMemo = item.memo?.trim();
-              const locationLine = friendLocationWithDistance(
-                friendLocationLine(item),
-                distancesKm[item.id]
-              );
-              const selected = selectedFriends.includes(item.id);
-              return (
-                <TouchableOpacity
-                  onPress={() => toggleFriend(item.id)}
-                  style={[
-                    styles.friendCard,
-                    selected && styles.friendCardSelected,
-                  ]}
-                  activeOpacity={0.85}
-                  accessibilityRole="button"
-                  accessibilityState={{ selected }}
-                  accessibilityLabel={item.displayName}
-                >
-                  <View style={styles.friendAvatarWrap}>
-                    <ExpoImage
-                      source={{ uri: resolveAvatar(item.imageurl) }}
-                      style={styles.friendAvatar}
-                      cachePolicy="memory-disk"
-                      transition={0}
-                    />
-                    <View style={styles.friendAvailDot} />
-                  </View>
-                  <View style={styles.friendCopy}>
-                    <Text style={styles.friendName} numberOfLines={1}>
-                      {item.displayName}
-                    </Text>
-                    {friendMemo ? (
-                      <Text style={styles.friendMemo} numberOfLines={1}>
-                        {friendMemo}
-                      </Text>
-                    ) : null}
-                    {locationLine ? (
-                      <View style={styles.friendMetaRow}>
-                        <Ionicons
-                          name="location-outline"
-                          size={12}
-                          color={MUTED2}
-                          style={styles.friendMetaIcon}
-                        />
-                        <Text style={styles.friendMeta} numberOfLines={1}>
-                          {locationLine}
-                        </Text>
-                      </View>
-                    ) : null}
-                  </View>
-                </TouchableOpacity>
-              );
-            }}
+            removeClippedSubviews={false}
+            initialNumToRender={8}
+            maxToRenderPerBatch={8}
+            windowSize={7}
+            ListEmptyComponent={listEmpty}
+            ListFooterComponent={listFooter}
+            renderItem={renderFriendItem}
             contentContainerStyle={[
               styles.listContent,
               {
@@ -549,13 +538,14 @@ export default function ActiveSynqSection({
               pointerEvents="none"
               colors={[
                 BG_TRANSPARENT,
-                "rgba(9,10,11,0.06)",
-                "rgba(9,10,11,0.18)",
-                "rgba(9,10,11,0.42)",
-                "rgba(9,10,11,0.72)",
+                "rgba(9,10,11,0.04)",
+                "rgba(9,10,11,0.12)",
+                "rgba(9,10,11,0.28)",
+                "rgba(9,10,11,0.55)",
+                "rgba(9,10,11,0.82)",
                 BG,
               ]}
-              locations={[0, 0.2, 0.4, 0.62, 0.82, 1]}
+              locations={[0, 0.22, 0.42, 0.62, 0.78, 0.9, 1]}
               start={{ x: 0.5, y: 0 }}
               end={{ x: 0.5, y: 1 }}
               style={[
@@ -571,8 +561,9 @@ export default function ActiveSynqSection({
                 parentStyles.activeFooterDock,
                 {
                   height: footerLayout.dockHeight,
-                  paddingTop: footerLayout.ctaPadTop,
                   paddingBottom: footerLayout.ctaBottomPad,
+                  backgroundColor: BG,
+                  justifyContent: "flex-start",
                 },
               ]}
             >
@@ -759,7 +750,7 @@ const styles = StyleSheet.create({
     lineHeight: 17,
   },
   dropInBannerInPanel: {
-    paddingVertical: 10,
+    paddingVertical: 14,
   },
   listPad: {
     flex: 1,
@@ -853,9 +844,5 @@ const styles = StyleSheet.create({
     height: 10,
     borderRadius: 5,
     marginTop: 8,
-  },
-  dropInsStripWrap: {
-    paddingHorizontal: 20,
-    marginBottom: 4,
   },
 });

@@ -1,10 +1,16 @@
 import {
   ACCENT,
-  ACCENT_BORDER,
+  BORDER,
+  MUTED2,
+  SURFACE_INPUT,
   TEXT,
   TYPE_BODY,
-  TYPE_BUTTON,
+  TYPE_CAPTION,
   fonts,
+  synqOutlineAddBtnCompact,
+  synqOutlineAddBtnDisabled,
+  synqOutlineAddBtnTextCompact,
+  synqOutlineAddBtnTextDisabled,
 } from "@/constants/Variables";
 import type { DropInPlace } from "@/src/lib/dropIn";
 import { Ionicons } from "@expo/vector-icons";
@@ -25,28 +31,42 @@ export default function DropInLiveBanner({
   onCancel,
   cancelBusy,
 }: Props) {
-  const placeLabel = place?.name?.trim() || text;
+  const headline =
+    place?.name?.trim() || text.trim() || "Nearby";
 
   return (
-    <View style={styles.banner} accessibilityRole="summary">
+    <View
+      style={styles.banner}
+      accessibilityRole="summary"
+      accessibilityLabel={`You're at ${headline}`}
+    >
       <View style={styles.pinWrap}>
-        <Ionicons name="location" size={22} color={ACCENT} />
+        <Ionicons name="location" size={20} color={ACCENT} />
       </View>
       <View style={styles.main}>
-        <Text style={styles.title}>You're at {placeLabel}</Text>
+        <Text style={styles.eyebrow}>You're at</Text>
+        <Text style={styles.place} numberOfLines={2}>
+          {headline}
+        </Text>
       </View>
       <Pressable
         onPress={onCancel}
         disabled={cancelBusy}
-        style={({ pressed }) => [
-          styles.endBtn,
-          pressed && styles.endBtnPressed,
-          cancelBusy && styles.endBtnBusy,
+        style={[
+          synqOutlineAddBtnCompact,
+          cancelBusy && synqOutlineAddBtnDisabled,
         ]}
         accessibilityRole="button"
         accessibilityLabel="End live status"
       >
-        <Text style={styles.endText}>End</Text>
+        <Text
+          style={[
+            synqOutlineAddBtnTextCompact,
+            cancelBusy && synqOutlineAddBtnTextDisabled,
+          ]}
+        >
+          End
+        </Text>
       </Pressable>
     </View>
   );
@@ -60,10 +80,10 @@ const styles = StyleSheet.create({
     paddingLeft: 14,
     paddingRight: 12,
     paddingVertical: 14,
-    borderRadius: 18,
-    backgroundColor: "#0B1A12",
-    borderWidth: 1,
-    borderColor: ACCENT_BORDER,
+    borderRadius: 16,
+    backgroundColor: SURFACE_INPUT,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: BORDER,
   },
   pinWrap: {
     width: 28,
@@ -73,31 +93,18 @@ const styles = StyleSheet.create({
   main: {
     flex: 1,
     minWidth: 0,
+    gap: 2,
   },
-  title: {
-    fontFamily: fonts.medium,
+  eyebrow: {
+    fontFamily: fonts.book,
+    fontSize: TYPE_CAPTION,
+    color: MUTED2,
+    lineHeight: 16,
+  },
+  place: {
+    fontFamily: fonts.heavy,
     fontSize: TYPE_BODY,
     color: TEXT,
-    lineHeight: 20,
-  },
-  endBtn: {
-    paddingVertical: 8,
-    paddingHorizontal: 16,
-    borderRadius: 999,
-    borderWidth: 1,
-    borderColor: ACCENT_BORDER,
-    backgroundColor: "rgba(0,0,0,0.25)",
-    alignSelf: "center",
-  },
-  endBtnPressed: {
-    opacity: 0.85,
-  },
-  endBtnBusy: {
-    opacity: 0.5,
-  },
-  endText: {
-    fontFamily: fonts.medium,
-    fontSize: TYPE_BUTTON,
-    color: TEXT,
+    lineHeight: 21,
   },
 });

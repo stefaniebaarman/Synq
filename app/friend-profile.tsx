@@ -41,6 +41,10 @@ import CheckmarkToast from "@/src/components/CheckmarkToast";
 import AddFriendToGroupSheet from "@/src/components/friends/AddFriendToGroupSheet";
 import FriendPlanCard from "@/src/components/friends/FriendPlanCard";
 import { ProfileSkeleton } from "@/src/components/loading/BrandSkeletons";
+import {
+  ProfilePlansPager,
+  usePagedList,
+} from "@/src/components/profile/ProfilePlansPagination";
 import ProfileTabHeaderOverlay, {
   useTabHeaderLayout,
 } from "@/src/components/ProfileTabHeaderOverlay";
@@ -402,6 +406,14 @@ export default function FriendProfile({
       filterToOpenPlans(filterOutPastOpenPlans(events))
     ) as FriendOpenPlanEvent[];
   }, [friend?.events]);
+
+  const {
+    page: plansPage,
+    setPage: setPlansPage,
+    pageCount: plansPageCount,
+    pageItems: pagedProfileOpenPlans,
+    showPager: showPlansPager,
+  } = usePagedList(profileOpenPlans);
 
   const friendPlanImageByUid = useMemo(() => {
     const url = String(friend?.imageurl || "").trim();
@@ -1314,7 +1326,7 @@ export default function FriendProfile({
               </Text>
 
               <View style={styles.profilePlansList}>
-                {profileOpenPlans.map((event) => {
+                {pagedProfileOpenPlans.map((event) => {
                   const item = {
                     event,
                     sourceFriendId: friendKey,
@@ -1363,6 +1375,13 @@ export default function FriendProfile({
                     />
                   );
                 })}
+                {showPlansPager ? (
+                  <ProfilePlansPager
+                    page={plansPage}
+                    pageCount={plansPageCount}
+                    onChangePage={setPlansPage}
+                  />
+                ) : null}
               </View>
             </View>
           </>

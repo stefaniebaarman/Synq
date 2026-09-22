@@ -572,8 +572,8 @@ export default function FriendsScreen() {
     }
     let cancelled = false;
     const ids = friends.map((f) => f.id);
-    const load = () => {
-      void pollActiveFriendDropIns(myId, ids)
+    const load = (force = false) => {
+      void pollActiveFriendDropIns(myId, ids, { force })
         .then((rows) => {
           if (!cancelled) setFriendDropIns(rows);
         })
@@ -581,8 +581,8 @@ export default function FriendsScreen() {
           if (!cancelled) setFriendDropIns([]);
         });
     };
-    load();
-    const timer = setInterval(load, 60_000);
+    load(true);
+    const timer = setInterval(() => load(true), 15_000);
     return () => {
       cancelled = true;
       clearInterval(timer);
@@ -652,17 +652,8 @@ export default function FriendsScreen() {
     return (
       <View>
         {showDropInsStrip ? (
-          <View style={[styles.screenPadding, { marginBottom: 8 }]}>
-            <FriendsDropInsStrip
-              dropIns={friendDropIns}
-              onMessage={(friendId) => {
-                void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                router.push({
-                  pathname: "/(tabs)",
-                  params: { openChatWith: friendId },
-                });
-              }}
-            />
+          <View style={[styles.screenPadding, styles.dropInsHeader]}>
+            <FriendsDropInsStrip dropIns={friendDropIns} />
           </View>
         ) : null}
         {showFriendsPlansPreview ? (
@@ -679,15 +670,18 @@ export default function FriendsScreen() {
             isPlanBusy={friendPlansFeed.isPlanBusy}
             onSeeAll={() => setPlansSheetVisible(true)}
             onOpenFriendProfile={openFriendProfileFromFriendsTab}
+            style={showDropInsStrip ? styles.plansAfterDropIns : undefined}
           />
         ) : null}
         {showFriendSearch ? (
           <View
             style={[
               styles.friendsSection,
-              showFriendsPlansPreview || showDropInsStrip
-                ? styles.friendsSectionAfterPlans
-                : null,
+              showDropInsStrip
+                ? styles.friendsSectionAfterDropIns
+                : showFriendsPlansPreview
+                  ? styles.friendsSectionAfterPlans
+                  : null,
               styles.screenPadding,
             ]}
           >
@@ -2358,6 +2352,16 @@ const styles = StyleSheet.create({
   },
   friendsSectionAfterPlans: {
     marginTop: 16,
+  },
+  friendsSectionAfterDropIns: {
+    marginTop: 0,
+  },
+  dropInsHeader: {
+    // Match search→strip gap (searchBar.marginBottom + headerBlock.marginBottom).
+    marginBottom: 12,
+  },
+  plansAfterDropIns: {
+    paddingTop: 12,
   },
   friendsSectionHeader: {
     flexDirection: "row",

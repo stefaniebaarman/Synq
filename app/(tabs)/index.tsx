@@ -234,14 +234,12 @@ import InactiveSynqView from '../synq-screens/InactiveSynqView';
 import SynqActivatingView from '../synq-screens/SynqActivatingView';
 import SynqAudienceSheet from '../synq-screens/SynqAudienceSheet';
 import CreateDropInSheet from '@/src/components/dropin/CreateDropInSheet';
-import FriendsDropInsStrip from '@/src/components/dropin/FriendsDropInsStrip';
 import {
   cancelDropIn,
+  DROP_IN_EXPIRATION_MS,
   dropInErrorMessage,
   parseDropInState,
-  pollActiveFriendDropIns,
   type DropInPlace,
-  type FriendDropIn,
 } from '@/src/lib/dropIn';
 
 type MessagesPane = "inbox" | "chat" | "profile";
@@ -463,7 +461,6 @@ export default function SynqScreen() {
     expiresAtMs: number;
     visibleTo: string[];
   } | null>(null);
-  const [friendDropIns, setFriendDropIns] = useState<FriendDropIn[]>([]);
   const [messagesModalVisible, setMessagesModalVisible] = useState(false);
   const [messagesPane, setMessagesPane] = useState<MessagesPane>("inbox");
   const messagesPaneRef = useRef<MessagesPane>("inbox");
@@ -1217,7 +1214,7 @@ export default function SynqScreen() {
           active: true,
           text: dropInLocal.text,
           place: dropInLocal.place,
-          startedAtMs: Date.now(),
+          startedAtMs: dropInLocal.expiresAtMs - DROP_IN_EXPIRATION_MS,
           expiresAtMs: dropInLocal.expiresAtMs,
           audienceMode: "all" as const,
           visibleTo: dropInLocal.visibleTo,
@@ -1238,35 +1235,26 @@ export default function SynqScreen() {
     return fromProfile;
   }, [userProfile, dropInLocal]);
 
-  useEffect(() => {
-    const viewerId = user?.uid;
-    if (!viewerId || friendIds.length === 0) {
-      setFriendDropIns([]);
-      return;
-    }
-    let cancelled = false;
-    const ids = [...friendIds];
-    const load = () => {
-      void pollActiveFriendDropIns(viewerId, ids)
-        .then((rows) => {
-          if (!cancelled) setFriendDropIns(rows);
-        })
-        .catch(() => {
-          if (!cancelled) setFriendDropIns([]);
-        });
+  const dropInLiveProp = useMemo(() => {
+    if (!myDropIn.active) return null;
+    return {
+      text: myDropIn.text,
+      place: myDropIn.place,
+      expiresAtMs: myDropIn.expiresAtMs,
+      notifiedCount: myDropIn.visibleTo.length,
     };
-    load();
-    const id = setInterval(load, 60_000);
-    return () => {
-      cancelled = true;
-      clearInterval(id);
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user?.uid, friendIds.join("|")]);
+  }, [
+    myDropIn.active,
+    myDropIn.text,
+    myDropIn.place,
+    myDropIn.expiresAtMs,
+    myDropIn.visibleTo.length,
+  ]);
 
   const handleCancelDropIn = useCallback(async () => {
     if (cancelDropInBusy) return;
     setCancelDropInBusy(true);
+    const previousLocal = dropInLocal;
     setDropInLocal(null);
     setUserProfile((prev: any) => {
       if (!prev) return prev;
@@ -1283,11 +1271,12 @@ export default function SynqScreen() {
     try {
       await cancelDropIn();
     } catch (err) {
+      setDropInLocal(previousLocal);
       showActionError(dropInErrorMessage(err), "Couldn't end live status");
     } finally {
       setCancelDropInBusy(false);
     }
-  }, [cancelDropInBusy, showActionError]);
+  }, [cancelDropInBusy, dropInLocal, showActionError]);
 
   const handleDropInSent = useCallback(
     (payload: {
@@ -1320,14 +1309,6 @@ export default function SynqScreen() {
   const openDropInCompose = useCallback(() => {
     setDropInComposeVisible(true);
   }, []);
-
-  const messageDropInFriend = useCallback(
-    (friendId: string) => {
-      if (!friendId) return;
-      router.setParams({ openChatWith: friendId });
-    },
-    [router]
-  );
 
   useEffect(() => {
     const uid = user?.uid;
@@ -1426,6 +1407,17 @@ export default function SynqScreen() {
     return (friendsListCacheByUser[uid] ?? []).map((f) => f.id);
   }, [user?.uid, friendIds]);
 
+  const synqAudienceDepKey = useMemo(() => {
+    const mode = String(userProfile?.synqBroadcastMode ?? "all");
+    const visible = Array.isArray(userProfile?.synqVisibleTo)
+      ? (userProfile.synqVisibleTo as unknown[])
+          .map((id) => String(id || "").trim())
+          .filter(Boolean)
+          .join("|")
+      : "";
+    return `${mode}:${visible}`;
+  }, [userProfile?.synqBroadcastMode, userProfile?.synqVisibleTo]);
+
   const visibleAvailableFriends = useMemo(() => {
     const unblocked = availableFriends.filter((f) => !isBlocked(f.id));
     const uid = user?.uid;
@@ -1435,7 +1427,16 @@ export default function SynqScreen() {
       myAudience,
       viewerId: uid,
     });
-  }, [availableFriends, isBlocked, userProfile, resolvedFriendIds, status, user?.uid]);
+    // synqAudienceDepKey stands in for audience fields on userProfile.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [
+    availableFriends,
+    isBlocked,
+    resolvedFriendIds,
+    status,
+    user?.uid,
+    synqAudienceDepKey,
+  ]);
 
   useEffect(() => {
     const availableIds = new Set(visibleAvailableFriends.map((f) => f.id));
@@ -2847,7 +2848,6 @@ export default function SynqScreen() {
   }
 
   return (
-    <TouchableWithoutFeedback onPress={Keyboard.dismiss} accessible={false}>
       <View style={[styles.container, tabletContentStyle]}>
         <StatusBar barStyle="light-content" />
         {status === "active" && (
@@ -2875,74 +2875,38 @@ export default function SynqScreen() {
                 audienceUpdating
               }
               onOpenDropIn={openDropInCompose}
-              dropInLive={
-                myDropIn.active
-                  ? {
-                      text: myDropIn.text,
-                      place: myDropIn.place,
-                      expiresAtMs: myDropIn.expiresAtMs,
-                      notifiedCount: myDropIn.visibleTo.length,
-                    }
-                  : null
-              }
+              dropInLive={dropInLiveProp}
               onCancelDropIn={() => void handleCancelDropIn()}
               cancelDropInBusy={cancelDropInBusy}
-              friendDropIns={friendDropIns}
-              onMessageDropInFriend={messageDropInFriend}
             />
           </View>
         )}
         {(status === "idle" || status === "activating") && hydrated && (
-          <View
-            style={styles.synqHomeLayer}
-            pointerEvents={launchOverlay ? "none" : "auto"}
-          >
-            <InactiveSynqView
-              memo={memo}
-              setMemo={setMemo}
-              onStartSynq={requestStartSynq}
-              isStartingSynq={isStartingSynq || status === "activating"}
-              friendGroups={friendGroups}
-              audienceSelection={audienceSelection}
-              onAudienceSelectionChange={(next) => {
-                setAudienceSelection(next);
-                if (auth.currentUser?.uid) {
-                  void saveSynqAudiencePreference(auth.currentUser.uid, next);
-                }
-              }}
-              dropInLive={
-                myDropIn.active
-                  ? {
-                      text: myDropIn.text,
-                      place: myDropIn.place,
-                      expiresAtMs: myDropIn.expiresAtMs,
-                      notifiedCount: myDropIn.visibleTo.length,
-                    }
-                  : null
-              }
-              onCancelDropIn={() => void handleCancelDropIn()}
-              cancelDropInBusy={cancelDropInBusy}
-            />
-          </View>
+          <TouchableWithoutFeedback onPress={Keyboard.dismiss} accessible={false}>
+            <View
+              style={styles.synqHomeLayer}
+              pointerEvents={launchOverlay ? "none" : "auto"}
+            >
+              <InactiveSynqView
+                memo={memo}
+                setMemo={setMemo}
+                onStartSynq={requestStartSynq}
+                isStartingSynq={isStartingSynq || status === "activating"}
+                friendGroups={friendGroups}
+                audienceSelection={audienceSelection}
+                onAudienceSelectionChange={(next) => {
+                  setAudienceSelection(next);
+                  if (auth.currentUser?.uid) {
+                    void saveSynqAudiencePreference(auth.currentUser.uid, next);
+                  }
+                }}
+                dropInLive={dropInLiveProp}
+                onCancelDropIn={() => void handleCancelDropIn()}
+                cancelDropInBusy={cancelDropInBusy}
+              />
+            </View>
+          </TouchableWithoutFeedback>
         )}
-        {status === "idle" && hydrated && friendDropIns.length > 0 ? (
-          <View
-            style={{
-              position: "absolute",
-              left: 0,
-              right: 0,
-              top: insets.top + 8,
-              paddingHorizontal: 20,
-              zIndex: 4,
-            }}
-            pointerEvents="box-none"
-          >
-            <FriendsDropInsStrip
-              dropIns={friendDropIns}
-              onMessage={messageDropInFriend}
-            />
-          </View>
-        ) : null}
         {launchOverlay && (
           <Reanimated.View
             exiting={FadeOut.duration(240)}
@@ -3322,7 +3286,7 @@ export default function SynqScreen() {
         <ConfirmModal
           visible={showEndSynqModal}
           title="End Synq?"
-          message="Your friends will no longer see that you're free right now."
+          message="Your friends will no longer see that you're free or your live location."
           confirmText="End Synq"
           cancelText="Keep Synqing"
           destructive
@@ -3333,11 +3297,34 @@ export default function SynqScreen() {
             if (!auth.currentUser || endingSynq) return;
             setEndingSynq(true);
             try {
+              setDropInLocal(null);
+              setUserProfile((prev: any) => {
+                if (!prev) return { status: "inactive", memo: "" };
+                const next = { ...prev, dropInActive: false, status: "inactive", memo: "" };
+                delete next.dropInText;
+                delete next.dropInPlace;
+                delete next.dropInStartedAt;
+                delete next.dropInExpiresAt;
+                delete next.dropInAudienceMode;
+                delete next.dropInAudienceGroupIds;
+                delete next.dropInVisibleTo;
+                return next;
+              });
               await updateDoc(doc(db, "users", auth.currentUser.uid), {
                 status: "inactive",
                 memo: "",
                 ...clearSynqBroadcastFields,
+                dropInActive: false,
+                dropInText: deleteField(),
+                dropInPlace: deleteField(),
+                dropInStartedAt: deleteField(),
+                dropInExpiresAt: deleteField(),
+                dropInAudienceMode: deleteField(),
+                dropInAudienceGroupIds: deleteField(),
+                dropInVisibleTo: deleteField(),
               });
+              // Callable path is idempotent; keeps cancel fan-out consistent if needed.
+              void cancelDropIn().catch(() => {});
               writeCachedSynqActive(auth.currentUser.uid, false);
 
               setMemo("");
@@ -3375,7 +3362,6 @@ export default function SynqScreen() {
           }
         />
       </View>
-    </TouchableWithoutFeedback>
   );
 }
 

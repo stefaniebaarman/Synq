@@ -2,21 +2,19 @@ import SynqAudienceSheet from "@/app/synq-screens/SynqAudienceSheet";
 import { sheetStyles } from "@/constants/sheetStyles";
 import {
   ACCENT,
-  BORDER_MUTED,
+  BG,
   BUTTON_RADIUS,
+  GROUP_BORDER,
   MUTED2,
-  MUTED3,
   SPACE_2,
   SPACE_3,
   SPACE_4,
   SPACE_5,
-  SURFACE_ELEVATED,
+  SURFACE_INPUT,
   TEXT,
   TYPE_BODY,
   TYPE_BUTTON,
-  TYPE_CAPTION,
   fonts,
-  formInputText,
   sheetTitleText,
   synqOutlineAddBtn,
   synqOutlineAddBtnText,
@@ -27,7 +25,6 @@ import PlanLocationField, {
 import SpringBottomSheet from "@/src/components/sheets/SpringBottomSheet";
 import {
   DROP_IN_EXPIRATION_MS,
-  DROP_IN_TEXT_MAX,
   createDropIn,
   dropInErrorMessage,
   fetchMyDropInFromServer,
@@ -49,7 +46,6 @@ import {
   ScrollView,
   StyleSheet,
   Text,
-  TextInput,
   View,
   useWindowDimensions,
 } from "react-native";
@@ -84,7 +80,6 @@ export default function CreateDropInSheet({
 }: Props) {
   const insets = useSafeAreaInsets();
   const { height: windowHeight } = useWindowDimensions();
-  const [note, setNote] = useState("");
   const [placeValue, setPlaceValue] = useState<PlanLocationValue>(EMPTY_PLACE);
   const [audience, setAudience] = useState<SynqAudienceSelection>(initialAudience);
   const [audienceOpen, setAudienceOpen] = useState(false);
@@ -100,7 +95,6 @@ export default function CreateDropInSheet({
     if (wasVisibleRef.current) return;
     wasVisibleRef.current = true;
     warmDropInClient();
-    setNote("");
     setPlaceValue(EMPTY_PLACE);
     setAudience(initialAudience);
     setAudienceOpen(false);
@@ -110,11 +104,11 @@ export default function CreateDropInSheet({
   const audienceLabel = formatAudienceSelectionLabel(audience, friendGroups);
   const where = placeValue.location.trim();
   const canSend = where.length > 0 && !busy;
-  const sheetMaxHeight = Math.round(windowHeight * 0.86);
-  const sheetBottomPad = Math.max(96, insets.bottom + 72);
+  const sheetMaxHeight = Math.round(windowHeight * 0.78);
+  const sheetVerticalPad = Math.max(24, insets.bottom + 16);
   const formMaxHeight = Math.max(
     220,
-    sheetMaxHeight - ACTIONS_BLOCK - sheetBottomPad - 48
+    sheetMaxHeight - ACTIONS_BLOCK - sheetVerticalPad * 2 - 48
   );
 
   const dismissKeyboard = () => {
@@ -148,9 +142,10 @@ export default function CreateDropInSheet({
         ? { lng: placeValue.locationLng }
         : {}),
     };
-    const noteTrimmed = note.trim();
-    const storedText = noteTrimmed || where;
+    const storedText = where;
     const provisionalExpires = Date.now() + DROP_IN_EXPIRATION_MS;
+    // Close the modal first so its overlay can't stick after the live banner mounts.
+    onClose();
     // Show the live card immediately — don't wait on the callable / push fan-out.
     onSent?.({
       text: storedText,
@@ -158,7 +153,6 @@ export default function CreateDropInSheet({
       expiresAtMs: provisionalExpires,
       audience,
     });
-    onClose();
     try {
       const result = await createDropIn({
         text: storedText,
@@ -198,15 +192,20 @@ export default function CreateDropInSheet({
     <SpringBottomSheet
       visible={visible}
       onClose={handleSheetClose}
+      anchor="center"
       onBackdropPress={() => {
         dismissKeyboard();
         handleSheetClose();
       }}
       contentStyle={[
         styles.sheetPad,
-        { maxHeight: sheetMaxHeight, paddingBottom: sheetBottomPad },
+        {
+          maxHeight: sheetMaxHeight,
+          paddingTop: sheetVerticalPad,
+          paddingBottom: sheetVerticalPad,
+        },
       ]}
-      cardStyle={[sheetStyles.sheetCard, styles.card]}
+      cardStyle={[sheetStyles.sheetCard, styles.card, { backgroundColor: BG }]}
       overlay={
         <SynqAudienceSheet
           presentation="embedded"
@@ -241,7 +240,6 @@ export default function CreateDropInSheet({
           </View>
 
           <View style={styles.whereBlock}>
-            <Text style={styles.fieldLabel}>Where are you?</Text>
             <PlanLocationField
               value={placeValue}
               onChange={setPlaceValue}
@@ -253,21 +251,6 @@ export default function CreateDropInSheet({
           </View>
 
           <View style={styles.fieldBlock}>
-            <Text style={styles.fieldLabel}>Add a note</Text>
-            <TextInput
-              style={[styles.fieldWell, styles.textInput]}
-              value={note}
-              onChangeText={setNote}
-              placeholder="Come grab a drink"
-              placeholderTextColor={MUTED3}
-              maxLength={DROP_IN_TEXT_MAX}
-              multiline
-              accessibilityLabel="Add a note"
-            />
-          </View>
-
-          <View style={styles.fieldBlock}>
-            <Text style={styles.fieldLabel}>Share with</Text>
             <Pressable
               style={[styles.fieldWell, styles.audienceCard]}
               onPress={() => {
@@ -321,26 +304,25 @@ export default function CreateDropInSheet({
 
 const styles = StyleSheet.create({
   sheetPad: {
-    paddingHorizontal: 12,
+    paddingHorizontal: SPACE_4,
   },
   card: {
-    paddingTop: SPACE_2,
-    paddingBottom: SPACE_4,
+    paddingTop: SPACE_4,
+    paddingBottom: SPACE_5,
   },
   body: {
     paddingHorizontal: SPACE_5,
     paddingTop: SPACE_3,
-    paddingBottom: SPACE_3,
-    gap: SPACE_4,
+    paddingBottom: SPACE_4,
+    gap: SPACE_3,
   },
   header: {
     gap: SPACE_2,
-    paddingBottom: 2,
   },
   titleRow: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 8,
+    gap: 10,
   },
   title: {
     ...sheetTitleText,
@@ -353,44 +335,27 @@ const styles = StyleSheet.create({
     lineHeight: 22,
   },
   fieldBlock: {
-    gap: SPACE_2,
+    gap: SPACE_3,
   },
   whereBlock: {
-    gap: 6,
+    gap: SPACE_3,
   },
   whereField: {
     marginTop: 0,
   },
-  fieldLabel: {
-    fontFamily: fonts.medium,
-    fontSize: TYPE_CAPTION,
-    color: MUTED2,
-    letterSpacing: 0.4,
-    textTransform: "uppercase",
-  },
-  /** Gray well + border so fields read clearly on the sheet surface. */
+  /** Match open-plan create inputs (SURFACE_INPUT + GROUP_BORDER). */
   fieldWell: {
-    backgroundColor: SURFACE_ELEVATED,
+    backgroundColor: SURFACE_INPUT,
     borderWidth: 1,
-    borderColor: BORDER_MUTED,
+    borderColor: GROUP_BORDER,
     borderRadius: BUTTON_RADIUS,
-  },
-  textInput: {
-    ...formInputText,
-    minHeight: 88,
-    textAlignVertical: "top",
-    paddingTop: 14,
-    paddingBottom: 14,
-    paddingHorizontal: 14,
-    color: TEXT,
-    lineHeight: 22,
   },
   audienceCard: {
     flexDirection: "row",
     alignItems: "center",
     gap: SPACE_3,
-    paddingVertical: 14,
-    paddingHorizontal: 14,
+    paddingVertical: 16,
+    paddingHorizontal: 16,
   },
   audienceIcon: {
     width: 28,
@@ -407,10 +372,10 @@ const styles = StyleSheet.create({
     color: TEXT,
   },
   actions: {
-    gap: SPACE_2,
+    gap: SPACE_3,
     alignItems: "center",
     paddingHorizontal: SPACE_5,
-    paddingTop: SPACE_3,
+    paddingTop: SPACE_4,
   },
   sendBtn: {
     ...synqOutlineAddBtn,
@@ -426,7 +391,7 @@ const styles = StyleSheet.create({
   cancelBtn: {
     alignItems: "center",
     justifyContent: "center",
-    paddingVertical: 12,
+    paddingVertical: 14,
     paddingHorizontal: 20,
   },
   cancelBtnText: {

@@ -40,6 +40,8 @@ type Props = {
   header?: React.ReactNode;
   /** Enable grabber + drag-to-dismiss. Default true. */
   grabber?: boolean;
+  /** Pin to the bottom (default) or center vertically. */
+  anchor?: "bottom" | "center";
   presentation?: "modal" | "embedded";
   /** Optional layer above the sheet (e.g. embedded ConfirmModal). */
   overlay?: React.ReactNode;
@@ -62,6 +64,7 @@ export default function SpringBottomSheet({
   footer,
   header,
   grabber = true,
+  anchor = "bottom",
   presentation = "modal",
   onBackdropPress,
   onClosed,
@@ -77,12 +80,15 @@ export default function SpringBottomSheet({
   const onClosedRef = useRef(onClosed);
   const onCloseRef = useRef(onClose);
   const [mounted, setMounted] = useState(visible);
+  /** Drop touch capture as soon as dismiss starts so a cancelled close can't freeze the app. */
+  const [touchBlocking, setTouchBlocking] = useState(visible);
   const handleBackdrop = onBackdropPress ?? onClose;
   onClosedRef.current = onClosed;
   onCloseRef.current = onClose;
 
   const openSheet = useCallback(() => {
     closingRef.current = false;
+    setTouchBlocking(true);
     cancelAnimation(translateY);
     cancelAnimation(overlayOpacity);
     if (reducedMotion) {
@@ -96,6 +102,7 @@ export default function SpringBottomSheet({
 
   const finishClose = useCallback(() => {
     closingRef.current = false;
+    setTouchBlocking(false);
     setMounted(false);
   }, []);
 
@@ -124,6 +131,9 @@ export default function SpringBottomSheet({
     (notifyParent: boolean) => {
       if (closingRef.current) return;
       closingRef.current = true;
+      // Immediately release touches — cancelled close animations used to leave a
+      // full-screen Modal overlay that froze scrolling underneath.
+      setTouchBlocking(false);
       const h = Math.max(sheetHeightSV.value, 1);
       cancelAnimation(translateY);
       cancelAnimation(overlayOpacity);
@@ -182,6 +192,7 @@ export default function SpringBottomSheet({
   useEffect(() => {
     if (visible) {
       setMounted(true);
+      setTouchBlocking(true);
       if (sheetHeightSV.value > 0) openSheet();
       return;
     }
@@ -238,11 +249,15 @@ export default function SpringBottomSheet({
     <View
       style={[
         styles.root,
+        anchor === "center" && styles.rootCentered,
         presentation === "embedded" && styles.embeddedRoot,
       ]}
-      pointerEvents="box-none"
+      pointerEvents={touchBlocking ? "box-none" : "none"}
     >
-      <Animated.View style={[styles.overlayFill, overlayStyle]}>
+      <Animated.View
+        style={[styles.overlayFill, overlayStyle]}
+        pointerEvents={touchBlocking ? "auto" : "none"}
+      >
         <Pressable
           style={StyleSheet.absoluteFill}
           onPress={handleBackdrop}
@@ -252,6 +267,7 @@ export default function SpringBottomSheet({
 
       <Animated.View
         style={[styles.sheetWrap, contentStyle, sheetStyle]}
+        pointerEvents={touchBlocking ? "box-none" : "none"}
         onLayout={(e) => onSheetLayout(e.nativeEvent.layout.height)}
       >
         {header}
@@ -296,6 +312,9 @@ const styles = StyleSheet.create({
   root: {
     flex: 1,
     justifyContent: "flex-end",
+  },
+  rootCentered: {
+    justifyContent: "center",
   },
   embeddedRoot: {
     ...StyleSheet.absoluteFillObject,

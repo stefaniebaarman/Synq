@@ -286,8 +286,13 @@ export default function RootLayout() {
     | {
         kind: "synq_home";
         fromUserId?: string;
-        notificationType?: "friend_synq_active" | "synq_nudge" | "friend_drop_in";
+        notificationType?: "friend_synq_active" | "synq_nudge" | "friends_free_digest" | "prime_time";
         openChatWith?: string;
+      }
+    | {
+        kind: "friends";
+        fromUserId?: string;
+        notificationType?: "friend_drop_in";
       }
     | { kind: "me"; focusEventId?: string; notificationId?: string }
     | null
@@ -1246,8 +1251,7 @@ export default function RootLayout() {
       if (
         fromUserId &&
         (notificationType === "friend_synq_active" ||
-          notificationType === "synq_nudge" ||
-          notificationType === "friend_drop_in")
+          notificationType === "synq_nudge")
       ) {
         void dismissActivityNotification(
           user.uid,
@@ -1263,6 +1267,19 @@ export default function RootLayout() {
       } else {
         router.push("/(tabs)");
       }
+      clearPendingTap();
+      return;
+    }
+
+    if (pending.kind === "friends") {
+      const fromUserId = pending.fromUserId;
+      if (fromUserId && pending.notificationType === "friend_drop_in") {
+        void dismissActivityNotification(
+          user.uid,
+          activityNotificationId("friend_drop_in", fromUserId, user.uid)
+        ).catch(() => {});
+      }
+      router.push("/(tabs)/friends");
       clearPendingTap();
       return;
     }

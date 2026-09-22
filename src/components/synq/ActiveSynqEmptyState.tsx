@@ -2,12 +2,13 @@ import AlertModal from "@/app/alert-modal";
 import type { Friend } from "@/constants/Variables";
 import {
   ACCENT,
+  MUTED,
   MUTED2,
   SPACE_2,
   SPACE_3,
   SPACE_4,
   SPACE_5,
-  TYPE_LEAD,
+  TYPE_BUTTON,
   TYPE_SUBHEAD,
   fonts,
   modalBodyText,
@@ -339,6 +340,8 @@ const styles = StyleSheet.create({
   },
   wrapFooter: {
     paddingTop: SPACE_4,
+    // Match ActiveSynqSection statusPanel inset so this lines up with "Sharing with".
+    paddingHorizontal: 0,
   },
   sectionHeader: {
     flexDirection: "row",
@@ -350,11 +353,10 @@ const styles = StyleSheet.create({
   },
   sectionLabel: {
     flex: 1,
-    color: MUTED2,
-    fontSize: TYPE_LEAD,
-    lineHeight: 18,
-    fontFamily: fonts.medium,
-    letterSpacing: 0.2,
+    color: MUTED,
+    fontFamily: fonts.book,
+    fontSize: TYPE_BUTTON,
+    lineHeight: 21,
   },
   shuffleBtnInline: {
     padding: 4,

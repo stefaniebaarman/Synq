@@ -49,6 +49,11 @@ import PlanTimePicker from "@/src/components/PlanTimePicker";
 import PlanLocationField, {
   planLocationChanged,
 } from "@/src/components/plans/PlanLocationField";
+import {
+  PROFILE_PLANS_PAGE_SIZE,
+  ProfilePlansPager,
+  usePagedList,
+} from "@/src/components/profile/ProfilePlansPagination";
 import SynqPlusAddButton from "@/src/components/SynqPlusAddButton";
 import { resolvePlanAttribution } from "@/src/lib/planAttribution";
 import { openInMaps } from "@/src/lib/openInMaps";
@@ -329,6 +334,26 @@ export default function OpenPlans({
   }, [showEventModal]);
 
   const visibleEvents = useMemo(() => filterOutPastOpenPlans(events), [events]);
+  const sortedVisibleEvents = useMemo(
+    () => sortOpenPlansByDateTime(visibleEvents),
+    [visibleEvents]
+  );
+  const {
+    page: plansPage,
+    setPage: setPlansPage,
+    pageCount: plansPageCount,
+    pageItems: pagedEvents,
+    showPager: showPlansPager,
+  } = usePagedList(sortedVisibleEvents);
+
+  useEffect(() => {
+    if (!highlightEventId) return;
+    const idx = sortedVisibleEvents.findIndex(
+      (e) => String(e.id) === String(highlightEventId)
+    );
+    if (idx < 0) return;
+    setPlansPage(Math.floor(idx / PROFILE_PLANS_PAGE_SIZE));
+  }, [highlightEventId, sortedVisibleEvents, setPlansPage]);
 
   const openAddModal = () => {
     setEditingEvent(null);
@@ -709,7 +734,7 @@ export default function OpenPlans({
         </Text>
       )}
 
-      {sortOpenPlansByDateTime(visibleEvents).map((p, index, arr) => {
+      {pagedEvents.map((p, index, arr) => {
           const isLast = index === arr.length - 1;
           const d = parseDate(p.date);
           const isOwnPlan = canEditOpenPlan(p, viewerUid);
@@ -862,6 +887,14 @@ export default function OpenPlans({
           accessibilityLabel="Add plan"
           style={styles.addBtnSpacing}
         />
+        {showPlansPager ? (
+          <ProfilePlansPager
+            page={plansPage}
+            pageCount={plansPageCount}
+            onChangePage={setPlansPage}
+            style={styles.plansPagerInline}
+          />
+        ) : null}
       </View>
 
       {showEventModal ? (
@@ -1313,6 +1346,8 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
+    width: "100%",
+    maxWidth: 340,
     marginBottom: 12,
   },
   sectionTitle: {
@@ -1320,7 +1355,9 @@ const styles = StyleSheet.create({
     marginBottom: 0,
   },
   calendarBtn: {
-    padding: 4,
+    paddingVertical: 4,
+    paddingLeft: 4,
+    paddingRight: 0,
     marginLeft: 8,
   },
   plansBox: {
@@ -1474,9 +1511,16 @@ const styles = StyleSheet.create({
   },
   addBtnRow: {
     width: "100%",
-    alignItems: "flex-start",
+    maxWidth: 340,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
   },
   addBtnSpacing: { marginTop: 16, marginBottom: 8 },
+  plansPagerInline: {
+    marginTop: 16,
+    marginBottom: 8,
+  },
   popupOverlay: {
     flex: 1,
     backgroundColor: OVERLAY_HEAVY,

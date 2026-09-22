@@ -7,7 +7,14 @@ import FriendPlanCard from "@/src/components/friends/FriendPlanCard";
 import type { FriendOpenPlanEvent } from "@/src/lib/friendOpenPlanJoin";
 import type { AggregatedFriendPlan } from "@/src/lib/useFriendPlansFeed";
 import React from "react";
-import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import {
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+  type StyleProp,
+  type ViewStyle,
+} from "react-native";
 
 const PLAN_PREVIEW_COUNT = 2;
 
@@ -30,6 +37,7 @@ type Props = FeedSlice & {
     friendId: string,
     preview?: { displayName?: string; imageUrl?: string | null }
   ) => void;
+  style?: StyleProp<ViewStyle>;
 };
 
 export default function FriendsPlansPreview({
@@ -45,6 +53,7 @@ export default function FriendsPlansPreview({
   isPlanBusy,
   onSeeAll,
   onOpenFriendProfile,
+  style,
 }: Props) {
   if (aggregatedPlans.length === 0) return null;
 
@@ -52,7 +61,7 @@ export default function FriendsPlansPreview({
   const hasMore = aggregatedPlans.length > PLAN_PREVIEW_COUNT;
 
   return (
-    <View style={styles.wrap}>
+    <View style={[styles.wrap, style]}>
       <View style={styles.header}>
         <Text style={styles.sectionTitle}>Upcoming</Text>
         {hasMore ? (
