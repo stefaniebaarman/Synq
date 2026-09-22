@@ -25,6 +25,7 @@ import CloseButton from "@/src/components/CloseButton";
 import CloseIcon from "@/src/components/CloseIcon";
 import { ListRowsSkeleton } from "@/src/components/loading/BrandSkeletons";
 import { isPollMessage } from "@/src/lib/chatPoll";
+import { getReactionCounts, type MessageReactionCounts } from "@/src/lib/messageReactions";
 import {
   formatTime,
   getOtherChatParticipants,
@@ -252,15 +253,6 @@ const CHAT_HEADER_FADE_GRADIENT = [
 ] as const;
 const CHAT_HEADER_FADE_LOCATIONS = [0, 0.1, 0.3, 0.52, 0.76, 1] as const;
 
-function countHeartReactions(reactions?: Record<string, string>): number {
-  if (!reactions) return 0;
-  let count = 0;
-  for (const value of Object.values(reactions)) {
-    if (value === "heart") count += 1;
-  }
-  return count;
-}
-
 type Props = {
   styles: any;
   insetsTop: number;
@@ -321,7 +313,7 @@ type Props = {
     isMe: boolean;
     onPress: () => void;
     onLongPress?: () => void;
-    heartCount: number;
+    reactionCounts: MessageReactionCounts;
     sendStatus?: "sending" | "failed";
   }>;
   iMessageBubbleColumnMaxWidth: (windowWidth: number, isOutgoing: boolean) => number;
@@ -1106,7 +1098,7 @@ export default function MessagesChatPane({
       if (isSystemIdea) {
         const { name, address } = parseIdeaText(item.text);
         const isLegacyAiSuggestion = isLegacyAiSuggestionText(item.text);
-        const ideaHeartCount = countHeartReactions(item.reactions);
+        const ideaReactionCounts = getReactionCounts(item.reactions);
         const ideaCap = Math.min(
           iMessageBubbleColumnMaxWidth(windowWidth, isMe) + 24,
           Math.round(windowWidth * (isMe ? 0.68 : 0.74))
@@ -1183,7 +1175,7 @@ export default function MessagesChatPane({
                     category={
                       typeof item.category === "string" ? item.category : undefined
                     }
-                    heartCount={ideaHeartCount || 0}
+                    reactionCounts={ideaReactionCounts}
                     onPress={() =>
                       onIdeaBubblePress(
                         { id: item.id, reactions: item.reactions },
@@ -1306,7 +1298,7 @@ export default function MessagesChatPane({
       }
 
       const bubbleCap = iMessageBubbleColumnMaxWidth(windowWidth, isMe);
-      const heartCount = countHeartReactions(item.reactions);
+      const reactionCounts = getReactionCounts(item.reactions);
 
       return (
           <View
@@ -1373,7 +1365,7 @@ export default function MessagesChatPane({
                     text={item.text}
                     bubbleCap={bubbleCap}
                     isMe={isMe}
-                    heartCount={heartCount || 0}
+                    reactionCounts={reactionCounts}
                     sendStatus={item.sendStatus}
                     onPress={() =>
                       onMessageBubblePress({

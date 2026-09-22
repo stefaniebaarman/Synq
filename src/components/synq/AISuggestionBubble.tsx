@@ -1,11 +1,7 @@
 import {
   ACCENT,
   ACCENT_BORDER,
-  HEART_LIKE,
-  MUTED3,
-  SHADOW,
   SURFACE,
-  SURFACE_ELEVATED,
   SURFACE_SUBTLE,
   TEXT,
   TEXT_BRIGHT_HEX,
@@ -19,14 +15,18 @@ import {
   synqOutlineAddBtnCompact,
   synqOutlineAddBtnTextCompact,
 } from "@/constants/Variables";
+import MessageReactionBadges from "@/src/components/synq/MessageReactionBadges";
 import { vibeCategoryImageUrl, vibeDisplayLabel } from "@/src/data/vibeCategoryImages";
 import { formatVenueAddressDisplay, stripLegacyAiPrefix } from "@/src/lib/helpers";
+import {
+  emptyReactionCounts,
+  type MessageReactionCounts,
+} from "@/src/lib/messageReactions";
 import { Ionicons } from "@expo/vector-icons";
 import { Image as ExpoImage } from "expo-image";
 import { LinearGradient } from "expo-linear-gradient";
 import React, { useCallback, useMemo, useRef } from "react";
 import {
-  Platform,
   StyleSheet,
   Text,
   View,
@@ -46,7 +46,7 @@ type Props = {
   category?: string;
   onPress: () => void;
   onLongPress?: () => void;
-  heartCount?: number;
+  reactionCounts?: MessageReactionCounts;
 };
 
 export default function AISuggestionBubble({
@@ -58,7 +58,7 @@ export default function AISuggestionBubble({
   category,
   onPress,
   onLongPress,
-  heartCount = 0,
+  reactionCounts = emptyReactionCounts(),
 }: Props) {
   const legacyBody = stripLegacyAiPrefix(text);
   const displayName = name?.trim() || "";
@@ -161,18 +161,7 @@ export default function AISuggestionBubble({
           </View>
         )}
 
-        {heartCount > 0 ? (
-          <View style={styles.heartReaction}>
-            {Array.from({ length: heartCount }, (_, i) => (
-              <View
-                key={i}
-                style={[styles.heartReactionBadge, i > 0 && styles.heartReactionOverlap]}
-              >
-                <Ionicons name="heart" size={12} color={HEART_LIKE} />
-              </View>
-            ))}
-          </View>
-        ) : null}
+        <MessageReactionBadges counts={reactionCounts} style={styles.reactionAnchor} />
       </View>
     </GestureDetector>
   );
@@ -266,34 +255,7 @@ const styles = StyleSheet.create({
     lineHeight: 22,
     fontFamily: fonts.book,
   },
-  heartReaction: {
-    position: "absolute",
-    bottom: -10,
+  reactionAnchor: {
     right: -10,
-    flexDirection: "row",
-    alignItems: "center",
-  },
-  heartReactionBadge: {
-    width: 22,
-    height: 22,
-    borderRadius: 11,
-    backgroundColor: SURFACE_ELEVATED,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: MUTED3,
-    alignItems: "center",
-    justifyContent: "center",
-    overflow: "hidden",
-    ...Platform.select({
-      ios: {
-        shadowColor: SHADOW,
-        shadowOffset: { width: 0, height: 1 },
-        shadowOpacity: 0.35,
-        shadowRadius: 2,
-      },
-      android: { elevation: 2 },
-    }),
-  },
-  heartReactionOverlap: {
-    marginLeft: -5,
   },
 });

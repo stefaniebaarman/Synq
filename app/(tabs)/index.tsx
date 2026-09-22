@@ -1,6 +1,7 @@
 import PlanGoingPeopleSheet, {
   type PlanGoingPerson,
 } from '@/src/components/plans/PlanGoingPeopleSheet';
+import MessageReactionBadges from '@/src/components/synq/MessageReactionBadges';
 import { useChatMessages } from '@/src/hooks/useChatMessages';
 import { useSendMessage } from '@/src/hooks/useSendMessage';
 import { trackEvent } from '@/src/lib/analytics';
@@ -27,6 +28,12 @@ import {
   participantsMatch,
 } from '@/src/lib/mergeChats';
 import { openInMaps } from "@/src/lib/openInMaps";
+import {
+  isMessageReactionType,
+  reactionEmoji,
+  type MessageReactionCounts,
+  type MessageReactionType,
+} from "@/src/lib/messageReactions";
 import {
   friendGroupsCacheByUser,
   friendProfileCacheByUser,
@@ -131,7 +138,6 @@ import {
   fonts,
   GROUP_BORDER,
   HEADER_BLACK,
-  HEART_LIKE,
   listRowTitleText,
   listSectionTitle,
   MODAL_RADIUS,
@@ -185,6 +191,7 @@ import {
 } from '../../src/components/friends/groupsListStyles';
 import ActiveSynqSection from '../../src/components/synq/ActiveSynqSection';
 import MessagesChatPane from '../../src/components/synq/MessagesChatPane';
+import MessageReactionSheet from '../../src/components/synq/MessageReactionSheet';
 import MessagesInboxPane from '../../src/components/synq/MessagesInboxPane';
 import MessagesModalStack from '../../src/components/synq/MessagesModalStack';
 import CreateGroupModal from '../../src/components/friends/CreateGroupModal';
@@ -276,7 +283,7 @@ function ChatMessageBubble({
   isMe,
   onPress,
   onLongPress,
-  heartCount,
+  reactionCounts,
   sendStatus,
 }: {
   text: string;
@@ -284,7 +291,7 @@ function ChatMessageBubble({
   isMe: boolean;
   onPress: () => void;
   onLongPress?: () => void;
-  heartCount: number;
+  reactionCounts: MessageReactionCounts;
   sendStatus?: "sending" | "failed";
 }) {
   const fontScale = PixelRatio.getFontScale();
@@ -387,26 +394,12 @@ function ChatMessageBubble({
         {sendStatus === "failed" ? (
           <Text style={styles.failedMessageHint}>Tap to retry</Text>
         ) : null}
-        {heartCount > 0 ? (
-          <View
-            style={[
-              styles.heartReaction,
-              isMe ? { left: -10, right: undefined } : { right: -10, left: undefined },
-            ]}
-          >
-            {Array.from({ length: heartCount }, (_, i) => (
-              <View
-                key={i}
-                style={[
-                  styles.heartReactionBadge,
-                  i > 0 && styles.heartReactionBadgeOverlap,
-                ]}
-              >
-                <Ionicons name="heart" size={12} color={HEART_LIKE} />
-              </View>
-            ))}
-          </View>
-        ) : null}
+        <MessageReactionBadges
+          counts={reactionCounts}
+          style={
+            isMe ? { left: -10, right: undefined } : { right: -10, left: undefined }
+          }
+        />
       </View>
     </GestureDetector>
   );
@@ -561,6 +554,13 @@ export default function SynqScreen() {
   } | null>(null);
   const [messageLikersVisible, setMessageLikersVisible] = useState(false);
   const [messageLikers, setMessageLikers] = useState<PlanGoingPerson[]>([]);
+  const [messageReactionSheetVisible, setMessageReactionSheetVisible] =
+    useState(false);
+  const [messageReactionTarget, setMessageReactionTarget] = useState<{
+    id: string;
+    senderId: string;
+    reactions?: Record<string, string>;
+  } | null>(null);
   const pendingLikerProfileUidRef = useRef<string | null>(null);
   const { isBlocked } = useBlockedUsers();
 
@@ -2566,6 +2566,8 @@ export default function SynqScreen() {
     setReportTarget(null);
     setMessageLikersVisible(false);
     setMessageLikers([]);
+    setMessageReactionSheetVisible(false);
+    setMessageReactionTarget(null);
     pendingLikerProfileUidRef.current = null;
     setShowEndSynqModal(false);
     setChangeAudienceVisible(false);
@@ -2716,21 +2718,32 @@ export default function SynqScreen() {
     }
   };
 
-  const toggleHeartReaction = async (messageId: string, currentReactions: any) => {
+  const toggleMessageReaction = async (
+    messageId: string,
+    currentReactions: Record<string, string> | undefined,
+    type: MessageReactionType
+  ) => {
     if (!auth.currentUser || !activeChatId || messageId.startsWith("pending-")) return;
 
     const userId = auth.currentUser.uid;
     const messageRef = doc(db, "chats", activeChatId, "messages", messageId);
 
     try {
-      const hasReacted = currentReactions?.[userId] === "heart";
+      const hasReacted = currentReactions?.[userId] === type;
 
       await updateDoc(messageRef, {
-        [`reactions.${userId}`]: hasReacted ? deleteField() : "heart",
+        [`reactions.${userId}`]: hasReacted ? deleteField() : type,
       });
     } catch {
       showActionError("Could not update reaction. Please try again.");
     }
+  };
+
+  const toggleHeartReaction = async (
+    messageId: string,
+    currentReactions: Record<string, string> | undefined
+  ) => {
+    await toggleMessageReaction(messageId, currentReactions, "heart");
   };
 
   const getChatTitle = (chat: any) =>
@@ -3090,44 +3103,13 @@ export default function SynqScreen() {
                   onMessageBubblePress={onMessageBubblePress}
                   onMessageLongPress={(item) => {
                     if (item.id.startsWith("pending-")) return;
-                    const reactions = item.reactions || {};
-                    const heartUids = Object.entries(reactions)
-                      .filter(([, type]) => type === "heart")
-                      .map(([uid]) => uid);
-                    if (heartUids.length > 0) {
-                      const names =
-                        (activeChatResolved?.participantNames as
-                          | Record<string, string>
-                          | undefined) || {};
-                      const images =
-                        (activeChatResolved?.participantImages as
-                          | Record<string, string>
-                          | undefined) || {};
-                      const myId = auth.currentUser?.uid;
-                      setMessageLikers(
-                        heartUids.map((uid) => ({
-                          userId: uid,
-                          displayName:
-                            uid === myId
-                              ? "You"
-                              : names[uid]?.trim() || "Someone",
-                          imageUrl:
-                            liveParticipantImages[uid] || images[uid] || null,
-                        }))
-                      );
-                      void Haptics.impactAsync(
-                        Haptics.ImpactFeedbackStyle.Light
-                      );
-                      setMessageLikersVisible(true);
-                      return;
-                    }
-                    if (item.senderId === auth.currentUser?.uid) return;
-                    setReportTarget({
-                      reportedUserId: item.senderId,
-                      messageId: item.id,
-                      chatId: activeChatId || "",
+                    void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                    setMessageReactionTarget({
+                      id: item.id,
+                      senderId: item.senderId,
+                      reactions: item.reactions,
                     });
-                    setReportModalVisible(true);
+                    setMessageReactionSheetVisible(true);
                   }}
                   onIdeaBubblePress={onIdeaBubblePress}
                   onSendPoll={sendPollToChat}
@@ -3208,7 +3190,7 @@ export default function SynqScreen() {
           ) : null}
           <PlanGoingPeopleSheet
             visible={messageLikersVisible}
-            headerTitle="Liked by"
+            headerTitle="Reacted by"
             presentation="embedded"
             compact
             people={messageLikers}
@@ -3227,6 +3209,81 @@ export default function SynqScreen() {
               if (!uid || uid === auth.currentUser?.uid) return;
               pendingLikerProfileUidRef.current = uid;
               setMessageLikersVisible(false);
+            }}
+          />
+          <MessageReactionSheet
+            visible={messageReactionSheetVisible}
+            currentReaction={(() => {
+              const uid = auth.currentUser?.uid;
+              const value = uid
+                ? messageReactionTarget?.reactions?.[uid]
+                : undefined;
+              return isMessageReactionType(value) ? value : null;
+            })()}
+            hasReactors={
+              Object.keys(messageReactionTarget?.reactions || {}).length > 0
+            }
+            canReport={
+              !!messageReactionTarget &&
+              messageReactionTarget.senderId !== auth.currentUser?.uid
+            }
+            onClose={() => {
+              setMessageReactionSheetVisible(false);
+              setMessageReactionTarget(null);
+            }}
+            onPickReaction={(type) => {
+              const target = messageReactionTarget;
+              setMessageReactionSheetVisible(false);
+              setMessageReactionTarget(null);
+              if (!target) return;
+              void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+              void toggleMessageReaction(target.id, target.reactions, type);
+            }}
+            onSeeWhoReacted={() => {
+              const target = messageReactionTarget;
+              setMessageReactionSheetVisible(false);
+              setMessageReactionTarget(null);
+              if (!target) return;
+              const reactions = target.reactions || {};
+              const reactorEntries = Object.entries(reactions).filter(([, type]) =>
+                isMessageReactionType(type)
+              );
+              if (reactorEntries.length === 0) return;
+              const names =
+                (activeChatResolved?.participantNames as
+                  | Record<string, string>
+                  | undefined) || {};
+              const images =
+                (activeChatResolved?.participantImages as
+                  | Record<string, string>
+                  | undefined) || {};
+              const myId = auth.currentUser?.uid;
+              setMessageLikers(
+                reactorEntries.map(([uid, type]) => {
+                  const reactionType = type as MessageReactionType;
+                  const baseName =
+                    uid === myId ? "You" : names[uid]?.trim() || "Someone";
+                  return {
+                    userId: uid,
+                    displayName: `${reactionEmoji(reactionType)} ${baseName}`,
+                    imageUrl:
+                      liveParticipantImages[uid] || images[uid] || null,
+                  };
+                })
+              );
+              setMessageLikersVisible(true);
+            }}
+            onReport={() => {
+              const target = messageReactionTarget;
+              setMessageReactionSheetVisible(false);
+              setMessageReactionTarget(null);
+              if (!target || target.senderId === auth.currentUser?.uid) return;
+              setReportTarget({
+                reportedUserId: target.senderId,
+                messageId: target.id,
+                chatId: activeChatId || "",
+              });
+              setReportModalVisible(true);
             }}
           />
           </View>
@@ -4326,37 +4383,6 @@ const styles = StyleSheet.create({
   ideaCardSlot: {
     flexGrow: 0,
     flexShrink: 1,
-  },
-  heartReaction: {
-    position: "absolute",
-    bottom: -10,
-    right: -10,
-    flexDirection: "row",
-    alignItems: "center",
-  },
-  heartReactionBadge: {
-    width: 22,
-    height: 22,
-    borderRadius: 11,
-    backgroundColor: SURFACE_ELEVATED,
-    opacity: 1,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: MUTED3,
-    alignItems: "center",
-    justifyContent: "center",
-    overflow: "hidden",
-    ...Platform.select({
-      ios: {
-        shadowColor: SHADOW,
-        shadowOffset: { width: 0, height: 1 },
-        shadowOpacity: 0.35,
-        shadowRadius: 2,
-      },
-      android: { elevation: 2 },
-    }),
-  },
-  heartReactionBadgeOverlap: {
-    marginLeft: -5,
   },
   locationRow: {
     flexDirection: "row",
