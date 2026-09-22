@@ -16,13 +16,13 @@ import { dropInHasMapCoords } from "@/src/lib/dropIn";
 import { resolveAvatar } from "@/src/lib/helpers";
 import { Image as ExpoImage } from "expo-image";
 import { LinearGradient } from "expo-linear-gradient";
-import {
-  Pressable,
-  ScrollView,
-  StyleSheet,
-  Text,
-  View,
-} from "react-native";
+import { Pressable, StyleSheet, Text, View } from "react-native";
+import { ScrollView } from "react-native-gesture-handler";
+
+/** Matches rightFade width — scroll end clears the last card past the overlay. */
+const RIGHT_FADE_WIDTH = 40;
+/** Extra room so a short list (e.g. 3 cards) can always scroll horizontally. */
+const SCROLL_END_SPACER = 56;
 
 type Props = {
   dropIns: FriendDropIn[];
@@ -62,7 +62,12 @@ export default function FriendsDropInsStrip({ dropIns, onPressViewMap }: Props) 
       <View style={styles.listShell}>
         <ScrollView
           horizontal
+          nestedScrollEnabled
+          directionalLockEnabled
+          alwaysBounceHorizontal
+          bounces
           showsHorizontalScrollIndicator={false}
+          keyboardShouldPersistTaps="handled"
           contentContainerStyle={styles.row}
         >
           {dropIns.map((item) => {
@@ -98,6 +103,7 @@ export default function FriendsDropInsStrip({ dropIns, onPressViewMap }: Props) 
               </View>
             );
           })}
+          <View style={styles.scrollEndSpacer} />
         </ScrollView>
         <LinearGradient
           pointerEvents="none"
@@ -141,15 +147,20 @@ const styles = StyleSheet.create({
     position: "relative",
   },
   row: {
+    flexDirection: "row",
+    alignItems: "stretch",
     gap: 10,
-    paddingRight: 36,
+    paddingRight: RIGHT_FADE_WIDTH,
+  },
+  scrollEndSpacer: {
+    width: SCROLL_END_SPACER,
   },
   rightFade: {
     position: "absolute",
     top: 0,
     right: 0,
     bottom: 0,
-    width: 40,
+    width: RIGHT_FADE_WIDTH,
     zIndex: 1,
   },
   card: {

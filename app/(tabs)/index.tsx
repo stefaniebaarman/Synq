@@ -4188,7 +4188,7 @@ const styles = StyleSheet.create({
   },
   chatTitle: {
     ...sheetHeaderTitleText,
-    fontSize: TYPE_SECTION,
+    fontSize: 18,
   },
   chatHeaderDivider: {
     height: StyleSheet.hairlineWidth,

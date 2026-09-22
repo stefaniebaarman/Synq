@@ -19,7 +19,6 @@ import {
   TYPE_FINE,
   TYPE_LEAD,
   TYPE_MICRO,
-  TYPE_SECTION,
 } from "@/constants/Variables";
 import CloseButton from "@/src/components/CloseButton";
 import CloseIcon from "@/src/components/CloseIcon";
@@ -1901,7 +1900,7 @@ const chatHeaderOverlayStyles = RNStyleSheet.create({
   },
   expandedHeadline: {
     ...sheetHeaderTitleText,
-    fontSize: TYPE_SECTION,
+    fontSize: 18,
     letterSpacing: 0.05,
   },
   showLessLink: {

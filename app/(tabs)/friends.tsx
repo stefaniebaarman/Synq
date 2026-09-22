@@ -904,6 +904,7 @@ export default function FriendsScreen() {
           keyExtractor={(item) => item.id}
           renderItem={renderFriendRow}
           ItemSeparatorComponent={renderFriendRowSeparator}
+          nestedScrollEnabled
           keyboardShouldPersistTaps="handled"
           keyboardDismissMode="on-drag"
           onScroll={onFriendsListScroll}
