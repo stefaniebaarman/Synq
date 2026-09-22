@@ -9,27 +9,56 @@ import {
   TYPE_CAPTION,
   fonts,
   listSectionTitle,
+  sectionLinkText,
 } from "@/constants/Variables";
 import type { FriendDropIn } from "@/src/lib/dropIn";
+import { dropInHasMapCoords } from "@/src/lib/dropIn";
 import { resolveAvatar } from "@/src/lib/helpers";
 import { Image as ExpoImage } from "expo-image";
 import { LinearGradient } from "expo-linear-gradient";
-import { ScrollView, StyleSheet, Text, View } from "react-native";
+import {
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
+} from "react-native";
 
 type Props = {
   dropIns: FriendDropIn[];
+  onPressViewMap?: () => void;
 };
 
 function firstName(name: string): string {
   return String(name || "").trim().split(/\s+/)[0] || "Friend";
 }
 
-export default function FriendsDropInsStrip({ dropIns }: Props) {
+export default function FriendsDropInsStrip({ dropIns, onPressViewMap }: Props) {
   if (dropIns.length === 0) return null;
+
+  const canViewMap =
+    typeof onPressViewMap === "function" &&
+    dropIns.some((item) => dropInHasMapCoords(item));
 
   return (
     <View style={styles.wrap}>
-      <Text style={styles.title}>Where friends are</Text>
+      <View style={styles.titleRow}>
+        <Text style={styles.title}>Where friends are</Text>
+        {canViewMap ? (
+          <Pressable
+            onPress={onPressViewMap}
+            hitSlop={8}
+            style={({ pressed }) => [
+              styles.viewMapBtn,
+              pressed && styles.viewMapBtnPressed,
+            ]}
+            accessibilityRole="button"
+            accessibilityLabel="View map of where friends are"
+          >
+            <Text style={styles.viewMapText}>View map</Text>
+          </Pressable>
+        ) : null}
+      </View>
       <View style={styles.listShell}>
         <ScrollView
           horizontal
@@ -87,9 +116,26 @@ const styles = StyleSheet.create({
     marginBottom: 0,
     paddingTop: SPACE_3,
   },
+  titleRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: 12,
+    marginBottom: SPACE_3,
+  },
   title: {
     ...listSectionTitle,
-    marginBottom: SPACE_3,
+    flexShrink: 1,
+    marginBottom: 0,
+  },
+  viewMapBtn: {
+    flexShrink: 0,
+  },
+  viewMapBtnPressed: {
+    opacity: 0.7,
+  },
+  viewMapText: {
+    ...sectionLinkText,
   },
   listShell: {
     position: "relative",

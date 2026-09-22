@@ -1477,6 +1477,13 @@ export default function RootLayout() {
                   })}
                 />
                 <Stack.Screen
+                  name="friends-drop-ins-map"
+                  options={{
+                    animation: "slide_from_right",
+                    gestureEnabled: true,
+                  }}
+                />
+                <Stack.Screen
                   name="friend-group/[id]"
                   options={{
                     animation: "slide_from_right",

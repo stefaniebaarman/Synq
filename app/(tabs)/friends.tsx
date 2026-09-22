@@ -653,7 +653,13 @@ export default function FriendsScreen() {
       <View>
         {showDropInsStrip ? (
           <View style={[styles.screenPadding, styles.dropInsHeader]}>
-            <FriendsDropInsStrip dropIns={friendDropIns} />
+            <FriendsDropInsStrip
+              dropIns={friendDropIns}
+              onPressViewMap={() => {
+                void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                router.push("/friends-drop-ins-map");
+              }}
+            />
           </View>
         ) : null}
         {showFriendsPlansPreview ? (
