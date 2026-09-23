@@ -52,7 +52,6 @@ import {
   formatSynqAudienceLabel,
   getMyAudienceSet,
   loadSynqAudiencePreference,
-  resolveSynqVisibleTo,
   saveSynqAudiencePreference,
   selectionFromUserBroadcastFields,
   type SynqAudienceSelection,
@@ -240,13 +239,10 @@ import EditSynqModal from '../synq-screens/EditSynqModal';
 import InactiveSynqView from '../synq-screens/InactiveSynqView';
 import SynqActivatingView from '../synq-screens/SynqActivatingView';
 import SynqAudienceSheet from '../synq-screens/SynqAudienceSheet';
-import CreateDropInSheet from '@/src/components/dropin/CreateDropInSheet';
 import {
   cancelDropIn,
-  DROP_IN_EXPIRATION_MS,
   dropInErrorMessage,
   parseDropInState,
-  type DropInPlace,
 } from '@/src/lib/dropIn';
 
 type MessagesPane = "inbox" | "chat" | "profile";
@@ -445,15 +441,7 @@ export default function SynqScreen() {
   const [selectedFriends, setSelectedFriends] = useState<string[]>([]);
   const [userProfile, setUserProfile] = useState<any>(null);
   const [isEditModalVisible, setIsEditModalVisible] = useState(false);
-  const [dropInComposeVisible, setDropInComposeVisible] = useState(false);
   const [cancelDropInBusy, setCancelDropInBusy] = useState(false);
-  /** Keeps the live card visible if a stale profile snapshot briefly lacks drop-in fields. */
-  const [dropInLocal, setDropInLocal] = useState<{
-    text: string;
-    place: DropInPlace | null;
-    expiresAtMs: number;
-    visibleTo: string[];
-  } | null>(null);
   const [messagesModalVisible, setMessagesModalVisible] = useState(false);
   const [messagesPane, setMessagesPane] = useState<MessagesPane>("inbox");
   const messagesPaneRef = useRef<MessagesPane>("inbox");
@@ -1202,38 +1190,10 @@ export default function SynqScreen() {
     });
   }, [user?.uid]);
 
-  const myDropIn = useMemo(() => {
-    const fromProfile = parseDropInState(
-      userProfile as Record<string, unknown> | null
-    );
-    // Prefer optimistic local while the profile listener catches up — otherwise a
-    // stale snap without drop-in fields briefly/ permanently kills the live card.
-    if (dropInLocal && dropInLocal.expiresAtMs > Date.now()) {
-      if (!fromProfile.active) {
-        return {
-          active: true,
-          text: dropInLocal.text,
-          place: dropInLocal.place,
-          startedAtMs: dropInLocal.expiresAtMs - DROP_IN_EXPIRATION_MS,
-          expiresAtMs: dropInLocal.expiresAtMs,
-          audienceMode: "all" as const,
-          visibleTo: dropInLocal.visibleTo,
-        };
-      }
-      return {
-        ...fromProfile,
-        // Prefer the freshest expiry / audience count from the Share response.
-        expiresAtMs: fromProfile.expiresAtMs ?? dropInLocal.expiresAtMs,
-        visibleTo:
-          fromProfile.visibleTo.length > 0
-            ? fromProfile.visibleTo
-            : dropInLocal.visibleTo,
-        text: fromProfile.text || dropInLocal.text,
-        place: fromProfile.place || dropInLocal.place,
-      };
-    }
-    return fromProfile;
-  }, [userProfile, dropInLocal]);
+  const myDropIn = useMemo(
+    () => parseDropInState(userProfile as Record<string, unknown> | null),
+    [userProfile]
+  );
 
   const dropInLiveProp = useMemo(() => {
     if (!myDropIn.active) return null;
@@ -1254,8 +1214,7 @@ export default function SynqScreen() {
   const handleCancelDropIn = useCallback(async () => {
     if (cancelDropInBusy) return;
     setCancelDropInBusy(true);
-    const previousLocal = dropInLocal;
-    setDropInLocal(null);
+    const previousProfile = userProfile;
     setUserProfile((prev: any) => {
       if (!prev) return prev;
       const next = { ...prev, dropInActive: false };
@@ -1271,44 +1230,12 @@ export default function SynqScreen() {
     try {
       await cancelDropIn();
     } catch (err) {
-      setDropInLocal(previousLocal);
+      if (previousProfile) setUserProfile(previousProfile);
       showActionError(dropInErrorMessage(err), "Couldn't end live status");
     } finally {
       setCancelDropInBusy(false);
     }
-  }, [cancelDropInBusy, dropInLocal, showActionError]);
-
-  const handleDropInSent = useCallback(
-    (payload: {
-      text: string;
-      place: DropInPlace | null;
-      expiresAtMs: number;
-      audience: SynqAudienceSelection;
-    }) => {
-      const visibleTo = resolveSynqVisibleTo(
-        payload.audience,
-        friendGroups,
-        friendIds
-      );
-      // Keep optimistic state only in dropInLocal — writing into userProfile races
-      // with the profile listener and can wipe the live card if a stale snap arrives.
-      setDropInLocal({
-        text: payload.text,
-        place: payload.place,
-        expiresAtMs: payload.expiresAtMs,
-        visibleTo,
-      });
-    },
-    [friendGroups, friendIds]
-  );
-
-  const handleDropInSendFailed = useCallback(() => {
-    setDropInLocal(null);
-  }, []);
-
-  const openDropInCompose = useCallback(() => {
-    setDropInComposeVisible(true);
-  }, []);
+  }, [cancelDropInBusy, userProfile, showActionError]);
 
   useEffect(() => {
     const uid = user?.uid;
@@ -2887,10 +2814,6 @@ export default function SynqScreen() {
                 changeAudienceVisible ||
                 audienceUpdating
               }
-              onOpenDropIn={openDropInCompose}
-              dropInLive={dropInLiveProp}
-              onCancelDropIn={() => void handleCancelDropIn()}
-              cancelDropInBusy={cancelDropInBusy}
             />
           </View>
         )}
@@ -2913,6 +2836,7 @@ export default function SynqScreen() {
                     void saveSynqAudiencePreference(auth.currentUser.uid, next);
                   }
                 }}
+                // Banner JSX commented in InactiveSynqView — props kept so Blast can re-enable cleanly.
                 dropInLive={dropInLiveProp}
                 onCancelDropIn={() => void handleCancelDropIn()}
                 cancelDropInBusy={cancelDropInBusy}
@@ -3354,7 +3278,6 @@ export default function SynqScreen() {
             if (!auth.currentUser || endingSynq) return;
             setEndingSynq(true);
             try {
-              setDropInLocal(null);
               setUserProfile((prev: any) => {
                 if (!prev) return { status: "inactive", memo: "" };
                 const next = { ...prev, dropInActive: false, status: "inactive", memo: "" };
@@ -3406,17 +3329,6 @@ export default function SynqScreen() {
             });
           }}
           onClose={() => setChangeAudienceVisible(false)}
-        />
-        <CreateDropInSheet
-          visible={dropInComposeVisible}
-          onClose={() => setDropInComposeVisible(false)}
-          friendGroups={friendGroups}
-          initialAudience={audienceSelection}
-          onSent={handleDropInSent}
-          onSendFailed={handleDropInSendFailed}
-          onError={(message) =>
-            showActionError(message, "Couldn't share live status")
-          }
         />
       </View>
   );

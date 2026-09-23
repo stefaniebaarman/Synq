@@ -41,7 +41,7 @@ export default function DropInLiveBanner({
       accessibilityLabel={`You're at ${headline}`}
     >
       <View style={styles.pinWrap}>
-        <Ionicons name="location" size={20} color={ACCENT} />
+        <Ionicons name="location-outline" size={20} color={ACCENT} />
       </View>
       <View style={styles.main}>
         <Text style={styles.eyebrow}>You're at</Text>

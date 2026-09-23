@@ -230,13 +230,8 @@ export default function CreateDropInSheet({
           onScrollBeginDrag={dismissKeyboard}
         >
           <View style={styles.header}>
-            <View style={styles.titleRow}>
-              <Ionicons name="location-outline" size={22} color={ACCENT} />
-              <Text style={styles.title}>Share live status</Text>
-            </View>
-            <Text style={styles.subtitle}>
-              Your selected friends will be notified
-            </Text>
+            <Text style={styles.title}>Blast</Text>
+            <Text style={styles.subtitle}>Tell friends where you are</Text>
           </View>
 
           <View style={styles.whereBlock}>
@@ -278,13 +273,13 @@ export default function CreateDropInSheet({
             style={[styles.sendBtn, !canSend && styles.sendBtnDisabled]}
             onPress={() => void handleSend()}
             accessibilityRole="button"
-            accessibilityLabel="Share"
+            accessibilityLabel="Blast"
             accessibilityState={{ disabled: !canSend }}
           >
             {busy ? (
               <ActivityIndicator color={TEXT} />
             ) : (
-              <Text style={styles.sendBtnText}>Share</Text>
+              <Text style={styles.sendBtnText}>Blast</Text>
             )}
           </Pressable>
           <Pressable
@@ -318,11 +313,6 @@ const styles = StyleSheet.create({
   },
   header: {
     gap: SPACE_2,
-  },
-  titleRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 10,
   },
   title: {
     ...sheetTitleText,

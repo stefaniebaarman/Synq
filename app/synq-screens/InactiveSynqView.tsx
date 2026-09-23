@@ -27,7 +27,8 @@ import {
 import type { FriendGroup } from "@/src/lib/friendGroups";
 import { formatAudienceSelectionLabel, type SynqAudienceSelection } from "@/src/lib/synqBroadcast";
 import type { DropInPlace } from "@/src/lib/dropIn";
-import DropInLiveBanner from "@/src/components/dropin/DropInLiveBanner";
+// Blast UI — disabled until ready to ship
+// import DropInLiveBanner from "@/src/components/dropin/DropInLiveBanner";
 import { Ionicons } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
 import { Image as ExpoImage } from "expo-image";
@@ -288,6 +289,10 @@ export default function InactiveSynqView({
   onCancelDropIn,
   cancelDropInBusy,
 }: Props) {
+  // Blast banner UI commented out below — keep props for easy re-enable.
+  void dropInLive;
+  void onCancelDropIn;
+  void cancelDropInBusy;
   const insets = useSafeAreaInsets();
   const reduced = useReducedMotion();
   const pressScale = useSharedValue(1);
@@ -420,6 +425,7 @@ export default function InactiveSynqView({
         </Animated.Text>
       </Pressable>
 
+      {/* Blast UI — disabled until ready to ship
       {dropInLive ? (
         <View style={styles.dropInBannerWrap}>
           <DropInLiveBanner
@@ -432,6 +438,7 @@ export default function InactiveSynqView({
           />
         </View>
       ) : null}
+      */}
     </Animated.View>
   );
 

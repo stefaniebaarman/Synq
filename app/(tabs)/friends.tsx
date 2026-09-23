@@ -62,7 +62,17 @@ import FriendsGroupsHeaderTitle, {
 import FriendsPlansPreview from "@/src/components/friends/FriendsPlansPreview";
 import FriendsPlansSheet from "@/src/components/friends/FriendsPlansSheet";
 import FriendsDropInsStrip from "@/src/components/dropin/FriendsDropInsStrip";
-import { pollActiveFriendDropIns, type FriendDropIn } from "@/src/lib/dropIn";
+// Blast UI — disabled until ready to ship (BLAST_UI_ENABLED)
+// import CreateDropInSheet from "@/src/components/dropin/CreateDropInSheet";
+import {
+  DROP_IN_EXPIRATION_MS,
+  cancelDropIn,
+  dropInErrorMessage,
+  parseDropInState,
+  pollActiveFriendDropIns,
+  type DropInPlace,
+  type FriendDropIn,
+} from "@/src/lib/dropIn";
 import {
   FriendsSortMenu,
   FriendsSortTrigger,
@@ -77,11 +87,20 @@ import ProfileTabHeaderOverlay, {
 import TabHeaderIconRow from "@/src/components/TabHeaderIconRow";
 import { useBlockedUsers } from "@/src/lib/blockedUsers";
 import { ignoreSnapshotPermissionDenied } from "@/src/lib/firestoreListeners";
-import { createFriendGroup } from "@/src/lib/friendGroups";
+import {
+  createFriendGroup,
+  subscribeFriendGroups,
+  type FriendGroup,
+} from "@/src/lib/friendGroups";
 import { friendLocationLine, resolveAvatar } from "@/src/lib/helpers";
 import { fetchOrCreateInviteCode } from "@/src/lib/inviteCode";
 import { buildProfileShareWebUrl } from "@/src/lib/profileShareUrl";
 import { shareProfileLink } from "@/src/lib/shareProfileCard";
+import {
+  loadSynqAudiencePreference,
+  resolveSynqVisibleTo,
+  type SynqAudienceSelection,
+} from "@/src/lib/synqBroadcast";
 import { useFriendPlansFeed } from "@/src/lib/useFriendPlansFeed";
 import {
   fetchSuggestedFriends,
@@ -151,6 +170,7 @@ import { FRIENDS_TAB_PRESS } from "../../src/lib/friendsTabEvents";
 import { LOCATION_PROMPT_CHECK_REQUEST } from "../../src/lib/locationPromptEvents";
 import { registerDismissNavigationOverlaysHandler } from "../../src/lib/navigationOverlayEvents";
 import {
+  friendGroupsCacheByUser,
   friendIdsKey,
   friendProfileCacheByUser,
   friendsListCacheByUser,
@@ -167,6 +187,9 @@ import { subscribeFriendsIdsMultiplexed } from "../../src/lib/socialListenerHub"
 import { useAuthRefresh } from "../_layout";
 import AlertModal from "../alert-modal";
 import ConfirmModal from "../confirm-modal";
+
+/** Temporarily off — Blast UI not ready to ship. Keep wiring; flip to true later. */
+const BLAST_UI_ENABLED = false;
 
 const { width } = Dimensions.get("window");
 
@@ -341,6 +364,29 @@ export default function FriendsScreen() {
   const [friendsTabMode, setFriendsTabMode] = useState<FriendsTabMode>("friends");
   const [plansSheetVisible, setPlansSheetVisible] = useState(false);
   const [friendDropIns, setFriendDropIns] = useState<FriendDropIn[]>([]);
+  const [blastComposeVisible, setBlastComposeVisible] = useState(false);
+  const [cancelDropInBusy, setCancelDropInBusy] = useState(false);
+  const [dropInLocal, setDropInLocal] = useState<{
+    text: string;
+    place: DropInPlace | null;
+    expiresAtMs: number;
+    visibleTo: string[];
+  } | null>(null);
+  const [myDropInProfile, setMyDropInProfile] = useState<Record<
+    string,
+    unknown
+  > | null>(null);
+  const [friendGroups, setFriendGroups] = useState<FriendGroup[]>(() =>
+    myId && friendGroupsCacheByUser[myId]
+      ? friendGroupsCacheByUser[myId]!
+      : []
+  );
+  const [blastAudience, setBlastAudience] = useState<SynqAudienceSelection>({
+    mode: "all",
+    groupIds: [],
+  });
+  const [blastErrorVisible, setBlastErrorVisible] = useState(false);
+  const [blastErrorMessage, setBlastErrorMessage] = useState("");
   const friendsListRef = useRef<FlatList<Friend>>(null);
   const friendsRefreshInFlightRef = useRef(false);
   const lastFriendsIdsKeyRef = useRef("");
@@ -378,6 +424,7 @@ export default function FriendsScreen() {
       reopenPlansSheetOnFocusRef.current = false;
       closeAddFriendsModal();
       closePlansSheet();
+      setBlastComposeVisible(false);
       if (openAddFriends === "1") {
         router.setParams({ openAddFriends: "" });
       }
@@ -390,6 +437,7 @@ export default function FriendsScreen() {
       reopenPlansSheetOnFocusRef.current = false;
       closeAddFriendsModal();
       closePlansSheet();
+      setBlastComposeVisible(false);
     });
   }, [closeAddFriendsModal, closePlansSheet]);
 
@@ -432,8 +480,9 @@ export default function FriendsScreen() {
   useEffect(() => {
     if (!myId) return;
     let cancelled = false;
-    getDoc(doc(db, "users", myId))
-      .then((snap) => {
+    const unsub = onSnapshot(
+      doc(db, "users", myId),
+      (snap) => {
         if (cancelled || !snap.exists()) return;
         const data = snap.data() as {
           lat?: unknown;
@@ -442,6 +491,7 @@ export default function FriendsScreen() {
           state?: unknown;
           locationDisplay?: unknown;
         };
+        setMyDropInProfile(snap.data() as Record<string, unknown>);
         const lat = typeof data.lat === "number" ? data.lat : null;
         const lng = typeof data.lng === "number" ? data.lng : null;
         if (lat != null && lng != null) {
@@ -454,12 +504,132 @@ export default function FriendsScreen() {
             ? data.locationDisplay.trim()
             : formatMyCityLabel(city, state);
         if (label) setMyCityLabel(label);
-      })
-      .catch(() => {});
+      },
+      () => {}
+    );
     return () => {
       cancelled = true;
+      unsub();
     };
   }, [myId]);
+
+  useEffect(() => {
+    if (!myId) return;
+    void loadSynqAudiencePreference(myId).then(setBlastAudience);
+  }, [myId]);
+
+  useEffect(() => {
+    if (!myId) return;
+    const unsub = subscribeFriendGroups(
+      myId,
+      (groups) => {
+        friendGroupsCacheByUser[myId] = groups;
+        setFriendGroups(groups);
+      },
+      () => {}
+    );
+    return unsub;
+  }, [myId]);
+
+  const myDropIn = useMemo(() => {
+    const fromProfile = parseDropInState(myDropInProfile);
+    if (dropInLocal && dropInLocal.expiresAtMs > Date.now()) {
+      if (!fromProfile.active) {
+        return {
+          active: true,
+          text: dropInLocal.text,
+          place: dropInLocal.place,
+          startedAtMs: dropInLocal.expiresAtMs - DROP_IN_EXPIRATION_MS,
+          expiresAtMs: dropInLocal.expiresAtMs,
+          audienceMode: "all" as const,
+          visibleTo: dropInLocal.visibleTo,
+        };
+      }
+      return {
+        ...fromProfile,
+        expiresAtMs: fromProfile.expiresAtMs ?? dropInLocal.expiresAtMs,
+        visibleTo:
+          fromProfile.visibleTo.length > 0
+            ? fromProfile.visibleTo
+            : dropInLocal.visibleTo,
+        text: fromProfile.text || dropInLocal.text,
+        place: fromProfile.place || dropInLocal.place,
+      };
+    }
+    return fromProfile;
+  }, [myDropInProfile, dropInLocal]);
+
+  const dropInLiveProp = useMemo(() => {
+    if (!myDropIn.active) return null;
+    return {
+      text: myDropIn.text,
+      place: myDropIn.place,
+      expiresAtMs: myDropIn.expiresAtMs,
+      notifiedCount: myDropIn.visibleTo?.length,
+    };
+  }, [myDropIn]);
+
+  const handleCancelDropIn = useCallback(async () => {
+    if (cancelDropInBusy) return;
+    setCancelDropInBusy(true);
+    const previousLocal = dropInLocal;
+    const previousProfile = myDropInProfile;
+    setDropInLocal(null);
+    setMyDropInProfile((prev) => {
+      if (!prev) return prev;
+      const next: Record<string, unknown> = { ...prev, dropInActive: false };
+      delete next.dropInText;
+      delete next.dropInPlace;
+      delete next.dropInStartedAt;
+      delete next.dropInExpiresAt;
+      delete next.dropInAudienceMode;
+      delete next.dropInAudienceGroupIds;
+      delete next.dropInVisibleTo;
+      return next;
+    });
+    try {
+      await cancelDropIn();
+    } catch (err) {
+      setDropInLocal(previousLocal);
+      if (previousProfile) setMyDropInProfile(previousProfile);
+      setBlastErrorMessage(dropInErrorMessage(err));
+      setBlastErrorVisible(true);
+    } finally {
+      setCancelDropInBusy(false);
+    }
+  }, [cancelDropInBusy, dropInLocal, myDropInProfile]);
+
+  const handleDropInSent = useCallback(
+    (payload: {
+      text: string;
+      place: DropInPlace | null;
+      expiresAtMs: number;
+      audience: SynqAudienceSelection;
+    }) => {
+      const visibleTo = resolveSynqVisibleTo(
+        payload.audience,
+        friendGroups,
+        friends.map((f) => f.id)
+      );
+      setDropInLocal({
+        text: payload.text,
+        place: payload.place,
+        expiresAtMs: payload.expiresAtMs,
+        visibleTo,
+      });
+      setBlastAudience(payload.audience);
+    },
+    [friendGroups, friends]
+  );
+
+  const handleDropInSendFailed = useCallback(() => {
+    setDropInLocal(null);
+  }, []);
+
+  const openBlastCompose = useCallback(() => {
+    void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    setBlastComposeVisible(true);
+  }, []);
 
   useEffect(() => {
     if (!myId) return;
@@ -639,22 +809,50 @@ export default function FriendsScreen() {
     !isFriendsInitialLoading &&
     friendPlansFeed.aggregatedPlans.length > 0;
 
-  const showDropInsStrip =
-    friendsTabMode === "friends" &&
-    !isFriendsInitialLoading &&
-    friendDropIns.length > 0;
+  // Drop-ins / "Where friends are" — disabled until ready to ship
+  const showWhereFriendsStrip = false;
+  // const showWhereFriendsStrip =
+  //   friendsTabMode === "friends" &&
+  //   !isFriendsInitialLoading &&
+  //   friends.length > 0 &&
+  //   (BLAST_UI_ENABLED || friendDropIns.length > 0);
+
+  const viewerImageUrl = useMemo(() => {
+    return typeof myDropInProfile?.imageurl === "string"
+      ? myDropInProfile.imageurl
+      : null;
+  }, [myDropInProfile]);
+
+  const ownBlastLive = useMemo(() => {
+    if (!dropInLiveProp) return null;
+    return {
+      text: dropInLiveProp.text,
+      place: dropInLiveProp.place,
+      imageurl: viewerImageUrl,
+    };
+  }, [dropInLiveProp, viewerImageUrl]);
 
   const friendsListHeader = useMemo(() => {
-    if (!showFriendsPlansPreview && !showFriendSearch && !showDropInsStrip) {
+    if (
+      !showFriendsPlansPreview &&
+      !showFriendSearch &&
+      !showWhereFriendsStrip
+    ) {
       return null;
     }
 
     return (
       <View>
-        {showDropInsStrip ? (
+        {showWhereFriendsStrip ? (
           <View style={[styles.screenPadding, styles.dropInsHeader]}>
             <FriendsDropInsStrip
               dropIns={friendDropIns}
+              // Blast UI — disabled until ready to ship (BLAST_UI_ENABLED)
+              // onPressBlast={openBlastCompose}
+              // viewerImageUrl={viewerImageUrl}
+              // ownBlastLive={ownBlastLive}
+              // onEndOwnBlast={() => void handleCancelDropIn()}
+              // endOwnBlastBusy={cancelDropInBusy}
               onPressViewMap={() => {
                 void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
                 router.push("/friends-drop-ins-map");
@@ -676,14 +874,14 @@ export default function FriendsScreen() {
             isPlanBusy={friendPlansFeed.isPlanBusy}
             onSeeAll={() => setPlansSheetVisible(true)}
             onOpenFriendProfile={openFriendProfileFromFriendsTab}
-            style={showDropInsStrip ? styles.plansAfterDropIns : undefined}
+            style={showWhereFriendsStrip ? styles.plansAfterDropIns : undefined}
           />
         ) : null}
         {showFriendSearch ? (
           <View
             style={[
               styles.friendsSection,
-              showDropInsStrip
+              showWhereFriendsStrip
                 ? styles.friendsSectionAfterDropIns
                 : showFriendsPlansPreview
                   ? styles.friendsSectionAfterPlans
@@ -706,7 +904,7 @@ export default function FriendsScreen() {
     );
   }, [
     showFriendsPlansPreview,
-    showDropInsStrip,
+    showWhereFriendsStrip,
     showFriendSearch,
     searchText,
     sortMode,
@@ -722,7 +920,28 @@ export default function FriendsScreen() {
     friendPlansFeed.handlePlanAction,
     friendPlansFeed.isPlanBusy,
     openFriendProfileFromFriendsTab,
+    ownBlastLive,
+    viewerImageUrl,
+    handleCancelDropIn,
+    cancelDropInBusy,
+    openBlastCompose,
   ]);
+
+  // Preserve Blast helpers while compose UI is commented out (re-enable with BLAST_UI_ENABLED).
+  if (BLAST_UI_ENABLED) {
+    void openBlastCompose;
+    void ownBlastLive;
+    void viewerImageUrl;
+    void handleCancelDropIn;
+    void cancelDropInBusy;
+    void handleDropInSent;
+    void handleDropInSendFailed;
+    void blastComposeVisible;
+    void blastErrorVisible;
+    void blastErrorMessage;
+    void blastAudience;
+    void friendGroups;
+  }
 
   const userProfileForSort = useMemo(
     () =>
@@ -992,6 +1211,26 @@ export default function FriendsScreen() {
           message={friendPlansFeed.errorAlertMessage}
           onClose={friendPlansFeed.dismissErrorAlert}
         />
+        {/* Blast UI — disabled until ready to ship (BLAST_UI_ENABLED)
+        <AlertModal
+          visible={blastErrorVisible}
+          title="Couldn't send blast"
+          message={blastErrorMessage}
+          onClose={() => setBlastErrorVisible(false)}
+        />
+        <CreateDropInSheet
+          visible={blastComposeVisible}
+          onClose={() => setBlastComposeVisible(false)}
+          friendGroups={friendGroups}
+          initialAudience={blastAudience}
+          onSent={handleDropInSent}
+          onSendFailed={handleDropInSendFailed}
+          onError={(message) => {
+            setBlastErrorMessage(message);
+            setBlastErrorVisible(true);
+          }}
+        />
+        */}
       </View>
     </TouchableWithoutFeedback>
   );

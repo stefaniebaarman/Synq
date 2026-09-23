@@ -12,6 +12,7 @@ import {
   OVERLAY_HEAVY,
   PLACEHOLDER_DARK,
   RADIUS_LG,
+  SURFACE,
   SURFACE_INPUT,
   TEXT,
   TEXT_MUTED_DARK,
@@ -723,7 +724,7 @@ export default function OpenPlans({
           accessibilityRole="button"
           accessibilityLabel="Open schedule calendar"
         >
-          <Ionicons name="calendar-outline" size={20} color={ACCENT} />
+          <Ionicons name="calendar-outline" size={16} color={MUTED2} />
         </TouchableOpacity>
       </View>
 
@@ -1355,10 +1356,15 @@ const styles = StyleSheet.create({
     marginBottom: 0,
   },
   calendarBtn: {
-    paddingVertical: 4,
-    paddingLeft: 4,
-    paddingRight: 0,
-    marginLeft: 8,
+    width: 28,
+    height: 28,
+    borderRadius: 8,
+    alignItems: "center",
+    justifyContent: "center",
+    marginLeft: 4,
+    backgroundColor: SURFACE,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: BORDER,
   },
   plansBox: {
     paddingVertical: 0,
