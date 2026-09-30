@@ -853,10 +853,11 @@ export default function FriendsScreen() {
               // ownBlastLive={ownBlastLive}
               // onEndOwnBlast={() => void handleCancelDropIn()}
               // endOwnBlastBusy={cancelDropInBusy}
-              onPressViewMap={() => {
-                void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                router.push("/friends-drop-ins-map");
-              }}
+              // Map screen — disabled until ready (needs native react-native-maps / dev build)
+              // onPressViewMap={() => {
+              //   void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+              //   router.push("/friends-drop-ins-map");
+              // }}
             />
           </View>
         ) : null}

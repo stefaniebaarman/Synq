@@ -1,3 +1,9 @@
+/**
+ * Friends drop-ins map screen — temporarily not a route.
+ * Renamed with `_` so Expo Router ignores it (avoids react-native-maps in Expo Go).
+ * To re-enable: rename to `friends-drop-ins-map.tsx`, restore Stack.Screen in `_layout`,
+ * Map link in FriendsDropInsStrip / friends.tsx, and `react-native-maps` plugins in app.json.
+ */
 import {
   ACCENT,
   ACCENT_BORDER,

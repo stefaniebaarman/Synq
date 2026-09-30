@@ -10,9 +10,10 @@ import {
   sectionLinkText,
 } from "@/constants/Variables";
 import type { DropInPlace, FriendDropIn } from "@/src/lib/dropIn";
-import { dropInHasMapCoords } from "@/src/lib/dropIn";
+// Map screen — disabled until ready
+// import { dropInHasMapCoords } from "@/src/lib/dropIn";
 import { resolveAvatar } from "@/src/lib/helpers";
-import { Ionicons } from "@expo/vector-icons";
+// import { Ionicons } from "@expo/vector-icons";
 import { Image as ExpoImage } from "expo-image";
 import { LinearGradient } from "expo-linear-gradient";
 import { Pressable, StyleSheet, Text, View } from "react-native";
@@ -69,9 +70,11 @@ export default function FriendsDropInsStrip({
   void BLAST_UI_ENABLED;
   if (!showBlast && dropIns.length === 0) return null;
 
-  const canViewMap =
-    typeof onPressViewMap === "function" &&
-    dropIns.some((item) => dropInHasMapCoords(item));
+  // Map screen — disabled until ready (needs native react-native-maps / dev build)
+  // const canViewMap =
+  //   typeof onPressViewMap === "function" &&
+  //   dropIns.some((item) => dropInHasMapCoords(item));
+  void onPressViewMap;
 
   return (
     <View style={styles.wrap}>
@@ -108,6 +111,7 @@ export default function FriendsDropInsStrip({
             </Pressable>
           ) : null}
           */}
+          {/* Map screen — disabled until ready (needs native react-native-maps / dev build)
           {canViewMap ? (
             <Pressable
               onPress={onPressViewMap}
@@ -123,6 +127,7 @@ export default function FriendsDropInsStrip({
               <Ionicons name="chevron-forward" size={14} color={MUTED2} />
             </Pressable>
           ) : null}
+          */}
         </View>
       </View>
 

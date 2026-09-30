@@ -1476,6 +1476,7 @@ export default function RootLayout() {
                     gestureEnabled: true,
                   })}
                 />
+                {/* Map screen — disabled until ready (needs native react-native-maps / dev build)
                 <Stack.Screen
                   name="friends-drop-ins-map"
                   options={{
@@ -1483,6 +1484,7 @@ export default function RootLayout() {
                     gestureEnabled: true,
                   }}
                 />
+                */}
                 <Stack.Screen
                   name="friend-group/[id]"
                   options={{
