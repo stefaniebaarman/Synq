@@ -19,11 +19,16 @@ type Props = {
   accentColor: string;
 };
 
-/** Plan times: 7:00 AM – 11:00 PM in 30-minute steps. */
+/** Plan times: 7:00 AM – 11:00 PM in 15-minute steps. */
 export function clampPlanTime(date: Date, base: Date): Date {
   const next = new Date(base);
   let hours = date.getHours();
-  let minutes = date.getMinutes() >= 30 ? 30 : 0;
+  const rawMinutes = date.getMinutes();
+  let minutes = Math.round(rawMinutes / 15) * 15;
+  if (minutes === 60) {
+    hours += 1;
+    minutes = 0;
+  }
 
   if (hours < 7) {
     hours = 7;
@@ -53,7 +58,7 @@ export default function PlanTimePicker({ value, onChange, accentColor }: Props) 
           value={value}
           mode="time"
           display="spinner"
-          minuteInterval={30}
+          minuteInterval={15}
           onChange={handleChange}
           themeVariant="dark"
           accentColor={accentColor}
