@@ -1261,15 +1261,6 @@ export default function OpenPlans({
         events={visibleEvents}
         accentColor={ACCENT}
         onClose={() => setScheduleSheetVisible(false)}
-        onPressPlan={(plan) => {
-          setScheduleSheetVisible(false);
-          const full = visibleEvents.find((e) => e.id === plan.id);
-          if (!full) return;
-          if (canEditOpenPlan(full, viewerUid)) {
-            // Let the sheet finish dismissing before opening the editor modal.
-            setTimeout(() => openEditModal(full), 280);
-          }
-        }}
       />
 
       {pendingDeleteEvent ? (

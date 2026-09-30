@@ -1,5 +1,6 @@
 import {
   ACCENT,
+  ACCENT_BORDER,
   BG,
   BORDER,
   BORDER_MUTED,
@@ -7,10 +8,13 @@ import {
   MUTED3,
   ON_ACCENT_TEXT,
   RADIUS_MD,
+  RADIUS_SM,
+  SURFACES,
   TEXT,
   TEXT_MUTED_DARK,
   TYPE_BUTTON,
   TYPE_CAPTION,
+  TYPE_FINE,
   fonts,
   cardMetaText,
   listRowTitleText,
@@ -19,10 +23,9 @@ import CloseButton from "@/src/components/CloseButton";
 import SpringBottomSheet from "@/src/components/sheets/SpringBottomSheet";
 import { openInMaps } from "@/src/lib/openInMaps";
 import { sortOpenPlansByDateTime } from "@/src/lib/planEvents";
-import { Ionicons } from "@expo/vector-icons";
+import { LinearGradient } from "expo-linear-gradient";
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import {
-  Pressable,
   ScrollView,
   StyleSheet,
   Text,
@@ -35,6 +38,10 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 const WEEKDAYS = ["S", "M", "T", "W", "T", "F", "S"];
 const MONTHS_BEFORE = 2;
 const MONTHS_AFTER = 8;
+/** Show ~3 plan cards before the day list scrolls. */
+const PLAN_LIST_VISIBLE_COUNT = 3;
+const PLAN_ROW_EST_HEIGHT = 72;
+const PLAN_LIST_FADE = ["rgba(9,10,11,0)", "rgba(9,10,11,0.55)"] as const;
 
 export type SchedulePlanEvent = {
   id: string;
@@ -51,7 +58,6 @@ type Props = {
   events: SchedulePlanEvent[];
   accentColor?: string;
   onClose: () => void;
-  onPressPlan?: (event: SchedulePlanEvent) => void;
 };
 
 function startOfDay(d: Date) {
@@ -155,12 +161,17 @@ function MonthBlock({
                   styles.dayBubble,
                   selectedDay && { backgroundColor: accentColor },
                   isToday && !selectedDay && styles.todayBubble,
+                  marked && !selectedDay && {
+                    borderWidth: 1,
+                    borderColor: accentColor,
+                  },
                 ]}
               >
                 <Text
                   style={[
                     styles.dayText,
                     selectedDay && styles.dayTextSelected,
+                    marked && !selectedDay && { color: accentColor },
                   ]}
                 >
                   {date.getDate()}
@@ -175,6 +186,7 @@ function MonthBlock({
                         ? ON_ACCENT_TEXT
                         : accentColor,
                     },
+                    selectedDay && styles.dotOnSelected,
                   ]}
                 />
               ) : (
@@ -193,7 +205,6 @@ export default function PlansScheduleSheet({
   events,
   accentColor = ACCENT,
   onClose,
-  onPressPlan,
 }: Props) {
   const insets = useSafeAreaInsets();
   const { height: windowH } = useWindowDimensions();
@@ -229,6 +240,8 @@ export default function PlansScheduleSheet({
     );
   }, [events, selected]);
 
+  const planListScrollable = dayPlans.length > PLAN_LIST_VISIBLE_COUNT;
+
   useEffect(() => {
     if (!visible) {
       didInitialScroll.current = false;
@@ -237,16 +250,23 @@ export default function PlansScheduleSheet({
     setSelected(startOfDay(new Date()));
   }, [visible]);
 
-  useEffect(() => {
-    if (!visible || didInitialScroll.current) return;
-    const key = `${today.getFullYear()}-${today.getMonth()}`;
-    const y = monthOffsets.current[key];
-    if (typeof y !== "number") return;
+  const currentMonthKey = `${today.getFullYear()}-${today.getMonth()}`;
+
+  const scrollToCurrentMonth = (y: number) => {
+    if (didInitialScroll.current) return;
     didInitialScroll.current = true;
     requestAnimationFrame(() => {
       scrollRef.current?.scrollTo({ y: Math.max(0, y - 8), animated: false });
     });
-  }, [visible, today, months]);
+  };
+
+  // Fallback when month layouts are already cached from a prior open.
+  useEffect(() => {
+    if (!visible || didInitialScroll.current) return;
+    const y = monthOffsets.current[currentMonthKey];
+    if (typeof y !== "number") return;
+    scrollToCurrentMonth(y);
+  }, [visible, currentMonthKey]);
 
   const selectedLabel = selected.toLocaleDateString("en-US", {
     weekday: "short",
@@ -288,7 +308,11 @@ export default function PlansScheduleSheet({
             <View
               key={key}
               onLayout={(e) => {
-                monthOffsets.current[key] = e.nativeEvent.layout.y;
+                const y = e.nativeEvent.layout.y;
+                monthOffsets.current[key] = y;
+                if (visible && key === currentMonthKey) {
+                  scrollToCurrentMonth(y);
+                }
               }}
             >
               <MonthBlock
@@ -305,55 +329,74 @@ export default function PlansScheduleSheet({
       </ScrollView>
 
       <View style={styles.daySection}>
-        <Text style={styles.daySectionTitle}>{selectedLabel}</Text>
+        <Text
+          style={[
+            styles.daySectionTitle,
+            dayPlans.length > 0 && { color: accentColor },
+          ]}
+        >
+          {selectedLabel}
+        </Text>
         {dayPlans.length === 0 ? (
           <Text style={styles.emptyDay}>No plans this day</Text>
         ) : (
-          dayPlans.map((plan) => (
-            <Pressable
-              key={plan.id}
-              style={({ pressed }) => [
-                styles.planRow,
-                pressed && styles.planRowPressed,
-              ]}
-              onPress={() => onPressPlan?.(plan)}
-              disabled={!onPressPlan}
-              accessibilityRole={onPressPlan ? "button" : undefined}
-              accessibilityLabel={plan.title}
+          <View style={styles.planListWrap}>
+            <ScrollView
+              style={planListScrollable ? styles.planListScroll : undefined}
+              contentContainerStyle={styles.planListContent}
+              showsVerticalScrollIndicator={planListScrollable}
+              nestedScrollEnabled
+              keyboardShouldPersistTaps="handled"
             >
-              <View style={styles.planTextCol}>
-                <Text style={styles.planTitle} numberOfLines={2}>
-                  {plan.title}
-                </Text>
-                {(plan.time || plan.location) ? (
-                  <Text style={styles.planMeta}>
-                    {plan.location ? (
-                      <Text
-                        style={styles.planLocation}
-                        onPress={() => {
-                          const lat = Number(plan.locationLat);
-                          const lng = Number(plan.locationLng);
-                          void openInMaps({
-                            name: String(plan.location || "").trim(),
-                            ...(Number.isFinite(lat) && Number.isFinite(lng)
-                              ? { lat, lng }
-                              : {}),
-                          });
-                        }}
-                      >
-                        {plan.location}
+              {dayPlans.map((plan) => (
+                <View key={plan.id} style={styles.planRow}>
+                  <View
+                    style={[
+                      styles.planAccentBar,
+                      { backgroundColor: accentColor },
+                    ]}
+                  />
+                  <View style={styles.planTextCol}>
+                    <Text style={styles.planTitle} numberOfLines={2}>
+                      {plan.title}
+                    </Text>
+                    {(plan.time || plan.location) ? (
+                      <Text style={styles.planMeta}>
+                        {plan.location ? (
+                          <Text
+                            style={styles.planLocation}
+                            onPress={() => {
+                              const lat = Number(plan.locationLat);
+                              const lng = Number(plan.locationLng);
+                              void openInMaps({
+                                name: String(plan.location || "").trim(),
+                                ...(Number.isFinite(lat) && Number.isFinite(lng)
+                                  ? { lat, lng }
+                                  : {}),
+                              });
+                            }}
+                          >
+                            {plan.location}
+                          </Text>
+                        ) : null}
+                        {plan.location && plan.time ? " · " : null}
+                        {plan.time || null}
                       </Text>
                     ) : null}
-                    {plan.location && plan.time ? " · " : null}
-                    {plan.time || null}
-                  </Text>
-                ) : null}
-              </View>
-              {onPressPlan ? (
-                <Ionicons name="chevron-forward" size={16} color={MUTED2} />
-              ) : null}
-            </Pressable>
-          ))
+                  </View>
+                </View>
+              ))}
+            </ScrollView>
+            {planListScrollable ? (
+              <LinearGradient
+                pointerEvents="none"
+                colors={[...PLAN_LIST_FADE]}
+                start={{ x: 0.5, y: 0 }}
+                end={{ x: 0.5, y: 1 }}
+                style={styles.planListFade}
+              />
+            ) : null}
+          </View>
         )}
       </View>
     </SpringBottomSheet>
@@ -446,6 +489,12 @@ const styles = StyleSheet.create({
     borderRadius: 2.5,
     marginTop: 3,
   },
+  dotOnSelected: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    marginTop: 2,
+  },
   dotSpacer: {
     height: 5,
     marginTop: 3,
@@ -453,41 +502,70 @@ const styles = StyleSheet.create({
   daySection: {
     borderTopWidth: StyleSheet.hairlineWidth,
     borderTopColor: BORDER_MUTED,
-    paddingTop: 12,
+    paddingTop: 14,
     marginTop: 4,
     minHeight: 96,
     paddingBottom: 8,
   },
   daySectionTitle: {
-    color: TEXT,
-    fontSize: TYPE_CAPTION,
+    color: MUTED2,
+    fontSize: TYPE_FINE,
     fontFamily: fonts.medium,
-    marginBottom: 8,
+    letterSpacing: 0.2,
+    marginBottom: 10,
   },
   emptyDay: {
     color: TEXT_MUTED_DARK,
     fontSize: TYPE_CAPTION,
     fontFamily: fonts.book,
   },
+  planListWrap: {
+    position: "relative",
+  },
+  planListScroll: {
+    maxHeight: PLAN_LIST_VISIBLE_COUNT * PLAN_ROW_EST_HEIGHT,
+  },
+  planListContent: {
+    paddingBottom: 2,
+  },
+  planListFade: {
+    position: "absolute",
+    left: 0,
+    right: 0,
+    bottom: 0,
+    height: 28,
+  },
   planRow: {
     flexDirection: "row",
     alignItems: "center",
-    paddingVertical: 10,
-    gap: 8,
+    gap: 10,
+    backgroundColor: SURFACES.elevated,
+    borderRadius: RADIUS_SM,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: ACCENT_BORDER,
+    paddingVertical: 12,
+    paddingRight: 12,
+    paddingLeft: 0,
+    marginBottom: 8,
+    overflow: "hidden",
   },
-  planRowPressed: {
-    opacity: 0.7,
+  planAccentBar: {
+    width: 3,
+    alignSelf: "stretch",
+    borderTopLeftRadius: RADIUS_SM,
+    borderBottomLeftRadius: RADIUS_SM,
   },
   planTextCol: {
     flex: 1,
     minWidth: 0,
+    paddingLeft: 2,
   },
   planTitle: {
     ...listRowTitleText,
   },
   planMeta: {
     ...cardMetaText,
-    marginTop: 3,
+    marginTop: 4,
     lineHeight: 18,
   },
   planLocation: {
