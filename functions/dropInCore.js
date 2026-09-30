@@ -4,6 +4,9 @@ const DROP_IN_EXPIRATION_HOURS = 2;
 const DROP_IN_EXPIRATION_MS = DROP_IN_EXPIRATION_HOURS * 60 * 60 * 1000;
 const DROP_IN_COOLDOWN_MS = 45 * 60 * 1000;
 const DROP_IN_TEXT_MAX = 120;
+/** Max distance for live-status push / in-app fan-out (anti-spam). */
+const DROP_IN_NOTIFY_RADIUS_MILES = 20;
+const EARTH_RADIUS_MILES = 3958.7613;
 
 /**
  * @param {unknown} t
@@ -89,14 +92,79 @@ function normalizeDropInPlace(place) {
   };
 }
 
+/**
+ * @param {Record<string, unknown> | null | undefined} data
+ * @returns {{ lat: number, lng: number } | null}
+ */
+function readUserCoords(data) {
+  if (!data || typeof data !== "object") return null;
+  const lat = typeof data.lat === "number" && Number.isFinite(data.lat) ? data.lat : null;
+  const lng = typeof data.lng === "number" && Number.isFinite(data.lng) ? data.lng : null;
+  if (lat == null || lng == null) return null;
+  return { lat, lng };
+}
+
+/**
+ * Best available position for a live status: place pin, else profile coords.
+ * @param {Record<string, unknown> | null | undefined} callerData
+ * @returns {{ lat: number, lng: number } | null}
+ */
+function resolveDropInOriginCoords(callerData) {
+  const place = normalizeDropInPlace(callerData?.dropInPlace);
+  if (
+    place &&
+    typeof place.lat === "number" &&
+    typeof place.lng === "number"
+  ) {
+    return { lat: place.lat, lng: place.lng };
+  }
+  return readUserCoords(callerData);
+}
+
+/**
+ * @param {number} lat1
+ * @param {number} lon1
+ * @param {number} lat2
+ * @param {number} lon2
+ */
+function haversineMiles(lat1, lon1, lat2, lon2) {
+  const toRad = (d) => (d * Math.PI) / 180;
+  const dLat = toRad(lat2 - lat1);
+  const dLon = toRad(lon2 - lon1);
+  const a =
+    Math.sin(dLat / 2) ** 2 +
+    Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLon / 2) ** 2;
+  return EARTH_RADIUS_MILES * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+}
+
+/**
+ * @param {{ lat: number, lng: number }} origin
+ * @param {{ lat: number, lng: number }} other
+ * @param {number} [radiusMiles]
+ */
+function isWithinDropInNotifyRadius(
+  origin,
+  other,
+  radiusMiles = DROP_IN_NOTIFY_RADIUS_MILES
+) {
+  if (!origin || !other) return false;
+  const miles = haversineMiles(origin.lat, origin.lng, other.lat, other.lng);
+  return Number.isFinite(miles) && miles <= radiusMiles;
+}
+
 module.exports = {
   DROP_IN_EXPIRATION_HOURS,
   DROP_IN_EXPIRATION_MS,
   DROP_IN_COOLDOWN_MS,
   DROP_IN_TEXT_MAX,
+  DROP_IN_NOTIFY_RADIUS_MILES,
   timestampMillis,
   computeDropInActiveFromUserData,
   viewerInDropInAudience,
   normalizeDropInText,
   normalizeDropInPlace,
+  readUserCoords,
+  resolveDropInOriginCoords,
+  haversineMiles,
+  isWithinDropInNotifyRadius,
 };

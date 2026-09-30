@@ -63,8 +63,23 @@ export type FriendDropIn = {
   imageurl?: string;
   text: string;
   place: DropInPlace | null;
+  startedAtMs: number | null;
   expiresAtMs: number;
 };
+
+/** True when a drop-in has coordinates that can be plotted on the friends map. */
+export function dropInHasMapCoords(
+  dropIn: Pick<FriendDropIn, "place"> | null | undefined
+): boolean {
+  const lat = dropIn?.place?.lat;
+  const lng = dropIn?.place?.lng;
+  return (
+    typeof lat === "number" &&
+    Number.isFinite(lat) &&
+    typeof lng === "number" &&
+    Number.isFinite(lng)
+  );
+}
 
 const functions = getFunctions(app, "us-central1");
 
@@ -132,23 +147,23 @@ export function dropInErrorMessage(err: unknown): string {
   if (err instanceof FirebaseError) {
     switch (err.code) {
       case "functions/resource-exhausted":
-        return err.message || "You can share again in a bit.";
+        return err.message || "You can blast again in a bit.";
       case "functions/failed-precondition":
-        return err.message || "Couldn't share live status right now.";
+        return err.message || "Couldn't send blast right now.";
       case "functions/invalid-argument":
         return err.message || "Add where you are.";
       case "functions/unauthenticated":
-        return "Sign in to share live status.";
+        return "Sign in to send a blast.";
       case "functions/permission-denied":
-        return "Live status sharing isn't available yet. Try again in a moment.";
+        return "Blast isn't available yet. Try again in a moment.";
       case "functions/not-found":
-        return "Live status isn't available yet. Try again after an update.";
+        return "Blast isn't available yet. Try again after an update.";
       default:
-        return err.message || "Could not share live status.";
+        return err.message || "Could not send blast.";
     }
   }
   if (err instanceof Error && err.message) return err.message;
-  return "Could not share live status.";
+  return "Could not send blast.";
 }
 
 function isCallableTransportError(err: unknown): boolean {
@@ -189,7 +204,7 @@ async function createDropInViaFirestore(input: {
   audience: SynqAudienceSelection;
 }): Promise<{ expiresAtMs: number; alreadyActive?: boolean }> {
   const uid = auth.currentUser?.uid;
-  if (!uid) throw new Error("Sign in to share live status.");
+  if (!uid) throw new Error("Sign in to send a blast.");
 
   const userRef = doc(db, "users", uid);
   const existing = await getDoc(userRef);
@@ -206,7 +221,7 @@ async function createDropInViaFirestore(input: {
   const friendsSnap = await getDocs(collection(db, "users", uid, "friends"));
   const allFriendIds = friendsSnap.docs.map((d) => d.id);
   if (allFriendIds.length === 0) {
-    throw new Error("Add friends before sharing live status.");
+    throw new Error("Add friends before sending a blast.");
   }
 
   const groups =
@@ -303,15 +318,29 @@ export async function createDropIn(input: {
 }
 
 export async function cancelDropIn(): Promise<void> {
+  // Clear the user doc from the client (local + sync) AND via admin callable.
+  // Callable-only-on-failure left other viewers stuck when the client write
+  // appeared to succeed offline / under rules edge cases.
+  let firestoreErr: unknown = null;
   try {
     await cancelDropInViaFirestore();
-  } catch (firestoreErr) {
-    try {
-      await cancelDropInFn({});
-    } catch (callableErr) {
+  } catch (err) {
+    firestoreErr = err;
+  }
+
+  try {
+    await cancelDropInFn({});
+  } catch (callableErr) {
+    if (firestoreErr) {
       if (isCallableTransportError(callableErr)) throw firestoreErr;
       throw callableErr;
     }
+    // Client clear already landed; callable failure is non-fatal.
+  }
+
+  if (firestoreErr) {
+    // Callable succeeded after client clear failed — still ok for others.
+    return;
   }
 }
 
@@ -328,7 +357,22 @@ export function warmDropInClient(): void {
   void auth.currentUser?.getIdToken().catch(() => {});
 }
 
-const DROP_IN_POLL_TTL_MS = 45_000;
+const DROP_IN_POLL_TTL_MS = 12_000;
+
+function stripDropInFieldsFromProfile(
+  data: Record<string, unknown>
+): Record<string, unknown> {
+  const next = { ...data };
+  delete next.dropInActive;
+  delete next.dropInText;
+  delete next.dropInPlace;
+  delete next.dropInStartedAt;
+  delete next.dropInExpiresAt;
+  delete next.dropInAudienceMode;
+  delete next.dropInAudienceGroupIds;
+  delete next.dropInVisibleTo;
+  return next;
+}
 
 function friendDropInFromData(
   friendId: string,
@@ -341,12 +385,17 @@ function friendDropInFromData(
   const expiresAtMs = timestampMillis(data.dropInExpiresAt);
   if (expiresAtMs == null || expiresAtMs <= Date.now()) return null;
   const place = normalizeDropInPlace(data.dropInPlace);
+  const startedAtMs = timestampMillis(data.dropInStartedAt);
   return {
     friendId,
     displayName: String(data.displayName || "").trim() || "Friend",
     imageurl: data.imageurl ? String(data.imageurl) : undefined,
     text,
     place,
+    startedAtMs:
+      startedAtMs != null && startedAtMs > 0
+        ? startedAtMs
+        : Math.max(0, expiresAtMs - DROP_IN_EXPIRATION_MS),
     expiresAtMs,
   };
 }
@@ -388,30 +437,49 @@ export async function pollActiveFriendDropIns(
             cachedProfile as Record<string, unknown>,
             viewer
           );
-        const mustRefresh = force || cachedActive;
-        const profileFresh =
-          !mustRefresh &&
-          !!cachedProfile &&
-          now - profileAge < DROP_IN_POLL_TTL_MS;
+        // Live status must stay fresh — always hit the server when the friend
+        // looked active, when forced, or when the cache is older than the TTL.
+        const mustRefresh =
+          force ||
+          cachedActive ||
+          !cachedProfile ||
+          now - profileAge >= DROP_IN_POLL_TTL_MS;
 
         let data: Record<string, unknown> | null = null;
-        if (profileFresh && cachedProfile) {
+        if (!mustRefresh && cachedProfile) {
           data = cachedProfile as unknown as Record<string, unknown>;
         } else {
-          const snap = mustRefresh
-            ? await getDocFromServer(doc(db, "users", fid))
-            : await getDoc(doc(db, "users", fid));
+          let snap;
+          try {
+            snap = await getDocFromServer(doc(db, "users", fid));
+          } catch {
+            snap = await getDoc(doc(db, "users", fid));
+          }
           if (!snap.exists()) return;
           const raw = snap.data();
           if (!raw || typeof raw !== "object") return;
           data = raw as Record<string, unknown>;
-          profileCache[fid] = { id: fid, ...data } as Friend;
-          fetchedAtMap[fid] = now;
         }
 
         if (!data) return;
         const dropIn = friendDropInFromData(fid, data, viewer);
-        if (dropIn) results.push(dropIn);
+        if (dropIn) {
+          profileCache[fid] = { id: fid, ...data } as Friend;
+          fetchedAtMap[fid] = now;
+          results.push(dropIn);
+        } else if (cachedActive || data.dropInActive === true) {
+          // Ended (or expired): scrub drop-in fields so the next poll doesn't
+          // treat a stale cache as still live.
+          profileCache[fid] = {
+            id: fid,
+            ...stripDropInFieldsFromProfile(data),
+            dropInActive: false,
+          } as Friend;
+          fetchedAtMap[fid] = now;
+        } else if (mustRefresh) {
+          profileCache[fid] = { id: fid, ...data } as Friend;
+          fetchedAtMap[fid] = now;
+        }
       } catch {
         // Skip friends we can't read.
       }
